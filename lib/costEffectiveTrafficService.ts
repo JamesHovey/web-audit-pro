@@ -20,24 +20,50 @@ interface TrafficData {
 export async function getCostEffectiveTrafficData(domain: string): Promise<TrafficData> {
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
   
-  console.log(`Analyzing ${cleanDomain} using cost-effective methods`);
+  console.log(`\n=== ANALYZING ${cleanDomain} ===`);
+  console.log(`Original domain: ${domain}`);
+  console.log(`Cleaned domain: ${cleanDomain}`);
 
   try {
     // Step 1: Scrape the website for analysis
+    console.log(`Step 1: Scraping ${cleanDomain}...`);
     const siteData = await scrapeSiteForAnalysis(cleanDomain);
     
+    console.log(`Scraping result:`, {
+      success: !siteData.error,
+      htmlLength: siteData.html.length,
+      error: siteData.error,
+      url: siteData.url
+    });
+    
+    // Check if scraping failed
+    if (siteData.error || siteData.html.length < 100) {
+      console.warn('⚠️  Scraping failed or returned minimal content, using fallback');
+      return await getBasicTrafficEstimate(cleanDomain);
+    }
+    
     // Step 2: Use MCP to analyze the scraped data
+    console.log(`Step 2: Analyzing scraped content...`);
     const mcpAnalysis = await analyzeSiteWithMCP(siteData);
     
+    console.log(`Analysis result:`, {
+      siteQuality: mcpAnalysis.siteQuality,
+      businessType: mcpAnalysis.businessType,
+      contentVolume: mcpAnalysis.contentVolume
+    });
+    
     // Step 3: Estimate traffic based on analysis
+    console.log(`Step 3: Estimating traffic with geographic analysis...`);
     const trafficEstimate = await estimateTrafficFromAnalysis(mcpAnalysis, cleanDomain, siteData.html);
     
+    console.log(`✓ Analysis complete for ${cleanDomain}`);
     return trafficEstimate;
     
   } catch (error) {
-    console.error('Cost-effective analysis failed:', error);
+    console.error('❌ Cost-effective analysis failed:', error);
     
     // Fallback to basic estimation
+    console.log('Using basic fallback estimation...');
     return await getBasicTrafficEstimate(cleanDomain);
   }
 }
@@ -47,12 +73,17 @@ async function scrapeSiteForAnalysis(domain: string) {
     const url = `https://${domain}`;
     
     // Use fetch to get basic site data (free)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)',
       },
-      timeout: 10000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -279,21 +310,41 @@ function generateTrendEstimate(organic: number, paid: number) {
 }
 
 async function getBasicTrafficEstimate(domain: string): Promise<TrafficData> {
+  console.log(`Using basic estimation for ${domain} (scraping failed)`);
+  
+  // Even in basic mode, try to detect geography from domain
+  const { analyzeGeographicTarget, generateGeographicTrafficDistribution } = await import('./geographicAnalysis');
+  
+  // Use minimal HTML for domain-only analysis
+  const minimalHtml = '<html><body></body></html>';
+  const geoClues = await analyzeGeographicTarget(domain, minimalHtml);
+  
+  console.log(`Basic geo analysis result:`, {
+    detectedCountry: geoClues.detectedCountry,
+    confidence: geoClues.confidence,
+    primaryMarket: geoClues.primaryMarket
+  });
+  
+  // Generate geographic distribution
+  const topCountries = generateGeographicTrafficDistribution(geoClues);
+  
   // Ultra-basic fallback estimation
   const baseTraffic = 2000 + Math.random() * 8000;
+  const monthlyOrganic = Math.round(baseTraffic * 0.65);
+  const monthlyPaid = Math.round(baseTraffic * 0.12);
+  const totalTraffic = monthlyOrganic + monthlyPaid;
+  
+  // Calculate actual traffic numbers for each country
+  topCountries.forEach(country => {
+    country.traffic = Math.round(totalTraffic * (country.percentage / 100));
+  });
   
   return {
-    monthlyOrganicTraffic: Math.round(baseTraffic * 0.65),
-    monthlyPaidTraffic: Math.round(baseTraffic * 0.12),
+    monthlyOrganicTraffic: monthlyOrganic,
+    monthlyPaidTraffic: monthlyPaid,
     brandedTraffic: Math.round(baseTraffic * 0.2),
-    topCountries: [
-      { country: "United States", percentage: 45.0, traffic: Math.round(baseTraffic * 0.45) },
-      { country: "United Kingdom", percentage: 15.0, traffic: Math.round(baseTraffic * 0.15) },
-      { country: "Canada", percentage: 10.0, traffic: Math.round(baseTraffic * 0.10) },
-      { country: "Germany", percentage: 8.0, traffic: Math.round(baseTraffic * 0.08) },
-      { country: "Australia", percentage: 6.0, traffic: Math.round(baseTraffic * 0.06) }
-    ],
-    trafficTrend: generateTrendEstimate(baseTraffic * 0.65, baseTraffic * 0.12),
+    topCountries,
+    trafficTrend: generateTrendEstimate(monthlyOrganic, monthlyPaid),
     dataSource: 'estimated',
     confidence: 'low'
   };
