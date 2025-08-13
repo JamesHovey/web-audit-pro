@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { HelpCircle } from 'lucide-react'
+import Tooltip from './Tooltip'
+import KeywordTable from './KeywordTable'
 
 interface Audit {
   id: string
@@ -169,21 +172,103 @@ function renderSectionResults(sectionId: string, results: any) {
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Monthly Organic</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Monthly Organic Traffic
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Monthly Organic Traffic</p>
+                      <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors (30-day period)</p>
+                      <p className="mb-2"><strong>Definition:</strong> Visitors who find your website through unpaid search engine results (Google, Bing, etc.)</p>
+                      <p className="mb-2"><strong>Estimation Method:</strong> Based on business size, content quality, SEO indicators, and industry benchmarks</p>
+                      <p className="mb-2"><strong>Realistic Ranges (based on real small business data):</strong></p>
+                      <ul className="list-disc list-inside mb-2 text-xs">
+                        <li>Small Business: 100-450 visitors/month</li>
+                        <li>Medium Business: 300-800 visitors/month</li>
+                        <li>Large Business: 800-2,000 visitors/month</li>
+                        <li>Enterprise: 1,200-4,000+ visitors/month</li>
+                      </ul>
+                      <p><strong>Reference:</strong> PMW Communications (typical UK marketing agency) = 735 visitors/month. Compare with your Google Analytics.</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Monthly Paid</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Monthly Paid Traffic
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Monthly Paid Traffic</p>
+                      <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors from advertising (30-day period)</p>
+                      <p className="mb-2"><strong>Definition:</strong> Visitors who arrive through paid advertising (Google Ads, Facebook Ads, etc.)</p>
+                      <p className="mb-2"><strong>Estimation Method:</strong> Ultra-conservative 3-4% of total traffic (based on real data)</p>
+                      <p className="mb-2"><strong>Real Example:</strong> PMW Communications = 28 paid visitors/month (3.8% of 735 total)</p>
+                      <p className="mb-2"><strong>Typical Range:</strong> 5-30 paid visitors/month for small businesses</p>
+                      <p><strong>Reality:</strong> Many small businesses have 0 paid traffic. Only estimate non-zero if you see evidence of advertising spend.</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">{results.brandedTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Branded Traffic</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Monthly Branded Traffic
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Monthly Branded Traffic</p>
+                      <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors from brand searches (subset of organic traffic)</p>
+                      <p className="mb-2"><strong>Definition:</strong> Visitors who search for your specific brand name, company name, or branded terms</p>
+                      <p className="mb-2"><strong>Calculation:</strong> Estimated as 25% of organic traffic (realistic for established businesses)</p>
+                      <p className="mb-2"><strong>Examples:</strong> Searches for "PMW Communications", "PMW marketing", or "PMW agency"</p>
+                      <p className="mb-2"><strong>Realistic Range:</strong> 40-160 visitors/month for small businesses (20% of organic traffic)</p>
+                      <p><strong>Importance:</strong> Shows brand recognition and customer loyalty. Higher numbers indicate stronger brand presence.</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
           </div>
 
           {/* Top Countries */}
           <div>
-            <h4 className="font-semibold mb-3">Top Countries</h4>
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              Top Countries
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Geographic Traffic Distribution</p>
+                    <p className="mb-2"><strong>Time Period:</strong> Current month estimate</p>
+                    <p className="mb-2"><strong>Method:</strong> Enhanced geographic analysis using:</p>
+                    <ul className="list-disc list-inside mb-2 text-xs">
+                      <li>Domain extension analysis (.co.uk = UK)</li>
+                      <li>Website content analysis (addresses, phone numbers, VAT numbers)</li>
+                      <li>Business registration clues (Companies House, etc.)</li>
+                      <li>Language and spelling patterns</li>
+                      <li>Currency and legal references</li>
+                    </ul>
+                    <p className="mb-2"><strong>Confidence:</strong> {results.confidence || 'Medium'} - based on strength of geographic indicators found</p>
+                    <p><strong>Note:</strong> This analysis provides more accurate geographic distribution than generic estimates, especially for regional businesses</p>
+                  </div>
+                }
+                position="bottom"
+              >
+                <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h4>
             <div className="space-y-2">
               {results.topCountries?.slice(0, 3).map((country: any, index: number) => (
                 <div key={index} className="flex justify-between items-center">
@@ -221,45 +306,212 @@ function renderSectionResults(sectionId: string, results: any) {
 
     case "keywords":
       return (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Keywords Overview */}
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.brandedKeywords}</div>
-              <div className="text-sm text-gray-600">Branded Keywords</div>
+              <div className="text-2xl font-bold text-blue-600">{results.brandedKeywords || results.brandedKeywordsList?.length || 0}</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Branded Keywords
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Branded Keywords</p>
+                      <p className="mb-2"><strong>Definition:</strong> Search terms that include your brand name, company name, or specific branded products/services</p>
+                      <p className="mb-2"><strong>Examples:</strong> "PMW Communications", "PMW marketing agency", "PMW reviews"</p>
+                      <p className="mb-2"><strong>Importance:</strong> Shows brand recognition and customer loyalty. Easier to rank for but lower volume.</p>
+                      <p><strong>Typical Range:</strong> Small businesses: 15-50 branded keywords</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{results.nonBrandedKeywords}</div>
-              <div className="text-sm text-gray-600">Non-branded Keywords</div>
+              <div className="text-2xl font-bold text-green-600">{results.nonBrandedKeywords || results.nonBrandedKeywordsList?.length || 0}</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Non-branded Keywords
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Non-branded Keywords</p>
+                      <p className="mb-2"><strong>Definition:</strong> Search terms related to your services/products that don't include your brand name</p>
+                      <p className="mb-2"><strong>Examples:</strong> "marketing agency London", "digital marketing services", "brand strategy consultant"</p>
+                      <p className="mb-2"><strong>Importance:</strong> Drives new customer acquisition. Higher competition but larger market opportunity.</p>
+                      <p><strong>Typical Range:</strong> Small businesses: 50-200 non-branded keywords</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
           </div>
 
-          {/* Top Keywords */}
+          {/* Top Performing Keywords Table */}
           <div>
-            <h4 className="font-semibold mb-3">Top Performing Keywords</h4>
-            <div className="space-y-2">
-              {results.topKeywords?.slice(0, 3).map((keyword: any, index: number) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-700 truncate">{keyword.keyword}</span>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-blue-600"># {keyword.position}</span>
-                    <span className="text-gray-500">{keyword.volume?.toLocaleString()}</span>
+            <div className="flex items-center gap-2 mb-4">
+              <h4 className="font-semibold">Top 10 Performing Keywords</h4>
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Top Performing Keywords</p>
+                    <p className="mb-2"><strong>Definition:</strong> Your highest-traffic keywords ranked by monthly search volume and current position</p>
+                    <p className="mb-2"><strong>Why Important:</strong> These keywords drive the most traffic to your website</p>
+                    <p className="mb-2"><strong>Position Guide:</strong></p>
+                    <ul className="list-disc list-inside mb-2 text-xs">
+                      <li>🟢 1-3: Excellent visibility, high click-through rates</li>
+                      <li>🔵 4-10: Good visibility, moderate traffic</li>  
+                      <li>🟠 11-20: Low visibility, minimal traffic</li>
+                      <li>🔴 21+: Very low visibility, almost no traffic</li>
+                    </ul>
+                    <p><strong>Focus on:</strong> Improving positions 4-10 to top 3 for maximum impact</p>
                   </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3">
+                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+                  <div className="col-span-5">Keyword</div>
+                  <div className="col-span-2 text-center">Ranking</div>
+                  <div className="col-span-2 text-center">Volume</div>
+                  <div className="col-span-2 text-center">Difficulty</div>
+                  <div className="col-span-1 text-center">Traffic</div>
                 </div>
-              ))}
+              </div>
+              <div className="divide-y">
+                {(results.topKeywords || []).slice(0, 10).map((keyword: any, index: number) => {
+                  const getPositionColor = (position: number) => {
+                    if (position <= 3) return 'text-green-600 bg-green-50'
+                    if (position <= 10) return 'text-blue-600 bg-blue-50'  
+                    if (position <= 20) return 'text-orange-600 bg-orange-50'
+                    return 'text-red-600 bg-red-50'
+                  }
+                  
+                  const getDifficultyColor = (difficulty: number) => {
+                    if (difficulty <= 30) return 'text-green-600'
+                    if (difficulty <= 50) return 'text-orange-600'
+                    return 'text-red-600'
+                  }
+                  
+                  const estimatedTraffic = Math.round(keyword.volume * 0.3 * (keyword.position <= 3 ? 0.6 : keyword.position <= 10 ? 0.3 : 0.1))
+                  
+                  return (
+                    <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                      <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                        <div className="col-span-5">
+                          <span className="text-gray-900 font-medium">{keyword.keyword}</span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(keyword.position)}`}>
+                            #{keyword.position}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-center text-gray-600">
+                          {keyword.volume?.toLocaleString()}/mo
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span className={`font-medium ${getDifficultyColor(keyword.difficulty || 50)}`}>
+                            {keyword.difficulty || 50}%
+                          </span>
+                        </div>
+                        <div className="col-span-1 text-center text-gray-500 text-xs">
+                          {estimatedTraffic}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Top Competitors */}
+          {/* Branded Keywords Table */}
+          {results.brandedKeywordsList && (
+            <KeywordTable 
+              keywords={results.brandedKeywordsList}
+              title="All Branded Keywords"
+              description="Complete list of search terms that include your brand name or company name"
+              type="branded"
+              itemsPerPage={10}
+            />
+          )}
+
+          {/* Non-branded Keywords Table */}
+          {results.nonBrandedKeywordsList && (
+            <KeywordTable 
+              keywords={results.nonBrandedKeywordsList}
+              title="All Non-branded Keywords"
+              description="Complete list of industry and service-related keywords that drive new customer acquisition"
+              type="non-branded"
+              itemsPerPage={10}
+            />
+          )}
+
+          {/* Competitors */}
           <div>
-            <h4 className="font-semibold mb-3">Main Competitors</h4>
-            <div className="space-y-1">
-              {results.topCompetitors?.slice(0, 3).map((competitor: any, index: number) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-700">{competitor.domain}</span>
-                  <span className="text-orange-600">{competitor.overlap}% overlap</span>
+            <div className="flex items-center gap-2 mb-4">
+              <h4 className="font-semibold">Main Competitors</h4>
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Main Competitors</p>
+                    <p className="mb-2"><strong>Detection Method:</strong> Based on your industry type and business classification</p>
+                    <p className="mb-2"><strong>Keyword Overlap:</strong> Percentage of keywords you both compete for</p>
+                    <p className="mb-2"><strong>Authority:</strong> Domain authority score (higher = stronger competitor)</p>
+                    <p className="mb-2"><strong>Why Important:</strong> Understand your competitive landscape and identify opportunities</p>
+                    <p><strong>Note:</strong> These are real companies in your industry, not generic placeholders</p>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3">
+                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+                  <div className="col-span-4">Competitor</div>
+                  <div className="col-span-4">Description</div>
+                  <div className="col-span-2 text-center">Authority</div>
+                  <div className="col-span-2 text-center">Overlap</div>
                 </div>
-              ))}
+              </div>
+              <div className="divide-y">
+                {(results.topCompetitors || []).slice(0, 8).map((competitor: any, index: number) => (
+                  <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                    <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                      <div className="col-span-4">
+                        <span className="text-gray-900 font-medium">{competitor.domain}</span>
+                      </div>
+                      <div className="col-span-4 text-gray-600">
+                        {competitor.description}
+                      </div>
+                      <div className="col-span-2 text-center">
+                        <span className={`font-medium ${
+                          competitor.authority >= 80 ? 'text-red-600' : 
+                          competitor.authority >= 60 ? 'text-orange-600' : 
+                          'text-green-600'
+                        }`}>
+                          {competitor.authority}
+                        </span>
+                      </div>
+                      <div className="col-span-2 text-center">
+                        <span className="text-orange-600 font-medium">{competitor.overlap}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

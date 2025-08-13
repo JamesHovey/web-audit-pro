@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
         // Use mock data for other sections
         const { generateMockAuditResults } = await import('@/lib/mockData')
-        const mockResults = generateMockAuditResults(url, sections)
+        const mockResults = await generateMockAuditResults(url, sections)
         
         // Merge real and mock data
         const finalResults = { ...mockResults, ...results }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         console.error('Error processing audit:', error)
         // Fallback to mock data on error
         const { generateMockAuditResults } = await import('@/lib/mockData')
-        const mockResults = generateMockAuditResults(url, sections)
+        const mockResults = await generateMockAuditResults(url, sections)
         
         await prisma.audit.update({
           where: { id: audit.id },

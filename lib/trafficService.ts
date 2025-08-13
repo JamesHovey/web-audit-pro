@@ -214,6 +214,6 @@ export async function getTrafficData(domain: string): Promise<TrafficData> {
   // Fallback to mock data with a note
   console.log('Using fallback mock data - no API keys available');
   const { generateMockAuditResults } = await import('./mockData');
-  const mockResults = generateMockAuditResults(`https://${cleanDomain}`, ['traffic']);
+  const mockResults = await generateMockAuditResults(`https://${cleanDomain}`, ['traffic']);
   return mockResults.traffic;
 }

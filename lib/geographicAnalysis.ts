@@ -88,22 +88,52 @@ function analyzeDomainExtension(domain: string): { country: string | null; confi
     '.co.uk': 'United Kingdom',
     '.org.uk': 'United Kingdom', 
     '.ac.uk': 'United Kingdom',
+    '.gov.uk': 'United Kingdom',
+    '.nhs.uk': 'United Kingdom',
+    '.police.uk': 'United Kingdom',
     '.uk': 'United Kingdom',
     '.ca': 'Canada',
+    '.com.au': 'Australia',
+    '.net.au': 'Australia',
+    '.org.au': 'Australia',
+    '.edu.au': 'Australia',
+    '.gov.au': 'Australia',
     '.au': 'Australia',
     '.de': 'Germany',
     '.fr': 'France',
     '.it': 'Italy',
     '.es': 'Spain',
     '.nl': 'Netherlands',
+    '.be': 'Belgium',
+    '.ch': 'Switzerland',
+    '.at': 'Austria',
     '.se': 'Sweden',
     '.no': 'Norway',
     '.dk': 'Denmark',
+    '.fi': 'Finland',
+    '.ie': 'Ireland',
     '.jp': 'Japan',
+    '.kr': 'South Korea',
+    '.cn': 'China',
     '.in': 'India',
+    '.sg': 'Singapore',
+    '.hk': 'Hong Kong',
+    '.nz': 'New Zealand',
+    '.za': 'South Africa',
     '.br': 'Brazil',
-    '.mx': 'Mexico'
+    '.mx': 'Mexico',
+    '.ar': 'Argentina',
+    '.cl': 'Chile',
+    '.co': 'Colombia',
+    '.ru': 'Russia',
+    '.pl': 'Poland',
+    '.cz': 'Czech Republic',
+    '.hu': 'Hungary'
   };
+
+  // Also check domain name for country indicators
+  const domainNameClues = analyzeDomainName(domain);
+  clues.push(...domainNameClues.clues);
 
   for (const [tld, country] of Object.entries(countryTlds)) {
     if (domain.endsWith(tld)) {
@@ -113,7 +143,62 @@ function analyzeDomainExtension(domain: string): { country: string | null; confi
     }
   }
 
+  // If no TLD match but domain name has clues, use that
+  if (domainNameClues.country) {
+    console.log(`✓ Found domain name clue: ${domainNameClues.country}`);
+    return { country: domainNameClues.country, confidence: 'medium', clues };
+  }
+
   console.log(`✗ No TLD match found for: ${domain}`);
+  return { country: null, confidence: 'low', clues };
+}
+
+function analyzeDomainName(domain: string): { country: string | null; confidence: 'high' | 'medium' | 'low'; clues: string[] } {
+  const clues: string[] = [];
+  const lowerDomain = domain.toLowerCase();
+
+  // Country name/abbreviation patterns in domain
+  const countryPatterns: { [key: string]: string } = {
+    'uk': 'United Kingdom',
+    'britain': 'United Kingdom',
+    'british': 'United Kingdom',
+    'england': 'United Kingdom',
+    'scotland': 'United Kingdom',
+    'wales': 'United Kingdom',
+    'london': 'United Kingdom',
+    'manchester': 'United Kingdom',
+    'birmingham': 'United Kingdom',
+    'usa': 'United States',
+    'america': 'United States',
+    'american': 'United States',
+    'newyork': 'United States',
+    'california': 'United States',
+    'texas': 'United States',
+    'florida': 'United States',
+    'canada': 'Canada',
+    'canadian': 'Canada',
+    'toronto': 'Canada',
+    'vancouver': 'Canada',
+    'australia': 'Australia',
+    'australian': 'Australia',
+    'sydney': 'Australia',
+    'melbourne': 'Australia',
+    'germany': 'Germany',
+    'german': 'Germany',
+    'berlin': 'Germany',
+    'munich': 'Germany',
+    'france': 'France',
+    'french': 'France',
+    'paris': 'France'
+  };
+
+  for (const [pattern, country] of Object.entries(countryPatterns)) {
+    if (lowerDomain.includes(pattern)) {
+      clues.push(`Domain name contains "${pattern}" indicating ${country}`);
+      return { country, confidence: 'medium', clues };
+    }
+  }
+
   return { country: null, confidence: 'low', clues };
 }
 
@@ -121,79 +206,170 @@ function analyzeContentForLocation(html: string): { country: string | null; conf
   const clues: string[] = [];
   const lowerHtml = html.toLowerCase();
 
-  // UK-specific indicators
-  const ukIndicators = [
-    'united kingdom', 'england', 'scotland', 'wales', 'northern ireland',
-    'london', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh',
-    'ltd', 'limited', 'plc', '£', 'pounds', 'sterling', 'vat number',
-    'companies house', 'hmrc', 'ofcom', 'fca', 'post code', 'postcode'
-  ];
-
-  // US-specific indicators
-  const usIndicators = [
-    'united states', 'usa', 'america', 'new york', 'california', 'texas',
-    'florida', 'chicago', 'los angeles', 'inc', 'llc', 'corporation',
-    '$', 'dollars', 'usd', 'zip code', 'state', 'irs', 'sec', 'fcc'
-  ];
-
-  // Canadian indicators
-  const caIndicators = [
-    'canada', 'toronto', 'vancouver', 'montreal', 'ottawa', 'calgary',
-    'cad', 'canadian', 'province', 'postal code', 'cra'
-  ];
-
-  // Australian indicators
-  const auIndicators = [
-    'australia', 'sydney', 'melbourne', 'brisbane', 'perth', 'adelaide',
-    'aud', 'pty', 'abn', 'acn', 'asic'
-  ];
-
-  let ukCount = 0, usCount = 0, caCount = 0, auCount = 0;
-
-  ukIndicators.forEach(indicator => {
-    if (lowerHtml.includes(indicator)) {
-      ukCount++;
-      clues.push(`Found UK indicator: "${indicator}"`);
+  // Enhanced country indicators with weights
+  const countryIndicators = [
+    {
+      country: 'United Kingdom',
+      strongIndicators: [
+        'companies house', 'hmrc', 'ofcom', 'fca', 'vat number', 'vat registration',
+        'registered in england', 'registered in wales', 'registered in scotland',
+        '£', 'pounds sterling', 'gbp', 'uk vat', 'charity commission',
+        'post code', 'postcode', 'uk postcode'
+      ],
+      mediumIndicators: [
+        'united kingdom', 'england', 'scotland', 'wales', 'northern ireland',
+        'london', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh',
+        'liverpool', 'bristol', 'sheffield', 'newcastle', 'nottingham',
+        'ltd', 'limited', 'plc', 'pounds', 'sterling', 'british',
+        'uk', 'gb', 'great britain'
+      ],
+      weakIndicators: [
+        'colour', 'favour', 'honour', 'centre', 'theatre', 'metre',
+        'licence', 'defence', 'grey', 'realise', 'organise'
+      ]
+    },
+    {
+      country: 'United States',
+      strongIndicators: [
+        'irs', 'sec', 'fcc', 'ein', 'federal tax id', 'delaware corporation',
+        'incorporated in', 'us tax', 'social security', 'zip code',
+        'state of incorporation', '501(c)', 'llc', 'corporation', 'inc.'
+      ],
+      mediumIndicators: [
+        'united states', 'usa', 'america', 'american', 'us',
+        'new york', 'california', 'texas', 'florida', 'chicago',
+        'los angeles', 'houston', 'phoenix', 'philadelphia', 'san antonio',
+        '$', 'dollars', 'usd', 'state', 'county'
+      ],
+      weakIndicators: [
+        'color', 'favor', 'honor', 'center', 'theater', 'meter',
+        'license', 'defense', 'gray', 'realize', 'organize',
+        'aluminum', 'check', 'mom', 'math', 'vacation'
+      ]
+    },
+    {
+      country: 'Canada',
+      strongIndicators: [
+        'cra', 'canada revenue agency', 'canadian tax', 'gst/hst',
+        'business number', 'bn', 'postal code', 'province',
+        'health canada', 'transport canada'
+      ],
+      mediumIndicators: [
+        'canada', 'canadian', 'toronto', 'vancouver', 'montreal',
+        'ottawa', 'calgary', 'edmonton', 'winnipeg', 'quebec',
+        'cad', 'ontario', 'british columbia', 'alberta'
+      ],
+      weakIndicators: [
+        'colour', 'favour', 'honour', 'centre', 'theatre', 'eh'
+      ]
+    },
+    {
+      country: 'Australia',
+      strongIndicators: [
+        'abn', 'acn', 'asic', 'australian business number', 'australian company number',
+        'ato', 'australian taxation office', 'gst', 'tfn'
+      ],
+      mediumIndicators: [
+        'australia', 'australian', 'sydney', 'melbourne', 'brisbane',
+        'perth', 'adelaide', 'canberra', 'darwin', 'hobart',
+        'aud', 'pty', 'pty ltd', 'nsw', 'vic', 'qld', 'wa', 'sa', 'tas'
+      ],
+      weakIndicators: [
+        'colour', 'favour', 'honour', 'centre', 'theatre', 'mate'
+      ]
+    },
+    {
+      country: 'Germany',
+      strongIndicators: [
+        'gmbh', 'ag', 'ust-id', 'handelsregister', 'amtsgericht',
+        'bundeszentralamt', 'bafin', 'steuer', 'finanzamt'
+      ],
+      mediumIndicators: [
+        'germany', 'german', 'deutschland', 'berlin', 'munich',
+        'hamburg', 'cologne', 'frankfurt', 'stuttgart', 'düsseldorf',
+        'eur', 'euro', 'de', 'deutsch'
+      ],
+      weakIndicators: ['ß', 'ä', 'ö', 'ü', 'strasse', 'platz']
+    },
+    {
+      country: 'France',
+      strongIndicators: [
+        'sarl', 'sas', 'sa', 'siret', 'siren', 'tva', 'rcs',
+        'préfecture', 'mairie', 'ministère'
+      ],
+      mediumIndicators: [
+        'france', 'french', 'français', 'paris', 'lyon',
+        'marseille', 'toulouse', 'nice', 'nantes', 'strasbourg',
+        'eur', 'euro', 'fr'
+      ],
+      weakIndicators: ['é', 'è', 'ê', 'à', 'ç', 'rue', 'avenue']
     }
+  ];
+
+  const countryScores: { [key: string]: number } = {};
+
+  // Analyze each country's indicators
+  countryIndicators.forEach(({ country, strongIndicators, mediumIndicators, weakIndicators }) => {
+    let score = 0;
+
+    // Strong indicators (weight: 5)
+    strongIndicators.forEach(indicator => {
+      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      const matches = (lowerHtml.match(regex) || []).length;
+      if (matches > 0) {
+        score += matches * 5;
+        clues.push(`Strong ${country} indicator: "${indicator}" (${matches}x)`);
+      }
+    });
+
+    // Medium indicators (weight: 2)
+    mediumIndicators.forEach(indicator => {
+      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      const matches = (lowerHtml.match(regex) || []).length;
+      if (matches > 0) {
+        score += matches * 2;
+        clues.push(`Medium ${country} indicator: "${indicator}" (${matches}x)`);
+      }
+    });
+
+    // Weak indicators (weight: 1)
+    weakIndicators.forEach(indicator => {
+      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      const matches = (lowerHtml.match(regex) || []).length;
+      if (matches > 0) {
+        score += matches * 1;
+        clues.push(`Weak ${country} indicator: "${indicator}" (${matches}x)`);
+      }
+    });
+
+    countryScores[country] = score;
   });
 
-  usIndicators.forEach(indicator => {
-    if (lowerHtml.includes(indicator)) {
-      usCount++;
-      clues.push(`Found US indicator: "${indicator}"`);
-    }
-  });
+  // Sort countries by score
+  const sortedCountries = Object.entries(countryScores)
+    .sort(([, a], [, b]) => b - a)
+    .filter(([, score]) => score > 0);
 
-  caIndicators.forEach(indicator => {
-    if (lowerHtml.includes(indicator)) {
-      caCount++;
-      clues.push(`Found Canadian indicator: "${indicator}"`);
-    }
-  });
-
-  auIndicators.forEach(indicator => {
-    if (lowerHtml.includes(indicator)) {
-      auCount++;
-      clues.push(`Found Australian indicator: "${indicator}"`);
-    }
-  });
-
-  const scores = [
-    { country: 'United Kingdom', count: ukCount },
-    { country: 'United States', count: usCount },
-    { country: 'Canada', count: caCount },
-    { country: 'Australia', count: auCount }
-  ];
-
-  scores.sort((a, b) => b.count - a.count);
-  
-  if (scores[0].count >= 3) {
-    return { country: scores[0].country, confidence: 'high', clues };
-  } else if (scores[0].count >= 1) {
-    return { country: scores[0].country, confidence: 'medium', clues };
+  if (sortedCountries.length === 0) {
+    return { country: null, confidence: 'low', clues };
   }
 
-  return { country: null, confidence: 'low', clues };
+  const [topCountry, topScore] = sortedCountries[0];
+  const secondScore = sortedCountries[1]?.[1] || 0;
+
+  // Determine confidence based on score and gap to second place
+  let confidence: 'high' | 'medium' | 'low';
+  if (topScore >= 15 && topScore > secondScore * 2) {
+    confidence = 'high';
+  } else if (topScore >= 5 && topScore > secondScore * 1.5) {
+    confidence = 'medium';
+  } else {
+    confidence = 'low';
+  }
+
+  console.log(`Content analysis scores:`, Object.fromEntries(sortedCountries.slice(0, 3)));
+
+  return { country: topCountry, confidence, clues };
 }
 
 function analyzeContactInformation(html: string): { country: string | null; confidence: 'high' | 'medium' | 'low'; clues: string[] } {
