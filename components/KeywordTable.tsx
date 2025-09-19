@@ -61,10 +61,10 @@ export default function KeywordTable({
                 <div>
                   <p className="mb-2"><strong>Examples:</strong></p>
                   <ul className="list-disc list-inside mb-2 text-xs">
-                    <li>Brand name searches: "PMW Communications"</li>
-                    <li>Brand + service: "PMW marketing services"</li>
-                    <li>Brand + location: "PMW agency London"</li>
-                    <li>Brand reviews: "PMW Communications reviews"</li>
+                    <li>Brand name searches: &quot;PMW Communications&quot;</li>
+                    <li>Brand + service: &quot;PMW marketing services&quot;</li>
+                    <li>Brand + location: &quot;PMW agency London&quot;</li>
+                    <li>Brand reviews: &quot;PMW Communications reviews&quot;</li>
                   </ul>
                   <p><strong>Why Important:</strong> Shows brand recognition and customer loyalty</p>
                 </div>
@@ -73,10 +73,10 @@ export default function KeywordTable({
                 <div>
                   <p className="mb-2"><strong>Examples:</strong></p>
                   <ul className="list-disc list-inside mb-2 text-xs">
-                    <li>Service terms: "marketing agency London"</li>
-                    <li>Problem-focused: "digital marketing services"</li>
-                    <li>Industry terms: "brand strategy consultant"</li>
-                    <li>Local search: "marketing company near me"</li>
+                    <li>Service terms: &quot;marketing agency London&quot;</li>
+                    <li>Problem-focused: &quot;digital marketing services&quot;</li>
+                    <li>Industry terms: &quot;brand strategy consultant&quot;</li>
+                    <li>Local search: &quot;marketing company near me&quot;</li>
                   </ul>
                   <p><strong>Why Important:</strong> Drives new customer acquisition</p>
                 </div>

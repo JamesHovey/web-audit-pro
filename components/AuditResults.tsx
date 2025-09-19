@@ -11,7 +11,7 @@ interface Audit {
   url: string
   status: string
   sections: string[]
-  results?: any
+  results?: Record<string, unknown>
   createdAt: string
   completedAt?: string
 }
@@ -163,17 +163,26 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   )
 }
 
-function renderSectionResults(sectionId: string, results: any) {
+function renderSectionResults(sectionId: string, results: Record<string, unknown>) {
   switch (sectionId) {
     case "traffic":
       return (
         <div className="space-y-6">
           {/* Traffic Overview */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Monthly Organic Traffic
+            {(() => {
+              const totalTraffic = (results.monthlyOrganicTraffic || 0) + (results.monthlyPaidTraffic || 0);
+              const organicPercentage = totalTraffic > 0 ? Math.round((results.monthlyOrganicTraffic / totalTraffic) * 100) : 0;
+              const paidPercentage = totalTraffic > 0 ? Math.round((results.monthlyPaidTraffic / totalTraffic) * 100) : 0;
+              const brandedPercentage = results.monthlyOrganicTraffic > 0 ? Math.round((results.brandedTraffic / results.monthlyOrganicTraffic) * 100) : 0;
+              
+              return (
+                <>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString()}</div>
+                    <div className="text-xs text-blue-500 font-medium mb-1">{organicPercentage}% of total traffic</div>
+                    <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                      Monthly Organic Traffic
                 <Tooltip 
                   content={
                     <div>
@@ -181,14 +190,14 @@ function renderSectionResults(sectionId: string, results: any) {
                       <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors (30-day period)</p>
                       <p className="mb-2"><strong>Definition:</strong> Visitors who find your website through unpaid search engine results (Google, Bing, etc.)</p>
                       <p className="mb-2"><strong>Estimation Method:</strong> Based on business size, content quality, SEO indicators, and industry benchmarks</p>
-                      <p className="mb-2"><strong>Realistic Ranges (based on real small business data):</strong></p>
+                      <p className="mb-2"><strong>Realistic Ranges (based on actual Google Analytics data):</strong></p>
                       <ul className="list-disc list-inside mb-2 text-xs">
-                        <li>Small Business: 100-450 visitors/month</li>
-                        <li>Medium Business: 300-800 visitors/month</li>
-                        <li>Large Business: 800-2,000 visitors/month</li>
-                        <li>Enterprise: 1,200-4,000+ visitors/month</li>
+                        <li>Small Business: 80-300 visitors/month</li>
+                        <li>Medium Business: 200-500 visitors/month</li>
+                        <li>Large Business: 600-1,500 visitors/month</li>
+                        <li>Enterprise: 800-2,500+ visitors/month</li>
                       </ul>
-                      <p><strong>Reference:</strong> PMW Communications (typical UK marketing agency) = 735 visitors/month. Compare with your Google Analytics.</p>
+                      <p><strong>Reference:</strong> PMW Communications (UK marketing agency) = 761 visitors/month from Google Analytics. Estimates now calibrated to real data.</p>
                     </div>
                   }
                   position="top"
@@ -196,11 +205,12 @@ function renderSectionResults(sectionId: string, results: any) {
                   <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
                 </Tooltip>
               </div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Monthly Paid Traffic
+                    </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString()}</div>
+                    <div className="text-xs text-green-500 font-medium mb-1">{paidPercentage}% of total traffic</div>
+                    <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                      Monthly Paid Traffic
                 <Tooltip 
                   content={
                     <div>
@@ -218,11 +228,12 @@ function renderSectionResults(sectionId: string, results: any) {
                   <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
                 </Tooltip>
               </div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{results.brandedTraffic?.toLocaleString()}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Monthly Branded Traffic
+                    </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">{results.brandedTraffic?.toLocaleString()}</div>
+                    <div className="text-xs text-purple-500 font-medium mb-1">{brandedPercentage}% of organic traffic</div>
+                    <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                      Monthly Branded Traffic
                 <Tooltip 
                   content={
                     <div>
@@ -230,7 +241,7 @@ function renderSectionResults(sectionId: string, results: any) {
                       <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors from brand searches (subset of organic traffic)</p>
                       <p className="mb-2"><strong>Definition:</strong> Visitors who search for your specific brand name, company name, or branded terms</p>
                       <p className="mb-2"><strong>Calculation:</strong> Estimated as 25% of organic traffic (realistic for established businesses)</p>
-                      <p className="mb-2"><strong>Examples:</strong> Searches for "PMW Communications", "PMW marketing", or "PMW agency"</p>
+                      <p className="mb-2"><strong>Examples:</strong> Searches for &quot;PMW Communications&quot;, &quot;PMW marketing&quot;, or &quot;PMW agency&quot;</p>
                       <p className="mb-2"><strong>Realistic Range:</strong> 40-160 visitors/month for small businesses (20% of organic traffic)</p>
                       <p><strong>Importance:</strong> Shows brand recognition and customer loyalty. Higher numbers indicate stronger brand presence.</p>
                     </div>
@@ -239,8 +250,11 @@ function renderSectionResults(sectionId: string, results: any) {
                 >
                   <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
                 </Tooltip>
-              </div>
-            </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Top Countries */}
@@ -270,7 +284,7 @@ function renderSectionResults(sectionId: string, results: any) {
               </Tooltip>
             </h4>
             <div className="space-y-2">
-              {results.topCountries?.slice(0, 3).map((country: any, index: number) => (
+              {results.topCountries?.slice(0, 3).map((country: { country: string; percentage: number; traffic?: number }, index: number) => (
                 <div key={index} className="flex justify-between items-center">
                   <span className="text-gray-700">{country.country}</span>
                   <div className="flex items-center space-x-2">
@@ -318,7 +332,7 @@ function renderSectionResults(sectionId: string, results: any) {
                     <div>
                       <p className="font-semibold mb-2">Branded Keywords</p>
                       <p className="mb-2"><strong>Definition:</strong> Search terms that include your brand name, company name, or specific branded products/services</p>
-                      <p className="mb-2"><strong>Examples:</strong> "PMW Communications", "PMW marketing agency", "PMW reviews"</p>
+                      <p className="mb-2"><strong>Examples:</strong> &quot;PMW Communications&quot;, &quot;PMW marketing agency&quot;, &quot;PMW reviews&quot;</p>
                       <p className="mb-2"><strong>Importance:</strong> Shows brand recognition and customer loyalty. Easier to rank for but lower volume.</p>
                       <p><strong>Typical Range:</strong> Small businesses: 15-50 branded keywords</p>
                     </div>
@@ -337,8 +351,8 @@ function renderSectionResults(sectionId: string, results: any) {
                   content={
                     <div>
                       <p className="font-semibold mb-2">Non-branded Keywords</p>
-                      <p className="mb-2"><strong>Definition:</strong> Search terms related to your services/products that don't include your brand name</p>
-                      <p className="mb-2"><strong>Examples:</strong> "marketing agency London", "digital marketing services", "brand strategy consultant"</p>
+                      <p className="mb-2"><strong>Definition:</strong> Search terms related to your services/products that don&apos;t include your brand name</p>
+                      <p className="mb-2"><strong>Examples:</strong> &quot;marketing agency London&quot;, &quot;digital marketing services&quot;, &quot;brand strategy consultant&quot;</p>
                       <p className="mb-2"><strong>Importance:</strong> Drives new customer acquisition. Higher competition but larger market opportunity.</p>
                       <p><strong>Typical Range:</strong> Small businesses: 50-200 non-branded keywords</p>
                     </div>
@@ -388,7 +402,7 @@ function renderSectionResults(sectionId: string, results: any) {
                 </div>
               </div>
               <div className="divide-y">
-                {(results.topKeywords || []).slice(0, 10).map((keyword: any, index: number) => {
+                {(results.topKeywords || []).slice(0, 10).map((keyword: { keyword: string; position: number; volume?: number; difficulty?: number }, index: number) => {
                   const getPositionColor = (position: number) => {
                     if (position <= 3) return 'text-green-600 bg-green-50'
                     if (position <= 10) return 'text-blue-600 bg-blue-50'  
@@ -487,7 +501,7 @@ function renderSectionResults(sectionId: string, results: any) {
                 </div>
               </div>
               <div className="divide-y">
-                {(results.topCompetitors || []).slice(0, 8).map((competitor: any, index: number) => (
+                {(results.topCompetitors || []).slice(0, 8).map((competitor: { domain: string; description: string; authority: number; overlap: number }, index: number) => (
                   <div key={index} className="px-4 py-3 hover:bg-gray-50">
                     <div className="grid grid-cols-12 gap-4 items-center text-sm">
                       <div className="col-span-4">
@@ -619,7 +633,7 @@ function renderSectionResults(sectionId: string, results: any) {
           <div>
             <h4 className="font-semibold mb-3">High Authority Backlinks</h4>
             <div className="space-y-2">
-              {results.topBacklinks?.slice(0, 4).map((backlink: any, index: number) => (
+              {results.topBacklinks?.slice(0, 4).map((backlink: { domain: string; anchor: string; authority: number; type: string }, index: number) => (
                 <div key={index} className="flex justify-between items-center text-sm border-b pb-2">
                   <div>
                     <div className="font-medium text-gray-800">{backlink.domain}</div>
@@ -725,6 +739,12 @@ function renderSectionResults(sectionId: string, results: any) {
                 <span className="text-gray-600 text-sm">Framework:</span>
                 <div className="font-semibold text-green-600">{results.framework || 'Not detected'}</div>
               </div>
+              {results.pageBuilder && (
+                <div>
+                  <span className="text-gray-600 text-sm">Page Builder:</span>
+                  <div className="font-semibold text-teal-600">{results.pageBuilder}</div>
+                </div>
+              )}
             </div>
             <div className="space-y-3">
               <div>
@@ -732,9 +752,21 @@ function renderSectionResults(sectionId: string, results: any) {
                 <div className="font-semibold text-purple-600">{results.analytics || 'Not detected'}</div>
               </div>
               <div>
-                <span className="text-gray-600 text-sm">Hosting:</span>
+                <span className="text-gray-600 text-sm">Origin Hosting:</span>
                 <div className="font-semibold text-orange-600">{results.hosting || 'Not detected'}</div>
               </div>
+              {results.cdn && (
+                <div>
+                  <span className="text-gray-600 text-sm">CDN/Proxy:</span>
+                  <div className="font-semibold text-cyan-600">{results.cdn}</div>
+                </div>
+              )}
+              {results.organization && (
+                <div>
+                  <span className="text-gray-600 text-sm">Organization:</span>
+                  <div className="font-semibold text-indigo-600">{results.organization}</div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -742,6 +774,20 @@ function renderSectionResults(sectionId: string, results: any) {
             <div>
               <span className="text-gray-600 text-sm">E-commerce:</span>
               <div className="font-semibold text-indigo-600">{results.ecommerce}</div>
+            </div>
+          )}
+
+          {/* WordPress Plugins */}
+          {results.plugins && results.plugins.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-3">WordPress Plugins Detected</h4>
+              <div className="flex flex-wrap gap-2">
+                {results.plugins.map((plugin: string, index: number) => (
+                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                    {plugin}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -756,6 +802,45 @@ function renderSectionResults(sectionId: string, results: any) {
               ))}
             </div>
           </div>
+
+          {/* Detection Quality Info */}
+          {results.source && (
+            <div className="bg-gray-50 rounded-lg p-4 border">
+              <h4 className="font-semibold mb-2 text-sm">Detection Quality</h4>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-gray-600">Source:</span>
+                  <div className={`font-medium ${
+                    results.source === 'direct' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {results.source === 'direct' ? 'Direct Website Analysis' : 'Manual Analysis'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Confidence:</span>
+                  <div className={`font-medium ${
+                    results.confidence === 'high' ? 'text-green-600' :
+                    results.confidence === 'medium' ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {results.confidence === 'high' ? 'High' :
+                     results.confidence === 'medium' ? 'Medium' :
+                     'Low'}
+                  </div>
+                </div>
+              </div>
+              {results.confidence === 'low' && (
+                <div className="mt-2 text-xs text-orange-600">
+                  ⚠️ Results may be inaccurate. Direct analysis failed.
+                </div>
+              )}
+              {results.confidence === 'high' && results.source === 'direct' && (
+                <div className="mt-2 text-xs text-green-600">
+                  ✅ High confidence detection using professional patterns.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )
 

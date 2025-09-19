@@ -44,6 +44,8 @@ export default function Tooltip({
     }
   }, [isVisible, position])
 
+  // Position classes for tooltip positioning - currently unused but kept for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const positionClasses = {
     top: 'bottom-full left-1/2 transform -translate-x-1/2 mb-2',
     bottom: 'top-full left-1/2 transform -translate-x-1/2 mt-2',

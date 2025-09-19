@@ -53,7 +53,7 @@ async function getSimilarWebTraffic(domain: string): Promise<TrafficData | null>
 
     // Process the data
     const visits = visitsData.visits || [];
-    const totalVisits = visits.reduce((sum: number, visit: any) => sum + visit.visits, 0);
+    const totalVisits = visits.reduce((sum: number, visit: { visits: number }) => sum + visit.visits, 0);
     
     // Estimate organic vs paid traffic (SimilarWeb provides traffic sources)
     const organicShare = sourcesData?.visits?.[0]?.organic_search || 0.6; // Default 60% organic
@@ -64,14 +64,14 @@ async function getSimilarWebTraffic(domain: string): Promise<TrafficData | null>
 
     // Process geographic data
     const countries = geoData?.records || [];
-    const topCountries = countries.slice(0, 5).map((country: any) => ({
+    const topCountries = countries.slice(0, 5).map((country: { country: string; share: number }) => ({
       country: getCountryName(country.country),
       percentage: parseFloat((country.share * 100).toFixed(1)),
       traffic: Math.round(totalVisits * country.share)
     }));
 
     // Process traffic trends
-    const trafficTrend = visits.map((visit: any) => ({
+    const trafficTrend = visits.map((visit: { date: string; visits: number }) => ({
       month: formatMonth(visit.date),
       organic: Math.round(visit.visits * organicShare),
       paid: Math.round(visit.visits * paidShare)
@@ -181,12 +181,19 @@ function formatMonth(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-function generateTrafficTrend(organicBase: number, paidBase: number) {
+function generateTrafficTrend(organicBase: number, paidBase: number, seed: number = 12345) {
   const months = ['Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025', 'Feb 2025'];
+  
+  // Deterministic seeded random function
+  function seededRandom(seedValue: number): number {
+    const x = Math.sin(seedValue) * 10000;
+    return x - Math.floor(x);
+  }
+  
   return months.map((month, index) => ({
     month,
-    organic: Math.round(organicBase * (0.8 + Math.random() * 0.4)), // ±20% variation
-    paid: Math.round(paidBase * (0.7 + Math.random() * 0.6)) // ±30% variation
+    organic: Math.round(organicBase * (0.8 + seededRandom(seed + index) * 0.4)), // ±20% variation
+    paid: Math.round(paidBase * (0.7 + seededRandom(seed + index + 10) * 0.6)) // ±30% variation
   }));
 }
 

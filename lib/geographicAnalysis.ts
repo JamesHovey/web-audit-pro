@@ -459,14 +459,15 @@ async function getMCPGeographicInsights(domain: string): Promise<{ country: stri
       };
     }
 
-  } catch (error) {
+  } catch {
     console.log('MCP not available for geographic analysis');
   }
 
   return { country: null, confidence: 'low', clues };
 }
 
-function generateLikelyMarkets(primaryMarket: string, clues: string[]): string[] {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateLikelyMarkets(primaryMarket: string, _clues: string[]): string[] {
   const marketMaps: { [key: string]: string[] } = {
     'United Kingdom': ['United Kingdom', 'Ireland', 'United States', 'Canada', 'Australia'],
     'United States': ['United States', 'Canada', 'United Kingdom', 'Mexico', 'Australia'],
