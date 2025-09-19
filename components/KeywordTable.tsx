@@ -51,7 +51,7 @@ export default function KeywordTable({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h4 className="font-semibold">{title}</h4>
+        <h4 className="font-semibold text-black">{title}</h4>
         <Tooltip 
           content={
             <div>
@@ -85,7 +85,7 @@ export default function KeywordTable({
           }
           position="top"
         >
-          <div className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help">?</div>
+          <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium">?</div>
         </Tooltip>
       </div>
       
@@ -172,7 +172,7 @@ export default function KeywordTable({
                     </span>
                   </div>
                   <div className="col-span-2 text-center text-gray-600">
-                    {keyword.volume.toLocaleString()}/mo
+                    {(keyword.volume || 0).toLocaleString()}/mo
                   </div>
                   <div className="col-span-2 text-center">
                     <span className={`font-medium ${getDifficultyColor(keyword.difficulty)}`}>

@@ -22,7 +22,9 @@
       "WebFetch(domain:rolin.uk.com)",
       "WebFetch(domain:www.wappalyzer.com)",
       "WebFetch(domain:cmsdetect.com)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx prisma studio:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": [],

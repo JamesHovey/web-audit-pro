@@ -204,22 +204,50 @@ export async function getTrafficData(domain: string): Promise<TrafficData> {
 
   console.log(`Fetching traffic data for: ${cleanDomain}`);
 
-  // Try SimilarWeb first
-  const similarWebData = await getSimilarWebTraffic(cleanDomain);
-  if (similarWebData) {
-    console.log('Successfully retrieved SimilarWeb data');
-    return similarWebData;
+  // Try free estimation first (always available)
+  try {
+    const { estimateFreeTrafficData, convertToTrafficData } = await import('./freeTrafficEstimator');
+    const estimatedData = await estimateFreeTrafficData(cleanDomain);
+    const trafficData = convertToTrafficData(estimatedData);
+    
+    console.log(`Successfully estimated traffic using free web scraping (confidence: ${estimatedData.confidence})`);
+    console.log(`12-month average organic traffic: ${estimatedData.monthlyOrganicTraffic} visits/month`);
+    
+    // If we have API keys and want higher accuracy, try them
+    const hasSimilarWebKey = !!process.env.SIMILARWEB_API_KEY;
+    const hasSemrushKey = !!process.env.SEMRUSH_API_KEY;
+    
+    if (hasSimilarWebKey || hasSemrushKey) {
+      console.log('API keys detected, attempting to get more accurate data...');
+      
+      // Try SimilarWeb for better accuracy
+      if (hasSimilarWebKey) {
+        const similarWebData = await getSimilarWebTraffic(cleanDomain);
+        if (similarWebData) {
+          console.log('Successfully retrieved SimilarWeb data (using paid API for higher accuracy)');
+          return similarWebData;
+        }
+      }
+      
+      // Try SEMrush as backup
+      if (hasSemrushKey) {
+        const semrushData = await getSEMrushTraffic(cleanDomain);
+        if (semrushData) {
+          console.log('Successfully retrieved SEMrush data (using paid API for higher accuracy)');
+          return semrushData;
+        }
+      }
+    }
+    
+    // Return free estimation if no API data available
+    return trafficData;
+    
+  } catch (error) {
+    console.error('Error with free traffic estimation:', error);
   }
 
-  // Try SEMrush as backup
-  const semrushData = await getSEMrushTraffic(cleanDomain);
-  if (semrushData) {
-    console.log('Successfully retrieved SEMrush data');
-    return semrushData;
-  }
-
-  // Fallback to mock data with a note
-  console.log('Using fallback mock data - no API keys available');
+  // Ultimate fallback to mock data
+  console.log('Using fallback mock data - estimation failed');
   const { generateMockAuditResults } = await import('./mockData');
   const mockResults = await generateMockAuditResults(`https://${cleanDomain}`, ['traffic']);
   return mockResults.traffic;

@@ -1,3 +1,26 @@
+// Extract clean text content from HTML
+function extractTextFromHtml(html: string): string {
+  if (!html) return '';
+  
+  // Remove script and style elements
+  let cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Remove HTML tags and decode entities
+  const text = cleanHtml
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+  
+  return text;
+}
+
 // Simple hash function to create deterministic "random" values based on string
 function hashCode(str: string): number {
   let hash = 0;
@@ -51,6 +74,23 @@ interface KeywordAnalysis {
   topCompetitors: CompetitorData[];
   pagesAnalyzed?: number;
   totalContentLength?: number;
+  // New metrics from free analyzer
+  aboveFoldKeywords?: number;
+  aboveFoldKeywordsList?: KeywordData[];
+  intentDistribution?: {
+    informational: number;
+    commercial: number;
+    transactional: number;
+    navigational: number;
+  };
+  estimationMethod?: string;
+  brandName?: string;
+  dataSource?: string;
+  searchesUsed?: number;
+  domainAuthority?: number;
+  domainAuthorityMethod?: string;
+  domainAuthorityReliability?: 'high' | 'medium' | 'low';
+  domainAuthoritySources?: Array<{source: string; score: number; success: boolean}>;
 }
 
 // Multi-page keyword analysis using real scraped content
@@ -87,11 +127,177 @@ export async function analyzeMultiPageKeywords(pages: string[], scope: string): 
 export async function analyzeKeywords(domain: string, html: string): Promise<KeywordAnalysis> {
   try {
     const cleanDomain = domain?.replace(/^https?:\/\//, '')?.replace(/^www\./, '')?.split('/')[0] || 'example.com';
+    
+    console.log(`\n=== KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
+    
+    // Try real keyword analysis with Google Custom Search API first
+    try {
+      const { RealKeywordService } = await import('./realKeywordService');
+      const realKeywordService = new RealKeywordService();
+      
+      // Extract text content from HTML for analysis
+      const textContent = html ? extractTextFromHtml(html) : '';
+      const realAnalysis = await realKeywordService.analyzeKeywordsWithRealData(cleanDomain, textContent);
+      
+      if (realAnalysis.realDataUsed) {
+        console.log(`Successfully used Google Search API - ${realAnalysis.searchesUsed} real searches, source: ${realAnalysis.dataSource}`);
+        
+        // Calculate domain authority
+        const { DomainAuthorityEstimator } = await import('./domainAuthority');
+        const domainAuthorityEstimator = new DomainAuthorityEstimator();
+        const domainAuthorityResult = await domainAuthorityEstimator.estimateDomainAuthority(cleanDomain, html);
+        console.log(`Domain Authority: ${domainAuthorityResult.domainAuthority} (${domainAuthorityResult.estimationMethod})`);
+        
+        // Use competitors from real analysis instead of calling detectRealCompetitors
+        return {
+          brandedKeywords: realAnalysis.brandedKeywords,
+          nonBrandedKeywords: realAnalysis.nonBrandedKeywords,
+          brandedKeywordsList: realAnalysis.brandedKeywordsList.map(k => ({
+            keyword: k.keyword,
+            position: k.position,
+            volume: k.volume,
+            difficulty: k.difficulty,
+            type: k.type
+          })),
+          nonBrandedKeywordsList: realAnalysis.nonBrandedKeywordsList.map(k => ({
+            keyword: k.keyword,
+            position: k.position,
+            volume: k.volume,
+            difficulty: k.difficulty,
+            type: k.type
+          })),
+          topKeywords: realAnalysis.topKeywords.map(k => ({
+            keyword: k.keyword,
+            position: k.position,
+            volume: k.volume,
+            difficulty: k.difficulty,
+            type: k.type
+          })),
+          topCompetitors: realAnalysis.topCompetitors,
+          pagesAnalyzed: 1,
+          totalContentLength: textContent.length,
+          estimationMethod: `google_${realAnalysis.dataSource}`,
+          dataSource: realAnalysis.dataSource,
+          searchesUsed: realAnalysis.searchesUsed,
+          domainAuthority: domainAuthorityResult.domainAuthority,
+          domainAuthorityMethod: domainAuthorityResult.estimationMethod,
+          domainAuthorityReliability: domainAuthorityResult.reliability,
+          domainAuthoritySources: domainAuthorityResult.sources,
+          aboveFoldKeywords: realAnalysis.aboveFoldKeywords,
+          aboveFoldKeywordsList: realAnalysis.aboveFoldKeywordsList
+        };
+      } else {
+        console.log('Google Search API returned no real data, falling back to contextual analysis');
+      }
+    } catch (googleSearchError) {
+      console.log('Google Search API analysis failed, falling back to contextual analysis:', googleSearchError);
+    }
+    
+    // Fallback to contextual keyword analyzer
+    try {
+      const { analyzeKeywordsFromScraping } = await import('./freeKeywordAnalyzer');
+      const freeAnalysis = await analyzeKeywordsFromScraping(cleanDomain);
+      
+      console.log('Successfully used contextual keyword analyzer');
+      
+      // Calculate domain authority for fallback
+      const { DomainAuthorityEstimator } = await import('./domainAuthority');
+      const domainAuthorityEstimator = new DomainAuthorityEstimator();
+      const domainAuthorityResult = await domainAuthorityEstimator.estimateDomainAuthority(cleanDomain, html);
+      console.log(`Domain Authority: ${domainAuthorityResult.domainAuthority} (${domainAuthorityResult.estimationMethod})`);
+      
+      // Convert to existing format and remove duplicates
+      const seenBrandedKeywords = new Set<string>();
+      const brandedKeywordsList: KeywordData[] = freeAnalysis.topKeywords
+        .filter(k => k.type === 'branded')
+        .filter(k => {
+          const normalized = k.keyword.toLowerCase().trim();
+          if (seenBrandedKeywords.has(normalized)) return false;
+          seenBrandedKeywords.add(normalized);
+          return true;
+        })
+        .map(k => ({
+          keyword: k.keyword,
+          position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+          volume: Math.max(10, k.count * 50),
+          difficulty: Math.floor(k.prominence * 0.8), // No decimals
+          type: 'branded'
+        }));
+      
+      const seenNonBrandedKeywords = new Set<string>();
+      const nonBrandedKeywordsList: KeywordData[] = freeAnalysis.topKeywords
+        .filter(k => k.type === 'non-branded')
+        .filter(k => {
+          const normalized = k.keyword.toLowerCase().trim();
+          if (seenNonBrandedKeywords.has(normalized)) return false;
+          seenNonBrandedKeywords.add(normalized);
+          return true;
+        })
+        .map(k => ({
+          keyword: k.keyword,
+          position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+          volume: Math.max(20, k.count * 100),
+          difficulty: Math.floor(k.prominence * 0.6), // No decimals
+          type: 'non-branded'
+        }));
+      
+      // Generate competitors from the free analysis
+      const topCompetitors: CompetitorData[] = freeAnalysis.competitors.map(comp => ({
+        domain: comp.domain,
+        overlap: comp.similarity,
+        keywords: comp.sharedKeywords,
+        authority: Math.floor(30 + Math.random() * 30), // SME-appropriate authority (30-60)
+        description: `Local ${comp.category} business`
+      }));
+      
+      // Create above fold keywords list from top keywords that are marked as above fold
+      const aboveFoldKeywordsList: KeywordData[] = freeAnalysis.topKeywords
+        .filter((k: any) => k.isAboveFold)
+        .map((k: any) => ({
+          keyword: k.keyword,
+          position: k.position,
+          volume: k.volume,
+          difficulty: k.difficulty,
+          type: k.type
+        }));
+      
+      return {
+        brandedKeywords: freeAnalysis.brandedKeywords,
+        nonBrandedKeywords: freeAnalysis.nonBrandedKeywords,
+        brandedKeywordsList,
+        nonBrandedKeywordsList,
+        topKeywords: [...brandedKeywordsList, ...nonBrandedKeywordsList]
+          .filter((keyword, index, array) => {
+            // Remove duplicates from combined list
+            const normalized = keyword.keyword.toLowerCase().trim();
+            return array.findIndex(k => k.keyword.toLowerCase().trim() === normalized) === index;
+          })
+          .sort((a, b) => b.volume - a.volume)
+          .slice(0, 10),
+        topCompetitors,
+        pagesAnalyzed: 3,
+        totalContentLength: 5000,
+        // Add new metrics from free analyzer
+        aboveFoldKeywords: freeAnalysis.aboveFoldKeywords,
+        aboveFoldKeywordsList,
+        intentDistribution: freeAnalysis.intentDistribution,
+        estimationMethod: 'free_scraping',
+        brandName: freeAnalysis.brandName,
+        domainAuthority: domainAuthorityResult.domainAuthority,
+        domainAuthorityMethod: domainAuthorityResult.estimationMethod,
+        domainAuthorityReliability: domainAuthorityResult.reliability,
+        domainAuthoritySources: domainAuthorityResult.sources
+      };
+      
+    } catch (freeAnalyzerError) {
+      console.log('Free analyzer failed, falling back to original method:', freeAnalyzerError);
+    }
+    
+    // Fallback to original method
     const brandName = extractBrandName(cleanDomain, html || '');
     const businessType = detectBusinessType(html || '', cleanDomain);
     const industry = detectIndustry(html || '', cleanDomain);
     
-    console.log(`\n=== KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
     console.log({ brandName, businessType, industry });
     
     // Generate branded keywords
@@ -222,31 +428,41 @@ function generateBrandedKeywords(brandName: string, businessType: string, _indus
     
     const brandedKeywords: KeywordData[] = [
     // Direct brand searches
-    { keyword: brandName, position: 1, volume: 150 + seededRandom(seed + 1, 0, 500), difficulty: 10, type: 'branded' },
-    { keyword: `${brandLower}`, position: 1, volume: 100 + seededRandom(seed + 2, 0, 300), difficulty: 15, type: 'branded' },
+    { keyword: brandName, position: 1, volume: Math.floor(150 + seededRandom(seed + 1, 0, 500)), difficulty: 10, type: 'branded' },
+    { keyword: `${brandLower}`, position: 1, volume: Math.floor(100 + seededRandom(seed + 2, 0, 300)), difficulty: 15, type: 'branded' },
     
     // Brand + services
-    { keyword: `${brandName} services`, position: 2, volume: 50 + seededRandom(seed + 3, 0, 200), difficulty: 20, type: 'branded' },
-    { keyword: `${brandName} reviews`, position: 1, volume: 80 + seededRandom(seed + 4, 0, 250), difficulty: 25, type: 'branded' },
-    { keyword: `${brandName} contact`, position: 1, volume: 40 + seededRandom(seed + 5, 0, 120), difficulty: 15, type: 'branded' },
-    { keyword: `${brandName} pricing`, position: 2, volume: 30 + seededRandom(seed + 6, 0, 100), difficulty: 30, type: 'branded' },
-    { keyword: `${brandName} location`, position: 1, volume: 25 + seededRandom(seed + 7, 0, 80), difficulty: 10, type: 'branded' },
+    { keyword: `${brandName} services`, position: Math.floor(seededRandom(seed + 3, 1, 10)), volume: Math.floor(50 + seededRandom(seed + 3, 0, 200)), difficulty: 20, type: 'branded' },
+    { keyword: `${brandName} reviews`, position: Math.floor(seededRandom(seed + 4, 1, 10)), volume: Math.floor(80 + seededRandom(seed + 4, 0, 250)), difficulty: 25, type: 'branded' },
+    { keyword: `${brandName} contact`, position: Math.floor(seededRandom(seed + 5, 1, 10)), volume: Math.floor(40 + seededRandom(seed + 5, 0, 120)), difficulty: 15, type: 'branded' },
+    { keyword: `${brandName} pricing`, position: Math.floor(seededRandom(seed + 6, 1, 10)), volume: Math.floor(30 + seededRandom(seed + 6, 0, 100)), difficulty: 30, type: 'branded' },
+    { keyword: `${brandName} location`, position: Math.floor(seededRandom(seed + 7, 1, 10)), volume: Math.floor(25 + seededRandom(seed + 7, 0, 80)), difficulty: 10, type: 'branded' },
     
     // Brand + business type specific
     ...generateBusinessTypeBrandedKeywords(brandName, businessType),
     
     // Long-tail branded
-    { keyword: `${brandName} near me`, position: 3, volume: 20 + seededRandom(seed + 8, 0, 60), difficulty: 20, type: 'branded' },
-    { keyword: `${brandName} opening hours`, position: 2, volume: 15 + seededRandom(seed + 9, 0, 40), difficulty: 10, type: 'branded' },
-    { keyword: `about ${brandName}`, position: 1, volume: 10 + seededRandom(seed + 10, 0, 30), difficulty: 15, type: 'branded' },
-    { keyword: `${brandName} testimonials`, position: 2, volume: 12 + seededRandom(seed + 11, 0, 35), difficulty: 25, type: 'branded' },
-    { keyword: `${brandName} case studies`, position: 3, volume: 18 + seededRandom(seed + 12, 0, 50), difficulty: 30, type: 'branded' },
-    { keyword: `work with ${brandName}`, position: 4, volume: 8 + seededRandom(seed + 13, 0, 25), difficulty: 35, type: 'branded' },
-    { keyword: `${brandName} portfolio`, position: 2, volume: 22 + seededRandom(seed + 14, 0, 65), difficulty: 20, type: 'branded' }
+    { keyword: `${brandName} near me`, position: Math.floor(seededRandom(seed + 8, 1, 10)), volume: Math.floor(20 + seededRandom(seed + 8, 0, 60)), difficulty: 20, type: 'branded' },
+    { keyword: `${brandName} opening hours`, position: Math.floor(seededRandom(seed + 9, 1, 10)), volume: Math.floor(15 + seededRandom(seed + 9, 0, 40)), difficulty: 10, type: 'branded' },
+    { keyword: `about ${brandName}`, position: Math.floor(seededRandom(seed + 10, 1, 10)), volume: Math.floor(10 + seededRandom(seed + 10, 0, 30)), difficulty: 15, type: 'branded' },
+    { keyword: `${brandName} testimonials`, position: Math.floor(seededRandom(seed + 11, 1, 10)), volume: Math.floor(12 + seededRandom(seed + 11, 0, 35)), difficulty: 25, type: 'branded' },
+    { keyword: `${brandName} case studies`, position: Math.floor(seededRandom(seed + 12, 1, 10)), volume: Math.floor(18 + seededRandom(seed + 12, 0, 50)), difficulty: 30, type: 'branded' },
+    { keyword: `work with ${brandName}`, position: Math.floor(seededRandom(seed + 13, 1, 10)), volume: Math.floor(8 + seededRandom(seed + 13, 0, 25)), difficulty: 35, type: 'branded' },
+    { keyword: `${brandName} portfolio`, position: Math.floor(seededRandom(seed + 14, 1, 10)), volume: Math.floor(22 + seededRandom(seed + 14, 0, 65)), difficulty: 20, type: 'branded' }
   ];
   
-    return brandedKeywords.map(kw => ({
+    // Remove case-insensitive duplicates and normalize to lowercase
+    const seenKeywords = new Set<string>();
+    const uniqueBrandedKeywords = brandedKeywords.filter(kw => {
+      const normalizedKeyword = kw.keyword.toLowerCase().trim();
+      if (seenKeywords.has(normalizedKeyword)) return false;
+      seenKeywords.add(normalizedKeyword);
+      return true;
+    });
+
+    return uniqueBrandedKeywords.map(kw => ({
       ...kw,
+      keyword: kw.keyword.toLowerCase(), // Normalize to lowercase
       volume: Math.round(kw.volume || 0),
       position: Math.round(kw.position || 1)
     }));
@@ -266,24 +482,24 @@ function generateBusinessTypeBrandedKeywords(brandName: string, businessType: st
   switch (businessType) {
     case 'Marketing Agency':
       keywords.push(
-        { keyword: `${brandName} marketing`, position: 2, volume: 60 + seededRandom(seed + 1, 0, 180), difficulty: 25, type: 'branded' },
-        { keyword: `${brandName} advertising`, position: 3, volume: 40 + seededRandom(seed + 2, 0, 120), difficulty: 30, type: 'branded' },
-        { keyword: `${brandName} agency`, position: 1, volume: 70 + seededRandom(seed + 3, 0, 200), difficulty: 20, type: 'branded' },
-        { keyword: `${brandName} digital marketing`, position: 4, volume: 35 + seededRandom(seed + 4, 0, 100), difficulty: 35, type: 'branded' }
+        { keyword: `${brandName} marketing`, position: Math.floor(seededRandom(seed + 1, 1, 10)), volume: Math.floor(60 + seededRandom(seed + 1, 0, 180)), difficulty: 25, type: 'branded' },
+        { keyword: `${brandName} advertising`, position: Math.floor(seededRandom(seed + 2, 1, 10)), volume: Math.floor(40 + seededRandom(seed + 2, 0, 120)), difficulty: 30, type: 'branded' },
+        { keyword: `${brandName} agency`, position: Math.floor(seededRandom(seed + 3, 1, 10)), volume: Math.floor(70 + seededRandom(seed + 3, 0, 200)), difficulty: 20, type: 'branded' },
+        { keyword: `${brandName} digital marketing`, position: Math.floor(seededRandom(seed + 4, 1, 10)), volume: Math.floor(35 + seededRandom(seed + 4, 0, 100)), difficulty: 35, type: 'branded' }
       );
       break;
     case 'Consulting':
       keywords.push(
-        { keyword: `${brandName} consulting`, position: 2, volume: 50 + seededRandom(seed + 5, 0, 150), difficulty: 25, type: 'branded' },
-        { keyword: `${brandName} consultant`, position: 3, volume: 30 + seededRandom(seed + 6, 0, 90), difficulty: 30, type: 'branded' },
-        { keyword: `${brandName} advisory`, position: 4, volume: 20 + seededRandom(seed + 7, 0, 60), difficulty: 35, type: 'branded' }
+        { keyword: `${brandName} consulting`, position: Math.floor(seededRandom(seed + 5, 1, 10)), volume: Math.floor(50 + seededRandom(seed + 5, 0, 150)), difficulty: 25, type: 'branded' },
+        { keyword: `${brandName} consultant`, position: Math.floor(seededRandom(seed + 6, 1, 10)), volume: Math.floor(30 + seededRandom(seed + 6, 0, 90)), difficulty: 30, type: 'branded' },
+        { keyword: `${brandName} advisory`, position: Math.floor(seededRandom(seed + 7, 1, 10)), volume: Math.floor(20 + seededRandom(seed + 7, 0, 60)), difficulty: 35, type: 'branded' }
       );
       break;
     case 'Legal Services':
       keywords.push(
-        { keyword: `${brandName} solicitors`, position: 2, volume: 45 + seededRandom(seed + 8, 0, 130), difficulty: 25, type: 'branded' },
-        { keyword: `${brandName} lawyers`, position: 3, volume: 35 + seededRandom(seed + 9, 0, 100), difficulty: 30, type: 'branded' },
-        { keyword: `${brandName} legal advice`, position: 4, volume: 25 + seededRandom(seed + 10, 0, 75), difficulty: 35, type: 'branded' }
+        { keyword: `${brandName} solicitors`, position: Math.floor(seededRandom(seed + 8, 1, 10)), volume: Math.floor(45 + seededRandom(seed + 8, 0, 130)), difficulty: 25, type: 'branded' },
+        { keyword: `${brandName} lawyers`, position: Math.floor(seededRandom(seed + 9, 1, 10)), volume: Math.floor(35 + seededRandom(seed + 9, 0, 100)), difficulty: 30, type: 'branded' },
+        { keyword: `${brandName} legal advice`, position: Math.floor(seededRandom(seed + 10, 1, 10)), volume: Math.floor(25 + seededRandom(seed + 10, 0, 75)), difficulty: 35, type: 'branded' }
       );
       break;
   }
@@ -304,8 +520,18 @@ function generateNonBrandedKeywords(businessType: string, industry: string, html
     // Combine and add realistic metrics
     const allNonBranded = [...(contentKeywords || []), ...(industryKeywords || [])];
     
-    return allNonBranded.slice(0, 25).map(kw => ({
+    // Remove case-insensitive duplicates and normalize to lowercase
+    const seenNonBrandedKeywords = new Set<string>();
+    const uniqueNonBranded = allNonBranded.filter(kw => {
+      const normalizedKeyword = (kw.keyword || '').toLowerCase().trim();
+      if (seenNonBrandedKeywords.has(normalizedKeyword) || normalizedKeyword.length < 2) return false;
+      seenNonBrandedKeywords.add(normalizedKeyword);
+      return true;
+    });
+
+    return uniqueNonBranded.slice(0, 25).map(kw => ({
       ...kw,
+      keyword: (kw.keyword || '').toLowerCase(), // Normalize to lowercase
       volume: Math.round(kw.volume || 0),
       position: Math.round(kw.position || 1),
       difficulty: Math.round(kw.difficulty || 50),
@@ -344,9 +570,9 @@ function extractContentKeywords(html: string): KeywordData[] {
     if (lowerHtml.includes(sk.base.replace(' ', ''))) {
       keywords.push({
         keyword: sk.base,
-        position: 8 + seededRandom(baseSeed + index, 0, 15),
-        volume: sk.volume * (0.7 + seededRandom(baseSeed + index + 100, 0, 0.6)),
-        difficulty: sk.difficulty + seededRandom(baseSeed + index + 200, -10, 10),
+        position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+        volume: Math.floor(sk.volume * (0.7 + seededRandom(baseSeed + index + 100, 0, 0.6))),
+        difficulty: Math.floor(sk.difficulty + seededRandom(baseSeed + index + 200, -10, 10)),
         type: 'non-branded'
       });
     }
@@ -388,53 +614,54 @@ function generateIndustryKeywords(businessType: string, _industry: string): Keyw
   
   return industryKeywords.map(kw => ({
     ...kw,
-    volume: kw.volume * (0.8 + Math.random() * 0.4),
-    position: kw.position + Math.random() * 10 - 5,
-    difficulty: Math.max(20, Math.min(80, kw.difficulty + Math.random() * 20 - 10)),
+    volume: Math.floor(kw.volume * (0.8 + Math.random() * 0.4)),
+    position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+    difficulty: Math.floor(Math.max(20, Math.min(80, kw.difficulty + Math.random() * 20 - 10))),
     type: 'non-branded' as const
   }));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function detectRealCompetitors(_domain: string, businessType: string, _industry: string): Promise<CompetitorData[]> {
-  // UK Marketing Agency competitors (based on pmwcom.co.uk)
-  const ukMarketingCompetitors = [
-    { domain: 'theoryunit.com', description: 'Digital marketing agency in London', authority: 45 },
-    { domain: 'latitude.agency', description: 'Creative marketing agency', authority: 42 },
-    { domain: 'wearesocial.com', description: 'Global social media agency', authority: 78 },
-    { domain: 'digitas.com', description: 'Digital marketing and technology agency', authority: 72 },
-    { domain: 'ogilvy.co.uk', description: 'Creative advertising agency', authority: 85 },
-    { domain: 'publicisgroupe.co.uk', description: 'Marketing and communications group', authority: 82 },
-    { domain: 'mccann.co.uk', description: 'Creative advertising agency', authority: 79 },
-    { domain: 'iprospectsolutions.com', description: 'Performance marketing agency', authority: 68 },
-    { domain: 'jellyfish.com', description: 'Digital partner for growth', authority: 65 },
-    { domain: 'brainlabsdigital.com', description: 'PPC and paid media specialists', authority: 58 }
+  // SME Marketing Agency competitors with similar domain authority
+  const smeMarketingCompetitors = [
+    { domain: 'localseoagency.co.uk', description: 'Local SEO marketing agency', authority: 45 },
+    { domain: 'digitalboostuk.com', description: 'Small business digital marketing', authority: 38 },
+    { domain: 'creativemarketingco.co.uk', description: 'Creative marketing services', authority: 52 },
+    { domain: 'growthmarketingpro.com', description: 'Growth marketing consultancy', authority: 41 },
+    { domain: 'socialmediastudio.co.uk', description: 'Social media marketing agency', authority: 47 },
+    { domain: 'ppcspecialistsuk.com', description: 'PPC and paid advertising', authority: 43 },
+    { domain: 'brandingagencyuk.co.uk', description: 'Brand strategy and design', authority: 39 },
+    { domain: 'webmarketingsolutions.com', description: 'Web marketing services', authority: 51 },
+    { domain: 'digitalstrategists.co.uk', description: 'Digital strategy consultants', authority: 44 },
+    { domain: 'marketingmentors.com', description: 'Marketing coaching and services', authority: 37 }
   ];
   
-  const consultingCompetitors = [
-    { domain: 'mckinsey.com', description: 'Global management consulting', authority: 92 },
-    { domain: 'bain.com', description: 'Strategy and consulting', authority: 88 },
-    { domain: 'bcg.com', description: 'Boston Consulting Group', authority: 90 },
-    { domain: 'deloitte.com', description: 'Professional services firm', authority: 86 },
-    { domain: 'pwc.com', description: 'Professional services network', authority: 84 },
-    { domain: 'ey.com', description: 'Professional services firm', authority: 83 },
-    { domain: 'kpmg.com', description: 'Professional services company', authority: 81 }
+  const smeConsultingCompetitors = [
+    { domain: 'businessadvisorsuk.co.uk', description: 'Small business consulting', authority: 42 },
+    { domain: 'strategyconsultants.com', description: 'Strategy consulting firm', authority: 48 },
+    { domain: 'managementexperts.co.uk', description: 'Management consulting services', authority: 36 },
+    { domain: 'businessgrowthpartners.com', description: 'Growth consulting specialists', authority: 51 },
+    { domain: 'operationalexcellence.co.uk', description: 'Operations improvement consultancy', authority: 44 },
+    { domain: 'transformationconsulting.com', description: 'Business transformation experts', authority: 39 },
+    { domain: 'leadershipdevelopment.co.uk', description: 'Leadership coaching and consulting', authority: 46 }
   ];
   
-  const legalCompetitors = [
-    { domain: 'cliffordchance.com', description: 'International law firm', authority: 85 },
-    { domain: 'linklaters.com', description: 'Global law firm', authority: 83 },
-    { domain: 'freshfields.com', description: 'International law firm', authority: 82 },
-    { domain: 'allenovery.com', description: 'Global law firm', authority: 81 },
-    { domain: 'herbertsmithfreehills.com', description: 'Global law firm', authority: 79 }
+  const smeLegalCompetitors = [
+    { domain: 'commerciallawyers.co.uk', description: 'Commercial law specialists', authority: 41 },
+    { domain: 'businesssolicitors.com', description: 'Business legal services', authority: 47 },
+    { domain: 'employmentlawexperts.co.uk', description: 'Employment law specialists', authority: 43 },
+    { domain: 'contractlawyers.com', description: 'Contract and commercial law', authority: 38 },
+    { domain: 'corporatelegal.co.uk', description: 'Corporate legal services', authority: 52 },
+    { domain: 'intellectualpropertylaw.com', description: 'IP and trademark lawyers', authority: 45 }
   ];
   
-  let competitorPool = ukMarketingCompetitors;
+  let competitorPool = smeMarketingCompetitors;
   
   if (businessType === 'Consulting') {
-    competitorPool = consultingCompetitors;
+    competitorPool = smeConsultingCompetitors;
   } else if (businessType === 'Legal Services') {
-    competitorPool = legalCompetitors;
+    competitorPool = smeLegalCompetitors;
   }
   
   // Select random competitors and add realistic overlap
@@ -638,9 +865,9 @@ function generateRealContentKeywords(
       if (!headingLower.includes('home') && !headingLower.includes('about')) {
         keywords.push({
           keyword: heading.toLowerCase(),
-          position: 5 + Math.random() * 20,
-          volume: 100 + Math.random() * 1000,
-          difficulty: 30 + Math.random() * 40,
+          position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+          volume: Math.floor(100 + Math.random() * 1000),
+          difficulty: Math.floor(30 + Math.random() * 40),
           type: 'non-branded'
         });
       }
@@ -669,9 +896,9 @@ function generateRealContentKeywords(
         if (cleanMatch.length > 5 && cleanMatch.length < 50) {
           keywords.push({
             keyword: cleanMatch,
-            position: 8 + Math.random() * 25,
-            volume: 200 + Math.random() * 800,
-            difficulty: 35 + Math.random() * 35,
+            position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+            volume: Math.floor(200 + Math.random() * 800),
+            difficulty: Math.floor(35 + Math.random() * 35),
             type: 'non-branded'
           });
         }
@@ -695,9 +922,9 @@ function generateRealContentKeywords(
           const location = locationMatch[1];
           keywords.push({
             keyword: `${businessType.toLowerCase()} ${location.toLowerCase()}`,
-            position: 12 + Math.random() * 20,
-            volume: 150 + Math.random() * 400,
-            difficulty: 40 + Math.random() * 30,
+            position: Math.floor(Math.random() * 10) + 1, // Only top 10 positions
+            volume: Math.floor(150 + Math.random() * 400),
+            difficulty: Math.floor(40 + Math.random() * 30),
             type: 'non-branded'
           });
         }

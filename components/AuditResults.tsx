@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { HelpCircle } from 'lucide-react'
+import LoadingMessages from "@/components/LoadingMessages"
+import { HelpCircle, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Tooltip from './Tooltip'
 import KeywordTable from './KeywordTable'
+import BrandedKeywordTable from './BrandedKeywordTable'
+import NonBrandedKeywordTable from './NonBrandedKeywordTable'
+import AboveFoldKeywordTable from './AboveFoldKeywordTable'
 
 interface Audit {
   id: string
@@ -30,6 +35,7 @@ const SECTION_LABELS = {
 }
 
 export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
+  const router = useRouter()
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
   const [isHydrated, setIsHydrated] = useState(false)
@@ -44,7 +50,25 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/audit/${audit.id}`)
-        const updatedAudit = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const responseText = await response.text()
+        
+        if (!responseText || responseText.trim() === '') {
+          throw new Error('Empty response from server')
+        }
+        
+        let updatedAudit
+        try {
+          updatedAudit = JSON.parse(responseText)
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError)
+          console.error('Response text:', responseText)
+          throw new Error(`Invalid JSON response: ${parseError.message}`)
+        }
         
         setAudit(updatedAudit)
         
@@ -53,6 +77,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         }
       } catch (error) {
         console.error("Error polling audit status:", error)
+        // Stop polling if there are persistent errors
+        setIsPolling(false)
       }
     }, 2000)
 
@@ -89,6 +115,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <button 
+        onClick={() => router.back()}
+        className="inline-flex items-center gap-2 mb-4 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back to Dashboard</span>
+      </button>
+
       {/* Status Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between">
@@ -100,11 +135,25 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {isPolling && <LoadingSpinner size="sm" />}
             </div>
             <p className="text-gray-600 mt-2">
-              Started: {new Date(audit.createdAt).toLocaleString()}
+              Started: {new Date(audit.createdAt).toLocaleString('en-GB', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+              })}
             </p>
             {audit.completedAt && (
               <p className="text-gray-600">
-                Completed: {new Date(audit.completedAt).toLocaleString()}
+                Completed: {new Date(audit.completedAt).toLocaleString('en-GB', { 
+                  year: 'numeric', 
+                  month: '2-digit', 
+                  day: '2-digit', 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  second: '2-digit' 
+                })}
               </p>
             )}
           </div>
@@ -122,22 +171,78 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       </div>
 
-      {/* Sections */}
+      {/* Keywords Section - Full Width */}
+      {audit.sections.includes('keywords') && (
+        <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                {SECTION_LABELS['keywords']}
+              </h3>
+              {audit.results?.keywords?.dataSource && (
+                <div className="mt-2">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    audit.results.keywords.dataSource === 'valueserp' || audit.results.keywords.dataSource === 'mixed'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {audit.results.keywords.dataSource === 'valueserp' && '✓ Real Google Ranking Data'}
+                    {audit.results.keywords.dataSource === 'mixed' && '✓ Mixed Real & Estimated Data'}
+                    {audit.results.keywords.dataSource === 'estimation' && '⚠ Estimated Data Only'}
+                    {audit.results.keywords.searchesUsed && ` (${audit.results.keywords.searchesUsed} searches)`}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {!isHydrated ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="text-gray-500 mb-2">Loading section...</div>
+                </div>
+              </div>
+            ) : audit.results?.keywords ? (
+              <div className="space-y-4">
+                {renderSectionResults('keywords', audit.results.keywords)}
+              </div>
+            ) : (
+              <LoadingMessages section="keywords" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Other Sections - 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {audit.sections.map((sectionId) => (
+        {audit.sections.filter(section => section !== 'keywords').map((sectionId) => (
           <div key={sectionId} className="bg-white rounded-lg shadow-sm">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 {SECTION_LABELS[sectionId as keyof typeof SECTION_LABELS]}
+                {sectionId === 'traffic' && (
+                  <Tooltip 
+                    content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-2">How Traffic Insights Works</p>
+                        <p className="mb-2">We analyze your website using publicly available data to estimate monthly organic traffic.</p>
+                        <p className="mb-2"><strong>What we measure:</strong></p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>Number of pages on your site</li>
+                          <li>Content quality and structure</li>
+                          <li>SEO indicators and rankings</li>
+                          <li>Industry benchmarks</li>
+                        </ul>
+                        <p className="mt-2 text-sm">The data shows your 12-month average to account for seasonal variations.</p>
+                      </div>
+                    }
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                  </Tooltip>
+                )}
               </h3>
               
               {!isHydrated ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <LoadingSpinner size="lg" />
-                    <p className="text-gray-500 mt-2">Loading...</p>
-                  </div>
-                </div>
+                <LoadingMessages />
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
@@ -148,12 +253,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   <p className="text-red-600">Failed to generate results</p>
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <LoadingSpinner size="lg" />
-                    <p className="text-gray-500 mt-2">Analyzing...</p>
-                  </div>
-                </div>
+                <LoadingMessages section={sectionId} />
               )}
             </div>
           </div>
@@ -169,6 +269,32 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
       return (
         <div className="space-y-6">
           {/* Traffic Overview */}
+          {results.estimationMethod === 'free_scraping' && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-600 text-sm font-medium">
+                  Data Confidence: {results.confidence === 'high' ? '🟢 High' : results.confidence === 'medium' ? '🟡 Medium' : '🔴 Low'}
+                </span>
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Free Estimation Method</p>
+                      <p className="mb-2">This data is estimated using publicly available SEO metrics and machine learning algorithms.</p>
+                      <p className="mb-2"><strong>Confidence Factors:</strong></p>
+                      <ul className="list-disc list-inside">
+                        <li>Domain Authority: {results.metrics?.domainAuthority || 'N/A'}</li>
+                        <li>Indexed Pages: {results.metrics?.indexedPages || 'N/A'}</li>
+                        <li>Estimated Keywords: {results.metrics?.organicKeywords || 'N/A'}</li>
+                      </ul>
+                      <p className="mt-2 text-xs">For more accurate data, consider using premium APIs like SimilarWeb or SEMrush.</p>
+                    </div>
+                  }
+                >
+                  <HelpCircle className="h-4 w-4 text-amber-500" />
+                </Tooltip>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
             {(() => {
               const totalTraffic = (results.monthlyOrganicTraffic || 0) + (results.monthlyPaidTraffic || 0);
@@ -179,17 +305,17 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               return (
                 <>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString('en-GB')}</div>
                     <div className="text-xs text-blue-500 font-medium mb-1">{organicPercentage}% of total traffic</div>
                     <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                       Monthly Organic Traffic
                 <Tooltip 
                   content={
                     <div>
-                      <p className="font-semibold mb-2">Monthly Organic Traffic</p>
-                      <p className="mb-2"><strong>Time Period:</strong> Estimated monthly visitors (30-day period)</p>
+                      <p className="font-semibold mb-2">Monthly Organic Traffic (12-Month Average)</p>
+                      <p className="mb-2"><strong>Time Period:</strong> Average of last 12 months</p>
                       <p className="mb-2"><strong>Definition:</strong> Visitors who find your website through unpaid search engine results (Google, Bing, etc.)</p>
-                      <p className="mb-2"><strong>Estimation Method:</strong> Based on business size, content quality, SEO indicators, and industry benchmarks</p>
+                      <p className="mb-2"><strong>Estimation Method:</strong> {results.estimationMethod === 'free_scraping' ? 'Web scraping with SEO metrics analysis' : 'Premium API data'}</p>
                       <p className="mb-2"><strong>Realistic Ranges (based on actual Google Analytics data):</strong></p>
                       <ul className="list-disc list-inside mb-2 text-xs">
                         <li>Small Business: 80-300 visitors/month</li>
@@ -207,7 +333,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               </div>
                     </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString('en-GB')}</div>
                     <div className="text-xs text-green-500 font-medium mb-1">{paidPercentage}% of total traffic</div>
                     <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                       Monthly Paid Traffic
@@ -230,7 +356,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               </div>
                     </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">{results.brandedTraffic?.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-purple-600">{results.brandedTraffic?.toLocaleString('en-GB')}</div>
                     <div className="text-xs text-purple-500 font-medium mb-1">{brandedPercentage}% of organic traffic</div>
                     <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                       Monthly Branded Traffic
@@ -289,7 +415,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                   <span className="text-gray-700">{country.country}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-500">{country.percentage}%</span>
-                    <span className="font-medium">{country.traffic?.toLocaleString()}</span>
+                    <span className="font-medium">{country.traffic?.toLocaleString('en-GB')}</span>
                   </div>
                 </div>
               ))}
@@ -321,8 +447,62 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
     case "keywords":
       return (
         <div className="space-y-8">
-          {/* Keywords Overview */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Business Context & Method Notice */}
+          {(results.estimationMethod === 'free_scraping' || results.methodology) && (
+            <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-blue-600 text-sm font-medium">
+                      🎯 Smart Business Analysis - Contextually Relevant Keywords for SMEs
+                    </span>
+                    <Tooltip 
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">Smart Keyword Analysis</p>
+                          <p className="mb-2">Advanced business context analysis that:</p>
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            <li>Identifies your specific industry and services</li>
+                            <li>Extracts only business-relevant keywords</li>
+                            <li>Shows realistic SME competitor landscape</li>
+                            <li>Focuses on achievable ranking positions (1-10)</li>
+                            <li>Provides appropriate difficulty levels for small businesses</li>
+                          </ul>
+                          <p className="mt-2 text-xs">Keywords are filtered for relevance and ranked by business impact.</p>
+                        </div>
+                      }
+                    >
+                      <HelpCircle className="h-4 w-4 text-blue-500" />
+                    </Tooltip>
+                  </div>
+                  
+                  {results.businessContext && (
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="font-medium text-gray-700">Industry:</span>
+                        <span className="ml-1 text-blue-600">{results.businessContext.industry}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Business Size:</span>
+                        <span className="ml-1 text-blue-600 capitalize">{results.businessContext.businessSize}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Target Market:</span>
+                        <span className="ml-1 text-blue-600">{results.businessContext.targetMarket}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Locations:</span>
+                        <span className="ml-1 text-blue-600">{results.businessContext.locations.join(', ') || 'Not specified'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Keywords Overview - Enhanced Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">{results.brandedKeywords || results.brandedKeywordsList?.length || 0}</div>
               <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
@@ -363,117 +543,140 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                 </Tooltip>
               </div>
             </div>
-          </div>
-
-          {/* Top Performing Keywords Table */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <h4 className="font-semibold">Top 10 Performing Keywords</h4>
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Top Performing Keywords</p>
-                    <p className="mb-2"><strong>Definition:</strong> Your highest-traffic keywords ranked by monthly search volume and current position</p>
-                    <p className="mb-2"><strong>Why Important:</strong> These keywords drive the most traffic to your website</p>
-                    <p className="mb-2"><strong>Position Guide:</strong></p>
-                    <ul className="list-disc list-inside mb-2 text-xs">
-                      <li>🟢 1-3: Excellent visibility, high click-through rates</li>
-                      <li>🔵 4-10: Good visibility, moderate traffic</li>  
-                      <li>🟠 11-20: Low visibility, minimal traffic</li>
-                      <li>🔴 21+: Very low visibility, almost no traffic</li>
-                    </ul>
-                    <p><strong>Focus on:</strong> Improving positions 4-10 to top 3 for maximum impact</p>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">{results.aboveFoldKeywords || 0}</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Above Fold Keywords
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Above Fold Keywords</p>
+                      <p className="mb-2"><strong>Definition:</strong> Keywords that appear in the immediately visible area of your pages (above the fold)</p>
+                      <p className="mb-2"><strong>Includes:</strong> Title tags, H1 headings, first paragraph, meta descriptions</p>
+                      <p className="mb-2"><strong>Importance:</strong> These keywords get maximum visibility and SEO weight</p>
+                      <p><strong>Best Practice:</strong> Focus your most important keywords above the fold</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">{(results.brandedKeywords || 0) + (results.nonBrandedKeywords || 0)}</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Total Keywords
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Total Keywords Found</p>
+                      <p className="mb-2"><strong>Source:</strong> All keywords extracted from your website content</p>
+                      <p className="mb-2"><strong>Method:</strong> Content analysis and text processing</p>
+                      <p><strong>Note:</strong> This represents keywords present in your content, not search rankings</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
             </div>
             
-            <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3">
-                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
-                  <div className="col-span-5">Keyword</div>
-                  <div className="col-span-2 text-center">Ranking</div>
-                  <div className="col-span-2 text-center">Volume</div>
-                  <div className="col-span-2 text-center">Difficulty</div>
-                  <div className="col-span-1 text-center">Traffic</div>
-                </div>
-              </div>
-              <div className="divide-y">
-                {(results.topKeywords || []).slice(0, 10).map((keyword: { keyword: string; position: number; volume?: number; difficulty?: number }, index: number) => {
-                  const getPositionColor = (position: number) => {
-                    if (position <= 3) return 'text-green-600 bg-green-50'
-                    if (position <= 10) return 'text-blue-600 bg-blue-50'  
-                    if (position <= 20) return 'text-orange-600 bg-orange-50'
-                    return 'text-red-600 bg-red-50'
-                  }
-                  
-                  const getDifficultyColor = (difficulty: number) => {
-                    if (difficulty <= 30) return 'text-green-600'
-                    if (difficulty <= 50) return 'text-orange-600'
-                    return 'text-red-600'
-                  }
-                  
-                  const estimatedTraffic = Math.round(keyword.volume * 0.3 * (keyword.position <= 3 ? 0.6 : keyword.position <= 10 ? 0.3 : 0.1))
-                  
-                  return (
-                    <div key={index} className="px-4 py-3 hover:bg-gray-50">
-                      <div className="grid grid-cols-12 gap-4 items-center text-sm">
-                        <div className="col-span-5">
-                          <span className="text-gray-900 font-medium">{keyword.keyword}</span>
-                        </div>
-                        <div className="col-span-2 text-center">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(keyword.position)}`}>
-                            #{keyword.position}
-                          </span>
-                        </div>
-                        <div className="col-span-2 text-center text-gray-600">
-                          {keyword.volume?.toLocaleString()}/mo
-                        </div>
-                        <div className="col-span-2 text-center">
-                          <span className={`font-medium ${getDifficultyColor(keyword.difficulty || 50)}`}>
-                            {keyword.difficulty || 50}%
-                          </span>
-                        </div>
-                        <div className="col-span-1 text-center text-gray-500 text-xs">
-                          {estimatedTraffic}
-                        </div>
-                      </div>
+            {/* Domain Authority */}
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">{results.domainAuthority || 'N/A'}</div>
+              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+                Domain Authority
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Domain Authority Score</p>
+                      <p className="mb-2"><strong>Range:</strong> 1-100 (higher is better)</p>
+                      <p className="mb-2"><strong>Source:</strong> SEMrush Authority Score</p>
+                      <p className="mb-2"><strong>Scoring:</strong> 1-20 (Low), 20-40 (Fair), 40-60 (Good), 60+ (Excellent)</p>
                     </div>
-                  )
-                })}
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
               </div>
             </div>
           </div>
+
+          {/* Keyword Intent Distribution */}
+          {results.intentDistribution && (
+            <div>
+              <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
+                Keyword Intent Distribution
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Keyword Intent Types</p>
+                      <p className="mb-2"><strong>Informational:</strong> "How to", "What is", "Guide" - Users seeking information</p>
+                      <p className="mb-2"><strong>Commercial:</strong> "Best", "Review", "Compare" - Users researching purchases</p>
+                      <p className="mb-2"><strong>Transactional:</strong> "Buy", "Price", "Order" - Users ready to purchase</p>
+                      <p><strong>Navigational:</strong> Brand names, "Login" - Users looking for specific sites</p>
+                    </div>
+                  }
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </h4>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-xl font-bold text-blue-600">{results.intentDistribution.informational}%</div>
+                  <div className="text-xs text-gray-600">Informational</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-xl font-bold text-green-600">{results.intentDistribution.commercial}%</div>
+                  <div className="text-xs text-gray-600">Commercial</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 rounded-lg">
+                  <div className="text-xl font-bold text-orange-600">{results.intentDistribution.transactional}%</div>
+                  <div className="text-xs text-gray-600">Transactional</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <div className="text-xl font-bold text-purple-600">{results.intentDistribution.navigational}%</div>
+                  <div className="text-xs text-gray-600">Navigational</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {/* Above Fold Keywords Table */}
+          {results.aboveFoldKeywordsList && results.aboveFoldKeywordsList.length > 0 && (
+            <AboveFoldKeywordTable 
+              keywords={results.aboveFoldKeywordsList}
+              title="Above Fold Keywords"
+              description="Keywords prominently placed in the immediately visible area of your website"
+            />
+          )}
 
           {/* Branded Keywords Table */}
           {results.brandedKeywordsList && (
-            <KeywordTable 
+            <BrandedKeywordTable 
               keywords={results.brandedKeywordsList}
               title="All Branded Keywords"
               description="Complete list of search terms that include your brand name or company name"
-              type="branded"
-              itemsPerPage={10}
             />
           )}
 
           {/* Non-branded Keywords Table */}
           {results.nonBrandedKeywordsList && (
-            <KeywordTable 
+            <NonBrandedKeywordTable 
               keywords={results.nonBrandedKeywordsList}
               title="All Non-branded Keywords"
               description="Complete list of industry and service-related keywords that drive new customer acquisition"
-              type="non-branded"
-              itemsPerPage={10}
             />
           )}
 
           {/* Competitors */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <h4 className="font-semibold">Main Competitors</h4>
+              <h4 className="font-semibold text-black">Main Competitors</h4>
               <Tooltip 
                 content={
                   <div>
@@ -487,7 +690,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                 }
                 position="top"
               >
-                <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                <HelpCircle className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full p-1" />
               </Tooltip>
             </div>
             
@@ -620,11 +823,11 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               <div className="text-sm text-gray-600">Domain Authority</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{results.totalBacklinks?.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-600">{results.totalBacklinks?.toLocaleString('en-GB')}</div>
               <div className="text-sm text-gray-600">Total Backlinks</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{results.referringDomains?.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-purple-600">{results.referringDomains?.toLocaleString('en-GB')}</div>
               <div className="text-sm text-gray-600">Referring Domains</div>
             </div>
           </div>
@@ -658,7 +861,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           {/* Technical Overview */}
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
               <div className="text-sm text-gray-600">Total Pages</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">

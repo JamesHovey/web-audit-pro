@@ -64,8 +64,26 @@ export async function POST(request: NextRequest) {
         }
 
         if (sections.includes('keywords')) {
-          const { analyzeMultiPageKeywords } = await import('@/lib/keywordService')
-          results.keywords = await analyzeMultiPageKeywords(pages, scope)
+          const { analyzeKeywords } = await import('@/lib/keywordService')
+          // Use the main domain page for analysis with HTML content
+          const mainPage = pages[0] || url
+          
+          // Fetch HTML content for more accurate analysis
+          let htmlContent = '';
+          try {
+            const response = await fetch(mainPage, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              redirect: 'follow',
+              signal: AbortSignal.timeout(10000)
+            });
+            if (response.ok) {
+              htmlContent = await response.text();
+            }
+          } catch (error) {
+            console.log('Could not fetch HTML content for keyword analysis:', error);
+          }
+          
+          results.keywords = await analyzeKeywords(url, htmlContent)
         }
 
         // Use mock data for other sections (performance, backlinks, etc.)
@@ -84,11 +102,14 @@ export async function POST(request: NextRequest) {
           totalPages: pages.length
         }
         
+        // Ensure the results are properly serializable
+        const safeResults = JSON.parse(JSON.stringify(finalResults))
+        
         await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
-            results: finalResults,
+            results: safeResults,
             completedAt: new Date()
           }
         })
@@ -98,11 +119,14 @@ export async function POST(request: NextRequest) {
         const { generateMockAuditResults } = await import('@/lib/mockData')
         const mockResults = await generateMockAuditResults(url, sections)
         
+        // Ensure the mock results are properly serializable
+        const safeMockResults = JSON.parse(JSON.stringify(mockResults))
+        
         await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
-            results: mockResults,
+            results: safeMockResults,
             completedAt: new Date()
           }
         })

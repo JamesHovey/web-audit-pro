@@ -30,7 +30,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Audit not found" }, { status: 404 })
     }
 
-    return NextResponse.json(audit)
+    // Ensure the audit data is properly serializable
+    const safeAudit = {
+      ...audit,
+      results: audit.results || null,
+      createdAt: audit.createdAt.toISOString(),
+      updatedAt: audit.updatedAt.toISOString(),
+      completedAt: audit.completedAt?.toISOString() || null
+    }
+
+    return NextResponse.json(safeAudit)
 
   } catch (error) {
     console.error("Error fetching audit:", error)
