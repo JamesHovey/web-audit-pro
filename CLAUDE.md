@@ -73,3 +73,5 @@ Claude Rules File
 4. Then, begin working on the todo items, marking them as complete as you go.
 5. Please every step of the way just give me a high level explanation of what changes you made
 6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
+
+Please dont use mock data or create fall backs. I just want this app to use real world data.

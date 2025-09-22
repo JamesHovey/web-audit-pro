@@ -30,26 +30,59 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
   const mockResults: Record<string, unknown> = {};
 
   if (sections.includes('traffic')) {
-    mockResults.traffic = {
-      monthlyOrganicTraffic: seededRandom(seed, 5000, 55000),
-      monthlyPaidTraffic: seededRandom(seed + 1, 1000, 16000),
-      brandedTraffic: seededRandom(seed + 2, 500, 8500),
-      topCountries: [
-        { country: "United States", percentage: 35.2, traffic: seededRandom(seed + 3, 5000, 25000) },
-        { country: "United Kingdom", percentage: 18.7, traffic: seededRandom(seed + 4, 2000, 12000) },
-        { country: "Canada", percentage: 12.3, traffic: seededRandom(seed + 5, 1500, 9500) },
-        { country: "Australia", percentage: 8.9, traffic: seededRandom(seed + 6, 1000, 6000) },
-        { country: "Germany", percentage: 6.1, traffic: seededRandom(seed + 7, 800, 3800) }
-      ],
-      trafficTrend: [
-        { month: "Sep 2024", organic: seededRandom(seed + 8, 35000, 50000), paid: seededRandom(seed + 9, 7000, 9000) },
-        { month: "Oct 2024", organic: seededRandom(seed + 10, 30000, 45000), paid: seededRandom(seed + 11, 8000, 10000) },
-        { month: "Nov 2024", organic: seededRandom(seed + 12, 40000, 55000), paid: seededRandom(seed + 13, 6000, 8500) },
-        { month: "Dec 2024", organic: seededRandom(seed + 14, 45000, 60000), paid: seededRandom(seed + 15, 8000, 9500) },
-        { month: "Jan 2025", organic: seededRandom(seed + 16, 42000, 55000), paid: seededRandom(seed + 17, 8500, 10500) },
-        { month: "Feb 2025", organic: seededRandom(seed + 18, 48000, 58000), paid: seededRandom(seed + 19, 9000, 11000) }
-      ]
-    };
+    try {
+      // Use realistic traffic estimation instead of random generation
+      console.log(`🚀 Attempting to use realistic traffic estimation for: ${url}`);
+      const { getCostEffectiveTrafficData } = await import('./costEffectiveTrafficService');
+      console.log(`✅ Successfully imported getCostEffectiveTrafficData`);
+      
+      try {
+        console.log(`🚀 Calling getCostEffectiveTrafficData for: ${url}`);
+        const trafficData = await getCostEffectiveTrafficData(url);
+        console.log(`✅ Realistic traffic data received:`, trafficData);
+        
+        mockResults.traffic = {
+          monthlyOrganicTraffic: trafficData.monthlyOrganicTraffic,
+          monthlyPaidTraffic: trafficData.monthlyPaidTraffic,
+          brandedTraffic: trafficData.brandedTraffic,
+          topCountries: trafficData.topCountries,
+          trafficTrend: trafficData.trafficTrend,
+          dataSource: trafficData.dataSource,
+          confidence: trafficData.confidence,
+          estimationMethod: trafficData.estimationMethod
+        };
+        console.log(`✅ Successfully set realistic traffic data in mockResults`);
+      } catch (trafficError) {
+        console.error('❌ Realistic traffic estimation failed, using fallback:', trafficError);
+        throw trafficError; // Re-throw to trigger outer catch
+      }
+    } catch (error) {
+      // Ultimate fallback to basic generation if everything fails
+      console.error('❌ All traffic estimation failed, using basic fallback:', error);
+      mockResults.traffic = {
+        monthlyOrganicTraffic: seededRandom(seed, 5000, 55000),
+        monthlyPaidTraffic: seededRandom(seed + 1, 1000, 16000),
+        brandedTraffic: seededRandom(seed + 2, 500, 8500),
+        topCountries: [
+          { country: "United States", percentage: 35.2, traffic: seededRandom(seed + 3, 5000, 25000) },
+          { country: "United Kingdom", percentage: 18.7, traffic: seededRandom(seed + 4, 2000, 12000) },
+          { country: "Canada", percentage: 12.3, traffic: seededRandom(seed + 5, 1500, 9500) },
+          { country: "Australia", percentage: 8.9, traffic: seededRandom(seed + 6, 1000, 6000) },
+          { country: "Germany", percentage: 6.1, traffic: seededRandom(seed + 7, 800, 3800) }
+        ],
+        trafficTrend: [
+          { month: "Sep 2024", organic: seededRandom(seed + 8, 35000, 50000), paid: seededRandom(seed + 9, 7000, 9000) },
+          { month: "Oct 2024", organic: seededRandom(seed + 10, 30000, 45000), paid: seededRandom(seed + 11, 8000, 10000) },
+          { month: "Nov 2024", organic: seededRandom(seed + 12, 40000, 55000), paid: seededRandom(seed + 13, 6000, 8500) },
+          { month: "Dec 2024", organic: seededRandom(seed + 14, 45000, 60000), paid: seededRandom(seed + 15, 8000, 9500) },
+          { month: "Jan 2025", organic: seededRandom(seed + 16, 42000, 55000), paid: seededRandom(seed + 17, 8500, 10500) },
+          { month: "Feb 2025", organic: seededRandom(seed + 18, 48000, 58000), paid: seededRandom(seed + 19, 9000, 11000) }
+        ],
+        dataSource: 'fallback',
+        confidence: 'low',
+        estimationMethod: 'basic_generation'
+      };
+    }
   }
 
   if (sections.includes('keywords')) {
@@ -181,29 +214,18 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
       const professionalTechStack = await detectTechStack(url);
       
       // Get hosting organization if available
-      const hostingOrganization = professionalTechStack.hosting 
-        ? await getHostingOrganization(professionalTechStack.hosting)
-        : null;
+      let hostingOrganization = null;
+      try {
+        if (professionalTechStack.hosting) {
+          hostingOrganization = await getHostingOrganization(professionalTechStack.hosting);
+        }
+      } catch (orgError) {
+        console.log('Warning: getHostingOrganization failed:', orgError);
+      }
       
-      // Try professional hosting detection
+      // Use the enhanced hosting detection results
       let enhancedHosting = professionalTechStack.hosting;
       let enhancedOrganization = professionalTechStack.organization || hostingOrganization;
-      
-      try {
-        const { getHostingInfo } = await import('./hostingDetection');
-        const hostingInfo = await getHostingInfo(url);
-        
-        if (hostingInfo.hosting && hostingInfo.hosting !== 'Not detected') {
-          enhancedHosting = hostingInfo.hosting;
-        }
-        
-        if (hostingInfo.organization) {
-          enhancedOrganization = hostingInfo.organization;
-        }
-        
-      } catch (hostingError) {
-        console.log('Professional hosting detection failed, using basic detection');
-      }
       
       // Convert professional result to our format
       mockResults.technology = {

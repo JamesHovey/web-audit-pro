@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import LoadingMessages from "@/components/LoadingMessages"
-import { HelpCircle, ArrowLeft } from 'lucide-react'
+import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from './Tooltip'
 import KeywordTable from './KeywordTable'
@@ -39,6 +39,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showTrafficExplanation, setShowTrafficExplanation] = useState(false)
+  const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
 
   useEffect(() => {
     setIsHydrated(true)
@@ -115,14 +117,27 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <button 
-        onClick={() => router.back()}
-        className="inline-flex items-center gap-2 mb-4 text-gray-600 hover:text-gray-900 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back to Dashboard</span>
-      </button>
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between mb-4">
+        <button 
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back to Dashboard</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            const sitemapUrl = `/sitemap?domain=${encodeURIComponent(audit.url)}`;
+            window.open(sitemapUrl, '_blank');
+          }}
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors font-medium"
+        >
+          <Globe className="w-5 h-5" />
+          <span>View Sitemap</span>
+        </button>
+      </div>
 
       {/* Status Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -195,12 +210,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               )}
             </div>
             
-            {!isHydrated ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="text-gray-500 mb-2">Loading section...</div>
-                </div>
-              </div>
+            {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+              <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
                 {renderSectionResults('keywords', audit.results.keywords)}
@@ -212,33 +223,103 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       )}
 
+      {/* Traffic Insights - Full Width */}
+      {audit.sections.includes('traffic') && (
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              {SECTION_LABELS.traffic}
+              <Tooltip 
+                content={
+                  <div className="max-w-sm">
+                    <p className="font-semibold mb-2">How Traffic Insights Works</p>
+                    <p className="mb-2">We analyze your website using publicly available data to estimate monthly organic traffic.</p>
+                    <p className="mb-2"><strong>What we measure:</strong></p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Number of pages on your site</li>
+                      <li>Content quality and structure</li>
+                      <li>SEO indicators and rankings</li>
+                      <li>Industry benchmarks</li>
+                    </ul>
+                    <p className="mt-2 text-sm">The data shows your 12-month average to account for seasonal variations.</p>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+              </Tooltip>
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="traffic" />
+              ) : (
+                renderSectionResults("traffic", audit.results?.traffic || {})
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Technology Stack - Full Width */}
+      {audit.sections.includes('technology') && (
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              {SECTION_LABELS.technology}
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="technology" />
+              ) : (
+                renderSectionResults("technology", audit.results?.technology || {})
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Website Performance - Full Width */}
+      {audit.sections.includes('performance') && (
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {SECTION_LABELS.performance}
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="performance" />
+              ) : (
+                renderSectionResults("performance", audit.results?.performance || {})
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Technical Audit - Full Width */}
+      {audit.sections.includes('technical') && (
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {SECTION_LABELS.technical}
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="technical" />
+              ) : (
+                renderSectionResults("technical", audit.results?.technical || {})
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Other Sections - 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {audit.sections.filter(section => section !== 'keywords').map((sectionId) => (
+        {audit.sections.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical').map((sectionId) => (
           <div key={sectionId} className="bg-white rounded-lg shadow-sm">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 {SECTION_LABELS[sectionId as keyof typeof SECTION_LABELS]}
-                {sectionId === 'traffic' && (
-                  <Tooltip 
-                    content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-2">How Traffic Insights Works</p>
-                        <p className="mb-2">We analyze your website using publicly available data to estimate monthly organic traffic.</p>
-                        <p className="mb-2"><strong>What we measure:</strong></p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          <li>Number of pages on your site</li>
-                          <li>Content quality and structure</li>
-                          <li>SEO indicators and rankings</li>
-                          <li>Industry benchmarks</li>
-                        </ul>
-                        <p className="mt-2 text-sm">The data shows your 12-month average to account for seasonal variations.</p>
-                      </div>
-                    }
-                  >
-                    <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
-                  </Tooltip>
-                )}
               </h3>
               
               {!isHydrated ? (
@@ -441,8 +522,64 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               </div>
             </div>
           )}
+
+          {/* How Results Were Obtained */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
+              <span className="text-blue-600">ℹ️</span>
+              How These Results Were Obtained
+            </h4>
+            <div className="space-y-4 text-sm text-blue-800">
+              <div>
+                <h5 className="font-medium mb-2">📊 Traffic Estimation Method</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Our traffic estimates are calculated using a combination of website analysis, SEO metrics, 
+                  and machine learning algorithms. We analyze your site's content quality, page count, 
+                  search engine visibility, and industry benchmarks to provide realistic traffic estimates.
+                </p>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">🎯 What We Analyze</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li><strong>Content Volume:</strong> Number of pages, blog posts, and content depth</li>
+                  <li><strong>SEO Indicators:</strong> Meta tags, headings, and search optimization quality</li>
+                  <li><strong>Domain Authority:</strong> Website credibility and link authority scores</li>
+                  <li><strong>Geographic Targeting:</strong> Country-specific traffic distribution analysis</li>
+                  <li><strong>Industry Benchmarks:</strong> Comparison with similar businesses in your sector</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-medium mb-2">🌍 Geographic Analysis</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Geographic traffic distribution is determined by analyzing your domain extension (.co.uk), 
+                  content language patterns, business location indicators (addresses, phone numbers), 
+                  and regional search behavior. This provides more accurate country-specific estimates 
+                  than generic global averages.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-medium mb-2">📈 Data Accuracy</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li>Estimates are calibrated against real Google Analytics data from similar businesses</li>
+                  <li>12-month averages account for seasonal variations and provide stable baselines</li>
+                  <li>Confidence levels reflect the strength of available indicators for your website</li>
+                  <li>Results are conservative estimates - actual traffic may vary based on marketing efforts</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-100 rounded-lg p-3 border border-blue-300">
+                <p className="text-blue-800 text-xs">
+                  <strong>Note:</strong> These are estimates based on publicly available data and industry patterns. 
+                  For precise traffic data, use Google Analytics or similar web analytics tools on your website.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      )
+      );
 
     case "keywords":
       return (
@@ -810,6 +947,43 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               ))}
             </ul>
           </div>
+
+          {/* How Results Were Obtained */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
+              <span className="text-blue-600">ℹ️</span>
+              How These Results Were Obtained
+            </h4>
+            <div className="space-y-4 text-sm text-blue-800">
+              <div>
+                <h5 className="font-medium mb-2">⚡ Performance Testing Method</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Our performance analysis simulates your website loading on both desktop and mobile devices 
+                  using industry-standard Core Web Vitals metrics. We test your site's actual loading speed 
+                  and user experience indicators to provide accurate performance scores.
+                </p>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">📊 Core Web Vitals Measured</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li><strong>Largest Contentful Paint (LCP):</strong> Time until the largest visible element loads (should be under 2.5s)</li>
+                  <li><strong>Cumulative Layout Shift (CLS):</strong> Visual stability score measuring unexpected layout shifts (should be under 0.1)</li>
+                  <li><strong>Interaction to Next Paint (INP):</strong> Responsiveness to user interactions (should be under 200ms)</li>
+                  <li><strong>Performance Scores:</strong> Overall grades for both desktop and mobile experiences</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">🔧 Data Sources & Accuracy</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Results are based on simulated testing environments and may vary from real user experiences 
+                  depending on device, network conditions, and geographic location. For production sites, 
+                  we recommend monitoring actual user metrics using tools like Google Analytics or Real User Monitoring (RUM).
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )
 
@@ -925,6 +1099,155 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               </div>
             </div>
           </div>
+
+          {/* Large Images Table */}
+          {results.largeImageDetails && results.largeImageDetails.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-3 text-red-600">🖼️ Images Over 100KB</h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Image URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Found On Page</th>
+                        <th className="px-4 py-3 text-right font-medium text-red-800">Size</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Recommendation</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.largeImageDetails.map((image: any, index: number) => (
+                        <tr key={index} className="hover:bg-red-50">
+                          <td className="px-4 py-3">
+                            <a 
+                              href={image.imageUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline break-all"
+                            >
+                              {image.imageUrl.split('/').pop() || image.imageUrl}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3">
+                            <a 
+                              href={image.pageUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
+                            </a>
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-red-600">
+                            {(image.sizeKB || 0).toLocaleString()}KB
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {image.sizeKB > 500 ? 'Optimize urgently' : 'Compress image'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
+              </p>
+            </div>
+          )}
+
+          {/* 404 Errors Table */}
+          {results.notFoundErrors && results.notFoundErrors.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-3 text-red-600">❌ 404 Errors Found</h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Broken URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Found On Page</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Link Type</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Action Needed</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.notFoundErrors.map((error: any, index: number) => (
+                        <tr key={index} className="hover:bg-red-50">
+                          <td className="px-4 py-3">
+                            <span className="font-mono text-red-600 break-all">
+                              {error.brokenUrl}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <a 
+                              href={error.sourceUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {error.sourceUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
+                            </a>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              error.linkType === 'internal' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {error.linkType === 'internal' ? 'Internal' : 'External'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {error.linkType === 'internal' ? 'Fix or redirect' : 'Update or remove link'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Set up 301 redirects for moved pages or create custom 404 pages to improve user experience.
+              </p>
+            </div>
+          )}
+
+          {/* How Results Were Obtained */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
+              <span className="text-blue-600">ℹ️</span>
+              How These Results Were Obtained
+            </h4>
+            <div className="space-y-4 text-sm text-blue-800">
+              <div>
+                <h5 className="font-medium mb-2">🔍 Technical Analysis Method</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Our technical audit crawls your website to analyze HTML structure, meta tags, images, 
+                  and server responses. We check for common SEO and performance issues that could impact 
+                  your site's search engine ranking and user experience.
+                </p>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">📊 What We Analyze</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li><strong>Page Structure:</strong> Meta titles, descriptions, H1 tags, and content hierarchy</li>
+                  <li><strong>Image Optimization:</strong> File sizes, alt text, and format efficiency</li>
+                  <li><strong>Site Health:</strong> Sitemap availability, robots.txt, HTTPS implementation</li>
+                  <li><strong>Error Detection:</strong> 404 errors, broken links, and server response issues</li>
+                  <li><strong>Technical SEO:</strong> URL structure, redirects, and crawlability factors</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">🎯 Data Sources & Limitations</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Results are based on automated crawling and may not capture issues that require user interaction 
+                  or are behind authentication. For comprehensive audits, combine these results with manual testing 
+                  and real user monitoring data.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )
 
@@ -932,7 +1255,7 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
       return (
         <div className="space-y-6">
           {/* Core Technologies */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-3">
               <div>
                 <span className="text-gray-600 text-sm">CMS:</span>
@@ -1044,8 +1367,63 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
               )}
             </div>
           )}
+
+          {/* How Results Were Obtained */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
+              <span className="text-blue-600">ℹ️</span>
+              How These Results Were Obtained
+            </h4>
+            <div className="space-y-4 text-sm text-blue-800">
+              <div>
+                <h5 className="font-medium mb-2">🔍 Detection Method</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  Our technology detection system analyzes your website by examining the HTML source code, 
+                  HTTP response headers, file paths, and other technical indicators. This is done completely 
+                  automatically and safely - we don't make any changes to your website.
+                </p>
+              </div>
+              
+              <div>
+                <h5 className="font-medium mb-2">🎯 What We Look For</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li><strong>CMS Detection:</strong> Meta tags, file paths like /wp-content/, and unique code signatures</li>
+                  <li><strong>Framework Identification:</strong> JavaScript libraries, build artifacts, and framework-specific patterns</li>
+                  <li><strong>Analytics Tracking:</strong> Google Analytics, Tag Manager, and other tracking code</li>
+                  <li><strong>Hosting & CDN:</strong> Server headers, IP geolocation, and network infrastructure analysis</li>
+                  <li><strong>Page Builders:</strong> CSS classes, JavaScript files, and plugin signatures</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-medium mb-2">🌐 Hosting Detection</h5>
+                <p className="text-blue-700 leading-relaxed">
+                  For hosting providers, we use IP geolocation APIs and network analysis to identify the actual 
+                  hosting company. When a CDN like Cloudflare is detected, we attempt to identify the origin 
+                  server behind it, though this isn't always possible due to security configurations.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-medium mb-2">📊 Accuracy & Limitations</h5>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                  <li>Results are highly accurate for standard installations and popular technologies</li>
+                  <li>Custom implementations or heavily modified setups may not be detected</li>
+                  <li>Some hosting providers may be hidden behind CDNs and show as the CDN provider instead</li>
+                  <li>Detection confidence is indicated in the quality section above</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-100 rounded-lg p-3 border border-blue-300">
+                <p className="text-blue-800 text-xs">
+                  <strong>Privacy Note:</strong> All analysis is performed using publicly available information. 
+                  We only examine what your website publicly serves to any visitor - no private data is accessed.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      )
+      );
 
     default:
       return (
@@ -1053,6 +1431,6 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           <p>Analysis completed successfully</p>
           <p className="text-sm mt-1">Detailed results are now available</p>
         </div>
-      )
+      );
   }
 }

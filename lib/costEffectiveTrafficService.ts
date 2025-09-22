@@ -1107,9 +1107,20 @@ async function estimateTrafficFromAnalysis(analysis: { siteQuality: 'high' | 'me
   
   // Calculate actual traffic numbers for each country
   const totalTraffic = monthlyOrganic + monthlyPaid;
-  topCountries.forEach(country => {
-    country.traffic = Math.round(totalTraffic * (country.percentage / 100));
+  console.log(`🔢 Traffic calculation:`, {
+    monthlyOrganic,
+    monthlyPaid,
+    totalTraffic,
+    countriesBeforeCalculation: topCountries.map(c => ({ country: c.country, percentage: c.percentage, traffic: c.traffic }))
   });
+  
+  topCountries.forEach(country => {
+    const calculatedTraffic = Math.round(totalTraffic * (country.percentage / 100));
+    console.log(`📊 ${country.country}: ${country.percentage}% of ${totalTraffic} = ${calculatedTraffic}`);
+    country.traffic = calculatedTraffic;
+  });
+  
+  console.log(`✅ Final countries with traffic:`, topCountries.map(c => ({ country: c.country, percentage: c.percentage, traffic: c.traffic })));
   
   return {
     monthlyOrganicTraffic: monthlyOrganic,

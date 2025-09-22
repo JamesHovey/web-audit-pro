@@ -81,8 +81,7 @@ class CompetitorDetectionService {
                 keywords: this.estimateKeywords(competitor.domain, industry)
               });
             }
-          });
-        }
+        });
 
         // Delay between searches to respect rate limits
         await this.delay(500);

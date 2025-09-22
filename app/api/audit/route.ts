@@ -85,9 +85,14 @@ export async function POST(request: NextRequest) {
           
           results.keywords = await analyzeKeywords(url, htmlContent)
         }
+        
+        if (sections.includes('technical')) {
+          const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+          results.technical = await performTechnicalAudit(url)
+        }
 
         // Use mock data for other sections (performance, backlinks, etc.)
-        const remainingSections = sections.filter(s => !['traffic', 'keywords'].includes(s))
+        const remainingSections = sections.filter(s => !['traffic', 'keywords', 'technical'].includes(s))
         if (remainingSections.length > 0) {
           const { generateMockAuditResults } = await import('@/lib/mockData')
           const mockResults = await generateMockAuditResults(url, remainingSections)
