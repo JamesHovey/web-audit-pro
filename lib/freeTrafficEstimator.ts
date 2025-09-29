@@ -41,17 +41,17 @@ function estimateTrafficFromMetrics(metrics: SEOMetrics): number {
     estimatedTraffic += linkFactor;
   }
   
-  // Indexed pages (content volume)
+  // Indexed pages (content volume) - MUCH MORE CONSERVATIVE
   if (metrics.indexedPages) {
-    // Assuming 5-10% of pages drive traffic, avg 10 visits per active page
-    const contentFactor = metrics.indexedPages * 0.075 * 10;
+    // Assuming only 2-5% of pages drive traffic, avg 5 visits per active page
+    const contentFactor = metrics.indexedPages * 0.03 * 5;
     estimatedTraffic += contentFactor;
   }
   
-  // Organic keywords ranking
+  // Organic keywords ranking - MUCH MORE CONSERVATIVE
   if (metrics.organicKeywords) {
-    // Each ranking keyword brings average 20-50 visits
-    const keywordFactor = metrics.organicKeywords * 35;
+    // Each ranking keyword brings average 5-10 visits (most keywords bring very little traffic)
+    const keywordFactor = metrics.organicKeywords * 7;
     estimatedTraffic += keywordFactor;
   }
   

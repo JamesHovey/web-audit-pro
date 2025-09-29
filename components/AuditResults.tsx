@@ -10,6 +10,7 @@ import KeywordTable from './KeywordTable'
 import BrandedKeywordTable from './BrandedKeywordTable'
 import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldKeywordTable from './AboveFoldKeywordTable'
+import { PMWLogo } from './PMWLogo'
 
 interface Audit {
   id: string
@@ -25,6 +26,67 @@ interface AuditResultsProps {
   audit: Audit
 }
 
+const INSPIRATIONAL_QUOTES = [
+  "Great SEO is a marathon, not a sprint. Stay consistent and patient.",
+  "Every website has potential waiting to be unlocked.",
+  "Quality content is the foundation of strong organic traffic.",
+  "Your competitors are optimizing right now. Let's get you ahead.",
+  "SEO isn't about gaming the system, it's about learning how to play by the rules.",
+  "The best time to plant a tree was 20 years ago. The second best time is now.",
+  "Success in SEO comes from understanding your audience, not just algorithms.",
+  "Small improvements compound into remarkable results.",
+  "Every click represents a real person looking for answers.",
+  "Your website is working 24/7. Make sure it's working smart.",
+  "Behind every search is a human with a problem to solve.",
+  "Good SEO makes your website easier to understand for both users and search engines.",
+  "The journey to page one starts with a single optimization.",
+  "Data drives decisions. Insights drive success.",
+  "Your content should answer questions before they're asked.",
+  "Building authority takes time, but the results last.",
+  "Every audit brings you closer to your goals.",
+  "Focus on user experience and search rankings will follow.",
+  "Technical SEO is the foundation. Content is the house.",
+  "Patience and persistence are SEO superpowers."
+]
+
+const BACKGROUND_THEMES = [
+  {
+    name: "Analytics Dashboard",
+    gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    pattern: "radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%)"
+  },
+  {
+    name: "SEO Growth",
+    gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    pattern: "radial-gradient(circle at 30% 70%, rgba(240, 147, 251, 0.3) 0%, transparent 50%), radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%)"
+  },
+  {
+    name: "Traffic Analysis",
+    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    pattern: "radial-gradient(circle at 25% 25%, rgba(79, 172, 254, 0.3) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)"
+  },
+  {
+    name: "Technical Audit",
+    gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    pattern: "radial-gradient(circle at 60% 40%, rgba(67, 233, 123, 0.3) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.15) 0%, transparent 50%)"
+  },
+  {
+    name: "Keyword Research",
+    gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    pattern: "radial-gradient(circle at 50% 20%, rgba(250, 112, 154, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)"
+  },
+  {
+    name: "Performance Metrics",
+    gradient: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+    pattern: "radial-gradient(circle at 30% 30%, rgba(168, 237, 234, 0.4) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(254, 214, 227, 0.4) 0%, transparent 50%)"
+  },
+  {
+    name: "Backlink Analysis", 
+    gradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+    pattern: "radial-gradient(circle at 20% 60%, rgba(255, 236, 210, 0.4) 0%, transparent 50%), radial-gradient(circle at 80% 40%, rgba(252, 182, 159, 0.4) 0%, transparent 50%)"
+  }
+]
+
 const SECTION_LABELS = {
   traffic: "Traffic Insights",
   keywords: "Keywords",
@@ -39,12 +101,59 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showResults, setShowResults] = useState(audit.status === "completed")
+  const [currentQuote, setCurrentQuote] = useState(INSPIRATIONAL_QUOTES[0])
+  const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
   const [showTrafficExplanation, setShowTrafficExplanation] = useState(false)
   const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
+  const [showMethodologyExpanded, setShowMethodologyExpanded] = useState<{[key: string]: boolean}>({
+    traffic: false,
+    performance: false,
+    technical: false,
+    technology: false,
+    backlinks: false,
+    keywords: false
+  })
+  const [internalLinksModal, setInternalLinksModal] = useState<{ isOpen: boolean; targetPage: string; links: string[] }>({
+    isOpen: false,
+    targetPage: '',
+    links: []
+  })
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  const toggleMethodology = (section: string) => {
+    setShowMethodologyExpanded(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  // Rotate inspirational quotes and background themes during loading
+  useEffect(() => {
+    if (!isPolling || showResults) return
+    
+    // Set initial random quote and theme
+    setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
+    setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
+    
+    // Rotate quotes every 3 seconds
+    const quoteInterval = setInterval(() => {
+      setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
+    }, 3000)
+    
+    // Rotate background themes every 5 seconds (slower than quotes)
+    const themeInterval = setInterval(() => {
+      setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
+    }, 5000)
+    
+    return () => {
+      clearInterval(quoteInterval)
+      clearInterval(themeInterval)
+    }
+  }, [isPolling, showResults])
 
   useEffect(() => {
     if (!isPolling) return
@@ -76,6 +185,14 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         
         if (updatedAudit.status === "completed" || updatedAudit.status === "failed") {
           setIsPolling(false)
+          // Wait a moment for the final update to settle, then show results
+          if (updatedAudit.status === "completed") {
+            setTimeout(() => {
+              setShowResults(true)
+            }, 500)
+          } else {
+            setShowResults(true)
+          }
         }
       } catch (error) {
         console.error("Error polling audit status:", error)
@@ -132,7 +249,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             const sitemapUrl = `/sitemap?domain=${encodeURIComponent(audit.url)}`;
             window.open(sitemapUrl, '_blank');
           }}
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors font-medium"
+          className="btn-pmw-secondary text-sm px-4 py-2"
         >
           <Globe className="w-5 h-5" />
           <span>View Sitemap</span>
@@ -140,7 +257,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       </div>
 
       {/* Status Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="card-pmw">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-3">
@@ -159,6 +276,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 second: '2-digit' 
               })}
             </p>
+            
+            {/* Progress info has been moved to the modal */}
             {audit.completedAt && (
               <p className="text-gray-600">
                 Completed: {new Date(audit.completedAt).toLocaleString('en-GB', { 
@@ -175,7 +294,235 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
           
           {audit.status === "completed" && (
             <div className="flex space-x-2">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              <button 
+                onClick={() => {
+                  try {
+                    console.log('Main PDF export clicked - exporting full audit');
+                    
+                    const targetUrl = new URL(audit.url);
+                    const domain = targetUrl.hostname;
+                    const currentDate = new Date();
+                    
+                    const printContent = `
+                      <html>
+                        <head>
+                          <title>SEO Audit Report - ${domain}</title>
+                          <style>
+                            @media print {
+                              body { margin: 0; }
+                              .no-print { display: none; }
+                              .page-break { page-break-before: always; }
+                            }
+                            body { 
+                              font-family: Arial, sans-serif; 
+                              margin: 20px; 
+                              line-height: 1.4;
+                              color: #333;
+                            }
+                            .header { 
+                              margin-bottom: 40px; 
+                              border-bottom: 3px solid #2563eb; 
+                              padding-bottom: 30px; 
+                              text-align: center;
+                            }
+                            .logo { 
+                              font-size: 32px; 
+                              font-weight: bold; 
+                              color: #2563eb; 
+                              margin-bottom: 8px; 
+                            }
+                            .company { 
+                              font-size: 16px; 
+                              color: #666; 
+                              margin-bottom: 20px; 
+                            }
+                            .title { 
+                              font-size: 28px; 
+                              font-weight: bold; 
+                              margin-bottom: 20px;
+                              color: #1e40af;
+                            }
+                            .subtitle {
+                              font-size: 20px;
+                              color: #666;
+                              margin-bottom: 10px;
+                            }
+                            .section { 
+                              margin: 30px 0; 
+                              padding: 20px;
+                              border: 1px solid #e5e7eb;
+                              border-radius: 8px;
+                            }
+                            .section-title { 
+                              font-size: 22px; 
+                              font-weight: bold; 
+                              margin-bottom: 15px;
+                              color: #1e40af;
+                              border-bottom: 2px solid #e5e7eb;
+                              padding-bottom: 8px;
+                            }
+                            .metric-grid {
+                              display: grid;
+                              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                              gap: 20px;
+                              margin: 20px 0;
+                            }
+                            .metric-card {
+                              padding: 15px;
+                              background: #f8fafc;
+                              border-radius: 6px;
+                              text-align: center;
+                            }
+                            .metric-value {
+                              font-size: 24px;
+                              font-weight: bold;
+                              color: #2563eb;
+                            }
+                            .metric-label {
+                              font-size: 14px;
+                              color: #666;
+                              margin-top: 5px;
+                            }
+                            table { 
+                              width: 100%; 
+                              border-collapse: collapse; 
+                              margin: 15px 0; 
+                            }
+                            th, td { 
+                              border: 1px solid #d1d5db; 
+                              padding: 12px; 
+                              text-align: left; 
+                            }
+                            th { 
+                              background-color: #f3f4f6; 
+                              font-weight: bold;
+                              color: #374151;
+                            }
+                            tr:nth-child(even) { 
+                              background-color: #f9fafb; 
+                            }
+                            .audit-info { 
+                              margin-bottom: 30px; 
+                              padding: 20px;
+                              background: #f0f9ff;
+                              border-radius: 8px;
+                            }
+                            .audit-info p { 
+                              margin: 8px 0; 
+                            }
+                            .footer {
+                              margin-top: 40px;
+                              padding-top: 20px;
+                              border-top: 1px solid #e5e7eb;
+                              font-size: 12px;
+                              color: #666;
+                              text-align: center;
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <div class="logo">PMW</div>
+                            <div class="company">Professional Marketing & Web Design</div>
+                            <div class="title">SEO Audit Report</div>
+                            <div class="subtitle">${domain}</div>
+                          </div>
+                          
+                          <div class="audit-info">
+                            <p><strong>Website:</strong> ${audit.url}</p>
+                            <p><strong>Audit Date:</strong> ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}</p>
+                            <p><strong>Report Generated:</strong> ${currentDate.toLocaleString()}</p>
+                            <p><strong>Sections Analyzed:</strong> ${audit.sections.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</p>
+                          </div>
+                          
+                          ${audit.results && audit.sections ? audit.sections.map(section => {
+                            const sectionData = audit.results[section];
+                            if (!sectionData) return '';
+                            
+                            let sectionName = section.charAt(0).toUpperCase() + section.slice(1);
+                            if (section === 'traffic') sectionName = 'Traffic Insights';
+                            if (section === 'keywords') sectionName = 'Keywords Analysis';
+                            if (section === 'performance') sectionName = 'Performance Metrics';
+                            if (section === 'backlinks') sectionName = 'Authority & Backlinks';
+                            if (section === 'technical') sectionName = 'Technical SEO';
+                            if (section === 'technology') sectionName = 'Technology Stack';
+                            
+                            let sectionContent = '<p>Analysis completed for this section. Detailed results available in the web interface.</p>';
+                            
+                            if (section === 'traffic' && typeof sectionData === 'object') {
+                              sectionContent = `
+                                <div class="metric-grid">
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.monthlyOrganicTraffic || 0}</div>
+                                    <div class="metric-label">Monthly Organic Traffic</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.monthlyPaidTraffic || 0}</div>
+                                    <div class="metric-label">Monthly Paid Traffic</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.brandedTraffic || 0}</div>
+                                    <div class="metric-label">Branded Traffic</div>
+                                  </div>
+                                </div>
+                                ${sectionData.topCountries && Array.isArray(sectionData.topCountries) ? `
+                                  <h4>Top Countries</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Country</th><th>Traffic</th><th>Percentage</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${sectionData.topCountries.map(country => 
+                                        `<tr><td>${country.country}</td><td>${country.traffic}</td><td>${country.percentage}%</td></tr>`
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                              `;
+                            }
+                            
+                            return `
+                              <div class="section">
+                                <div class="section-title">${sectionName}</div>
+                                ${sectionContent}
+                              </div>
+                            `;
+                          }).join('') : ''}
+                          
+                          <div class="footer">
+                            <p>This report was generated by Web Audit Pro - PMW Professional Marketing & Web Design</p>
+                            <p>Generated on ${currentDate.toLocaleString()}</p>
+                          </div>
+                          
+                          <div class="no-print">
+                            <p style="margin-top: 30px; color: #666; font-size: 14px; text-align: center;">
+                              Tip: Use your browser's "Save as PDF" option to save this report as a PDF file.
+                            </p>
+                          </div>
+                        </body>
+                      </html>
+                    `;
+                    
+                    console.log('Opening audit report print window...');
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(printContent);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => printWindow.print(), 500);
+                      console.log('Audit report print dialog opened successfully');
+                    } else {
+                      console.error('Could not open print window - check pop-up blocker');
+                      alert('Could not open print dialog. Please check if pop-ups are blocked.');
+                    }
+                    
+                  } catch (error) {
+                    console.error('Error generating audit PDF:', error);
+                    alert('Error generating PDF report: ' + error.message);
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
                 Export PDF
               </button>
               <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
@@ -186,9 +533,12 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       </div>
 
-      {/* Keywords Section - Full Width */}
-      {audit.sections.includes('keywords') && (
-        <div className="bg-white rounded-lg shadow-sm mb-6">
+      {/* Only show results when audit is complete */}
+      {showResults ? (
+        <>
+          {/* Keywords Section - Full Width */}
+          {audit.sections.includes('keywords') && (
+        <div className="card-pmw mb-6">
           <div className="p-6">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -214,7 +564,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology)}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -225,7 +575,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Traffic Insights - Full Width */}
       {audit.sections.includes('traffic') && (
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               {SECTION_LABELS.traffic}
@@ -252,7 +602,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {})
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology)
               )}
             </div>
           </div>
@@ -261,16 +611,35 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Technology Stack - Full Width */}
       {audit.sections.includes('technology') && (
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               {SECTION_LABELS.technology}
+              <Tooltip 
+                content={
+                  <div className="max-w-sm">
+                    <p className="font-semibold mb-2">Technology Stack Analysis</p>
+                    <p className="mb-2">We detect and analyze the technologies powering your website.</p>
+                    <p className="mb-2"><strong>What we identify:</strong></p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Content Management Systems (CMS)</li>
+                      <li>E-commerce platforms</li>
+                      <li>Analytics & tracking tools</li>
+                      <li>Frameworks & libraries</li>
+                      <li>Security & performance tools</li>
+                    </ul>
+                    <p className="mt-2 text-sm">Understanding your tech stack helps identify optimization opportunities.</p>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+              </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {})
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology)
               )}
             </div>
           </div>
@@ -279,16 +648,35 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Website Performance - Full Width */}
       {audit.sections.includes('performance') && (
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="card-pmw">
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               {SECTION_LABELS.performance}
+              <Tooltip 
+                content={
+                  <div className="max-w-sm">
+                    <p className="font-semibold mb-2">Website Performance Metrics</p>
+                    <p className="mb-2">We measure key performance indicators that affect user experience and SEO.</p>
+                    <p className="mb-2"><strong>Metrics analyzed:</strong></p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Page load speed (Core Web Vitals)</li>
+                      <li>Time to First Byte (TTFB)</li>
+                      <li>First Contentful Paint (FCP)</li>
+                      <li>Largest Contentful Paint (LCP)</li>
+                      <li>Mobile responsiveness</li>
+                    </ul>
+                    <p className="mt-2 text-sm">Google uses these metrics as ranking factors.</p>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+              </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="performance" />
               ) : (
-                renderSectionResults("performance", audit.results?.performance || {})
+                renderSectionResults("performance", audit.results?.performance || {}, undefined, showMethodologyExpanded, toggleMethodology)
               )}
             </div>
           </div>
@@ -297,16 +685,37 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Technical Audit - Full Width */}
       {audit.sections.includes('technical') && (
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="card-pmw">
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               {SECTION_LABELS.technical}
+              <Tooltip 
+                content={
+                  <div className="max-w-sm">
+                    <p className="font-semibold mb-2">Technical SEO Audit</p>
+                    <p className="mb-2">We analyze technical factors that impact search engine crawling and indexing.</p>
+                    <p className="mb-2"><strong>Areas checked:</strong></p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Meta tags (title, description)</li>
+                      <li>Header structure (H1, H2, etc.)</li>
+                      <li>XML sitemap presence</li>
+                      <li>Robots.txt configuration</li>
+                      <li>Schema markup implementation</li>
+                      <li>HTTPS security</li>
+                      <li>Canonical URLs</li>
+                    </ul>
+                    <p className="mt-2 text-sm">Technical SEO forms the foundation of search visibility.</p>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+              </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technical" />
               ) : (
-                renderSectionResults("technical", audit.results?.technical || {})
+                renderSectionResults("technical", audit.results?.technical || {}, undefined, showMethodologyExpanded, toggleMethodology)
               )}
             </div>
           </div>
@@ -316,10 +725,32 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       {/* Other Sections - 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {audit.sections.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical').map((sectionId) => (
-          <div key={sectionId} className="bg-white rounded-lg shadow-sm">
+          <div key={sectionId} className="card-pmw">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 {SECTION_LABELS[sectionId as keyof typeof SECTION_LABELS]}
+                {sectionId === 'backlinks' && (
+                  <Tooltip 
+                    content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-2">Authority & Backlinks Analysis</p>
+                        <p className="mb-2">We analyze your website's authority and backlink profile.</p>
+                        <p className="mb-2"><strong>Metrics evaluated:</strong></p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>Domain Authority score</li>
+                          <li>Number of referring domains</li>
+                          <li>Total backlinks count</li>
+                          <li>High-quality backlink sources</li>
+                          <li>Anchor text distribution</li>
+                          <li>Link growth over time</li>
+                        </ul>
+                        <p className="mt-2 text-sm">Quality backlinks are crucial for ranking higher in search results.</p>
+                      </div>
+                    }
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                  </Tooltip>
+                )}
               </h3>
               
               {!isHydrated ? (
@@ -327,7 +758,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId])}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -340,11 +771,301 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
           </div>
         ))}
       </div>
+        </>
+      ) : (
+        /* Loading Modal/Lightbox */
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Dynamic Background */}
+          <div 
+            className="absolute inset-0 transition-all duration-1000 ease-in-out"
+            style={{
+              background: `${currentTheme.gradient}, ${currentTheme.pattern}`,
+              backgroundBlendMode: 'overlay'
+            }}
+          />
+          {/* Semi-transparent overlay for readability */}
+          <div className="absolute inset-0 bg-white bg-opacity-10" />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 p-8">
+            {audit.status === "running" ? (
+              <>
+                <LoadingSpinner size="lg" className="mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analyzing Website</h2>
+                <p className="text-gray-600 mb-6 text-center">
+                  We're conducting a comprehensive audit of {audit.sections.length} sections.
+                  This typically takes 1-2 minutes.
+                </p>
+                
+                {/* Inspirational Quote */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                  <p className="text-center text-gray-700 italic mb-2">
+                    "{currentQuote}"
+                  </p>
+                  <p className="text-center text-xs text-gray-500">
+                    Background: {currentTheme.name}
+                  </p>
+                </div>
+                
+                {audit.results?._progress && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-600 mb-2 text-center">
+                      Processing: <span className="font-semibold">
+                        {SECTION_LABELS[audit.results._progress.currentSection as keyof typeof SECTION_LABELS] || audit.results._progress.currentSection}
+                      </span> ({audit.results._progress.completedSections}/{audit.results._progress.totalSections})
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ 
+                          width: `${(audit.results._progress.completedSections / audit.results._progress.totalSections) * 100}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : audit.status === "failed" ? (
+              <div className="text-center">
+                <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 text-2xl">✕</span>
+                </div>
+                <p className="text-red-600 text-lg font-semibold mb-4">Audit Failed</p>
+                <p className="text-gray-600 mb-6">Something went wrong during the audit. Please try again.</p>
+                <button 
+                  onClick={() => router.back()}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Go Back
+                </button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <LoadingSpinner size="lg" className="mx-auto mb-4" />
+                <p className="text-gray-600">Preparing audit...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Internal Links Modal */}
+      {internalLinksModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Internal Links Pointing to {internalLinksModal.targetPage}</h2>
+              <button
+                onClick={() => setInternalLinksModal({ isOpen: false, targetPage: '', links: [] })}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {internalLinksModal.links.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => alert('CSV export clicked!')}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                  >
+                    Export CSV (Test)
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Export as CSV
+                      const csvContent = [
+                        'Source Page,Target Page',
+                        ...internalLinksModal.links.map(link => {
+                          try {
+                            const url = new URL(link);
+                            const sourcePath = url.pathname === '/' ? '/' : url.pathname;
+                            return `"${sourcePath}","${internalLinksModal.targetPage}"`;
+                          } catch {
+                            return `"${link}","${internalLinksModal.targetPage}"`;
+                          }
+                        })
+                      ].join('\\n');
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `internal-links-${internalLinksModal.targetPage.replace(/[\\/]/g, '-')}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                  >
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      alert('Button clicked!');
+                      console.log('PDF export button clicked!');
+                      
+                      try {
+                        const targetUrl = new URL(internalLinksModal.targetPage);
+                        const targetPath = targetUrl.pathname === '/' ? '/' : targetUrl.pathname;
+                        
+                        console.log('Creating print window for:', targetPath);
+                        
+                        const printContent = `
+                          <html>
+                            <head>
+                              <title>Internal Links Report - ${targetPath}</title>
+                              <style>
+                                @media print {
+                                  body { margin: 0; }
+                                  .no-print { display: none; }
+                                }
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                .header { margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                                .logo { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 5px; }
+                                .company { font-size: 14px; color: #666; margin-bottom: 15px; }
+                                .title { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+                                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                                th { background-color: #f5f5f5; font-weight: bold; }
+                                tr:nth-child(even) { background-color: #f9f9f9; }
+                                .details { margin-bottom: 20px; }
+                                .details p { margin: 5px 0; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="header">
+                                <div class="logo">PMW</div>
+                                <div class="company">Professional Marketing & Web Design</div>
+                                <div class="title">Internal Links Analysis Report</div>
+                              </div>
+                              <div class="details">
+                                <p><strong>Target Page:</strong> ${targetPath}</p>
+                                <p><strong>Domain:</strong> ${targetUrl.hostname}</p>
+                                <p><strong>Total Internal Links:</strong> ${internalLinksModal.links.length}</p>
+                                <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                              </div>
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th style="width: 60px;">#</th>
+                                    <th>Source Page</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  ${internalLinksModal.links.map((link, index) => {
+                                    try {
+                                      const url = new URL(link);
+                                      const sourcePath = url.pathname === '/' ? '/' : url.pathname;
+                                      return `<tr><td>${index + 1}</td><td>${sourcePath}</td></tr>`;
+                                    } catch {
+                                      return `<tr><td>${index + 1}</td><td>${link}</td></tr>`;
+                                    }
+                                  }).join('')}
+                                </tbody>
+                              </table>
+                              <div class="no-print">
+                                <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                                  Tip: Use your browser's "Save as PDF" option in the print dialog to save this report as a PDF file.
+                                </p>
+                              </div>
+                            </body>
+                          </html>
+                        `;
+                        
+                        console.log('Opening print window...');
+                        const printWindow = window.open('', '_blank');
+                        if (printWindow) {
+                          printWindow.document.write(printContent);
+                          printWindow.document.close();
+                          printWindow.focus();
+                          setTimeout(() => printWindow.print(), 500);
+                          console.log('Print dialog opened successfully');
+                        } else {
+                          console.error('Could not open print window');
+                          alert('Could not open print dialog. Please check if pop-ups are blocked.');
+                        }
+                        
+                      } catch (error) {
+                        console.error('Error creating PDF export:', error);
+                        alert('Error generating PDF report: ' + error.message);
+                      }
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+                  >
+                    Export PDF
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto max-h-96 border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">#</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Source Page</th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {internalLinksModal.links.map((link, index) => {
+                        const sourcePath = (() => {
+                          try {
+                            const url = new URL(link);
+                            return url.pathname === '/' ? '/' : url.pathname;
+                          } catch {
+                            return link;
+                          }
+                        })();
+                        
+                        return (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-gray-500">{index + 1}</td>
+                            <td className="px-4 py-3">
+                              <span className="font-mono text-sm">{sourcePath}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 text-sm underline"
+                              >
+                                Visit
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                  <p><strong>About this data:</strong> Shows all pages on the website that contain links pointing to <code className="bg-gray-200 px-1 rounded">{internalLinksModal.targetPage}</code>. This helps understand the internal linking structure and page authority flow.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No internal links found pointing to this page.</p>
+                <p className="text-sm mt-2">This page might be orphaned or only accessible through external navigation.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function renderSectionResults(sectionId: string, results: Record<string, unknown>) {
+function renderSectionResults(
+  sectionId: string, 
+  results: Record<string, unknown>, 
+  setInternalLinksModal?: (state: { isOpen: boolean; targetPage: string; links: string[] }) => void,
+  showMethodologyExpanded?: {[key: string]: boolean},
+  toggleMethodology?: (section: string) => void
+) {
   switch (sectionId) {
     case "traffic":
       return (
@@ -503,6 +1224,110 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
             </div>
           </div>
 
+          {/* Popular Pages Analysis */}
+          {results.popularPages && results.popularPages.pages?.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                Most Popular Pages
+                <Tooltip 
+                  content={
+                    <div className="max-w-md">
+                      <p className="font-semibold mb-2">Page Popularity Analysis</p>
+                      <p className="mb-2">We discovered and analyzed {results.popularPages.discoveredPages} pages on this website.</p>
+                      <p className="mb-2"><strong>Analysis Method:</strong></p>
+                      <ul className="list-disc list-inside text-xs space-y-1 mb-2">
+                        <li>Crawled sitemap.xml to discover all pages</li>
+                        <li>Analyzed main navigation and footer links</li>
+                        <li>Counted internal links pointing to each page</li>
+                        <li>Evaluated page depth and URL structure</li>
+                      </ul>
+                      <p className="text-xs"><strong>Confidence:</strong> {results.popularPages.confidence === 'high' ? '🟢 High' : results.popularPages.confidence === 'medium' ? '🟡 Medium' : '🔴 Low'}</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </h4>
+              <div className="bg-gray-50 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Page</th>
+                        <th className="px-4 py-3 text-right font-medium text-gray-700">Est. Traffic Share</th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">Internal Links</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {results.popularPages.pages.slice(0, 10).map((page: any, index: number) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div>
+                              <a 
+                                href={page.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 font-medium font-mono text-sm"
+                                title={page.title || page.url}
+                              >
+                                {(() => {
+                                  try {
+                                    const url = new URL(page.url);
+                                    return url.pathname === '/' ? '/' : url.pathname;
+                                  } catch {
+                                    return page.url;
+                                  }
+                                })()}
+                              </a>
+                              {page.signals?.isHomepage && (
+                                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Homepage</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-medium">{page.estimatedTrafficShare}%</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => {
+                                const currentPagePath = (() => {
+                                  try {
+                                    const url = new URL(page.url);
+                                    return url.pathname === '/' ? '/' : url.pathname;
+                                  } catch {
+                                    return page.url;
+                                  }
+                                })();
+                                
+                                if (setInternalLinksModal) {
+                                  setInternalLinksModal({
+                                    isOpen: true,
+                                    targetPage: currentPagePath,
+                                    links: page.internalLinks || []
+                                  });
+                                }
+                              }}
+                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                              title="Click to view internal links"
+                            >
+                              {page.signals?.internalLinkCount || 0}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs text-amber-800">
+                  <strong>Note:</strong> Traffic share is estimated based on page importance signals. Actual traffic distribution may vary based on search rankings, marketing campaigns, and user behavior.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Data Source Indicator */}
           {results.dataSource && (
             <div className="mt-4 pt-3 border-t border-gray-200">
@@ -524,14 +1349,27 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           )}
 
           {/* How Results Were Obtained */}
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
-              <span className="text-blue-600">ℹ️</span>
-              How These Results Were Obtained
-            </h4>
-            <div className="space-y-4 text-sm text-blue-800">
-              <div>
-                <h5 className="font-medium mb-2">📊 Traffic Estimation Method</h5>
+          <div className="bg-blue-50 rounded-lg border border-blue-200">
+            <button 
+              onClick={() => toggleMethodology?.('traffic')}
+              className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
+            >
+              <h4 className="font-semibold text-blue-900 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="text-blue-600">ℹ️</span>
+                  How These Results Were Obtained
+                </span>
+                {showMethodologyExpanded?.traffic ? (
+                  <ChevronDown className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-blue-600" />
+                )}
+              </h4>
+            </button>
+            {showMethodologyExpanded?.traffic && (
+              <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
+                <div>
+                  <h5 className="font-medium mb-2">📊 Traffic Estimation Method</h5>
                 <p className="text-blue-700 leading-relaxed">
                   Our traffic estimates are calculated using a combination of website analysis, SEO metrics, 
                   and machine learning algorithms. We analyze your site's content quality, page count, 
@@ -560,6 +1398,22 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                 </p>
               </div>
 
+              {results.popularPages && (
+                <div>
+                  <h5 className="font-medium mb-2">📄 Page Popularity Analysis</h5>
+                  <p className="text-blue-700 leading-relaxed mb-2">
+                    When "All Discoverable Pages" is selected, we analyze which pages are likely most popular:
+                  </p>
+                  <ul className="list-disc list-inside text-blue-700 space-y-1 text-xs">
+                    <li>Discovered {results.popularPages.discoveredPages} total pages via sitemap and crawling</li>
+                    <li>Analyzed {results.popularPages.analyzedPages} pages for popularity signals</li>
+                    <li>Homepage typically receives 30-40% of total traffic</li>
+                    <li>Main navigation pages get priority (usually 40-50% combined)</li>
+                    <li>Pages with more internal links are generally more important</li>
+                  </ul>
+                </div>
+              )}
+
               <div>
                 <h5 className="font-medium mb-2">📈 Data Accuracy</h5>
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
@@ -576,7 +1430,8 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                   For precise traffic data, use Google Analytics or similar web analytics tools on your website.
                 </p>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -949,14 +1804,27 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           </div>
 
           {/* How Results Were Obtained */}
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
-              <span className="text-blue-600">ℹ️</span>
-              How These Results Were Obtained
-            </h4>
-            <div className="space-y-4 text-sm text-blue-800">
-              <div>
-                <h5 className="font-medium mb-2">⚡ Performance Testing Method</h5>
+          <div className="bg-blue-50 rounded-lg border border-blue-200">
+            <button 
+              onClick={() => toggleMethodology?.('performance')}
+              className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
+            >
+              <h4 className="font-semibold text-blue-900 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="text-blue-600">ℹ️</span>
+                  How These Results Were Obtained
+                </span>
+                {showMethodologyExpanded?.performance ? (
+                  <ChevronDown className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-blue-600" />
+                )}
+              </h4>
+            </button>
+            {showMethodologyExpanded?.performance && (
+              <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
+                <div>
+                  <h5 className="font-medium mb-2">⚡ Performance Testing Method</h5>
                 <p className="text-blue-700 leading-relaxed">
                   Our performance analysis simulates your website loading on both desktop and mobile devices 
                   using industry-standard Core Web Vitals metrics. We test your site's actual loading speed 
@@ -982,7 +1850,8 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                   we recommend monitoring actual user metrics using tools like Google Analytics or Real User Monitoring (RUM).
                 </p>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )
@@ -1212,14 +2081,27 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           )}
 
           {/* How Results Were Obtained */}
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
-              <span className="text-blue-600">ℹ️</span>
-              How These Results Were Obtained
-            </h4>
-            <div className="space-y-4 text-sm text-blue-800">
-              <div>
-                <h5 className="font-medium mb-2">🔍 Technical Analysis Method</h5>
+          <div className="bg-blue-50 rounded-lg border border-blue-200">
+            <button 
+              onClick={() => toggleMethodology?.('technical')}
+              className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
+            >
+              <h4 className="font-semibold text-blue-900 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="text-blue-600">ℹ️</span>
+                  How These Results Were Obtained
+                </span>
+                {showMethodologyExpanded?.technical ? (
+                  <ChevronDown className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-blue-600" />
+                )}
+              </h4>
+            </button>
+            {showMethodologyExpanded?.technical && (
+              <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
+                <div>
+                  <h5 className="font-medium mb-2">🔍 Technical Analysis Method</h5>
                 <p className="text-blue-700 leading-relaxed">
                   Our technical audit crawls your website to analyze HTML structure, meta tags, images, 
                   and server responses. We check for common SEO and performance issues that could impact 
@@ -1246,7 +2128,8 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                   and real user monitoring data.
                 </p>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )
@@ -1369,14 +2252,27 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
           )}
 
           {/* How Results Were Obtained */}
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h4 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
-              <span className="text-blue-600">ℹ️</span>
-              How These Results Were Obtained
-            </h4>
-            <div className="space-y-4 text-sm text-blue-800">
-              <div>
-                <h5 className="font-medium mb-2">🔍 Detection Method</h5>
+          <div className="bg-blue-50 rounded-lg border border-blue-200">
+            <button 
+              onClick={() => toggleMethodology?.('technology')}
+              className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
+            >
+              <h4 className="font-semibold text-blue-900 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="text-blue-600">ℹ️</span>
+                  How These Results Were Obtained
+                </span>
+                {showMethodologyExpanded?.technology ? (
+                  <ChevronDown className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-blue-600" />
+                )}
+              </h4>
+            </button>
+            {showMethodologyExpanded?.technology && (
+              <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
+                <div>
+                  <h5 className="font-medium mb-2">🔍 Detection Method</h5>
                 <p className="text-blue-700 leading-relaxed">
                   Our technology detection system analyzes your website by examining the HTML source code, 
                   HTTP response headers, file paths, and other technical indicators. This is done completely 
@@ -1420,7 +2316,8 @@ function renderSectionResults(sectionId: string, results: Record<string, unknown
                   We only examine what your website publicly serves to any visitor - no private data is accessed.
                 </p>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       );

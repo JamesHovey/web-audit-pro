@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Globe } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const AUDIT_SECTIONS = [
   {
@@ -46,6 +47,7 @@ interface PageOption {
 }
 
 export function AuditForm() {
+  const router = useRouter()
   const [url, setUrl] = useState("")
   const [selectedSections, setSelectedSections] = useState<string[]>([]) // Default to nothing selected
   const [auditScope, setAuditScope] = useState<AuditScope>('single')
@@ -180,9 +182,7 @@ export function AuditForm() {
           scope: auditScope,
           pages: auditScope === 'custom' 
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
-            : auditScope === 'all'
-            ? discoveredPages.map(page => page.url)
-            : [urlToAudit]
+            : [urlToAudit] // For both 'single' and 'all' scopes, just send the main URL
         }),
       })
 
@@ -192,8 +192,8 @@ export function AuditForm() {
 
       const data = await response.json()
       
-      // Redirect to results page
-      window.location.href = `/audit/${data.id}`
+      // Use Next.js router for client-side navigation
+      router.push(`/audit/${data.id}`)
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -203,7 +203,7 @@ export function AuditForm() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="card-pmw">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* URL Input */}
         <div>
@@ -243,7 +243,7 @@ export function AuditForm() {
                   const sitemapUrl = `/sitemap?domain=${encodeURIComponent(url.startsWith('http') ? url : `https://${url}`)}`;
                   window.open(sitemapUrl, '_blank');
                 }}
-                className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                className="btn-pmw-secondary text-sm px-4 py-2"
               >
                 <Globe className="w-4 h-4" />
                 <span>View Sitemap</span>
@@ -439,7 +439,7 @@ export function AuditForm() {
         <button
           type="submit"
           disabled={isLoading || !isValidUrl || selectedSections.length === 0}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+          className="w-full btn-pmw-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none justify-center"
         >
           {isLoading ? (
             <>

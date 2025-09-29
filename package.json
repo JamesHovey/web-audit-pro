@@ -12,6 +12,7 @@
     "@auth/prisma-adapter": "^2.10.0",
     "@prisma/client": "^6.13.0",
     "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^7.0.1",
     "bcryptjs": "^3.0.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",

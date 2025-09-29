@@ -2,29 +2,31 @@
 
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
+import { PMWLogo } from "./PMWLogo"
 
 export function Navigation() {
   const { data: session } = useSession()
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="shadow-sm border-b" style={{ backgroundColor: 'var(--pmw-primary)', borderColor: 'var(--pmw-border)' }}>
+      <div className="container-pmw">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/dashboard" className="text-xl font-bold text-blue-600">
-              Web Audit Pro
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-3 text-xl font-bold text-white hover:opacity-90 transition-opacity">
+              <PMWLogo size={40} />
+              <span>Web Audit Pro</span>
             </Link>
           </div>
           
           <div className="flex items-center space-x-4">
             {session ? (
               <>
-                <span className="text-gray-700">
+                <span className="text-white">
                   {session.user?.name || session.user?.email}
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-all"
                 >
                   Sign Out
                 </button>
@@ -32,7 +34,7 @@ export function Navigation() {
             ) : (
               <Link
                 href="/auth/signin"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="btn-pmw-accent text-sm px-4 py-2"
               >
                 Sign In
               </Link>

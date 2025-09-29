@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Tooltip from './Tooltip'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, HelpCircle } from 'lucide-react'
 
 interface KeywordData {
   keyword: string;
@@ -115,7 +115,7 @@ export default function NonBrandedKeywordTable({
           }
           position="top"
         >
-          <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium">?</div>
+          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
         </Tooltip>
       </div>
       

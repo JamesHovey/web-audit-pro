@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { HelpCircle } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 interface KeywordData {
@@ -85,7 +86,7 @@ export default function KeywordTable({
           }
           position="top"
         >
-          <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium">?</div>
+          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
         </Tooltip>
       </div>
       

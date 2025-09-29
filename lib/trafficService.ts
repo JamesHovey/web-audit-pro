@@ -12,6 +12,23 @@ interface TrafficData {
     organic: number;
     paid: number;
   }[];
+  popularPages?: {
+    pages: Array<{
+      url: string;
+      title: string;
+      estimatedTrafficShare: number;
+      signals: {
+        isHomepage: boolean;
+        navigationPosition: number;
+        internalLinkCount: number;
+        urlDepth: number;
+      };
+    }>;
+    methodology: string;
+    confidence: 'high' | 'medium' | 'low';
+    discoveredPages: number;
+    analyzedPages: number;
+  };
 }
 
 // SimilarWeb API integration
@@ -198,7 +215,7 @@ function generateTrafficTrend(organicBase: number, paidBase: number, seed: numbe
 }
 
 // Main function to get traffic data with fallbacks
-export async function getTrafficData(domain: string): Promise<TrafficData> {
+export async function getTrafficData(domain: string, includePageAnalysis: boolean = false): Promise<TrafficData> {
   // Remove protocol and www
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
 
@@ -208,10 +225,38 @@ export async function getTrafficData(domain: string): Promise<TrafficData> {
   try {
     const { estimateFreeTrafficData, convertToTrafficData } = await import('./freeTrafficEstimator');
     const estimatedData = await estimateFreeTrafficData(cleanDomain);
-    const trafficData = convertToTrafficData(estimatedData);
+    let trafficData = convertToTrafficData(estimatedData);
     
     console.log(`Successfully estimated traffic using free web scraping (confidence: ${estimatedData.confidence})`);
     console.log(`12-month average organic traffic: ${estimatedData.monthlyOrganicTraffic} visits/month`);
+    
+    // Add page popularity analysis if requested
+    if (includePageAnalysis) {
+      console.log('Analyzing page popularity...');
+      const { analyzePagePopularity } = await import('./pagePopularityAnalyzer');
+      const popularPagesResult = await analyzePagePopularity(cleanDomain);
+      
+      if (popularPagesResult.pages.length > 0) {
+        trafficData.popularPages = {
+          pages: popularPagesResult.pages.map(page => ({
+            url: page.url,
+            title: page.title,
+            estimatedTrafficShare: page.estimatedTrafficShare,
+            signals: {
+              isHomepage: page.signals.isHomepage,
+              navigationPosition: page.signals.navigationPosition,
+              internalLinkCount: page.signals.internalLinkCount,
+              urlDepth: page.signals.urlDepth
+            }
+          })),
+          methodology: popularPagesResult.methodology,
+          confidence: popularPagesResult.confidence,
+          discoveredPages: popularPagesResult.discoveredPages,
+          analyzedPages: popularPagesResult.analyzedPages
+        };
+        console.log(`Analyzed ${popularPagesResult.analyzedPages} pages, found ${popularPagesResult.pages.length} popular pages`);
+      }
+    }
     
     // If we have API keys and want higher accuracy, try them
     const hasSimilarWebKey = !!process.env.SIMILARWEB_API_KEY;
@@ -225,6 +270,10 @@ export async function getTrafficData(domain: string): Promise<TrafficData> {
         const similarWebData = await getSimilarWebTraffic(cleanDomain);
         if (similarWebData) {
           console.log('Successfully retrieved SimilarWeb data (using paid API for higher accuracy)');
+          // Preserve page analysis if we did it
+          if (trafficData.popularPages) {
+            similarWebData.popularPages = trafficData.popularPages;
+          }
           return similarWebData;
         }
       }
@@ -234,6 +283,10 @@ export async function getTrafficData(domain: string): Promise<TrafficData> {
         const semrushData = await getSEMrushTraffic(cleanDomain);
         if (semrushData) {
           console.log('Successfully retrieved SEMrush data (using paid API for higher accuracy)');
+          // Preserve page analysis if we did it
+          if (trafficData.popularPages) {
+            semrushData.popularPages = trafficData.popularPages;
+          }
           return semrushData;
         }
       }

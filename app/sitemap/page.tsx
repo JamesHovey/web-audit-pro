@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { ExternalLink, ZoomIn, ZoomOut, Download, RotateCcw, Maximize2 } from 'lucide-react'
+import { ExternalLink, ZoomIn, ZoomOut, Download, RotateCcw, Maximize2, ChevronDown, ChevronRight, Move } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 interface DiscoveredPage {
@@ -32,31 +32,29 @@ interface SitemapNode {
   children: SitemapNode[];
   source: string;
   lastModified?: string;
+  position?: { x: number; y: number };
+  isExpanded?: boolean;
 }
 
 // Client-side only sitemap content to avoid hydration issues
 function SitemapContent({ domain }: { domain: string }) {
-  console.log('SitemapContent rendered with domain:', domain)
-  
   const [sitemapData, setSitemapData] = useState<PageDiscoveryResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [sitemapTree, setSitemapTree] = useState<SitemapNode | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1); // Default to 100% zoom
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [lastPanOffset, setLastPanOffset] = useState({ x: 0, y: 0 });
+  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const [nodePositions, setNodePositions] = useState<Map<string, { x: number; y: number }>>(new Map());
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('=== SITEMAP CONTENT EFFECT RUNNING ===');
-    console.log('Domain:', domain);
-    
     if (domain) {
-      console.log('Starting fetchSitemapData...');
       fetchSitemapData();
     } else {
-      console.log('No domain provided');
       setError("No domain provided");
       setIsLoading(false);
     }
@@ -67,26 +65,29 @@ function SitemapContent({ domain }: { domain: string }) {
   useEffect(() => {
     if (sitemapTree) {
       setTimeout(() => {
-        autoFitSitemap();
-      }, 100); // Small delay to ensure DOM is rendered
+        centerAndFitSitemap();
+        // Initialize all nodes as expanded
+        const allNodeIds = getAllNodeIds(sitemapTree);
+        setExpandedNodes(new Set(allNodeIds));
+      }, 100);
     }
   }, [sitemapTree]);
 
+  const getAllNodeIds = (node: SitemapNode): string[] => {
+    const ids = [node.id];
+    node.children.forEach(child => {
+      ids.push(...getAllNodeIds(child));
+    });
+    return ids;
+  };
+
   const fetchSitemapData = async () => {
-    console.log('=== FETCH SITEMAP DATA CALLED ===');
-    console.log('Domain:', domain);
-    
-    if (!domain) {
-      console.log('No domain, returning early');
-      return;
-    }
+    if (!domain) return;
     
     try {
-      console.log('Setting loading to true...');
       setIsLoading(true);
       setError("");
 
-      console.log('Making API request to /api/discover-pages...');
       const response = await fetch('/api/discover-pages', {
         method: 'POST',
         headers: {
@@ -95,48 +96,64 @@ function SitemapContent({ domain }: { domain: string }) {
         body: JSON.stringify({ url: domain }),
       });
 
-      console.log('API response received:', response.ok, response.status);
-
       if (!response.ok) {
         throw new Error('Failed to fetch sitemap data');
       }
 
       const data = await response.json();
-      console.log('API data received:', data);
       setSitemapData(data);
       
-      // Build hierarchical tree structure for flowchart view
+      // Build hierarchical tree structure
       if (data.pages && data.pages.length > 0) {
-        console.log('Building tree with pages:', data.pages.length);
         const tree = buildSitemapTree(data.pages, domain);
-        console.log('Tree built:', tree);
         setSitemapTree(tree);
-      } else {
-        console.log('No pages data available for tree building');
+        initializeNodePositions(tree);
       }
     } catch (err) {
-      console.error('Error in fetchSitemapData:', err);
       setError(err instanceof Error ? err.message : 'Failed to load sitemap');
     } finally {
-      console.log('Setting loading to false...');
       setIsLoading(false);
     }
   };
 
+  // Initialize grid positions for nodes
+  const initializeNodePositions = (root: SitemapNode) => {
+    const positions = new Map<string, { x: number; y: number }>();
+    
+    // Level 1 (parent pages) - arrange in grid
+    const level1Nodes = root.children;
+    const gridCols = Math.ceil(Math.sqrt(level1Nodes.length));
+    const gridRows = Math.ceil(level1Nodes.length / gridCols);
+    
+    // Calculate total grid dimensions with more spacing for full screen
+    const nodeWidth = 300; // Width including spacing
+    const nodeHeight = 250; // Height including spacing
+    const totalGridWidth = gridCols * nodeWidth;
+    const totalGridHeight = gridRows * nodeHeight;
+    
+    // Center the grid by starting from negative offset
+    const startX = -totalGridWidth / 2 + nodeWidth / 2;
+    const startY = 100; // Start below the root node
+    
+    level1Nodes.forEach((node, index) => {
+      const row = Math.floor(index / gridCols);
+      const col = index % gridCols;
+      
+      positions.set(node.id, {
+        x: startX + col * nodeWidth,
+        y: startY + row * nodeHeight
+      });
+    });
+    
+    setNodePositions(positions);
+  };
+
   // Build hierarchical tree structure from pages
   const buildSitemapTree = (pages: DiscoveredPage[], rootDomain: string): SitemapNode => {
-    console.log('=== BUILDING SITEMAP TREE ===');
-    console.log('Pages:', pages.length);
-    console.log('Domain:', rootDomain);
-    console.log('First page:', pages[0]);
-    
     let rootUrl: URL;
     try {
       rootUrl = new URL(rootDomain);
-      console.log('Root URL parsed successfully:', rootUrl.hostname);
     } catch (error) {
-      console.error('Invalid rootDomain URL:', rootDomain, error);
-      // Fallback
       rootUrl = new URL('https://example.com');
     }
     
@@ -146,12 +163,9 @@ function SitemapContent({ domain }: { domain: string }) {
       url: rootDomain,
       level: 0,
       children: [],
-      source: 'homepage'
+      source: 'homepage',
+      isExpanded: true
     };
-    
-    console.log('Root node created:', root);
-
-    console.log('Processing all pages for full tree structure...');
 
     // Create a map to track nodes by path
     const nodeMap = new Map<string, SitemapNode>();
@@ -163,8 +177,6 @@ function SitemapContent({ domain }: { domain: string }) {
       const pathB = new URL(b.url).pathname;
       return pathA.split('/').length - pathB.split('/').length;
     });
-
-    console.log('Processing', sortedPages.length, 'sorted pages');
     
     for (const page of sortedPages) {
       try {
@@ -175,18 +187,13 @@ function SitemapContent({ domain }: { domain: string }) {
         const normalizedRootHostname = rootUrl.hostname.replace(/^www\./, '');
         const normalizedPageHostname = url.hostname.replace(/^www\./, '');
         
-        console.log('Processing page:', page.url, 'pathname:', pathname);
-        console.log('Hostnames - root:', normalizedRootHostname, 'page:', normalizedPageHostname);
-        
-        // Skip pages from different domains (after normalization)
+        // Skip pages from different domains
         if (normalizedPageHostname !== normalizedRootHostname) {
-          console.log('Skipping different domain:', page.url);
           continue;
         }
         
         // Skip root page (already added)
         if (pathname === '/' || pathname === '') {
-          console.log('Skipping root page:', page.url);
           continue;
         }
 
@@ -208,7 +215,8 @@ function SitemapContent({ domain }: { domain: string }) {
               level: i + 1,
               children: [],
               source: isLast ? page.source : 'internal-link',
-              lastModified: isLast ? page.lastModified : undefined
+              lastModified: isLast ? page.lastModified : undefined,
+              isExpanded: true
             };
 
             nodeMap.set(currentPath, newNode);
@@ -225,97 +233,184 @@ function SitemapContent({ domain }: { domain: string }) {
     return root;
   };
 
-  // Render flowchart node
-  const renderFlowchartNode = (node: SitemapNode, isRoot = false): JSX.Element => {
-    const hasChildren = node.children.length > 0;
+  const toggleNodeExpansion = (nodeId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    setDraggedNode(nodeId);
+    const pos = nodePositions.get(nodeId) || { x: 0, y: 0 };
+    setDragStart({
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y
+    });
+  };
+
+  const handleNodeDrag = (e: React.MouseEvent) => {
+    if (!draggedNode) return;
     
-    return (
-      <div key={node.id} className="flex flex-col items-center">
-        {/* Node */}
-        <div 
-          className="group relative"
-          onMouseDown={(e) => e.stopPropagation()}
-          onMouseMove={(e) => e.stopPropagation()}
-        >
-          <div className={`
-            px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:shadow-lg cursor-pointer
-            ${isRoot ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white hover:bg-gray-50'}
-            max-w-[160px] text-center
-          `}>
-            <div className="flex items-center justify-center mb-1">
-              <span className="font-medium text-sm truncate text-black" title={node.label}>
-                {node.label}
-              </span>
-            </div>
-            <div className="text-xs text-black truncate" title={node.url}>
-              {new URL(node.url).pathname || '/'}
-            </div>
-            
-            {/* Hover tooltip */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
-              <div className="font-medium">{node.label}</div>
-              <div className="text-gray-300">{node.url}</div>
-              {node.lastModified && (
-                <div className="text-gray-400 text-xs">
-                  Modified: {new Date(node.lastModified).toLocaleDateString()}
-                </div>
-              )}
-              {/* Arrow */}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    const newPos = {
+      x: (e.clientX - dragStart.x - panOffset.x) / zoomLevel,
+      y: (e.clientY - dragStart.y - panOffset.y) / zoomLevel
+    };
+    
+    setNodePositions(prev => {
+      const newPositions = new Map(prev);
+      newPositions.set(draggedNode, newPos);
+      return newPositions;
+    });
+  };
+
+  const handleNodeDragEnd = () => {
+    setDraggedNode(null);
+  };
+
+  // Render grid-based node
+  const renderGridNode = (node: SitemapNode, isRoot = false, parentPos?: { x: number; y: number }): JSX.Element => {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedNodes.has(node.id);
+    const nodePos = nodePositions.get(node.id) || { x: 0, y: 0 };
+    
+    if (isRoot) {
+      // Render root node at center top
+      return (
+        <div key={node.id} className="w-full">
+          {/* Root Node */}
+          <div className="flex justify-center mb-8">
+            <div className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg font-semibold text-center">
+              <div className="text-lg mb-1">{node.label}</div>
+              <div className="text-xs opacity-90">{node.url}</div>
             </div>
           </div>
 
-          {/* External link button */}
-          <a
-            href={node.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700"
-            title="Open in new tab"
-          >
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          {/* Render Level 1 nodes in grid */}
+          <div className="relative">
+            {node.children.map(child => renderGridNode(child, false, { x: 0, y: 100 }))}
+          </div>
         </div>
+      );
+    }
 
-        {/* Connection lines and children */}
-        {hasChildren && (
-          <div className="flex flex-col items-center mt-3">
-            {/* Vertical line down */}
-            <div className="w-0.5 bg-gray-300 h-4"></div>
-            
-            {/* Horizontal distribution line for multiple children */}
-            {node.children.length > 1 && (
-              <div className="relative">
-                {/* Horizontal line */}
-                <div className="h-0.5 bg-gray-300" style={{ 
-                  width: isRoot ? '100%' : node.children.length > 8 ? '1000px' : node.children.length > 4 ? '800px' : `${Math.min(180 * node.children.length, 800)}px`
-                }}></div>
-                
-                {/* Vertical lines to children */}
-                <div className="flex justify-between absolute top-0" style={{ 
-                  width: isRoot ? '100%' : node.children.length > 8 ? '1000px' : node.children.length > 4 ? '800px' : `${Math.min(180 * node.children.length, 800)}px`
-                }}>
-                  {node.children.map((_, index) => (
-                    <div key={index} className="w-0.5 bg-gray-300 h-4"></div>
-                  ))}
+    return (
+      <div key={node.id}>
+        {/* Parent Node (draggable) */}
+        <div
+          className="absolute group"
+          style={{
+            left: `50%`,
+            top: `${nodePos.y}px`,
+            transform: `translateX(calc(-50% + ${nodePos.x}px))`,
+            cursor: draggedNode === node.id ? 'grabbing' : 'move'
+          }}
+          onMouseDown={(e) => handleNodeDragStart(e, node.id)}
+        >
+          <div className="relative">
+            <div className={`
+              px-4 py-3 rounded-lg border-2 shadow-lg transition-all duration-200
+              ${node.level === 1 ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-white'}
+              min-w-[220px] max-w-[280px]
+            `}>
+              {/* Drag handle indicator */}
+              {node.level === 1 && (
+                <Move className="absolute -top-2 -right-2 w-5 h-5 text-gray-400 bg-white rounded-full border p-0.5" />
+              )}
+              
+              {/* Toggle button for children */}
+              {hasChildren && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleNodeExpansion(node.id);
+                  }}
+                  className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-3 h-3 text-gray-600" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3 text-gray-600" />
+                  )}
+                </button>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <div className="flex-1 mr-2">
+                  <div className="font-medium text-sm text-black truncate" title={node.label}>
+                    {node.label}
+                  </div>
+                  <div className="text-xs text-gray-600 truncate" title={node.url}>
+                    {new URL(node.url).pathname || '/'}
+                  </div>
+                  {hasChildren && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {node.children.length} {node.children.length === 1 ? 'page' : 'pages'}
+                    </div>
+                  )}
                 </div>
+                
+                {/* External link */}
+                <a
+                  href={node.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                  title="Open in new tab"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Render children below if expanded */}
+            {hasChildren && isExpanded && (
+              <div className="mt-4 ml-8">
+                {node.children.map((child, index) => (
+                  <div
+                    key={child.id}
+                    className="relative mb-2 pl-4 border-l-2 border-gray-200"
+                  >
+                    {/* Connection line */}
+                    <div className="absolute -left-[2px] top-3 w-4 h-0.5 bg-gray-200"></div>
+                    
+                    {/* Child node */}
+                    <div className="inline-block px-2 py-1 bg-white border border-gray-200 rounded text-sm hover:bg-gray-50">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-black truncate max-w-[200px]" title={child.url}>
+                          {new URL(child.url).pathname || '/'}
+                        </span>
+                        <a
+                          href={child.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                    
+                    {/* Recursively render grandchildren */}
+                    {child.children.length > 0 && isExpanded && (
+                      <div className="ml-4 mt-2">
+                        {renderGridNode(child, false, nodePos)}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-            
-            {/* Single child vertical line */}
-            {node.children.length === 1 && (
-              <div className="w-0.5 bg-gray-300 h-4"></div>
-            )}
-
-            {/* Child nodes */}
-            <div className={`flex ${node.children.length > 1 ? 'justify-between' : 'justify-center'} mt-4 flex-wrap gap-4`}
-                 style={{ 
-                   width: isRoot ? '100%' : node.children.length > 8 ? '1000px' : node.children.length > 4 ? '800px' : `${Math.min(180 * node.children.length, 800)}px`
-                 }}>
-              {node.children.map(child => renderFlowchartNode(child))}
-            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -331,38 +426,79 @@ function SitemapContent({ domain }: { domain: string }) {
   const handleZoomReset = () => {
     setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
-    setLastPanOffset({ x: 0, y: 0 });
   };
 
-  // Auto-fit sitemap to viewport
-  const autoFitSitemap = () => {
+  // Center and fit sitemap to viewport
+  const centerAndFitSitemap = () => {
     const container = document.getElementById('sitemap-viewport');
     const content = document.getElementById('sitemap-container');
     
     if (!container || !content) return;
 
     const containerRect = container.getBoundingClientRect();
-    const contentRect = content.getBoundingClientRect();
     
-    // Calculate the scale needed to fit both width and height with some padding
-    const padding = 40; // 40px padding on all sides
-    const scaleX = (containerRect.width - padding * 2) / contentRect.width;
-    const scaleY = (containerRect.height - padding * 2) / contentRect.height;
-    
-    // Use the smaller scale to ensure it fits in both dimensions
-    const autoScale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 100%
-    
-    if (autoScale < 1) {
-      setZoomLevel(autoScale);
-    }
-    
-    // Center the content
+    // Reset zoom and pan first
+    setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
-    setLastPanOffset({ x: 0, y: 0 });
+    
+    // Wait for DOM update, then measure actual content
+    setTimeout(() => {
+      const actualContent = content.querySelector('div'); // Get the actual sitemap content
+      if (!actualContent) return;
+      
+      const contentRect = actualContent.getBoundingClientRect();
+      const padding = 60; // More padding for better visibility
+      
+      // Calculate if we need to scale down to fit
+      const scaleX = (containerRect.width - padding * 2) / contentRect.width;
+      const scaleY = (containerRect.height - padding * 2) / contentRect.height;
+      const autoScale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 100%
+      
+      if (autoScale < 1) {
+        setZoomLevel(autoScale);
+        // Center after scaling
+        setTimeout(() => {
+          centerSitemap(autoScale);
+        }, 50);
+      } else {
+        // If it fits at 100%, just center it
+        centerSitemap(1);
+      }
+    }, 50);
   };
 
-  // Pan/drag functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Center the sitemap in the viewport
+  const centerSitemap = (currentZoom: number = zoomLevel) => {
+    const container = document.getElementById('sitemap-viewport');
+    const content = document.getElementById('sitemap-container');
+    
+    if (!container || !content) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const actualContent = content.querySelector('div');
+    
+    if (!actualContent) return;
+    
+    const contentRect = actualContent.getBoundingClientRect();
+    
+    // Calculate center position
+    const centerX = (containerRect.width - contentRect.width * currentZoom) / 2;
+    const centerY = (containerRect.height - contentRect.height * currentZoom) / 2;
+    
+    setPanOffset({
+      x: Math.max(0, centerX), // Don't allow negative offset that would push content off-screen
+      y: Math.max(0, centerY)
+    });
+  };
+
+  // Legacy auto-fit function for the fit button
+  const autoFitSitemap = () => {
+    centerAndFitSitemap();
+  };
+
+  // Pan functionality
+  const handlePanStart = (e: React.MouseEvent) => {
+    if (draggedNode) return;
     setIsDragging(true);
     setDragStart({
       x: e.clientX - panOffset.x,
@@ -370,8 +506,8 @@ function SitemapContent({ domain }: { domain: string }) {
     });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+  const handlePanMove = (e: React.MouseEvent) => {
+    if (!isDragging || draggedNode) return;
     
     const newOffset = {
       x: e.clientX - dragStart.x,
@@ -380,24 +516,19 @@ function SitemapContent({ domain }: { domain: string }) {
     setPanOffset(newOffset);
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setLastPanOffset(panOffset);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
+  const handlePanEnd = () => {
+    if (!draggedNode) {
+      setIsDragging(false);
+    }
   };
 
   const downloadPDF = async () => {
     if (!sitemapTree) return;
     
-    // We'll implement PDF generation using html2canvas and jsPDF
     const element = document.getElementById('sitemap-container');
     if (!element) return;
 
     try {
-      // Import dynamically to reduce bundle size
       const html2canvas = (await import('html2canvas')).default;
       const jsPDF = (await import('jspdf')).jsPDF;
 
@@ -408,8 +539,8 @@ function SitemapContent({ domain }: { domain: string }) {
         backgroundColor: '#ffffff'
       });
 
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
 
@@ -446,14 +577,14 @@ function SitemapContent({ domain }: { domain: string }) {
   }
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 h-screen overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+      <div className="bg-white border-b shadow-sm sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Sitemap</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Interactive Sitemap</h1>
                 <p className="text-sm text-gray-600">{domain ? new URL(domain).hostname : ''}</p>
               </div>
             </div>
@@ -501,7 +632,6 @@ function SitemapContent({ domain }: { domain: string }) {
                 onClick={downloadPDF}
                 disabled={!sitemapTree || isLoading}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-                title="Download PDF"
               >
                 <Download className="w-4 h-4" />
                 <span>Download PDF</span>
@@ -511,10 +641,11 @@ function SitemapContent({ domain }: { domain: string }) {
           
           {/* Stats */}
           {sitemapData && (
-            <div className="mt-4 text-center">
-              <div className="inline-flex items-center px-4 py-2 bg-blue-50 rounded-lg">
-                <span className="text-2xl font-bold text-blue-600 mr-2">{sitemapData.totalFound}</span>
-                <span className="text-sm text-gray-600">Total Pages Discovered</span>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">{sitemapData.totalFound}</span> pages discovered
+                • Drag parent pages to reorganize
+                • Click arrows to expand/collapse
               </div>
             </div>
           )}
@@ -522,70 +653,71 @@ function SitemapContent({ domain }: { domain: string }) {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4">
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <LoadingSpinner size="lg" />
-              <p className="text-gray-600 mt-4">Discovering pages...</p>
-            </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="text-gray-600 mt-4">Discovering pages...</p>
           </div>
-        ) : error ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">{error}</p>
-              <button
-                onClick={fetchSitemapData}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        ) : sitemapData ? (
-          sitemapTree ? (
-            <div 
-              id="sitemap-viewport"
-              className="w-full overflow-visible relative"
-              style={{ 
-                cursor: isDragging ? 'grabbing' : 'grab',
-                minHeight: 'calc(100vh - 200px)' // Full viewport minus header
-              }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchSitemapData}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              <div 
-                id="sitemap-container"
-                className="w-full flex justify-start py-8"
-                style={{ 
-                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
-                  transformOrigin: 'top left'
-                }}
-              >
-                <div className="inline-block">
-                  {renderFlowchartNode(sitemapTree, true)}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="text-center">
-                <LoadingSpinner size="lg" />
-                <p className="text-gray-600 mt-4">Building sitemap visualization...</p>
-              </div>
-            </div>
-          )
-        ) : (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center text-gray-500">
-              No sitemap data available.
-            </div>
+              Retry
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : sitemapData && sitemapTree ? (
+        <div 
+          id="sitemap-viewport"
+          className="fixed inset-0 overflow-hidden"
+          style={{ 
+            cursor: isDragging && !draggedNode ? 'grabbing' : 'grab',
+            top: '140px', // Account for header
+            left: '0',
+            right: '0',
+            bottom: '0'
+          }}
+          onMouseDown={handlePanStart}
+          onMouseMove={(e) => {
+            handlePanMove(e);
+            handleNodeDrag(e);
+          }}
+          onMouseUp={() => {
+            handlePanEnd();
+            handleNodeDragEnd();
+          }}
+          onMouseLeave={() => {
+            handlePanEnd();
+            handleNodeDragEnd();
+          }}
+        >
+          <div 
+            id="sitemap-container"
+            className="relative flex justify-center"
+            style={{ 
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
+              transformOrigin: 'center top',
+              width: '100%',
+              minHeight: '100%',
+              paddingTop: '20px'
+            }}
+          >
+            {renderGridNode(sitemapTree, true)}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center text-gray-500">
+            No sitemap data available.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -606,8 +738,6 @@ const DynamicSitemapContent = dynamic(() => Promise.resolve(SitemapContent), {
 export default function SitemapPage() {
   const searchParams = useSearchParams()
   const domain = searchParams.get('domain')
-  
-  console.log('Main SitemapPage rendered with domain:', domain)
 
   if (!domain) {
     return (

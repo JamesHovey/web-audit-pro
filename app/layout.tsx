@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Montserrat } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/SessionProvider";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import HydrationFix from "@/components/HydrationFix";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -31,7 +33,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${montserrat.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
         <HydrationFix />

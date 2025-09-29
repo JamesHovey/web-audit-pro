@@ -1,26 +1,165 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* PMW Color System */
+  --pmw-primary: #000000;
+  --pmw-secondary: #42499C;
+  --pmw-accent: #EF86CE;
+  --pmw-background: #FFFFFF;
+  --pmw-soft-bg: #F8F8F6;
+  --pmw-text: #54585A;
+  --pmw-text-light: #666666;
+  --pmw-border: #E5E7EB;
+  --pmw-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  
+  /* Background and foreground for compatibility */
+  --background: var(--pmw-background);
+  --foreground: var(--pmw-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Montserrat', var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #000000;
-  }
+  
+  /* PMW Custom Colors */
+  --color-pmw-primary: var(--pmw-primary);
+  --color-pmw-secondary: var(--pmw-secondary);
+  --color-pmw-accent: var(--pmw-accent);
+  --color-pmw-soft-bg: var(--pmw-soft-bg);
+  --color-pmw-text: var(--pmw-text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--pmw-soft-bg);
+  color: var(--pmw-text);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* PMW Button Styles */
+.btn-pmw-primary {
+  background-color: var(--pmw-primary);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pmw-primary:hover {
+  background-color: var(--pmw-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(66, 73, 156, 0.3);
+}
+
+.btn-pmw-secondary {
+  background-color: white;
+  color: var(--pmw-primary);
+  padding: 15px 25px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 16px;
+  border: 2px solid var(--pmw-border);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pmw-secondary:hover {
+  background-color: var(--pmw-accent);
+  color: white;
+  border-color: var(--pmw-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(239, 134, 206, 0.3);
+}
+
+.btn-pmw-accent {
+  background-color: var(--pmw-accent);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pmw-accent:hover {
+  background-color: var(--pmw-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(66, 73, 156, 0.3);
+}
+
+/* PMW Card Styles */
+.card-pmw {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: var(--pmw-shadow);
+  border: 1px solid var(--pmw-border);
+  transition: all 0.3s ease;
+}
+
+.card-pmw:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* PMW Typography */
+h1, .h1 {
+  font-size: 2.6em;
+  font-weight: 300;
+  color: var(--pmw-primary);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+h2, .h2 {
+  font-size: 2em;
+  font-weight: 600;
+  color: var(--pmw-primary);
+  line-height: 1.3;
+  margin-bottom: 0.8rem;
+}
+
+h3, .h3 {
+  font-size: 1.5em;
+  font-weight: 500;
+  color: var(--pmw-primary);
+  line-height: 1.4;
+  margin-bottom: 0.6rem;
+}
+
+/* PMW Container */
+.container-pmw {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* PMW Spacing */
+.spacing-pmw {
+  margin-bottom: 20px;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
