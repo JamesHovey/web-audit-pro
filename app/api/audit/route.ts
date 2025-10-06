@@ -146,8 +146,20 @@ export async function POST(request: NextRequest) {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             results.technical = await performTechnicalAudit(url)
 
+          } else if (section === 'performance') {
+            const { analyzePageSpeed } = await import('@/lib/pageSpeedService')
+            results.performance = await analyzePageSpeed(url)
+            
+            // Also run technical audit when performance is selected (combined section)
+            const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+            results.technical = await performTechnicalAudit(url)
+
+          } else if (section === 'backlinks') {
+            const { analyzeBacklinks } = await import('@/lib/backlinkService')
+            results.backlinks = await analyzeBacklinks(url)
+
           } else {
-            // Handle other sections (performance, backlinks, technology) with mock data
+            // Handle remaining sections (technology) with mock data for now
             const { generateMockAuditResults } = await import('@/lib/mockData')
             const mockResults = await generateMockAuditResults(url, [section])
             Object.assign(results, mockResults)

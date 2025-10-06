@@ -19,27 +19,23 @@ interface AboveFoldKeywordTableProps {
 export default function AboveFoldKeywordTable({ 
   keywords, 
   title = "Above Fold Keywords",
-  description = "Keywords prominently placed in the immediately visible area of your website"
+  description = "Keywords ranking in the top 3 positions on Google (above the fold in search results)"
 }: AboveFoldKeywordTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   
-  // Sort keywords by position (best first), then by volume
+  // Filter to only show keywords ranking in top 3 positions, then sort by position and volume
   const sortedKeywords = useMemo(() => {
-    return [...(keywords || [])].sort((a, b) => {
-      const volumeA = a.volume || 0;
-      const volumeB = b.volume || 0;
-      
-      if (a.position === 0 && b.position === 0) {
-        return volumeB - volumeA; // Both not ranking, sort by volume
-      }
-      if (a.position === 0) return 1; // a not ranking, push to end
-      if (b.position === 0) return -1; // b not ranking, push to end
-      if (a.position !== b.position) {
-        return a.position - b.position; // Sort by position (ascending)
-      }
-      return volumeB - volumeA; // Same position, sort by volume
-    })
+    return [...(keywords || [])].filter(keyword => keyword.position >= 1 && keyword.position <= 3)
+      .sort((a, b) => {
+        const volumeA = a.volume || 0;
+        const volumeB = b.volume || 0;
+        
+        if (a.position !== b.position) {
+          return a.position - b.position; // Sort by position (ascending)
+        }
+        return volumeB - volumeA; // Same position, sort by volume (descending)
+      })
   }, [keywords])
   
   const totalPages = Math.ceil(sortedKeywords.length / itemsPerPage)
@@ -70,12 +66,12 @@ export default function AboveFoldKeywordTable({
               <p className="mb-2">{description}</p>
               <p className="mb-2"><strong>What are Above Fold Keywords?</strong></p>
               <ul className="list-disc list-inside mb-2 text-xs">
-                <li>Keywords in your page title and meta description</li>
-                <li>Keywords in your H1 heading</li>
-                <li>Keywords in the first paragraph of content</li>
-                <li>Keywords visible without scrolling</li>
+                <li>Keywords ranking in position #1 on Google</li>
+                <li>Keywords ranking in position #2 on Google</li>
+                <li>Keywords ranking in position #3 on Google</li>
+                <li>These appear "above the fold" in search results</li>
               </ul>
-              <p><strong>Why Important:</strong> These get maximum SEO weight and user attention</p>
+              <p><strong>Why Important:</strong> Top 3 positions get 75% of all clicks and maximum visibility</p>
             </div>
           }
           position="top"
@@ -90,7 +86,7 @@ export default function AboveFoldKeywordTable({
             <div className="col-span-6">
               Keyword
               <Tooltip 
-                content="Keywords found in the most prominent positions of your page"
+                content="Keywords ranking in Google's top 3 positions (above the fold in search results)"
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>

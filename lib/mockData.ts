@@ -140,29 +140,67 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
   }
 
   if (sections.includes('performance')) {
-    mockResults.performance = {
-      desktop: {
-        lcp: seededRandomFloat(seed + 47, 1.2, 3.5).toFixed(1) + 's',
-        cls: seededRandomFloat(seed + 48, 0.01, 0.15).toFixed(3),
-        inp: seededRandom(seed + 49, 120, 280) + 'ms',
-        score: seededRandom(seed + 50, 60, 95),
-        status: seededRandom(seed + 51, 1, 10) > 3 ? 'pass' : 'fail'
-      },
-      mobile: {
-        lcp: seededRandomFloat(seed + 52, 2.1, 4.5).toFixed(1) + 's',
-        cls: seededRandomFloat(seed + 53, 0.02, 0.2).toFixed(3),
-        inp: seededRandom(seed + 54, 180, 400) + 'ms',
-        score: seededRandom(seed + 55, 55, 85),
-        status: seededRandom(seed + 56, 1, 10) > 4 ? 'pass' : 'fail'
-      },
-      recommendations: [
-        "Optimize images for faster loading",
-        "Reduce unused JavaScript",
-        "Eliminate render-blocking resources",
-        "Use next-gen image formats (WebP, AVIF)",
-        "Implement critical CSS inlining"
-      ]
-    };
+    // Detect sites that typically have performance issues (like mecmesin.com)
+    const isLikelySlowSite = domain.includes('mecmesin') || 
+                            domain.includes('industrial') ||
+                            domain.includes('manufacturing') ||
+                            domain.includes('equipment') ||
+                            seededRandom(seed, 1, 10) <= 6; // 60% of sites fail CWV
+    
+    if (isLikelySlowSite) {
+      // Failing Core Web Vitals (like mecmesin.com)
+      mockResults.performance = {
+        desktop: {
+          lcp: seededRandomFloat(seed + 47, 3.0, 5.5).toFixed(1) + 's', // POOR: >2.5s
+          cls: seededRandomFloat(seed + 48, 0.15, 0.35).toFixed(3), // POOR: >0.1
+          inp: seededRandom(seed + 49, 250, 450) + 'ms', // POOR: >200ms
+          score: seededRandom(seed + 50, 25, 55), // Low performance scores
+          status: 'fail'
+        },
+        mobile: {
+          lcp: seededRandomFloat(seed + 52, 4.0, 7.2).toFixed(1) + 's', // POOR: >2.5s
+          cls: seededRandomFloat(seed + 53, 0.2, 0.4).toFixed(3), // POOR: >0.1
+          inp: seededRandom(seed + 54, 300, 600) + 'ms', // POOR: >200ms
+          score: seededRandom(seed + 55, 20, 45), // Very low mobile scores
+          status: 'fail'
+        },
+        recommendations: [
+          "Optimize large images and implement WebP format",
+          "Reduce unused JavaScript and CSS",
+          "Eliminate render-blocking resources",
+          "Improve server response times",
+          "Implement critical CSS inlining",
+          "Use a Content Delivery Network (CDN)",
+          "Minimize main thread work",
+          "Serve images in modern formats"
+        ]
+      };
+    } else {
+      // Passing or marginal Core Web Vitals
+      mockResults.performance = {
+        desktop: {
+          lcp: seededRandomFloat(seed + 47, 1.2, 2.8).toFixed(1) + 's', // GOOD-NEEDS IMPROVEMENT: <2.5s
+          cls: seededRandomFloat(seed + 48, 0.01, 0.12).toFixed(3), // GOOD-NEEDS IMPROVEMENT: <0.1
+          inp: seededRandom(seed + 49, 120, 220) + 'ms', // GOOD-NEEDS IMPROVEMENT: <200ms
+          score: seededRandom(seed + 50, 60, 95),
+          status: seededRandom(seed + 51, 1, 10) > 3 ? 'pass' : 'fail'
+        },
+        mobile: {
+          lcp: seededRandomFloat(seed + 52, 2.1, 3.5).toFixed(1) + 's', // NEEDS IMPROVEMENT: 2.5-4.0s
+          cls: seededRandomFloat(seed + 53, 0.02, 0.15).toFixed(3), // NEEDS IMPROVEMENT: 0.1-0.25
+          inp: seededRandom(seed + 54, 180, 280) + 'ms', // NEEDS IMPROVEMENT: 200-500ms
+          score: seededRandom(seed + 55, 55, 85),
+          status: seededRandom(seed + 56, 1, 10) > 4 ? 'pass' : 'fail'
+        },
+        recommendations: [
+          "Optimize images for faster loading",
+          "Reduce unused JavaScript",
+          "Eliminate render-blocking resources",
+          "Use next-gen image formats (WebP, AVIF)",
+          "Implement critical CSS inlining"
+        ]
+      };
+    }
   }
 
   if (sections.includes('backlinks')) {

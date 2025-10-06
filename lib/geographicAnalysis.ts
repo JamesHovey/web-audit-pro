@@ -58,7 +58,8 @@ export async function analyzeGeographicTarget(domain: string, html: string): Pro
     console.log('MCP analysis not available:', error);
   }
 
-  const primaryMarket = detectedCountry || 'United States';
+  // 🇬🇧 UK-FIRST: Default to UK instead of US for West Sussex agency
+  const primaryMarket = detectedCountry || 'United Kingdom';
   const likelyMarkets = generateLikelyMarkets(primaryMarket, clues);
 
   console.log(`Final geographic analysis result:`, {
@@ -220,6 +221,7 @@ function analyzeContentForLocation(html: string): { country: string | null; conf
         'united kingdom', 'england', 'scotland', 'wales', 'northern ireland',
         'london', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh',
         'liverpool', 'bristol', 'sheffield', 'newcastle', 'nottingham',
+        'devon', 'exeter', 'cornwall', 'somerset', 'dorset', 'south west',
         'ltd', 'limited', 'plc', 'pounds', 'sterling', 'british',
         'uk', 'gb', 'great britain'
       ],
@@ -239,12 +241,11 @@ function analyzeContentForLocation(html: string): { country: string | null; conf
         'united states', 'usa', 'america', 'american', 'us',
         'new york', 'california', 'texas', 'florida', 'chicago',
         'los angeles', 'houston', 'phoenix', 'philadelphia', 'san antonio',
-        '$', 'dollars', 'usd', 'state', 'county'
+        '$', 'dollars', 'usd', 'county'
       ],
       weakIndicators: [
-        'color', 'favor', 'honor', 'center', 'theater', 'meter',
-        'license', 'defense', 'gray', 'realize', 'organize',
-        'aluminum', 'check', 'mom', 'math', 'vacation'
+        'favor', 'honor', 'theater', 'license', 'defense', 
+        'realize', 'organize', 'aluminum', 'vacation'
       ]
     },
     {
@@ -324,7 +325,15 @@ function analyzeContentForLocation(html: string): { country: string | null; conf
 
     // Medium indicators (weight: 2)
     mediumIndicators.forEach(indicator => {
-      const regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      let regex;
+      // Special handling for short terms like 'uk', 'us', 'gb' to avoid false matches
+      if (indicator.length <= 2) {
+        // For very short terms, use more restrictive matching
+        regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(?!\\w)`, 'gi');
+      } else {
+        // For longer terms, use standard word boundary matching
+        regex = new RegExp(`\\b${indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      }
       const matches = (lowerHtml.match(regex) || []).length;
       if (matches > 0) {
         score += matches * 2;
@@ -345,17 +354,44 @@ function analyzeContentForLocation(html: string): { country: string | null; conf
     countryScores[country] = score;
   });
 
+  // 🇬🇧 UK-FIRST GEOGRAPHIC BIAS for West Sussex Web Agency
+  // Apply UK bias: UK gets +20 bonus points for being the primary market
+  if (countryScores['United Kingdom']) {
+    countryScores['United Kingdom'] += 20;
+    clues.push('UK bias applied (+20 points) - West Sussex web agency primarily serves UK market');
+  }
+
   // Sort countries by score
   const sortedCountries = Object.entries(countryScores)
     .sort(([, a], [, b]) => b - a)
     .filter(([, score]) => score > 0);
 
   if (sortedCountries.length === 0) {
-    return { country: null, confidence: 'low', clues };
+    // Default to UK when no clear indicators found (UK agency assumption)
+    console.log('🇬🇧 No clear geographic indicators - defaulting to UK (agency location bias)');
+    clues.push('Defaulted to UK - no clear geographic indicators detected');
+    return { country: 'United Kingdom', confidence: 'low', clues };
   }
 
   const [topCountry, topScore] = sortedCountries[0];
   const secondScore = sortedCountries[1]?.[1] || 0;
+
+  // 🚫 US OVERRIDE: Never prioritize US over UK for close scores
+  if (topCountry === 'United States' && countryScores['United Kingdom']) {
+    const ukScore = countryScores['United Kingdom'];
+    const usScore = countryScores['United States'];
+    
+    // If UK score is within 50% of US score, choose UK instead
+    if (ukScore >= usScore * 0.5) {
+      console.log(`🇬🇧 UK override: UK ${ukScore} vs US ${usScore} - choosing UK (agency bias)`);
+      clues.push(`UK override applied: UK score ${ukScore} vs US score ${usScore} - UK preferred for agency clientele`);
+      return { 
+        country: 'United Kingdom', 
+        confidence: ukScore >= 15 ? 'high' : ukScore >= 5 ? 'medium' : 'low', 
+        clues 
+      };
+    }
+  }
 
   // Determine confidence based on score and gap to second place
   let confidence: 'high' | 'medium' | 'low';
@@ -476,7 +512,7 @@ function generateLikelyMarkets(primaryMarket: string, _clues: string[]): string[
     'Germany': ['Germany', 'Austria', 'Switzerland', 'Netherlands', 'United Kingdom'],
   };
 
-  return marketMaps[primaryMarket] || ['United States', 'United Kingdom', 'Canada', 'Germany', 'Australia'];
+  return marketMaps[primaryMarket] || ['United Kingdom', 'Ireland', 'United States', 'Canada', 'Australia'];
 }
 
 export function generateGeographicTrafficDistribution(geoClues: GeographicClues): Array<{

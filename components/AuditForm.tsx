@@ -18,18 +18,13 @@ const AUDIT_SECTIONS = [
   },
   {
     id: "performance",
-    label: "Website Performance",
-    description: "Core Web Vitals assessment for desktop and mobile experiences"
+    label: "Performance & Technical Audit",
+    description: "Core Web Vitals, technical SEO health, image optimization, and site structure analysis"
   },
   {
     id: "backlinks",
     label: "Authority & Backlinks",
     description: "Domain authority assessment and comprehensive backlink analysis"
-  },
-  {
-    id: "technical",
-    label: "Technical Audit",
-    description: "Site structure, image optimization, and technical SEO issues"
   },
   {
     id: "technology",

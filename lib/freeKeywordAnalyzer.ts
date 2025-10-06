@@ -408,39 +408,41 @@ export async function analyzeKeywordsFromScraping(
   console.log(`\n=== SMART KEYWORD ANALYSIS FOR ${domain} ===`);
   
   try {
-    // Fetch page content
+    // Fetch page content directly (skip API call since this runs server-side)
     const urls = pages || [`https://${domain}`];
     const pageContents: PageContent[] = [];
     
-    for (const url of urls.slice(0, 5)) { // Analyze up to 5 pages
+    for (const url of urls.slice(0, 3)) { // Analyze up to 3 pages directly
       try {
-        const response = await fetch('/api/discover-pages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
+        console.log(`📄 Fetching content from: ${url}`);
+        
+        // Validate URL format before fetching
+        try {
+          new URL(url); // This will throw if URL is invalid
+        } catch (urlError) {
+          console.log(`❌ Invalid URL format: ${url}`);
+          continue;
+        }
+        
+        const pageResponse = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)',
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(10000) // 10 second timeout
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Fetch actual page content for first few pages
-          for (const page of data.pages.slice(0, 3)) {
-            try {
-              // Use WebFetch through MCP to get page content
-              const pageResponse = await fetch(page.url);
-              if (pageResponse.ok) {
-                const html = await pageResponse.text();
-                const content = parseHtmlContent(html);
-                content.url = page.url;
-                pageContents.push(content);
-              }
-            } catch (err) {
-              console.log(`Could not fetch ${page.url}`);
-            }
-          }
+        if (pageResponse.ok) {
+          const html = await pageResponse.text();
+          const content = parseHtmlContent(html);
+          content.url = url;
+          pageContents.push(content);
+          console.log(`✅ Successfully parsed content from: ${url}`);
+        } else {
+          console.log(`⚠️ HTTP ${pageResponse.status} for: ${url}`);
         }
       } catch (error) {
-        console.log(`Error fetching ${url}:`, error);
+        console.log(`❌ Error fetching ${url}:`, error.message);
       }
     }
     

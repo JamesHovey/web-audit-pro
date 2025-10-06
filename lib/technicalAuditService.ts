@@ -1,6 +1,17 @@
 // Real technical audit service that analyzes actual website data
+import { discoverRealPages } from './realPageDiscovery';
+
 interface TechnicalAuditResult {
   totalPages: number;
+  pages: Array<{
+    url: string;
+    title: string;
+    statusCode: number;
+    hasTitle: boolean;
+    hasDescription: boolean;
+    hasH1: boolean;
+    imageCount: number;
+  }>;
   largeImages: number;
   largeImageDetails: Array<{
     imageUrl: string;
@@ -21,6 +32,8 @@ interface TechnicalAuditResult {
   sitemapStatus: 'found' | 'missing';
   robotsTxtStatus: 'found' | 'missing';
   httpsStatus: 'secure' | 'insecure';
+  discoveryMethod: string;
+  sitemapUrl?: string;
 }
 
 export async function performTechnicalAudit(url: string): Promise<TechnicalAuditResult> {
@@ -33,6 +46,7 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
   // Initialize results
   const result: TechnicalAuditResult = {
     totalPages: 0,
+    pages: [],
     largeImages: 0,
     largeImageDetails: [],
     issues: {
@@ -44,7 +58,8 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     notFoundErrors: [],
     sitemapStatus: 'missing',
     robotsTxtStatus: 'missing',
-    httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure'
+    httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure',
+    discoveryMethod: 'none'
   };
 
   try {
@@ -68,10 +83,9 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
     
-    // 3. Find and analyze all images
-    const images = await findAndAnalyzeImages(html, url);
-    result.largeImages = images.largeImages.length;
-    result.largeImageDetails = images.largeImages;
+    // 3. Find and analyze all images from main page
+    const mainPageImages = await findAndAnalyzeImages(html, url);
+    result.largeImageDetails = mainPageImages.largeImages;
     
     // 4. Find and check all links for 404s
     const links = findAllLinks(html, url);
@@ -85,8 +99,59 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     // 6. Check for robots.txt
     result.robotsTxtStatus = await checkRobotsTxt(baseUrl);
     
-    // 7. Estimate total pages (simplified - in production would crawl sitemap)
-    result.totalPages = estimateTotalPages(html, links);
+    // 7. Discover real pages using sitemap and intelligent crawling
+    console.log('🔍 Discovering all website pages...');
+    const pageDiscovery = await discoverRealPages(url);
+    
+    result.totalPages = pageDiscovery.totalPages;
+    result.pages = pageDiscovery.pages.map(page => ({
+      url: page.url,
+      title: page.title,
+      statusCode: page.statusCode,
+      hasTitle: page.hasTitle,
+      hasDescription: page.hasDescription,
+      hasH1: page.hasH1,
+      imageCount: page.imageCount
+    }));
+    result.sitemapStatus = pageDiscovery.sitemapStatus;
+    result.discoveryMethod = pageDiscovery.discoveryMethod;
+    result.sitemapUrl = pageDiscovery.sitemapUrl;
+    
+    // Count issues across all discovered pages
+    result.issues.missingMetaTitles = pageDiscovery.pages.filter(p => !p.hasTitle).length;
+    result.issues.missingMetaDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription).length;
+    result.issues.missingH1Tags = pageDiscovery.pages.filter(p => !p.hasH1).length;
+    result.issues.httpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400).length;
+    
+    // 8. Analyze images from discovered pages (check up to 10 pages for performance)
+    console.log('🖼️ Analyzing images across discovered pages...');
+    const pagesToCheck = pageDiscovery.pages.slice(0, 10); // Limit to avoid timeout
+    
+    for (const page of pagesToCheck) {
+      if (page.url === url) continue; // Skip main page (already analyzed)
+      
+      try {
+        const pageResponse = await fetch(page.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (pageResponse.ok) {
+          const pageHtml = await pageResponse.text();
+          const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
+          
+          // Add large images from this page to the results
+          result.largeImageDetails.push(...pageImages.largeImages);
+        }
+      } catch (error) {
+        console.log(`Could not analyze images for ${page.url}`);
+      }
+    }
+    
+    // Sort all large images by size and limit to top 20
+    result.largeImageDetails.sort((a, b) => b.sizeKB - a.sizeKB);
+    result.largeImageDetails = result.largeImageDetails.slice(0, 20);
+    result.largeImages = result.largeImageDetails.length;
     
   } catch (error) {
     console.error('Technical audit error:', error);
@@ -306,17 +371,3 @@ async function checkRobotsTxt(baseUrl: URL): Promise<'found' | 'missing'> {
   return 'missing';
 }
 
-function estimateTotalPages(html: string, links: string[]): number {
-  // Simple estimation based on internal links found
-  // In production, would parse sitemap for accurate count
-  const internalLinksCount = links.filter(link => {
-    try {
-      return !link.includes('://') || link.includes(new URL(links[0]).hostname);
-    } catch {
-      return false;
-    }
-  }).length;
-  
-  // Rough estimate: assume we found about 20% of total pages
-  return Math.max(1, Math.round(internalLinksCount * 5));
-}

@@ -99,24 +99,25 @@ export default function NonBrandedKeywordTable({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h4 className="font-semibold text-black">{title}</h4>
-        <Tooltip 
-          content={
+        <div className="relative group inline-block">
+          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 w-80">
             <div>
-              <p className="font-semibold mb-2">{title}</p>
-              <p className="mb-2">{description}</p>
-              <p className="mb-2"><strong>What this shows:</strong></p>
-              <ul className="list-disc list-inside mb-2 text-xs">
-                <li>Keywords found on this page ranking in Google top 20</li>
-                <li>Monthly search volume potential</li>
-                <li>Your current ranking position</li>
-              </ul>
-              <p><strong>Focus on:</strong> High volume keywords where you can improve your ranking</p>
+              <p className="font-semibold mb-2">Non-branded Keywords</p>
+              <p className="mb-2 text-xs">{description}</p>
+              <div className="mb-2 text-xs">
+                <p className="font-medium mb-1">What this shows:</p>
+                <ul className="list-disc list-inside space-y-1 pl-2">
+                  <li>Relevant keywords for your business</li>
+                  <li>Monthly search volume estimates</li>
+                  <li>Real ranking positions (when available)</li>
+                </ul>
+              </div>
+              <p className="text-xs font-medium text-yellow-300">Note: "Not ranking" means no verified position data available</p>
             </div>
-          }
-          position="top"
-        >
-          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-        </Tooltip>
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
       </div>
       
       <div className="border rounded-lg overflow-hidden">
@@ -161,7 +162,7 @@ export default function NonBrandedKeywordTable({
                 {getSortIcon('volume')}
               </button>
               <Tooltip 
-                content="Monthly searches (click to sort)"
+                content="Monthly search volume from Google Keyword Planner via Keywords Everywhere API. These are real search volumes, not estimates."
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>

@@ -23,62 +23,123 @@ interface EstimatedTrafficData {
 }
 
 // Traffic estimation algorithm based on SEO metrics
-function estimateTrafficFromMetrics(metrics: SEOMetrics): number {
+function estimateTrafficFromMetrics(metrics: SEOMetrics, domain: string): number {
+  // Detect site category based on domain patterns and metrics
+  const siteCategory = detectSiteCategory(domain, metrics);
+  
   // Base traffic calculation using multiple factors
   let estimatedTraffic = 0;
   
-  // Domain Authority impact (0-100 scale)
-  // DA 0-20: 100-1000 visits, DA 20-40: 1000-10K, DA 40-60: 10K-100K, DA 60+: 100K+
+  // Domain Authority impact (0-100 scale) - adjusted per category
   if (metrics.domainAuthority) {
-    const daFactor = Math.pow(metrics.domainAuthority / 10, 2.5) * 100;
+    let daFactor;
+    if (siteCategory === 'mega') {
+      // Mega sites: DA 70+ = millions, DA 60-70 = hundreds of thousands
+      daFactor = Math.pow(metrics.domainAuthority / 10, 4) * 10000;
+    } else if (siteCategory === 'medium') {
+      // Medium business: DA 30-60 = thousands to tens of thousands
+      daFactor = Math.pow(metrics.domainAuthority / 10, 2.8) * 500;
+    } else {
+      // Small business: DA 0-40 = hundreds to low thousands
+      daFactor = Math.pow(metrics.domainAuthority / 10, 2.2) * 50;
+    }
     estimatedTraffic += daFactor;
   }
   
-  // Backlinks and referring domains
+  // Backlinks and referring domains - category adjusted
   if (metrics.backlinks && metrics.referringDomains) {
-    // Quality over quantity - referring domains more important
-    const linkFactor = (metrics.referringDomains * 50) + (metrics.backlinks * 0.5);
+    let linkMultiplier = siteCategory === 'mega' ? 5 : siteCategory === 'medium' ? 2 : 1;
+    const linkFactor = (metrics.referringDomains * 20 * linkMultiplier) + (metrics.backlinks * 0.1 * linkMultiplier);
     estimatedTraffic += linkFactor;
   }
   
-  // Indexed pages (content volume) - MUCH MORE CONSERVATIVE
+  // Indexed pages (content volume) - much more conservative
   if (metrics.indexedPages) {
-    // Assuming only 2-5% of pages drive traffic, avg 5 visits per active page
-    const contentFactor = metrics.indexedPages * 0.03 * 5;
-    estimatedTraffic += contentFactor;
+    let pageMultiplier;
+    if (siteCategory === 'mega') {
+      // Mega sites have better content optimization
+      pageMultiplier = metrics.indexedPages * 0.08 * 20; // 8% of pages active, 20 visits each
+    } else if (siteCategory === 'medium') {
+      // Medium business sites
+      pageMultiplier = metrics.indexedPages * 0.05 * 8; // 5% of pages active, 8 visits each
+    } else {
+      // Small business sites
+      pageMultiplier = metrics.indexedPages * 0.02 * 3; // 2% of pages active, 3 visits each
+    }
+    estimatedTraffic += pageMultiplier;
   }
   
-  // Organic keywords ranking - MUCH MORE CONSERVATIVE
-  if (metrics.organicKeywords) {
-    // Each ranking keyword brings average 5-10 visits (most keywords bring very little traffic)
-    const keywordFactor = metrics.organicKeywords * 7;
-    estimatedTraffic += keywordFactor;
+  // Apply category-specific caps and floors
+  if (siteCategory === 'mega') {
+    estimatedTraffic = Math.max(estimatedTraffic, 1000000); // Minimum 1M for mega sites
+    estimatedTraffic = Math.min(estimatedTraffic, 50000000); // Cap at 50M
+  } else if (siteCategory === 'medium') {
+    estimatedTraffic = Math.max(estimatedTraffic, 5000); // Minimum 5K for medium business
+    estimatedTraffic = Math.min(estimatedTraffic, 500000); // Cap at 500K
+  } else {
+    estimatedTraffic = Math.max(estimatedTraffic, 100); // Minimum 100 for small business
+    estimatedTraffic = Math.min(estimatedTraffic, 20000); // Cap at 20K
   }
   
   // Domain age bonus (older domains typically have more traffic)
   if (metrics.domainAge) {
-    const ageFactor = Math.min(metrics.domainAge / 12, 5) * 0.2; // Max 100% bonus after 5 years
+    const ageFactor = Math.min(metrics.domainAge / 12, 5) * 0.15; // Max 75% bonus after 5 years
     estimatedTraffic *= (1 + ageFactor);
   }
   
   // Content quality multiplier
   if (metrics.contentQuality) {
-    const qualityMultiplier = 0.5 + (metrics.contentQuality / 100);
+    const qualityMultiplier = 0.7 + (metrics.contentQuality / 200); // More conservative
     estimatedTraffic *= qualityMultiplier;
   }
   
   // Site speed penalty (slow sites lose traffic)
   if (metrics.siteSpeed && metrics.siteSpeed > 3) {
-    const speedPenalty = Math.max(0.5, 1 - (metrics.siteSpeed - 3) * 0.1);
+    const speedPenalty = Math.max(0.7, 1 - (metrics.siteSpeed - 3) * 0.05);
     estimatedTraffic *= speedPenalty;
   }
   
   // Mobile responsiveness bonus
   if (metrics.mobileResponsive) {
-    estimatedTraffic *= 1.3; // 30% bonus for mobile-friendly sites
+    estimatedTraffic *= 1.1; // 10% bonus for mobile-friendly sites
   }
   
   return Math.round(estimatedTraffic);
+}
+
+// Detect site category based on domain and metrics
+function detectSiteCategory(domain: string, metrics: SEOMetrics): 'mega' | 'medium' | 'small' {
+  const cleanDomain = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
+  
+  // Known mega sites
+  const megaSites = [
+    'facebook.com', 'google.com', 'youtube.com', 'amazon.com', 'twitter.com',
+    'instagram.com', 'linkedin.com', 'wikipedia.org', 'reddit.com', 'bbc.co.uk',
+    'cnn.com', 'ebay.com', 'netflix.com', 'apple.com', 'microsoft.com',
+    'github.com', 'stackoverflow.com', 'medium.com', 'wordpress.com'
+  ];
+  
+  if (megaSites.some(mega => cleanDomain.includes(mega.split('.')[0]))) {
+    return 'mega';
+  }
+  
+  // Check metrics for category detection
+  const indexedPages = metrics.indexedPages || 0;
+  const domainAuthority = metrics.domainAuthority || 0;
+  const backlinks = metrics.backlinks || 0;
+  
+  // Mega site indicators
+  if (indexedPages > 10000 || domainAuthority > 70 || backlinks > 100000) {
+    return 'mega';
+  }
+  
+  // Medium business indicators
+  if (indexedPages > 200 || domainAuthority > 35 || backlinks > 5000) {
+    return 'medium';
+  }
+  
+  // Default to small business
+  return 'small';
 }
 
 // Generate 12-month historical trend with realistic patterns
@@ -186,13 +247,28 @@ export async function scrapeWebsiteMetrics(url: string): Promise<SEOMetrics> {
       else metrics.domainAge = 6;
     }
     
-    // Estimate other metrics based on site size and quality
+    // Estimate other metrics based on site size and quality - MUCH MORE CONSERVATIVE
     if (metrics.indexedPages) {
-      // Rough estimates based on indexed pages
-      metrics.domainAuthority = Math.min(80, 20 + Math.log10(metrics.indexedPages) * 15);
-      metrics.backlinks = Math.round(metrics.indexedPages * 10 * (metrics.contentQuality || 50) / 100);
-      metrics.referringDomains = Math.round(metrics.backlinks * 0.1);
-      metrics.organicKeywords = Math.round(metrics.indexedPages * 3);
+      // Very conservative estimates for small business sites
+      if (metrics.indexedPages <= 50) {
+        // Small business sites
+        metrics.domainAuthority = Math.min(30, 15 + Math.log10(Math.max(1, metrics.indexedPages)) * 5);
+        metrics.backlinks = Math.round(metrics.indexedPages * 2 * (metrics.contentQuality || 30) / 100);
+        metrics.referringDomains = Math.round(Math.max(1, metrics.backlinks * 0.05));
+        metrics.organicKeywords = Math.round(metrics.indexedPages * 1.5);
+      } else if (metrics.indexedPages <= 200) {
+        // Medium-small business sites
+        metrics.domainAuthority = Math.min(45, 20 + Math.log10(metrics.indexedPages) * 8);
+        metrics.backlinks = Math.round(metrics.indexedPages * 5 * (metrics.contentQuality || 40) / 100);
+        metrics.referringDomains = Math.round(metrics.backlinks * 0.08);
+        metrics.organicKeywords = Math.round(metrics.indexedPages * 2);
+      } else {
+        // Larger sites
+        metrics.domainAuthority = Math.min(80, 20 + Math.log10(metrics.indexedPages) * 15);
+        metrics.backlinks = Math.round(metrics.indexedPages * 10 * (metrics.contentQuality || 50) / 100);
+        metrics.referringDomains = Math.round(metrics.backlinks * 0.1);
+        metrics.organicKeywords = Math.round(metrics.indexedPages * 3);
+      }
     }
     
     // Default values for performance
@@ -201,14 +277,14 @@ export async function scrapeWebsiteMetrics(url: string): Promise<SEOMetrics> {
     
   } catch (error) {
     console.error('Error scraping website metrics:', error);
-    // Return default estimates
-    metrics.domainAuthority = 20;
-    metrics.indexedPages = 50;
-    metrics.backlinks = 500;
-    metrics.referringDomains = 50;
-    metrics.organicKeywords = 150;
-    metrics.domainAge = 24;
-    metrics.contentQuality = 50;
+    // Return conservative default estimates for small business
+    metrics.domainAuthority = 18;
+    metrics.indexedPages = 25;
+    metrics.backlinks = 50;
+    metrics.referringDomains = 8;
+    metrics.organicKeywords = 40;
+    metrics.domainAge = 18;
+    metrics.contentQuality = 35;
     metrics.siteSpeed = 3;
     metrics.mobileResponsive = true;
   }
@@ -224,7 +300,7 @@ export async function estimateFreeTrafficData(domain: string): Promise<Estimated
   const metrics = await scrapeWebsiteMetrics(domain);
   
   // Estimate monthly organic traffic
-  const estimatedMonthlyTraffic = estimateTrafficFromMetrics(metrics);
+  const estimatedMonthlyTraffic = estimateTrafficFromMetrics(metrics, domain);
   
   // Generate historical trend
   const trafficTrend = generateHistoricalTrend(

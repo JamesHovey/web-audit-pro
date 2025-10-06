@@ -11,6 +11,7 @@ import BrandedKeywordTable from './BrandedKeywordTable'
 import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldKeywordTable from './AboveFoldKeywordTable'
 import { PMWLogo } from './PMWLogo'
+import { PageDetailsModal } from './PageDetailsModal'
 
 interface Audit {
   id: string
@@ -90,9 +91,9 @@ const BACKGROUND_THEMES = [
 const SECTION_LABELS = {
   traffic: "Traffic Insights",
   keywords: "Keywords",
-  performance: "Website Performance", 
+  performance: "Performance & Technical Audit", 
   backlinks: "Authority & Backlinks",
-  technical: "Technical Audit",
+  technical: "Performance & Technical Audit",
   technology: "Technology Stack"
 }
 
@@ -113,6 +114,17 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     technology: false,
     backlinks: false,
     keywords: false
+  })
+  const [pageModalState, setPageModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    pages: any[];
+    filterCondition?: (page: any) => boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    pages: [],
+    filterCondition: undefined
   })
   const [internalLinksModal, setInternalLinksModal] = useState<{ isOpen: boolean; targetPage: string; links: string[] }>({
     isOpen: false,
@@ -442,12 +454,12 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                             let sectionName = section.charAt(0).toUpperCase() + section.slice(1);
                             if (section === 'traffic') sectionName = 'Traffic Insights';
                             if (section === 'keywords') sectionName = 'Keywords Analysis';
-                            if (section === 'performance') sectionName = 'Performance Metrics';
+                            if (section === 'performance') sectionName = 'Performance & Technical Audit';
                             if (section === 'backlinks') sectionName = 'Authority & Backlinks';
-                            if (section === 'technical') sectionName = 'Technical SEO';
+                            if (section === 'technical') sectionName = 'Performance & Technical Audit';
                             if (section === 'technology') sectionName = 'Technology Stack';
                             
-                            let sectionContent = '<p>Analysis completed for this section. Detailed results available in the web interface.</p>';
+                            let sectionContent = '';
                             
                             if (section === 'traffic' && typeof sectionData === 'object') {
                               sectionContent = `
@@ -479,6 +491,145 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                   </table>
                                 ` : ''}
                               `;
+                            } else if (section === 'keywords' && typeof sectionData === 'object') {
+                              sectionContent = `
+                                <div class="metric-grid">
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.totalKeywords || 0}</div>
+                                    <div class="metric-label">Total Keywords</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.brandedKeywords || 0}</div>
+                                    <div class="metric-label">Branded Keywords</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.aboveFoldKeywords || 0}</div>
+                                    <div class="metric-label">Top 3 Rankings</div>
+                                  </div>
+                                </div>
+                                ${sectionData.aboveFoldKeywordsList && Array.isArray(sectionData.aboveFoldKeywordsList) && sectionData.aboveFoldKeywordsList.length > 0 ? `
+                                  <h4>Top Ranking Keywords (Positions 1-3)</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Type</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${sectionData.aboveFoldKeywordsList.slice(0, 10).map(keyword => 
+                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position}</td><td>${keyword.volume || 'N/A'}</td><td>${keyword.type || 'N/A'}</td></tr>`
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                              `;
+                            } else if ((section === 'performance' || section === 'technical') && typeof sectionData === 'object') {
+                              // For combined Performance & Technical section, get both datasets
+                              const performanceData = audit.results?.performance || {};
+                              const technicalData = audit.results?.technical || {};
+                              const dataToUse = section === 'performance' ? { ...performanceData, ...technicalData } : { ...technicalData, ...performanceData };
+                              sectionContent = `
+                                <h4>Performance Metrics</h4>
+                                <div class="metric-grid">
+                                  <div class="metric-card">
+                                    <div class="metric-value">${dataToUse.desktop?.lcp || 'N/A'}</div>
+                                    <div class="metric-label">Desktop LCP</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${dataToUse.mobile?.lcp || 'N/A'}</div>
+                                    <div class="metric-label">Mobile LCP</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${dataToUse.totalPages || 0}</div>
+                                    <div class="metric-label">Total Pages</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${dataToUse.largeImages || 0}</div>
+                                    <div class="metric-label">Large Images</div>
+                                  </div>
+                                </div>
+                                <h4>Technical Issues Summary</h4>
+                                <table>
+                                  <thead>
+                                    <tr><th>Issue Type</th><th>Count</th></tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr><td>Missing Meta Titles</td><td>${dataToUse.issues?.missingMetaTitles || 0}</td></tr>
+                                    <tr><td>Missing Meta Descriptions</td><td>${dataToUse.issues?.missingMetaDescriptions || 0}</td></tr>
+                                    <tr><td>Missing H1 Tags</td><td>${dataToUse.issues?.missingH1Tags || 0}</td></tr>
+                                    <tr><td>404 Errors</td><td>${dataToUse.notFoundErrors?.length || 0}</td></tr>
+                                  </tbody>
+                                </table>
+                                ${dataToUse.largeImageDetails && Array.isArray(dataToUse.largeImageDetails) && dataToUse.largeImageDetails.length > 0 ? `
+                                  <h4>Large Images Requiring Optimization</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Image</th><th>Size (KB)</th><th>Page</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${dataToUse.largeImageDetails.slice(0, 10).map(img => 
+                                        '<tr><td>' + (img.imageUrl.split('/').pop() || img.imageUrl) + '</td><td>' + img.sizeKB + '</td><td>' + img.pageUrl.replace(/^https?:\/\//g, '').substring(0, 50) + '...</td></tr>'
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                                ${dataToUse.recommendations && Array.isArray(dataToUse.recommendations) ? `
+                                  <h4>Key Recommendations</h4>
+                                  <ul>
+                                    ${dataToUse.recommendations.slice(0, 5).map(rec => '<li>' + rec + '</li>').join('')}
+                                  </ul>
+                                ` : ''}
+                              `;
+                            } else if (section === 'backlinks' && typeof sectionData === 'object') {
+                              sectionContent = `
+                                <div class="metric-grid">
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.domainAuthority || 'N/A'}</div>
+                                    <div class="metric-label">Domain Authority</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.totalBacklinks || 'N/A'}</div>
+                                    <div class="metric-label">Total Backlinks</div>
+                                  </div>
+                                  <div class="metric-card">
+                                    <div class="metric-value">${sectionData.referringDomains || 'N/A'}</div>
+                                    <div class="metric-label">Referring Domains</div>
+                                  </div>
+                                </div>
+                                ${sectionData.topBacklinks && Array.isArray(sectionData.topBacklinks) && sectionData.topBacklinks.length > 0 ? `
+                                  <h4>Top Authority Backlinks</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Domain</th><th>Authority</th><th>Anchor Text</th><th>Type</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${sectionData.topBacklinks.slice(0, 10).map(link => 
+                                        `<tr><td>${link.domain}</td><td>${link.authority}</td><td>${link.anchor}</td><td>${link.type}</td></tr>`
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                              `;
+                            } else if (section === 'technology' && typeof sectionData === 'object') {
+                              sectionContent = `
+                                <h4>Technology Stack</h4>
+                                <table>
+                                  <thead>
+                                    <tr><th>Component</th><th>Technology</th></tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr><td>CMS</td><td>${sectionData.cms || 'Not detected'}</td></tr>
+                                    <tr><td>Framework</td><td>${sectionData.framework || 'Not detected'}</td></tr>
+                                    <tr><td>Analytics</td><td>${sectionData.analytics || 'Not detected'}</td></tr>
+                                    <tr><td>Hosting</td><td>${sectionData.hosting || 'Not detected'}</td></tr>
+                                    ${sectionData.cdn ? `<tr><td>CDN</td><td>${sectionData.cdn}</td></tr>` : ''}
+                                  </tbody>
+                                </table>
+                                ${sectionData.plugins && Array.isArray(sectionData.plugins) && sectionData.plugins.length > 0 ? `
+                                  <h4>WordPress Plugins Detected</h4>
+                                  <p>${sectionData.plugins.join(', ')}</p>
+                                ` : ''}
+                              `;
+                            } else {
+                              sectionContent = '<p>No detailed data available for this section.</p>';
                             }
                             
                             return `
@@ -564,7 +715,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -602,7 +753,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology)
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState)
               )}
             </div>
           </div>
@@ -639,33 +790,38 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology)
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Website Performance - Full Width */}
-      {audit.sections.includes('performance') && (
+      {/* Performance & Technical Audit - Full Width */}
+      {(audit.sections.includes('performance') || audit.sections.includes('technical')) && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.performance}
+              Performance & Technical Audit
               <Tooltip 
                 content={
                   <div className="max-w-sm">
-                    <p className="font-semibold mb-2">Website Performance Metrics</p>
-                    <p className="mb-2">We measure key performance indicators that affect user experience and SEO.</p>
-                    <p className="mb-2"><strong>Metrics analyzed:</strong></p>
+                    <p className="font-semibold mb-2">Performance & Technical Audit</p>
+                    <p className="mb-2">Comprehensive analysis of site performance and technical SEO health.</p>
+                    <p className="mb-2"><strong>Performance Metrics:</strong></p>
                     <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Page load speed (Core Web Vitals)</li>
-                      <li>Time to First Byte (TTFB)</li>
-                      <li>First Contentful Paint (FCP)</li>
-                      <li>Largest Contentful Paint (LCP)</li>
-                      <li>Mobile responsiveness</li>
+                      <li>Core Web Vitals (LCP, CLS, INP)</li>
+                      <li>Desktop & Mobile performance scores</li>
+                      <li>Page load speed optimization</li>
                     </ul>
-                    <p className="mt-2 text-sm">Google uses these metrics as ranking factors.</p>
+                    <p className="mb-2 mt-2"><strong>Technical SEO:</strong></p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Meta tags and H1 structure</li>
+                      <li>Image optimization analysis</li>
+                      <li>404 errors and broken links</li>
+                      <li>Site health (HTTPS, sitemap, robots.txt)</li>
+                    </ul>
+                    <p className="mt-2 text-sm">Critical factors for both user experience and search rankings.</p>
                   </div>
                 }
               >
@@ -676,46 +832,52 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="performance" />
               ) : (
-                renderSectionResults("performance", audit.results?.performance || {}, undefined, showMethodologyExpanded, toggleMethodology)
+                renderSectionResults(
+                  audit.sections.includes('technical') ? "technical" : "performance", 
+                  {...(audit.results?.performance || {}), ...(audit.results?.technical || {})}, 
+                  undefined, 
+                  showMethodologyExpanded, 
+                  toggleMethodology, 
+                  setPageModalState
+                )
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Technical Audit - Full Width */}
-      {audit.sections.includes('technical') && (
+
+      {/* Authority & Backlinks - Full Width */}
+      {audit.sections.includes('backlinks') && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.technical}
+              {SECTION_LABELS.backlinks}
               <Tooltip 
                 content={
                   <div className="max-w-sm">
-                    <p className="font-semibold mb-2">Technical SEO Audit</p>
-                    <p className="mb-2">We analyze technical factors that impact search engine crawling and indexing.</p>
-                    <p className="mb-2"><strong>Areas checked:</strong></p>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Meta tags (title, description)</li>
-                      <li>Header structure (H1, H2, etc.)</li>
-                      <li>XML sitemap presence</li>
-                      <li>Robots.txt configuration</li>
-                      <li>Schema markup implementation</li>
-                      <li>HTTPS security</li>
-                      <li>Canonical URLs</li>
+                    <p className="font-semibold mb-2">Authority & Backlinks Analysis</p>
+                    <p className="mb-2">We analyze your website's authority and backlink profile.</p>
+                    <p className="mb-2"><strong>What we check:</strong></p>
+                    <ul className="list-disc list-inside mb-2 text-xs">
+                      <li>Domain Authority score</li>
+                      <li>Total backlinks pointing to your site</li>
+                      <li>Number of referring domains</li>
+                      <li>Quality and authority of linking sites</li>
                     </ul>
-                    <p className="mt-2 text-sm">Technical SEO forms the foundation of search visibility.</p>
+                    <p><strong>Why important:</strong> High-quality backlinks signal trust and authority to search engines, directly impacting your search rankings.</p>
                   </div>
                 }
+                position="top"
               >
                 <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
               </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="technical" />
+                <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("technical", audit.results?.technical || {}, undefined, showMethodologyExpanded, toggleMethodology)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)
               )}
             </div>
           </div>
@@ -724,7 +886,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Other Sections - 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {audit.sections.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical').map((sectionId) => (
+        {audit.sections.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical' && section !== 'backlinks').map((sectionId) => (
           <div key={sectionId} className="card-pmw">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -758,7 +920,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1055,6 +1217,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
           </div>
         </div>
       )}
+
+      {/* Page Details Modal */}
+      <PageDetailsModal
+        isOpen={pageModalState.isOpen}
+        onClose={() => setPageModalState(prev => ({ ...prev, isOpen: false }))}
+        pages={pageModalState.pages}
+        title={pageModalState.title}
+        filterCondition={pageModalState.filterCondition}
+      />
     </div>
   )
 }
@@ -1064,7 +1235,8 @@ function renderSectionResults(
   results: Record<string, unknown>, 
   setInternalLinksModal?: (state: { isOpen: boolean; targetPage: string; links: string[] }) => void,
   showMethodologyExpanded?: {[key: string]: boolean},
-  toggleMethodology?: (section: string) => void
+  toggleMethodology?: (section: string) => void,
+  setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void
 ) {
   switch (sectionId) {
     case "traffic":
@@ -1439,8 +1611,63 @@ function renderSectionResults(
     case "keywords":
       return (
         <div className="space-y-8">
-          {/* Business Context & Method Notice */}
-          {(results.estimationMethod === 'free_scraping' || results.methodology) && (
+          {/* Keywords Everywhere Real Data Notice */}
+          {(results.dataSource === 'Keywords Everywhere (Bronze Package)' || results.volumeCreditsUsed > 0) && (
+            <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-green-600 text-sm font-medium">
+                      🎯 Real Google Data - Keywords Everywhere (Bronze Package)
+                    </span>
+                    <Tooltip 
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">How These Results Were Obtained</p>
+                          <p className="mb-2">Real Google data from Keywords Everywhere API:</p>
+                          <div className="mb-2">
+                            <p className="font-medium text-sm">📊 Search Volumes (Keywords Everywhere):</p>
+                            <ul className="list-disc list-inside text-sm space-y-1 ml-2">
+                              <li>Real Google Keyword Planner data</li>
+                              <li>Actual monthly search volumes</li>
+                              <li>CPC and competition metrics</li>
+                              <li>UK-targeted search data</li>
+                              <li>Bronze Package - 100,000 credits/year</li>
+                            </ul>
+                          </div>
+                          <p className="mt-2 text-xs">100% real Google data - no estimates or approximations.</p>
+                        </div>
+                      }
+                    >
+                      <HelpCircle className="h-4 w-4 text-green-500" />
+                    </Tooltip>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="font-medium text-gray-700">Keywords Analyzed:</span>
+                      <span className="ml-1 text-green-600">{results.volumeCreditsUsed || 0}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Credits Used:</span>
+                      <span className="ml-1 text-green-600">{results.volumeCreditsUsed || 0}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Search Engine:</span>
+                      <span className="ml-1 text-green-600">Google UK</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Data Quality:</span>
+                      <span className="ml-1 text-green-600">{results.realVolumeData ? 'Premium' : 'Standard'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fallback Business Context Notice for other methods */}
+          {(results.estimationMethod === 'free_scraping' || results.methodology) && results.dataSource !== 'Keywords Everywhere (Bronze Package)' && (
             <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <div className="flex-1">
@@ -1643,7 +1870,7 @@ function renderSectionResults(
             <AboveFoldKeywordTable 
               keywords={results.aboveFoldKeywordsList}
               title="Above Fold Keywords"
-              description="Keywords prominently placed in the immediately visible area of your website"
+              description="Keywords ranking in the top 3 positions on Google (above the fold in search results)"
             />
           )}
 
@@ -1665,125 +1892,168 @@ function renderSectionResults(
             />
           )}
 
-          {/* Competitors */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <h4 className="font-semibold text-black">Main Competitors</h4>
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Main Competitors</p>
-                    <p className="mb-2"><strong>Detection Method:</strong> Based on your industry type and business classification</p>
-                    <p className="mb-2"><strong>Keyword Overlap:</strong> Percentage of keywords you both compete for</p>
-                    <p className="mb-2"><strong>Authority:</strong> Domain authority score (higher = stronger competitor)</p>
-                    <p className="mb-2"><strong>Why Important:</strong> Understand your competitive landscape and identify opportunities</p>
-                    <p><strong>Note:</strong> These are real companies in your industry, not generic placeholders</p>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full p-1" />
-              </Tooltip>
-            </div>
-            
-            <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3">
-                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
-                  <div className="col-span-4">Competitor</div>
-                  <div className="col-span-4">Description</div>
-                  <div className="col-span-2 text-center">Authority</div>
-                  <div className="col-span-2 text-center">Overlap</div>
-                </div>
-              </div>
-              <div className="divide-y">
-                {(results.topCompetitors || []).slice(0, 8).map((competitor: { domain: string; description: string; authority: number; overlap: number }, index: number) => (
-                  <div key={index} className="px-4 py-3 hover:bg-gray-50">
-                    <div className="grid grid-cols-12 gap-4 items-center text-sm">
-                      <div className="col-span-4">
-                        <span className="text-gray-900 font-medium">{competitor.domain}</span>
-                      </div>
-                      <div className="col-span-4 text-gray-600">
-                        {competitor.description}
-                      </div>
-                      <div className="col-span-2 text-center">
-                        <span className={`font-medium ${
-                          competitor.authority >= 80 ? 'text-red-600' : 
-                          competitor.authority >= 60 ? 'text-orange-600' : 
-                          'text-green-600'
-                        }`}>
-                          {competitor.authority}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-center">
-                        <span className="text-orange-600 font-medium">{competitor.overlap}%</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )
 
     case "performance":
+    case "technical":
       return (
         <div className="space-y-6">
-          {/* Desktop vs Mobile */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">Desktop</h4>
-                <span className={`px-2 py-1 rounded text-xs ${results.desktop?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                  {results.desktop?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
-                </span>
+          {/* Performance Overview Section */}
+          <div>
+            <h4 className="font-semibold mb-3 text-lg">Performance Metrics</h4>
+            
+            {/* Desktop vs Mobile */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold">Desktop</h4>
+                  <span className={`px-2 py-1 rounded text-xs ${results.desktop?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                    {results.desktop?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
+                  </span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">LCP:</span>
+                    <span className={results.desktop?.lcp?.includes('1.') || results.desktop?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
+                      {results.desktop?.lcp}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">CLS:</span>
+                    <span className={parseFloat(results.desktop?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
+                      {results.desktop?.cls}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">INP:</span>
+                    <span className={parseInt(results.desktop?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
+                      {results.desktop?.inp}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">LCP:</span>
-                  <span className={results.desktop?.lcp?.includes('1.') || results.desktop?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                    {results.desktop?.lcp}
+
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold">Mobile</h4>
+                  <span className={`px-2 py-1 rounded text-xs ${results.mobile?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                    {results.mobile?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">CLS:</span>
-                  <span className={parseFloat(results.desktop?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                    {results.desktop?.cls}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">INP:</span>
-                  <span className={parseInt(results.desktop?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                    {results.desktop?.inp}
-                  </span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">LCP:</span>
+                    <span className={results.mobile?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
+                      {results.mobile?.lcp}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">CLS:</span>
+                    <span className={parseFloat(results.mobile?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
+                      {results.mobile?.cls}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">INP:</span>
+                    <span className={parseInt(results.mobile?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
+                      {results.mobile?.inp}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">Mobile</h4>
-                <span className={`px-2 py-1 rounded text-xs ${results.mobile?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                  {results.mobile?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
-                </span>
+          {/* Technical Audit Section */}
+          <div>
+            <h4 className="font-semibold mb-3 text-lg">Technical Health</h4>
+            
+            {/* Technical Overview */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div 
+                className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                onClick={() => setPageModalState({
+                  isOpen: true,
+                  title: 'All Discovered Pages',
+                  pages: results.pages || [],
+                  filterCondition: undefined
+                })}
+              >
+                <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
+                <div className="text-sm text-gray-600">Total Pages (Click to view)</div>
+                {results.discoveryMethod && (
+                  <div className="text-xs text-blue-500 mt-1">Via {results.discoveryMethod}</div>
+                )}
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">LCP:</span>
-                  <span className={results.mobile?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                    {results.mobile?.lcp}
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">{results.largeImages}</div>
+                <div className="text-sm text-gray-600">Large Images</div>
+              </div>
+            </div>
+
+            {/* Issues Found */}
+            <div className="mb-6">
+              <h5 className="font-semibold mb-3">Issues Found</h5>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div 
+                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                  onClick={() => setPageModalState({
+                    isOpen: true,
+                    title: 'Pages Missing Meta Titles',
+                    pages: results.pages || [],
+                    filterCondition: (page) => !page.hasTitle
+                  })}
+                >
+                  <span className="text-gray-600">Missing Meta Titles:</span>
+                  <span className={results.issues?.missingMetaTitles > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                    {results.issues?.missingMetaTitles || 0}
+                  </span>
+                </div>
+                <div 
+                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                  onClick={() => setPageModalState({
+                    isOpen: true,
+                    title: 'Pages Missing Meta Descriptions',
+                    pages: results.pages || [],
+                    filterCondition: (page) => !page.hasDescription
+                  })}
+                >
+                  <span className="text-gray-600">Missing Meta Descriptions:</span>
+                  <span className={results.issues?.missingMetaDescriptions > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                    {results.issues?.missingMetaDescriptions || 0}
+                  </span>
+                </div>
+                <div 
+                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                  onClick={() => setPageModalState({
+                    isOpen: true,
+                    title: 'Pages Missing H1 Tags',
+                    pages: results.pages || [],
+                    filterCondition: (page) => !page.hasH1
+                  })}
+                >
+                  <span className="text-gray-600">Missing H1 Tags:</span>
+                  <span className={results.issues?.missingH1Tags > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                    {results.issues?.missingH1Tags || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">CLS:</span>
-                  <span className={parseFloat(results.mobile?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                    {results.mobile?.cls}
+                  <span className="text-gray-600">Large Images (&gt;100KB):</span>
+                  <span className={results.issues?.largeImages > 0 ? 'text-red-600' : 'text-green-600'}>
+                    {results.issues?.largeImages || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">INP:</span>
-                  <span className={parseInt(results.mobile?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                    {results.mobile?.inp}
+                  <span className="text-gray-600">404 Errors:</span>
+                  <span className={results.issues?.notFoundErrors > 0 ? 'text-red-600' : 'text-green-600'}>
+                    {results.issues?.notFoundErrors || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Broken Internal Links:</span>
+                  <span className={results.issues?.brokenInternalLinks > 0 ? 'text-red-600' : 'text-green-600'}>
+                    {results.issues?.brokenInternalLinks || 0}
                   </span>
                 </div>
               </div>
@@ -1794,7 +2064,7 @@ function renderSectionResults(
           <div>
             <h4 className="font-semibold mb-3">Key Recommendations</h4>
             <ul className="space-y-1 text-sm text-gray-700">
-              {results.recommendations?.slice(0, 3).map((rec: string, index: number) => (
+              {results.recommendations?.slice(0, 5).map((rec: string, index: number) => (
                 <li key={index} className="flex items-center">
                   <span className="text-blue-500 mr-2">•</span>
                   {rec}
@@ -1803,190 +2073,24 @@ function renderSectionResults(
             </ul>
           </div>
 
-          {/* How Results Were Obtained */}
-          <div className="bg-blue-50 rounded-lg border border-blue-200">
-            <button 
-              onClick={() => toggleMethodology?.('performance')}
-              className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
-            >
-              <h4 className="font-semibold text-blue-900 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <span className="text-blue-600">ℹ️</span>
-                  How These Results Were Obtained
-                </span>
-                {showMethodologyExpanded?.performance ? (
-                  <ChevronDown className="w-5 h-5 text-blue-600" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-blue-600" />
-                )}
-              </h4>
-            </button>
-            {showMethodologyExpanded?.performance && (
-              <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
-                <div>
-                  <h5 className="font-medium mb-2">⚡ Performance Testing Method</h5>
-                <p className="text-blue-700 leading-relaxed">
-                  Our performance analysis simulates your website loading on both desktop and mobile devices 
-                  using industry-standard Core Web Vitals metrics. We test your site's actual loading speed 
-                  and user experience indicators to provide accurate performance scores.
-                </p>
-              </div>
-              
-              <div>
-                <h5 className="font-medium mb-2">📊 Core Web Vitals Measured</h5>
-                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                  <li><strong>Largest Contentful Paint (LCP):</strong> Time until the largest visible element loads (should be under 2.5s)</li>
-                  <li><strong>Cumulative Layout Shift (CLS):</strong> Visual stability score measuring unexpected layout shifts (should be under 0.1)</li>
-                  <li><strong>Interaction to Next Paint (INP):</strong> Responsiveness to user interactions (should be under 200ms)</li>
-                  <li><strong>Performance Scores:</strong> Overall grades for both desktop and mobile experiences</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h5 className="font-medium mb-2">🔧 Data Sources & Accuracy</h5>
-                <p className="text-blue-700 leading-relaxed">
-                  Results are based on simulated testing environments and may vary from real user experiences 
-                  depending on device, network conditions, and geographic location. For production sites, 
-                  we recommend monitoring actual user metrics using tools like Google Analytics or Real User Monitoring (RUM).
-                </p>
-              </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )
-
-    case "backlinks":
-      return (
-        <div className="space-y-6">
-          {/* Backlink Overview */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.domainAuthority}</div>
-              <div className="text-sm text-gray-600">Domain Authority</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{results.totalBacklinks?.toLocaleString('en-GB')}</div>
-              <div className="text-sm text-gray-600">Total Backlinks</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{results.referringDomains?.toLocaleString('en-GB')}</div>
-              <div className="text-sm text-gray-600">Referring Domains</div>
-            </div>
-          </div>
-
-          {/* Top Backlinks */}
-          <div>
-            <h4 className="font-semibold mb-3">High Authority Backlinks</h4>
-            <div className="space-y-2">
-              {results.topBacklinks?.slice(0, 4).map((backlink: { domain: string; anchor: string; authority: number; type: string }, index: number) => (
-                <div key={index} className="flex justify-between items-center text-sm border-b pb-2">
-                  <div>
-                    <div className="font-medium text-gray-800">{backlink.domain}</div>
-                    <div className="text-gray-500 text-xs truncate">{backlink.anchor}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-blue-600 font-medium">DA {backlink.authority}</div>
-                    <div className={`text-xs ${backlink.type === 'dofollow' ? 'text-green-600' : 'text-gray-500'}`}>
-                      {backlink.type}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-
-    case "technical":
-      return (
-        <div className="space-y-6">
-          {/* Technical Overview */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
-              <div className="text-sm text-gray-600">Total Pages</div>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">{results.largeImages}</div>
-              <div className="text-sm text-gray-600">Large Images</div>
-            </div>
-          </div>
-
-          {/* Issues Found */}
-          <div>
-            <h4 className="font-semibold mb-3">Issues Found</h4>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Missing Meta Titles:</span>
-                <span className={results.issues?.missingMetaTitles > 0 ? 'text-red-600' : 'text-green-600'}>
-                  {results.issues?.missingMetaTitles || 0}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Missing Meta Descriptions:</span>
-                <span className={results.issues?.missingMetaDescriptions > 0 ? 'text-red-600' : 'text-green-600'}>
-                  {results.issues?.missingMetaDescriptions || 0}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Missing H1 Tags:</span>
-                <span className={results.issues?.missingH1Tags > 0 ? 'text-red-600' : 'text-green-600'}>
-                  {results.issues?.missingH1Tags || 0}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">HTTP Errors:</span>
-                <span className={results.issues?.httpErrors > 0 ? 'text-red-600' : 'text-green-600'}>
-                  {results.issues?.httpErrors || 0}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Site Health */}
-          <div>
-            <h4 className="font-semibold mb-3">Site Health</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sitemap:</span>
-                <span className={results.sitemapStatus === 'found' ? 'text-green-600' : 'text-red-600'}>
-                  {results.sitemapStatus === 'found' ? '✓ Found' : '✗ Missing'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Robots.txt:</span>
-                <span className={results.robotsTxtStatus === 'found' ? 'text-green-600' : 'text-red-600'}>
-                  {results.robotsTxtStatus === 'found' ? '✓ Found' : '✗ Missing'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">HTTPS:</span>
-                <span className={results.httpsStatus === 'secure' ? 'text-green-600' : 'text-red-600'}>
-                  {results.httpsStatus === 'secure' ? '✓ Secure' : '✗ Insecure'}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Large Images Table */}
-          {results.largeImageDetails && results.largeImageDetails.length > 0 && (
+          {(results.largeImagesList || results.largeImageDetails) && (results.largeImagesList || results.largeImageDetails).length > 0 && (
             <div>
-              <h4 className="font-semibold mb-3 text-red-600">🖼️ Images Over 100KB</h4>
-              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+              <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-red-100">
+                    <thead className="bg-orange-100">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium text-red-800">Image URL</th>
-                        <th className="px-4 py-3 text-left font-medium text-red-800">Found On Page</th>
-                        <th className="px-4 py-3 text-right font-medium text-red-800">Size</th>
-                        <th className="px-4 py-3 text-left font-medium text-red-800">Recommendation</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                        <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-red-200">
-                      {results.largeImageDetails.map((image: any, index: number) => (
-                        <tr key={index} className="hover:bg-red-50">
+                    <tbody className="divide-y divide-orange-200">
+                      {(results.largeImagesList || results.largeImageDetails || []).slice(0, 10).map((image: any, index: number) => (
+                        <tr key={index} className="hover:bg-orange-50">
                           <td className="px-4 py-3">
                             <a 
                               href={image.imageUrl} 
@@ -2083,7 +2187,7 @@ function renderSectionResults(
           {/* How Results Were Obtained */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
             <button 
-              onClick={() => toggleMethodology?.('technical')}
+              onClick={() => toggleMethodology?.(section === 'performance' ? 'performance' : 'technical')}
               className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
             >
               <h4 className="font-semibold text-blue-900 flex items-center justify-between">
@@ -2091,46 +2195,150 @@ function renderSectionResults(
                   <span className="text-blue-600">ℹ️</span>
                   How These Results Were Obtained
                 </span>
-                {showMethodologyExpanded?.technical ? (
+                {(showMethodologyExpanded?.performance || showMethodologyExpanded?.technical) ? (
                   <ChevronDown className="w-5 h-5 text-blue-600" />
                 ) : (
                   <ChevronRight className="w-5 h-5 text-blue-600" />
                 )}
               </h4>
             </button>
-            {showMethodologyExpanded?.technical && (
+            {(showMethodologyExpanded?.performance || showMethodologyExpanded?.technical) && (
               <div className="px-6 pb-6 space-y-4 text-sm text-blue-800">
                 <div>
-                  <h5 className="font-medium mb-2">🔍 Technical Analysis Method</h5>
-                <p className="text-blue-700 leading-relaxed">
-                  Our technical audit crawls your website to analyze HTML structure, meta tags, images, 
-                  and server responses. We check for common SEO and performance issues that could impact 
-                  your site's search engine ranking and user experience.
-                </p>
-              </div>
-              
-              <div>
-                <h5 className="font-medium mb-2">📊 What We Analyze</h5>
-                <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                  <li><strong>Page Structure:</strong> Meta titles, descriptions, H1 tags, and content hierarchy</li>
-                  <li><strong>Image Optimization:</strong> File sizes, alt text, and format efficiency</li>
-                  <li><strong>Site Health:</strong> Sitemap availability, robots.txt, HTTPS implementation</li>
-                  <li><strong>Error Detection:</strong> 404 errors, broken links, and server response issues</li>
-                  <li><strong>Technical SEO:</strong> URL structure, redirects, and crawlability factors</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h5 className="font-medium mb-2">🎯 Data Sources & Limitations</h5>
-                <p className="text-blue-700 leading-relaxed">
-                  Results are based on automated crawling and may not capture issues that require user interaction 
-                  or are behind authentication. For comprehensive audits, combine these results with manual testing 
-                  and real user monitoring data.
-                </p>
-              </div>
+                  <h5 className="font-medium mb-2">⚡ Performance & Technical Analysis Method</h5>
+                  <p className="text-blue-700 leading-relaxed">
+                    Our comprehensive analysis combines performance testing with technical SEO auditing. We simulate 
+                    your website loading on both desktop and mobile devices using Core Web Vitals metrics, while also 
+                    crawling your site to analyze HTML structure, meta tags, images, and server responses.
+                  </p>
+                </div>
+                
+                <div>
+                  <h5 className="font-medium mb-2">📊 What We Measure</h5>
+                  <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
+                    <li><strong>Core Web Vitals:</strong> LCP, CLS, INP for both desktop and mobile experiences</li>
+                    <li><strong>Page Structure:</strong> Meta titles, descriptions, H1 tags, and content hierarchy</li>
+                    <li><strong>Image Optimization:</strong> File sizes, alt text, and format efficiency</li>
+                    <li><strong>Site Health:</strong> 404 errors, broken links, and server response issues</li>
+                    <li><strong>Technical SEO:</strong> URL structure, redirects, and crawlability factors</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h5 className="font-medium mb-2">🔧 Data Sources & Accuracy</h5>
+                  <p className="text-blue-700 leading-relaxed">
+                    Results are based on simulated testing and automated crawling. Performance metrics may vary from 
+                    real user experiences depending on device and network conditions. Technical audit results may not 
+                    capture issues requiring user interaction or authentication. For comprehensive analysis, combine 
+                    these results with manual testing and real user monitoring data.
+                  </p>
+                </div>
               </div>
             )}
           </div>
+        </div>
+      )
+
+    case "backlinks":
+      return (
+        <div className="space-y-6">
+          {/* Check if API is configured */}
+          {results.error ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <svg className="w-8 h-8 text-amber-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="text-lg font-semibold text-amber-800">Professional Backlink Analysis Required</h3>
+                  <p className="text-amber-700 text-sm mt-1">Real backlink data requires a premium API subscription</p>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-gray-800 mb-2">What You Get with Majestic API:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Real referring domains that actually link to your site</li>
+                  <li>• Actual anchor text used in backlinks</li>
+                  <li>• Trust Flow and Citation Flow metrics</li>
+                  <li>• Link discovery dates and historical data</li>
+                  <li>• Spam detection and link quality assessment</li>
+                </ul>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-amber-700 mb-1"><strong>Majestic Lite Plan: $49.99/month</strong></div>
+                  <div className="text-xs text-amber-600">Most affordable professional backlink API</div>
+                </div>
+                <div className="flex gap-3">
+                  <a 
+                    href={results.analysisUrl || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    View Free Report
+                  </a>
+                  <a 
+                    href="https://majestic.com/plans-pricing" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Get API Access
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Backlink Overview - Only show when API is working */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{results.domainAuthority}</div>
+                  <div className="text-sm text-gray-600">Trust Flow</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{results.totalBacklinks?.toLocaleString('en-GB')}</div>
+                  <div className="text-sm text-gray-600">Total Backlinks</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{results.referringDomains?.toLocaleString('en-GB')}</div>
+                  <div className="text-sm text-gray-600">Referring Domains</div>
+                </div>
+              </div>
+
+              {/* Real Backlinks from Majestic */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold">High Authority Backlinks</h4>
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Real Data from {results.dataSource}</span>
+                </div>
+                <div className="space-y-2">
+                  {results.topBacklinks?.slice(0, 8).map((backlink: { domain: string; anchor: string; authority: number; type: string; trustFlow?: number; citationFlow?: number }, index: number) => (
+                    <div key={index} className="flex justify-between items-center text-sm border-b pb-2">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-800">{backlink.domain}</div>
+                        <div className="text-gray-500 text-xs truncate max-w-xs">{backlink.anchor}</div>
+                      </div>
+                      <div className="text-right flex gap-4">
+                        <div>
+                          <div className="text-blue-600 font-medium">TF {backlink.authority}</div>
+                          {backlink.citationFlow && (
+                            <div className="text-gray-500 text-xs">CF {backlink.citationFlow}</div>
+                          )}
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded ${backlink.type === 'dofollow' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {backlink.type}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )
 
@@ -2320,7 +2528,7 @@ function renderSectionResults(
             )}
           </div>
         </div>
-      );
+      )
 
     default:
       return (
@@ -2328,6 +2536,6 @@ function renderSectionResults(
           <p>Analysis completed successfully</p>
           <p className="text-sm mt-1">Detailed results are now available</p>
         </div>
-      );
+      )
   }
 }

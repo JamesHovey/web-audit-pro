@@ -26,18 +26,57 @@ export default function Tooltip({
       const trigger = triggerRef.current
       const rect = trigger.getBoundingClientRect()
       const tooltipRect = tooltip.getBoundingClientRect()
+      const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight
+      }
       
       let newPosition = position
       
-      // Check if tooltip would go off screen and adjust position
-      if (position === 'top' && rect.top - tooltipRect.height < 10) {
-        newPosition = 'bottom'
-      } else if (position === 'bottom' && rect.bottom + tooltipRect.height > window.innerHeight - 10) {
-        newPosition = 'top'
-      } else if (position === 'left' && rect.left - tooltipRect.width < 10) {
-        newPosition = 'right'
-      } else if (position === 'right' && rect.right + tooltipRect.width > window.innerWidth - 10) {
-        newPosition = 'left'
+      // Calculate available space in all directions
+      const spaceAbove = rect.top
+      const spaceBelow = viewport.height - rect.bottom
+      const spaceLeft = rect.left
+      const spaceRight = viewport.width - rect.right
+      
+      // Minimum space needed (with padding)
+      const minSpace = 20
+      const tooltipHeight = tooltipRect.height || 120 // estimated height if not calculated yet
+      const tooltipWidth = tooltipRect.width || 300 // estimated width if not calculated yet
+      
+      // Smart positioning logic - choose the position with most available space
+      if (position === 'top' || position === 'bottom') {
+        // For vertical positions, check if there's enough space above or below
+        const needsSpaceAbove = tooltipHeight + minSpace
+        const needsSpaceBelow = tooltipHeight + minSpace
+        
+        if (position === 'top' && spaceAbove < needsSpaceAbove) {
+          // Not enough space above, try below
+          if (spaceBelow >= needsSpaceBelow) {
+            newPosition = 'bottom'
+          } else {
+            // Not enough space above or below, choose the side with more space
+            newPosition = spaceAbove > spaceBelow ? 'top' : 'bottom'
+          }
+        } else if (position === 'bottom' && spaceBelow < needsSpaceBelow) {
+          // Not enough space below, try above
+          if (spaceAbove >= needsSpaceAbove) {
+            newPosition = 'top'
+          } else {
+            // Not enough space above or below, choose the side with more space
+            newPosition = spaceAbove > spaceBelow ? 'top' : 'bottom'
+          }
+        }
+      } else {
+        // For horizontal positions
+        const needsSpaceLeft = tooltipWidth + minSpace
+        const needsSpaceRight = tooltipWidth + minSpace
+        
+        if (position === 'left' && spaceLeft < needsSpaceLeft) {
+          newPosition = spaceRight >= needsSpaceRight ? 'right' : (spaceLeft > spaceRight ? 'left' : 'right')
+        } else if (position === 'right' && spaceRight < needsSpaceRight) {
+          newPosition = spaceLeft >= needsSpaceLeft ? 'left' : (spaceLeft > spaceRight ? 'left' : 'right')
+        }
       }
       
       setActualPosition(newPosition)
@@ -76,16 +115,45 @@ export default function Tooltip({
           style={{
             minWidth: '300px',
             maxWidth: '400px',
-            left: actualPosition === 'top' || actualPosition === 'bottom' ? 
-              `${triggerRef.current?.getBoundingClientRect().left + (triggerRef.current?.getBoundingClientRect().width || 0) / 2}px` :
-              actualPosition === 'left' ? 
-                `${triggerRef.current?.getBoundingClientRect().left - 310}px` :
-                `${triggerRef.current?.getBoundingClientRect().right + 10}px`,
-            top: actualPosition === 'top' ? 
-              `${triggerRef.current?.getBoundingClientRect().top - 10}px` :
-              actualPosition === 'bottom' ?
-                `${triggerRef.current?.getBoundingClientRect().bottom + 10}px` :
-                `${triggerRef.current?.getBoundingClientRect().top + (triggerRef.current?.getBoundingClientRect().height || 0) / 2}px`,
+            left: (() => {
+              const triggerRect = triggerRef.current?.getBoundingClientRect()
+              if (!triggerRect) return '0px'
+              
+              if (actualPosition === 'top' || actualPosition === 'bottom') {
+                // Center horizontally, but constrain to viewport
+                let left = triggerRect.left + triggerRect.width / 2
+                const tooltipWidth = 350 // account for min/max width
+                
+                // Ensure tooltip doesn't go off left edge
+                if (left - tooltipWidth / 2 < 10) {
+                  left = tooltipWidth / 2 + 10
+                }
+                // Ensure tooltip doesn't go off right edge
+                if (left + tooltipWidth / 2 > window.innerWidth - 10) {
+                  left = window.innerWidth - tooltipWidth / 2 - 10
+                }
+                
+                return `${left}px`
+              } else if (actualPosition === 'left') {
+                return `${Math.max(10, triggerRect.left - 310)}px`
+              } else {
+                return `${Math.min(window.innerWidth - 310, triggerRect.right + 10)}px`
+              }
+            })(),
+            top: (() => {
+              const triggerRect = triggerRef.current?.getBoundingClientRect()
+              if (!triggerRect) return '0px'
+              
+              if (actualPosition === 'top') {
+                return `${Math.max(10, triggerRect.top - 10)}px`
+              } else if (actualPosition === 'bottom') {
+                const maxTop = window.innerHeight - 150 // account for tooltip height
+                return `${Math.min(maxTop, triggerRect.bottom + 10)}px`
+              } else {
+                // left or right position
+                return `${triggerRect.top + triggerRect.height / 2}px`
+              }
+            })(),
             transform: actualPosition === 'top' || actualPosition === 'bottom' ? 
               'translateX(-50%) translateY(' + (actualPosition === 'top' ? '-100%' : '0%') + ')' :
               'translateY(-50%)'
