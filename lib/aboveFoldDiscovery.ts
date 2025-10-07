@@ -92,15 +92,21 @@ export class AboveFoldDiscoveryService {
       let filteredKeywords = keywordOpportunities;
       
       if (useRealSerpData) {
-        // Only show business-relevant longtail keywords ranking in positions 1-3
+        // STRICT CRITERIA: Only show keywords with volume >50 AND ranking in positions 1-3
         filteredKeywords = filteredKeywords.filter(k => 
           k.isActualRanking && 
           k.position >= 1 && 
           k.position <= 3 &&
-          k.keyword.split(' ').length >= 3 // Longtail = 3+ words
+          (k.volume || 0) > 50 &&
+          k.keyword.split(' ').length >= 2 // 2+ words for long-tail
         );
         
-        console.log(`🎯 ValueSERP: Found ${filteredKeywords.length} longtail keywords ranking in positions 1-3`);
+        console.log(`🎯 ValueSERP: Found ${filteredKeywords.length} keywords meeting strict criteria (volume >50 AND positions 1-3)`);
+        
+        // No fallback - if criteria not met, show empty results
+        if (filteredKeywords.length === 0) {
+          console.log(`🎯 No keywords meet criteria - showing empty results`);
+        }
         
         // Sort by position (1,2,3) then by volume (high to low)
         filteredKeywords.sort((a, b) => {
@@ -141,6 +147,7 @@ export class AboveFoldDiscoveryService {
 
       return {
         keywords: filteredKeywords,
+        rawKeywords: keywordOpportunities, // All found keywords including 0-volume ones for competition analysis
         totalFound: filteredKeywords.length,
         estimatedTrafficGain: estimatedTraffic,
         discoveryMethod: discoveryMethod,
@@ -151,6 +158,7 @@ export class AboveFoldDiscoveryService {
       console.error('Above fold discovery error:', error);
       return {
         keywords: [],
+        rawKeywords: [],
         totalFound: 0,
         estimatedTrafficGain: 0,
         discoveryMethod: 'content_analysis',
@@ -820,8 +828,8 @@ export class AboveFoldDiscoveryService {
     const lowerHtml = html.toLowerCase();
     
     keywordsWithVolumes.forEach(kw => {
-      // Filter out high-volume generic keywords (>10,000) and low-volume keywords (<10)
-      if (kw.volume >= 10 && kw.volume <= 10000) {
+      // Filter out high-volume generic keywords (>10,000) and low-volume keywords (<50)
+      if (kw.volume >= 50 && kw.volume <= 10000) {
         // Check if this is a business-relevant keyword
         if (this.isBusinessRelevantKeyword(kw.keyword, lowerHtml, businessType)) {
           // Check how relevant this keyword is to the content

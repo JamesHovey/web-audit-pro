@@ -14,6 +14,7 @@ import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
 import KeywordCompetitionTable from './KeywordCompetitionTable'
 import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
+import ViewportAnalysis from './ViewportAnalysis'
 
 interface Audit {
   id: string
@@ -109,6 +110,9 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
   const [showTrafficExplanation, setShowTrafficExplanation] = useState(false)
   const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
+  const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
+  const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
+  const [showAboveFoldKeywordsGuide, setShowAboveFoldKeywordsGuide] = useState(false)
   const [showMethodologyExpanded, setShowMethodologyExpanded] = useState<{[key: string]: boolean}>({
     traffic: false,
     performance: false,
@@ -558,26 +562,120 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                               const performanceData = audit.results?.performance || {};
                               const technicalData = audit.results?.technical || {};
                               const dataToUse = section === 'performance' ? { ...performanceData, ...technicalData } : { ...technicalData, ...performanceData };
+                              
                               sectionContent = `
-                                <h4>Performance Metrics</h4>
-                                <div class="metric-grid">
-                                  <div class="metric-card">
-                                    <div class="metric-value">${dataToUse.desktop?.lcp || 'N/A'}</div>
-                                    <div class="metric-label">Desktop LCP</div>
+
+                                ${dataToUse.pages && Array.isArray(dataToUse.pages) && dataToUse.pages.some(p => p.performance) ? `
+                                  <h4>Page Performance Metrics (Core Web Vitals)</h4>
+                                  <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Complete analysis of Core Web Vitals for all pages, sorted by mobile performance (worst first)</p>
+                                  <table style="font-size: 12px;">
+                                    <thead>
+                                      <tr>
+                                        <th>Page</th>
+                                        <th>Desktop Score</th>
+                                        <th>Desktop LCP (s)</th>
+                                        <th>Desktop CLS</th>
+                                        <th>Desktop INP (ms)</th>
+                                        <th>Mobile Score</th>
+                                        <th>Mobile LCP (s)</th>
+                                        <th>Mobile CLS</th>
+                                        <th>Mobile INP (ms)</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      ${dataToUse.pages
+                                        .filter(page => page.performance)
+                                        .sort((a, b) => (a.performance?.mobile?.score || 0) - (b.performance?.mobile?.score || 0))
+                                        .map(page => {
+                                          const { desktop, mobile } = page.performance;
+                                          const getRelativePath = (url) => {
+                                            try {
+                                              const urlObj = new URL(url);
+                                              return urlObj.pathname === '/' ? '/' : urlObj.pathname;
+                                            } catch {
+                                              return url.replace(/^https?:\/\/[^\/]+/, '') || '/';
+                                            }
+                                          };
+                                          return `<tr>
+                                            <td style="font-family: monospace; font-size: 11px;">${getRelativePath(page.url)}</td>
+                                            <td style="text-align: center; font-weight: bold; color: ${desktop.score >= 90 ? '#059669' : desktop.score >= 50 ? '#d97706' : '#dc2626'}">${desktop.score}</td>
+                                            <td style="text-align: center; color: ${desktop.lcp < 2500 ? '#059669' : desktop.lcp < 4000 ? '#d97706' : '#dc2626'}">${(desktop.lcp / 1000).toFixed(1)}</td>
+                                            <td style="text-align: center; color: ${desktop.cls < 0.1 ? '#059669' : desktop.cls < 0.25 ? '#d97706' : '#dc2626'}">${desktop.cls.toFixed(3)}</td>
+                                            <td style="text-align: center; color: ${desktop.inp < 200 ? '#059669' : desktop.inp < 500 ? '#d97706' : '#dc2626'}">${desktop.inp}</td>
+                                            <td style="text-align: center; font-weight: bold; color: ${mobile.score >= 90 ? '#059669' : mobile.score >= 50 ? '#d97706' : '#dc2626'}">${mobile.score}</td>
+                                            <td style="text-align: center; color: ${mobile.lcp < 2500 ? '#059669' : mobile.lcp < 4000 ? '#d97706' : '#dc2626'}">${(mobile.lcp / 1000).toFixed(1)}</td>
+                                            <td style="text-align: center; color: ${mobile.cls < 0.1 ? '#059669' : mobile.cls < 0.25 ? '#d97706' : '#dc2626'}">${mobile.cls.toFixed(3)}</td>
+                                            <td style="text-align: center; color: ${mobile.inp < 200 ? '#059669' : mobile.inp < 500 ? '#d97706' : '#dc2626'}">${mobile.inp}</td>
+                                          </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+
+                                ${dataToUse.viewportAnalysis ? `
+                                  <div class="page-break"></div>
+                                  <h4>Viewport Responsiveness Analysis</h4>
+                                  <div class="metric-grid">
+                                    <div class="metric-card">
+                                      <div class="metric-value">${dataToUse.viewportAnalysis.overallScore}/100</div>
+                                      <div class="metric-label">Overall Responsive Score</div>
+                                    </div>
+                                    <div class="metric-card">
+                                      <div class="metric-value">${dataToUse.viewportAnalysis.responsiveScore}/100</div>
+                                      <div class="metric-label">Mobile Score</div>
+                                    </div>
+                                    <div class="metric-card">
+                                      <div class="metric-value">${dataToUse.viewportAnalysis.cssAnalysis?.isElementorSite ? 'Yes' : 'No'}</div>
+                                      <div class="metric-label">Elementor Site</div>
+                                    </div>
+                                    <div class="metric-card">
+                                      <div class="metric-value">${dataToUse.viewportAnalysis.cssAnalysis?.hasViewportMeta ? 'Yes' : 'No'}</div>
+                                      <div class="metric-label">Viewport Meta Tag</div>
+                                    </div>
                                   </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${dataToUse.mobile?.lcp || 'N/A'}</div>
-                                    <div class="metric-label">Mobile LCP</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${dataToUse.totalPages || 0}</div>
-                                    <div class="metric-label">Total Pages</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${dataToUse.largeImages || 0}</div>
-                                    <div class="metric-label">Large Images</div>
-                                  </div>
-                                </div>
+
+                                  ${dataToUse.viewportAnalysis.viewportAnalyses && Array.isArray(dataToUse.viewportAnalysis.viewportAnalyses) ? `
+                                    <h5>Viewport Analysis Results</h5>
+                                    <table>
+                                      <thead>
+                                        <tr><th>Device Type</th><th>Viewport</th><th>Score</th><th>Issues Found</th><th>Load Time (ms)</th></tr>
+                                      </thead>
+                                      <tbody>
+                                        ${dataToUse.viewportAnalysis.viewportAnalyses.map(analysis => `
+                                          <tr>
+                                            <td>${analysis.viewport.deviceType.charAt(0).toUpperCase() + analysis.viewport.deviceType.slice(1)}</td>
+                                            <td>${analysis.viewport.width}×${analysis.viewport.height}</td>
+                                            <td style="color: ${analysis.score >= 70 ? '#059669' : analysis.score >= 40 ? '#d97706' : '#dc2626'}; font-weight: bold;">${analysis.score}/100</td>
+                                            <td>${analysis.issues.length}</td>
+                                            <td>${analysis.loadTime}</td>
+                                          </tr>
+                                        `).join('')}
+                                      </tbody>
+                                    </table>
+                                  ` : ''}
+
+                                  ${dataToUse.viewportAnalysis.globalIssues && Array.isArray(dataToUse.viewportAnalysis.globalIssues) && dataToUse.viewportAnalysis.globalIssues.length > 0 ? `
+                                    <h5>Global Responsive Issues</h5>
+                                    <ul>
+                                      ${dataToUse.viewportAnalysis.globalIssues.map(issue => 
+                                        `<li><strong>${issue.severity.toUpperCase()}:</strong> ${issue.description} - ${issue.recommendation}</li>`
+                                      ).join('')}
+                                    </ul>
+                                  ` : ''}
+
+                                  ${dataToUse.viewportAnalysis.recommendations && Array.isArray(dataToUse.viewportAnalysis.recommendations) && dataToUse.viewportAnalysis.recommendations.length > 0 ? `
+                                    <h5>Responsive Design Recommendations</h5>
+                                    <ul>
+                                      ${dataToUse.viewportAnalysis.recommendations.map(rec => '<li>' + rec + '</li>').join('')}
+                                    </ul>
+                                  ` : ''}
+
+                                  ${dataToUse.viewportAnalysis.cssAnalysis?.breakpoints && Array.isArray(dataToUse.viewportAnalysis.cssAnalysis.breakpoints) && dataToUse.viewportAnalysis.cssAnalysis.breakpoints.length > 0 ? `
+                                    <h5>Detected CSS Breakpoints</h5>
+                                    <p>${dataToUse.viewportAnalysis.cssAnalysis.breakpoints.join('px, ')}px</p>
+                                  ` : ''}
+                                ` : ''}
+
                                 <h4>Technical Issues Summary</h4>
                                 <table>
                                   <thead>
@@ -590,24 +688,33 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                     <tr><td>404 Errors</td><td>${dataToUse.notFoundErrors?.length || 0}</td></tr>
                                   </tbody>
                                 </table>
+
                                 ${dataToUse.largeImageDetails && Array.isArray(dataToUse.largeImageDetails) && dataToUse.largeImageDetails.length > 0 ? `
-                                  <h4>All Large Images Requiring Optimization</h4>
+                                  <h4>Large Images Requiring Optimization</h4>
                                   <table>
                                     <thead>
                                       <tr><th>Image</th><th>Size (KB)</th><th>Page</th></tr>
                                     </thead>
                                     <tbody>
                                       ${dataToUse.largeImageDetails.map(img => 
-                                        '<tr><td>' + (img.imageUrl.split('/').pop() || img.imageUrl) + '</td><td>' + img.sizeKB + '</td><td>' + img.pageUrl.replace(/^https?:\/\//g, '').substring(0, 50) + '...</td></tr>'
+                                        '<tr><td style="font-family: monospace; font-size: 11px;">' + (img.imageUrl.split('/').pop() || img.imageUrl).substring(0, 40) + (img.imageUrl.length > 40 ? '...' : '') + '</td><td>' + img.sizeKB + '</td><td style="font-family: monospace; font-size: 11px;">' + img.pageUrl.replace(/^https?:\/\/[^\/]+/, '').substring(0, 30) + '...</td></tr>'
                                       ).join('')}
                                     </tbody>
                                   </table>
                                 ` : ''}
-                                ${dataToUse.recommendations && Array.isArray(dataToUse.recommendations) ? `
-                                  <h4>All Recommendations</h4>
-                                  <ul>
-                                    ${dataToUse.recommendations.map(rec => '<li>' + rec + '</li>').join('')}
-                                  </ul>
+
+                                ${dataToUse.notFoundErrors && Array.isArray(dataToUse.notFoundErrors) && dataToUse.notFoundErrors.length > 0 ? `
+                                  <h4>404 Errors Found</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Broken URL</th><th>Found On Page</th><th>Link Type</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${dataToUse.notFoundErrors.map(error => 
+                                        '<tr><td style="font-family: monospace; font-size: 11px;">' + error.brokenUrl.substring(0, 50) + (error.brokenUrl.length > 50 ? '...' : '') + '</td><td style="font-family: monospace; font-size: 11px;">' + error.sourceUrl.replace(/^https?:\/\/[^\/]+/, '').substring(0, 30) + '...</td><td>' + error.linkType + '</td></tr>'
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
                                 ` : ''}
                               `;
                             } else if (section === 'backlinks' && typeof sectionData === 'object') {
@@ -747,7 +854,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -785,7 +892,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
               )}
             </div>
           </div>
@@ -822,7 +929,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
               )}
             </div>
           </div>
@@ -872,7 +979,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   toggleMethodology, 
                   setPageModalState,
                   performancePagination,
-                  setPerformancePagination
+                  setPerformancePagination,
+                  setShowCoreWebVitalsGuide
                 )
               )}
             </div>
@@ -911,7 +1019,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
               )}
             </div>
           </div>
@@ -954,7 +1062,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1260,6 +1368,511 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         title={pageModalState.title}
         filterCondition={pageModalState.filterCondition}
       />
+
+      {/* Core Web Vitals Guide Modal */}
+      {showCoreWebVitalsGuide && (
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-semibold text-gray-900">📚 Core Web Vitals: The Complete Guide</h2>
+              <button
+                onClick={() => setShowCoreWebVitalsGuide(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* What Are Core Web Vitals */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <h3 className="text-lg font-semibold text-green-600 mb-3">🎯 What Are Core Web Vitals?</h3>
+                <p className="text-gray-700 mb-2">
+                  Think of them as Google's "report card" for how fast and smooth your website feels to real users. 
+                  Google uses these scores to decide which websites deserve higher search rankings.
+                </p>
+                <p className="text-gray-700">
+                  <strong>Key Point:</strong> These aren't just numbers - they directly impact how much traffic Google sends to your website!
+                </p>
+              </div>
+
+              {/* The 3 Key Measurements */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-600 mb-4">📊 The 3 Key Measurements</h3>
+                <div className="space-y-4">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">🚀 LCP - Largest Contentful Paint (Loading Speed)</h4>
+                    <p className="text-gray-600 text-sm mt-1">How fast does the main content load?</p>
+                    <div className="mt-2 text-xs">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">✅ Good: Under 2.5 seconds</span>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded mr-2">⚠️ Needs work: 2.5-4 seconds</span>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded">❌ Poor: Over 4 seconds</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">📐 CLS - Cumulative Layout Shift (Visual Stability)</h4>
+                    <p className="text-gray-600 text-sm mt-1">Does content jump around while loading? (You know, when you try to click something and it moves!)</p>
+                    <div className="mt-2 text-xs">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">✅ Good: Under 0.1</span>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded mr-2">⚠️ Needs work: 0.1-0.25</span>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded">❌ Poor: Over 0.25</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">⚡ INP - Interaction to Next Paint (Responsiveness)</h4>
+                    <p className="text-gray-600 text-sm mt-1">How quickly does the page respond when you click, tap, or type?</p>
+                    <div className="mt-2 text-xs">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">✅ Good: Under 200ms</span>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded mr-2">⚠️ Needs work: 200-500ms</span>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded">❌ Poor: Over 500ms</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Why Page-by-Page Matters */}
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                <h3 className="text-lg font-semibold text-purple-600 mb-3">🔍 Why Page-by-Page Analysis Matters</h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-0.5">•</span>
+                    <span><strong>Google judges each page separately</strong> - not your whole site as one unit</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-0.5">•</span>
+                    <span><strong>A slow homepage won't hurt your blog page rankings</strong> - they're scored independently</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-0.5">•</span>
+                    <span><strong>Users only care about the page they're on right now</strong> - not your site average</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-600 mt-0.5">•</span>
+                    <span><strong>You can fix problems one page at a time</strong> - no need to overhaul everything at once</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Real-World Example */}
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 Real-World Example: Why Averages Are Misleading</h3>
+                <div className="bg-white p-4 rounded border space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Your Homepage:</span>
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">1.2s ✅ Excellent!</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Your Product Page:</span>
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">4.8s ❌ Terrible!</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t pt-2">
+                    <span className="font-medium">Site Average:</span>
+                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">3.0s (Misleading!)</span>
+                  </div>
+                </div>
+                <div className="mt-3 p-3 bg-red-100 rounded">
+                  <p className="text-red-800 font-semibold">What Actually Happens:</p>
+                  <ul className="text-red-700 text-sm mt-1 space-y-1">
+                    <li>• Homepage ranks well in Google ✅</li>
+                    <li>• Product page gets buried in search results ❌</li>
+                    <li>• You lose sales because customers can't find your products ❌</li>
+                    <li>• The "3.0s average" hides this critical problem! ❌</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* How to Use This Table */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <h3 className="text-lg font-semibold text-green-600 mb-3">✅ How to Use the Page Performance Table</h3>
+                <ol className="space-y-2 text-gray-700">
+                  <li className="flex gap-3">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">1</span>
+                    <span><strong>Start with the red scores first</strong> - These are your biggest problems that need immediate attention</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">2</span>
+                    <span><strong>Focus on your most important pages</strong> - Homepage, main product/service pages, and high-traffic content</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</span>
+                    <span><strong>Fix one page at a time</strong> - Don't try to fix everything at once. Test your changes and measure the results</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">4</span>
+                    <span><strong>Green scores mean you're winning</strong> - Keep doing what you're doing for those pages!</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Quick Fixes */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">⚡ Quick Wins to Improve Scores</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-red-600">🚀 Fix LCP (Loading)</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• Optimize images</li>
+                      <li>• Use faster web hosting</li>
+                      <li>• Remove unused plugins</li>
+                      <li>• Enable caching</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-yellow-600">📐 Fix CLS (Stability)</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• Set image dimensions</li>
+                      <li>• Reserve space for ads</li>
+                      <li>• Avoid inserting content</li>
+                      <li>• Use size attributes</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-green-600">⚡ Fix INP (Clicks)</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• Reduce JavaScript</li>
+                      <li>• Optimize third-party code</li>
+                      <li>• Remove heavy animations</li>
+                      <li>• Defer non-critical scripts</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 bg-gray-50 rounded-b-lg">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  💡 <strong>Pro Tip:</strong> Focus on pages that get the most traffic first for maximum impact on your business.
+                </p>
+                <button
+                  onClick={() => setShowCoreWebVitalsGuide(false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Got it, let's optimize! 🚀
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Non-branded Keywords Guide Modal */}
+      {showNonBrandedKeywordsGuide && (
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-semibold text-gray-900">🎯 Non-branded Keywords: The Complete Guide</h2>
+              <button
+                onClick={() => setShowNonBrandedKeywordsGuide(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* What Are Non-branded Keywords */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <h3 className="text-lg font-semibold text-green-600 mb-3">🔍 What Are Non-branded Keywords?</h3>
+                <p className="text-gray-700 mb-2">
+                  These are search terms related to your services or products that <strong>don't include your brand name</strong>. 
+                  They're how potential customers find you when they don't know your business exists yet.
+                </p>
+                <p className="text-gray-700">
+                  <strong>Key Point:</strong> These keywords bring you NEW customers, not existing ones who already know your brand!
+                </p>
+              </div>
+
+              {/* How It Works */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-600 mb-4">🔧 How Our Analysis Works</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">1</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">📖 Scrapes Your Website</h4>
+                      <p className="text-gray-600 text-sm">Reads your actual website content, headings, and meta descriptions to understand your business.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">2</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">🏢 Detects Your Industry</h4>
+                      <p className="text-gray-600 text-sm">Figures out if you're a "marketing agency", "law firm", "restaurant", etc. and what services you offer.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">3</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">🔍 Generates Relevant Keywords</h4>
+                      <p className="text-gray-600 text-sm">Creates industry-specific terms like "digital marketing services" or "personal injury lawyer".</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">4</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">📊 Gets Real Search Data</h4>
+                      <p className="text-gray-600 text-sm">Uses your Keywords Everywhere API to get real Google search volumes, competition, and cost-per-click data.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Examples by Industry */}
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <h3 className="text-lg font-semibold text-yellow-600 mb-4">💡 Examples by Industry</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">🎯 Marketing Agency</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• "digital marketing services"</li>
+                      <li>• "SEO company London"</li>
+                      <li>• "social media marketing"</li>
+                      <li>• "PPC management"</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">⚖️ Law Firm</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• "personal injury lawyer"</li>
+                      <li>• "divorce attorney"</li>
+                      <li>• "employment law"</li>
+                      <li>• "criminal defense"</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">📸 Photography</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• "wedding photographer"</li>
+                      <li>• "family portrait photography"</li>
+                      <li>• "corporate headshots"</li>
+                      <li>• "event photography"</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">🍕 Restaurant</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• "best pizza near me"</li>
+                      <li>• "Italian restaurant"</li>
+                      <li>• "family dining"</li>
+                      <li>• "takeaway food"</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Understanding the Data */}
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                <h3 className="text-lg font-semibold text-purple-600 mb-4">📈 Understanding Your Data</h3>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">📊 Search Volume</h4>
+                    <p className="text-gray-600 text-sm">Monthly searches in your country. Higher = more potential customers, but also more competition.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">🥊 Competition</h4>
+                    <p className="text-gray-600 text-sm">Scale of 0-1. Higher competition = harder to rank, but often means more valuable keywords.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-gray-800">💰 Cost Per Click (CPC)</h4>
+                    <p className="text-gray-600 text-sm">What advertisers pay per click. Higher CPC often means the keyword converts well to sales.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* How to Use This Data */}
+              <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                <h3 className="text-lg font-semibold text-orange-600 mb-4">🚀 How to Use This Data</h3>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-green-600">✅ Target These Keywords</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• Medium volume (500-5,000 searches/month)</li>
+                      <li>• Low to medium competition (0.1-0.6)</li>
+                      <li>• Relevant to your services</li>
+                      <li>• Include them in your website content</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-yellow-600">⚠️ Be Careful With These</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• Very high competition (0.8+) = very hard to rank</li>
+                      <li>• Very low volume (&lt;100/month) = not worth effort</li>
+                      <li>• Not relevant to your business = won't convert</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-blue-600">💎 Golden Keywords</h4>
+                    <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                      <li>• High volume + low competition = rare gems</li>
+                      <li>• High CPC = valuable to target</li>
+                      <li>• Location-based = great for local businesses</li>
+                      <li>• Question keywords = capture buying intent</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 bg-gray-50 rounded-b-lg">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  💡 <strong>Pro Tip:</strong> Focus on keywords where you can naturally create helpful content for your audience.
+                </p>
+                <button
+                  onClick={() => setShowNonBrandedKeywordsGuide(false)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Let's find customers! 🎯
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Above Fold Keywords Guide Modal */}
+      {showAboveFoldKeywordsGuide && (
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Above Fold Keywords Guide</h2>
+                <button
+                  onClick={() => setShowAboveFoldKeywordsGuide(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-6 text-gray-700">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">What Are Above Fold Keywords?</h3>
+                  <p className="leading-relaxed">
+                    Above Fold Keywords are the specific search terms where your website appears in the <strong>top 3 positions</strong> (1st, 2nd, or 3rd place) 
+                    on Google's search results. These are called "above the fold" because they appear immediately when someone searches - no scrolling required.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">Why Only Top 3 Positions?</h3>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <ul className="space-y-2">
+                      <li><strong>Position 1:</strong> Gets ~35% of all clicks</li>
+                      <li><strong>Position 2:</strong> Gets ~15% of all clicks</li>
+                      <li><strong>Position 3:</strong> Gets ~10% of all clicks</li>
+                      <li><strong>Position 4+:</strong> Combined get only ~40% of clicks</li>
+                    </ul>
+                    <p className="mt-3 text-sm text-blue-700">
+                      <strong>The top 3 positions capture 60% of all clicks</strong> - these are the positions that really matter for traffic.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">Our Strict Criteria</h3>
+                  <p className="leading-relaxed mb-3">
+                    We only show keywords that meet <strong>both</strong> of these requirements:
+                  </p>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <ul className="space-y-2">
+                      <li>✅ <strong>Ranking in positions 1-3</strong> (verified by real-time Google search)</li>
+                      <li>✅ <strong>Search volume over 50/month</strong> (actual people searching for this)</li>
+                    </ul>
+                  </div>
+                  <p className="mt-3 text-sm text-gray-600">
+                    If no keywords meet both criteria, we show no results instead of lower-quality opportunities.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">How We Get This Data</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">🔍 Real-Time Rankings</h4>
+                      <p className="text-sm">
+                        We use ValueSERP API to check actual Google search results for your domain, 
+                        ensuring positions are current and accurate.
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">📊 Search Volumes</h4>
+                      <p className="text-sm">
+                        Keywords Everywhere API provides real Google Keyword Planner data 
+                        showing how many people search for each term monthly.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">What This Tells You</h3>
+                  <div className="space-y-3">
+                    <div className="border-l-4 border-green-400 pl-4">
+                      <h4 className="font-medium">Your Current Winners</h4>
+                      <p className="text-sm text-gray-600">
+                        These keywords are already driving traffic to your site. Double down on content around these topics.
+                      </p>
+                    </div>
+                    <div className="border-l-4 border-blue-400 pl-4">
+                      <h4 className="font-medium">Content That Works</h4>
+                      <p className="text-sm text-gray-600">
+                        The pages ranking for these keywords have proven Google-worthy. Use them as templates for new content.
+                      </p>
+                    </div>
+                    <div className="border-l-4 border-purple-400 pl-4">
+                      <h4 className="font-medium">Traffic Potential</h4>
+                      <p className="text-sm text-gray-600">
+                        Each keyword represents real monthly visitors already finding you. Protect and improve these rankings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">If You See No Results</h3>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="leading-relaxed">
+                      No results means your site doesn't currently rank in the top 3 for any keywords with meaningful search volume. 
+                      This is common for:
+                    </p>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                      <li>New websites (less than 6 months old)</li>
+                      <li>Sites with limited content</li>
+                      <li>Highly competitive industries</li>
+                      <li>Sites needing technical SEO improvements</li>
+                    </ul>
+                    <p className="mt-3 text-sm">
+                      <strong>Next steps:</strong> Focus on creating quality content, building backlinks, and improving technical SEO fundamentals.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-100 p-4 rounded-lg border border-blue-300">
+                  <h4 className="font-medium mb-2">💡 Pro Tip</h4>
+                  <p className="text-sm">
+                    If you have Above Fold Keywords, these represent your site's current SEO strengths. 
+                    Create more content around these topics and similar keywords to build topical authority with Google.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1272,7 +1885,8 @@ function renderSectionResults(
   toggleMethodology?: (section: string) => void,
   setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void,
   performancePagination?: { currentPage: number; itemsPerPage: number },
-  setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void
+  setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void,
+  setShowCoreWebVitalsGuide?: (show: boolean) => void
 ) {
   switch (sectionId) {
     case "traffic":
@@ -1679,6 +2293,17 @@ function renderSectionResults(
                   <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
                 </Tooltip>
               </div>
+              <div className="mt-2 flex justify-center">
+                <button 
+                  onClick={() => setShowNonBrandedKeywordsGuide(true)}
+                  className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-full text-xs font-medium transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Guide</span>
+                </button>
+              </div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">{results.aboveFoldKeywords || 0}</div>
@@ -1785,12 +2410,23 @@ function renderSectionResults(
 
           {/* Above Fold Keywords Table */}
           {results.aboveFoldKeywordsList && results.aboveFoldKeywordsList.length > 0 && (
-            <AboveFoldKeywordTable 
-              keywords={results.aboveFoldKeywordsList}
-              title="Above Fold Keywords"
-              description="Keywords ranking in the top 3 positions on Google (above the fold in search results)"
-              discoveryMethod={results.aboveFoldDiscoveryMethod}
-            />
+            <div className="space-y-4">
+              <AboveFoldKeywordTable 
+                keywords={results.aboveFoldKeywordsList}
+                title="Above Fold Keywords"
+                description="Keywords ranking in the top 3 positions on Google (above the fold in search results)"
+                discoveryMethod={results.aboveFoldDiscoveryMethod}
+              />
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowAboveFoldKeywordsGuide(true)}
+                  className="inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Above Fold Keywords Guide
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Keyword Competition Analysis */}
@@ -1835,129 +2471,139 @@ function renderSectionResults(
     case "technical":
       return (
         <div className="space-y-6">
-          {/* Performance Overview Section */}
-          <div>
-            <h4 className="font-semibold mb-3 text-lg">
-              <Tooltip content={
-                <div className="max-w-sm">
-                  <p className="font-semibold mb-1">Performance Metrics Overview</p>
-                  <p>Average Core Web Vitals across all analyzed pages. These metrics are calculated from real page performance data.</p>
-                </div>
-              }>
-                Performance Metrics (Average)
-              </Tooltip>
-            </h4>
-            
-            {/* Desktop vs Mobile */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold">Desktop Performance</h4>
-                  <span className={`px-2 py-1 rounded text-xs ${results.desktop?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {results.desktop?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
-                  </span>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Largest Contentful Paint</p>
-                        <p>Average time for the largest content element to load across all pages. Good: &lt;2.5s</p>
-                      </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">LCP:</span>
-                    </Tooltip>
-                    <span className={results.desktop?.lcp?.includes('1.') || results.desktop?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.lcp || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Cumulative Layout Shift</p>
-                        <p>Average visual stability score across all pages. Good: &lt;0.1, measures unexpected layout shifts.</p>
-                      </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">CLS:</span>
-                    </Tooltip>
-                    <span className={parseFloat(results.desktop?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.cls || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Interaction to Next Paint</p>
-                        <p>Average page responsiveness across all pages. Good: &lt;200ms, measures how quickly pages respond to user interactions.</p>
-                      </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">INP:</span>
-                    </Tooltip>
-                    <span className={parseInt(results.desktop?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.inp || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold">Mobile Performance</h4>
-                  <span className={`px-2 py-1 rounded text-xs ${results.mobile?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {results.mobile?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
-                  </span>
+          {/* Core Web Vitals Pass/Fail Summary */}
+          {results.pages && results.pages.some((page: any) => page.performance) && (() => {
+            const pagesWithMetrics = results.pages.filter((page: any) => page.performance);
+            
+            // Calculate pass/fail for each page - using Core Web Vitals thresholds
+            const desktopPass = pagesWithMetrics.filter((page: any) => 
+              page.performance.desktop.lcp < 2500 && 
+              page.performance.desktop.cls < 0.1 && 
+              page.performance.desktop.inp < 200
+            ).length;
+            
+            const mobilePass = pagesWithMetrics.filter((page: any) => 
+              page.performance.mobile.lcp < 2500 && 
+              page.performance.mobile.cls < 0.1 && 
+              page.performance.mobile.inp < 200
+            ).length;
+            
+            const totalPages = pagesWithMetrics.length;
+            const desktopFail = totalPages - desktopPass;
+            const mobileFail = totalPages - mobilePass;
+            const desktopPassRate = Math.round((desktopPass / totalPages) * 100);
+            const mobilePassRate = Math.round((mobilePass / totalPages) * 100);
+            
+            return (
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-lg">Core Web Vitals Summary</h4>
+                  <span className="text-sm text-gray-600">{totalPages} pages analyzed</span>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Largest Contentful Paint (Mobile)</p>
-                        <p>Average mobile loading performance across all pages. Mobile is typically slower than desktop. Good: &lt;2.5s</p>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Desktop Summary */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="font-medium">Desktop Performance</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-600">Pass Rate</span>
+                          <span className="text-sm font-medium">{desktopPassRate}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${desktopPassRate >= 75 ? 'bg-green-500' : desktopPassRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${desktopPassRate}%` }}
+                          ></div>
+                        </div>
                       </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">LCP:</span>
-                    </Tooltip>
-                    <span className={results.mobile?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.lcp || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Cumulative Layout Shift (Mobile)</p>
-                        <p>Average mobile visual stability across all pages. Good: &lt;0.1, measures layout shifts on mobile devices.</p>
+                    </div>
+                    
+                    <div className="flex gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="text-gray-600">Pass:</span>
+                        <span className="font-medium text-green-600">{desktopPass}</span>
                       </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">CLS:</span>
-                    </Tooltip>
-                    <span className={parseFloat(results.mobile?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.cls || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <Tooltip content={
-                      <div className="max-w-sm">
-                        <p className="font-semibold mb-1">Interaction to Next Paint (Mobile)</p>
-                        <p>Average mobile responsiveness across all pages. Good: &lt;200ms, measures touch/tap response times.</p>
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        <span className="text-gray-600">Fail:</span>
+                        <span className="font-medium text-red-600">{desktopFail}</span>
                       </div>
-                    }>
-                      <span className="text-gray-600 cursor-help">INP:</span>
-                    </Tooltip>
-                    <span className={parseInt(results.mobile?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.inp || 'N/A'}
-                    </span>
+                    </div>
                   </div>
+                  
+                  {/* Mobile Summary */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <span className="font-medium">Mobile Performance</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-600">Pass Rate</span>
+                          <span className="text-sm font-medium">{mobilePassRate}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${mobilePassRate >= 75 ? 'bg-green-500' : mobilePassRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${mobilePassRate}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="text-gray-600">Pass:</span>
+                        <span className="font-medium text-green-600">{mobilePass}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        <span className="text-gray-600">Fail:</span>
+                        <span className="font-medium text-red-600">{mobileFail}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                  <strong>Pass Criteria:</strong> LCP &lt; 2.5s, CLS &lt; 0.1, INP &lt; 200ms (all three metrics must pass)
                 </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Per-Page Performance Metrics Table */}
           {results.pages && results.pages.some((page: any) => page.performance) && (
             <div>
-              <h4 className="font-semibold mb-3 text-lg">Page Performance Metrics</h4>
+              <div className="flex items-center gap-3 mb-3">
+                <h4 className="font-semibold text-lg">Page Performance Metrics</h4>
+                <button 
+                  onClick={() => setShowCoreWebVitalsGuide?.(true)}
+                  className="flex items-center gap-1 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Core Web Vitals Guide
+                </button>
+              </div>
               <p className="text-sm text-gray-600 mb-4">
-                Core Web Vitals for each page, sorted by worst-performing first. Pages with poor scores need optimization.
+                Core Web Vitals for each page, sorted by worst-performing first. Each page is evaluated independently by Google.
               </p>
               
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -2104,9 +2750,19 @@ function renderSectionResults(
                                     href={page.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline font-medium"
+                                    className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
                                   >
-                                    {page.title || page.url.split('/').pop() || 'Page'}
+                                    {(() => {
+                                      try {
+                                        const urlObj = new URL(page.url);
+                                        const path = urlObj.pathname;
+                                        // Show root as "/" instead of empty string
+                                        return path === '/' ? '/' : path;
+                                      } catch {
+                                        // Fallback if URL parsing fails
+                                        return page.url.replace(/^https?:\/\/[^\/]+/, '') || '/';
+                                      }
+                                    })()}
                                   </a>
                                 </Tooltip>
                               </td>
@@ -2228,6 +2884,17 @@ function renderSectionResults(
                   <li><strong>Colors:</strong> <span className="text-green-600">Green = Good</span>, <span className="text-yellow-600">Yellow = Needs Improvement</span>, <span className="text-red-600">Red = Poor</span></li>
                 </ul>
               </div>
+            </div>
+          )}
+
+          {/* Viewport Responsiveness Analysis */}
+          {results.viewportAnalysis && (
+            <div>
+              <h4 className="font-semibold mb-3 text-lg">Viewport Responsiveness Analysis</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Analysis of how your website displays across different device types and screen sizes, including Elementor-specific optimizations.
+              </p>
+              <ViewportAnalysis results={results.viewportAnalysis} />
             </div>
           )}
 

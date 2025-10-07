@@ -1,9 +1,11 @@
 /**
  * Professional Backlink Analysis Service
- * Uses free OpenPageRank API for domain authority + Majestic API for backlink data
+ * Primary: DataForSEO API (cost-effective pay-per-use)
+ * Fallback: Majestic API or OpenPageRank for domain authority
  * Falls back to clear messaging when APIs not available
  */
 
+import { analyzeDataForSeoBacklinks } from './dataForSeoBacklinkService';
 import { analyzeMajesticBacklinks } from './majesticBacklinkService';
 import { getDomainAuthority } from './openPageRankService';
 
@@ -37,10 +39,35 @@ class BacklinkService {
     console.log(`🔗 Professional backlink analysis for: ${url}`);
     
     try {
-      // Get domain authority from free OpenPageRank API
-      const domainAuthorityResult = await getDomainAuthority(url);
+      // Try DataForSEO first (most cost-effective and comprehensive)
+      const dataForSeoResult = await analyzeDataForSeoBacklinks(url);
       
-      // Try to get backlink data from Majestic API
+      if (dataForSeoResult.success) {
+        console.log(`✅ Retrieved comprehensive backlink data from ${dataForSeoResult.dataSource}`);
+        return {
+          success: true,
+          domainAuthority: dataForSeoResult.domainAuthority,
+          totalBacklinks: dataForSeoResult.totalBacklinks,
+          referringDomains: dataForSeoResult.referringDomains,
+          dofollowLinks: dataForSeoResult.dofollowLinks,
+          nofollowLinks: dataForSeoResult.nofollowLinks,
+          topBacklinks: dataForSeoResult.topBacklinks.map(link => ({
+            domain: link.domain,
+            anchor: link.anchor,
+            authority: link.authority,
+            type: link.type,
+            url: link.url,
+            trustFlow: link.trustFlow,
+            citationFlow: link.citationFlow
+          })),
+          analysisMethod: dataForSeoResult.analysisMethod,
+          dataSource: dataForSeoResult.dataSource,
+          analysisUrl: url
+        };
+      }
+      
+      // Fall back to OpenPageRank + Majestic combination
+      const domainAuthorityResult = await getDomainAuthority(url);
       const majesticResult = await analyzeMajesticBacklinks(url);
       
       if (majesticResult.success) {

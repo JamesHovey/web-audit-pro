@@ -7,7 +7,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, HelpCircle } from 'lucide-react
 interface KeywordData {
   keyword: string;
   position: number;
-  volume: number;
+  volume: number | null;
   difficulty: number;
   type: 'branded' | 'non-branded';
 }
@@ -31,9 +31,11 @@ export default function NonBrandedKeywordTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const itemsPerPage = 10
   
-  // Filter for top 20 positions only (exclude unranked)
+  // Show only keywords with real volume data between 50-10,000
   const filteredKeywords = useMemo(() => {
-    return (keywords || []).filter(k => k.position >= 1 && k.position <= 20)
+    return (keywords || []).filter(k => 
+      k.volume !== null && k.volume !== undefined && k.volume >= 50 && k.volume <= 10000
+    )
   }, [keywords])
   
   // Sort keywords based on current sort field and order
@@ -52,7 +54,10 @@ export default function NonBrandedKeywordTable({
           compareValue = posA - posB
           break
         case 'volume':
-          compareValue = (a.volume || 0) - (b.volume || 0)
+          // Handle null volumes in sorting
+          const volA = a.volume === null ? -1 : a.volume
+          const volB = b.volume === null ? -1 : b.volume
+          compareValue = volA - volB
           break
       }
       
@@ -66,6 +71,31 @@ export default function NonBrandedKeywordTable({
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentKeywords = sortedKeywords.slice(startIndex, endIndex)
+
+  if (!keywords || keywords.length === 0 || sortedKeywords.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{title}</h4>
+          <Tooltip 
+            content={
+              <div>
+                <p className="font-semibold mb-2">Non-branded Keywords</p>
+                <p className="mb-2 text-xs">{description}</p>
+                <p className="text-xs"><strong>No keywords found:</strong> No business-specific keywords with sufficient search volume (50-10,000/month) were discovered.</p>
+              </div>
+            }
+            position="bottom"
+          >
+            <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
+          </Tooltip>
+        </div>
+        <div className="border rounded-lg p-8 text-center text-gray-500">
+          <p className="text-sm">No business-specific keywords with sufficient search volume (50-10,000/month) found.</p>
+        </div>
+      </div>
+    );
+  }
   
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -148,7 +178,7 @@ export default function NonBrandedKeywordTable({
                 {getSortIcon('position')}
               </button>
               <Tooltip 
-                content="Your Google ranking (only positions 1-20 shown, click to sort)"
+                content="Your Google ranking position (0 = Not ranking, click to sort)"
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
@@ -188,7 +218,7 @@ export default function NonBrandedKeywordTable({
                       </span>
                     </div>
                     <div className="col-span-4 text-center text-gray-600">
-                      {(keyword.volume || 0).toLocaleString()}/mo
+                      {keyword.volume.toLocaleString()}/mo
                     </div>
                   </div>
                 </div>
@@ -211,7 +241,7 @@ export default function NonBrandedKeywordTable({
                       </span>
                     </div>
                     <div className="col-span-4 text-center text-gray-600">
-                      {(keyword.volume || 0).toLocaleString()}/mo
+                      {keyword.volume.toLocaleString()}/mo
                     </div>
                   </div>
                 </div>
@@ -227,7 +257,7 @@ export default function NonBrandedKeywordTable({
             Showing {startIndex + 1}-{Math.min(endIndex, sortedKeywords.length)} of {sortedKeywords.length} keywords
             {filteredKeywords.length < (keywords || []).length && (
               <span className="ml-2 text-xs text-blue-600">
-                (Showing only keywords ranking 1-20)
+                (Showing keywords with volume 50-10,000 only)
               </span>
             )}
           </div>

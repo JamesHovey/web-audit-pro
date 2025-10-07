@@ -80,7 +80,7 @@ export default function AboveFoldKeywordTable({
     
     return (
       <div key={index} className="px-4 py-3 hover:bg-gray-50">
-        <div className="grid grid-cols-12 gap-4 items-center text-sm">
+        <div className="grid grid-cols-9 gap-4 items-center text-sm">
           <div className="col-span-5">
             <div className="flex flex-col">
               <span className="text-gray-900 font-medium">{keyword.keyword}</span>
@@ -125,15 +125,9 @@ export default function AboveFoldKeywordTable({
           <div className="col-span-2 text-center text-gray-600">
             {(keyword.volume || 0).toLocaleString()}
           </div>
-          <div className="col-span-3 text-center">
-            <div className="flex flex-col items-center">
-              <span className="text-green-600 font-medium">{estimatedClicks.toLocaleString()}</span>
-              <span className="text-xs text-gray-500">clicks/month</span>
-            </div>
-          </div>
         </div>
         {keyword.snippet && (
-          <div className="mt-2 col-span-12">
+          <div className="mt-2 col-span-9">
             <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
               <strong>Google snippet:</strong> {keyword.snippet.substring(0, 120)}...
             </div>
@@ -199,7 +193,7 @@ export default function AboveFoldKeywordTable({
 
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-gray-50 px-4 py-3">
-          <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+          <div className="grid grid-cols-9 gap-4 text-sm font-medium text-gray-700">
             <div className="col-span-5">
               Keyword & Intent
               <Tooltip 
@@ -222,15 +216,6 @@ export default function AboveFoldKeywordTable({
               Volume
               <Tooltip 
                 content="Monthly search volume from Keywords Everywhere API - real Google Keyword Planner data"
-                position="top"
-              >
-                <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
-              </Tooltip>
-            </div>
-            <div className="col-span-3 text-center">
-              Potential Traffic
-              <Tooltip 
-                content="Estimated monthly clicks if you ranked well for this keyword (based on content relevance and search volume)"
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>

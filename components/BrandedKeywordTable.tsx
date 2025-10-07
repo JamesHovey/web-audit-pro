@@ -6,7 +6,7 @@ import Tooltip from './Tooltip'
 interface KeywordData {
   keyword: string;
   position?: number;
-  volume: number;
+  volume: number | null;
   difficulty?: number;
   type: 'branded' | 'non-branded';
   mentions?: number; // Number of times keyword appears on page/site
@@ -26,17 +26,42 @@ export default function BrandedKeywordTable({
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   
-  // Sort keywords by volume (highest to lowest) - only show keywords with volume >= 10
+  // Sort keywords by volume (highest to lowest) - only show keywords with real volume data >= 50
   const sortedKeywords = useMemo(() => {
     return [...(keywords || [])]
-      .filter(k => (k.volume || 0) >= 10) // Only show keywords with volume >= 10
-      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+      .filter(k => k.volume !== null && k.volume !== undefined && k.volume >= 50) // Only show keywords with real volume >= 50
+      .sort((a, b) => b.volume - a.volume) // Sort by volume descending
   }, [keywords])
   
   const totalPages = Math.ceil(sortedKeywords.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentKeywords = sortedKeywords.slice(startIndex, endIndex)
+
+  if (!keywords || keywords.length === 0 || sortedKeywords.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{title}</h4>
+          <Tooltip 
+            content={
+              <div className="max-w-sm">
+                <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
+                <p className="mb-2">Keywords that include your company/brand name with 50+ monthly searches</p>
+                <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (50+/month) were discovered for this website.</p>
+              </div>
+            }
+            position="top"
+          >
+            <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium bg-white shadow-sm">?</div>
+          </Tooltip>
+        </div>
+        <div className="border rounded-lg p-8 text-center text-gray-500">
+          <p className="text-sm">No branded keywords with sufficient search volume (50+/month) found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -46,7 +71,7 @@ export default function BrandedKeywordTable({
           content={
             <div className="max-w-sm">
               <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
-              <p className="mb-2">Keywords that include your company/brand name with 10+ monthly searches</p>
+              <p className="mb-2">Keywords that include your company/brand name with 50+ monthly searches</p>
               <p className="mb-2"><strong>What this shows:</strong></p>
               <ul className="list-disc list-inside mb-2 text-xs space-y-1">
                 <li>Multi-word keywords containing your brand name</li>
@@ -132,7 +157,7 @@ export default function BrandedKeywordTable({
                     </span>
                   </div>
                   <div className="col-span-3 text-center text-gray-600">
-                    {(keyword.volume || 0).toLocaleString()}/mo
+                    {keyword.volume.toLocaleString()}/mo
                   </div>
                 </div>
               </div>
@@ -164,7 +189,7 @@ export default function BrandedKeywordTable({
                     </span>
                   </div>
                   <div className="col-span-3 text-center text-gray-600">
-                    {(keyword.volume || 0).toLocaleString()}/mo
+                    {keyword.volume.toLocaleString()}/mo
                   </div>
                 </div>
               </div>

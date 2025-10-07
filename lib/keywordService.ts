@@ -163,6 +163,11 @@ export async function analyzeKeywords(domain: string, html: string, country: str
       console.log(`🎯 Business Type: ${enhancedResult.businessDetection.primaryType.category} - ${enhancedResult.businessDetection.primaryType.subcategory}`);
       console.log(`📊 Business Relevance: ${(enhancedResult.businessRelevanceScore * 100).toFixed(1)}%`);
       
+      console.log(`🔍 LEGACY CONVERSION DEBUG:`);
+      console.log(`   Legacy nonBrandedKeywords count: ${legacyResult.nonBrandedKeywords}`);
+      console.log(`   Legacy nonBrandedKeywordsList length: ${legacyResult.nonBrandedKeywordsList.length}`);
+      console.log(`   Sample legacy non-branded: ${legacyResult.nonBrandedKeywordsList.slice(0, 3).map(k => k.keyword).join(', ')}`);
+      
       return legacyResult;
       
     } catch (enhancedError) {
@@ -309,10 +314,10 @@ export async function analyzeKeywords(domain: string, html: string, country: str
     
     console.log(`✅ Keywords Everywhere analysis complete - ${keService.getCreditsUsed()} credits used`);
     
-    // Filter and limit branded keywords (volume >= 10, max 30, sorted by volume)
+    // Filter and limit branded keywords (volume >= 50, max 30, sorted by volume)
     console.log(`🔄 Enhanced branded keywords: ${enhancedBrandedKeywords.length}`);
-    const volumeFilteredBrandedKeywords = enhancedBrandedKeywords.filter(k => (k.volume || 0) >= 10);
-    console.log(`📊 Branded keywords with volume >= 10: ${volumeFilteredBrandedKeywords.length}`);
+    const volumeFilteredBrandedKeywords = enhancedBrandedKeywords.filter(k => (k.volume || 0) >= 50);
+    console.log(`📊 Branded keywords with volume >= 50: ${volumeFilteredBrandedKeywords.length}`);
     
     const filteredBrandedKeywords = volumeFilteredBrandedKeywords
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
@@ -692,7 +697,7 @@ function isBusinessRelevantKeyword(keyword: string): boolean {
 }
 
 function hasAppropriateVolume(volume: number): boolean {
-  return volume >= 10 && volume <= 10000; // Business-relevant volume range
+  return volume >= 50 && volume <= 10000; // Business-relevant volume range
 }
 
 function extractBusinessContentKeywords(html: string, domain?: string, businessType?: string): KeywordData[] {

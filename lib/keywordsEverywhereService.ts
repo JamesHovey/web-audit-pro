@@ -10,12 +10,18 @@ interface KeywordsEverywhereResponse {
     vol: number;
     cpc: {
       currency: string;
-      value: number;
+      value: string;
     };
     competition: number;
-    trend: number[];
+    trend: Array<{
+      month: string;
+      year: number;
+      value: number;
+    }>;
   }[];
-  credits_left: number;
+  credits?: number;
+  credits_consumed?: number;
+  time?: number;
   error?: string;
 }
 
@@ -77,25 +83,22 @@ export class KeywordsEverywhereService {
    * Fetch volumes for a batch of keywords
    */
   private async fetchVolumesBatch(keywords: string[], country: string, currency: string): Promise<VolumeData[]> {
-    // Keywords Everywhere API expects form-encoded data
-    const formData = new URLSearchParams();
-    formData.append('country', country);
-    formData.append('currency', currency);
-    formData.append('dataSource', 'gkp'); // Google Keyword Planner
-    
-    // Add keywords as array parameters
-    keywords.forEach(keyword => {
-      formData.append('kw[]', keyword);
-    });
+    // Keywords Everywhere API expects JSON data
+    const requestBody = {
+      kw: keywords,
+      country: country.toUpperCase(),
+      currency: currency.toUpperCase(),
+      dataSource: 'gkp' // Google Keyword Planner
+    };
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/json'
       },
-      body: formData.toString()
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -110,14 +113,23 @@ export class KeywordsEverywhereService {
       throw new Error(`Keywords Everywhere API error: ${data.error}`);
     }
 
-    // Track credits used
-    this.creditsUsed += keywords.length;
+    // Track credits used from API response
+    if (data.credits_consumed) {
+      this.creditsUsed += data.credits_consumed;
+    } else {
+      this.creditsUsed += keywords.length;
+    }
+
+    // Log credits information
+    if (data.credits) {
+      console.log(`💰 Keywords Everywhere: ${data.credits.toLocaleString()} credits remaining`);
+    }
 
     // Transform response to our format
     return data.data.map(item => ({
       keyword: item.keyword,
       volume: item.vol || 0,
-      cpc: item.cpc?.value || 0,
+      cpc: typeof item.cpc === 'object' ? parseFloat(item.cpc.value) || 0 : item.cpc || 0,
       competition: item.competition || 0,
       trend: item.trend || []
     }));

@@ -37,6 +37,20 @@ function hasH1Tag(html: string): boolean {
   return false;
 }
 
+// Enhanced meta description detection including Open Graph tags
+function hasMetaDescription(html: string): boolean {
+  // Check for standard meta description
+  const hasStandardMeta = /<meta\s+name=["']description["'][^>]*>/i.test(html);
+  
+  // Check for Open Graph description
+  const hasOgDescription = /<meta\s+property=["']og:description["'][^>]*>/i.test(html);
+  
+  // Check for Twitter description
+  const hasTwitterDescription = /<meta\s+name=["']twitter:description["'][^>]*>/i.test(html);
+  
+  return hasStandardMeta || hasOgDescription || hasTwitterDescription;
+}
+
 interface DiscoveredPage {
   url: string;
   title: string;
@@ -320,7 +334,7 @@ export class RealPageDiscovery {
 
       // Check for meta elements
       const hasTitle = /<title[^>]*>.*<\/title>/is.test(html);
-      const hasDescription = /<meta\s+name=["']description["'][^>]*>/i.test(html);
+      const hasDescription = hasMetaDescription(html);
       const hasH1 = hasH1Tag(html);
 
       // Count images

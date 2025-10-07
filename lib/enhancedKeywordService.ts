@@ -108,7 +108,9 @@ export class EnhancedKeywordService {
       
       // Step 6: Get API data for generated keywords (if available)
       console.log('📊 Step 6: API Data Enhancement...');
-      const enhancedKeywords = await this.enhanceWithApiData(generatedKeywords, country);
+      const enhancementResult = await this.enhanceWithApiData(generatedKeywords, country);
+      const enhancedKeywords = enhancementResult.keywords;
+      const apiAvailable = enhancementResult.apiAvailable;
       
       // Step 7: Analyze above fold keywords (existing functionality)
       console.log('🔝 Step 7: Above Fold Analysis...');
@@ -116,10 +118,16 @@ export class EnhancedKeywordService {
       
       // Step 8: Competition analysis (existing functionality)
       console.log('🏆 Step 8: Competition Analysis...');
-      const competitionAnalysis = await this.getCompetitionAnalysis(aboveFoldAnalysis?.keywords || [], cleanDomain);
+      // Use raw keywords (including 0-volume ones) for competition analysis
+      const keywordsForCompetition = aboveFoldAnalysis?.rawKeywords || aboveFoldAnalysis?.keywords || [];
+      const competitionAnalysis = await this.getCompetitionAnalysis(keywordsForCompetition, cleanDomain);
       
       // Convert to legacy format for compatibility
-      const legacyFormat = this.convertToLegacyFormat(enhancedKeywords, businessContext);
+      const legacyFormat = this.convertToLegacyFormat(enhancedKeywords, businessContext, apiAvailable);
+      
+      // Step 9: SERP Position Analysis (disabled for now - API method needs implementation)
+      // console.log('🔍 Step 9: SERP Position Analysis...');
+      // await this.enhanceWithSerpPositions(legacyFormat.nonBrandedKeywordsList, cleanDomain);
       
       // Calculate enhanced metrics
       const metrics = this.calculateEnhancedMetrics(enhancedKeywords);
@@ -365,73 +373,6 @@ export class EnhancedKeywordService {
     return text;
   }
 
-  /**
-   * Enhance generated keywords with API data
-   */
-  private async enhanceWithApiData(keywords: GeneratedKeywordSet, country: string): Promise<GeneratedKeywordSet> {
-    try {
-      // Check if APIs are available
-      const hasKeywordsEverywhere = !!process.env.KEYWORDS_EVERYWHERE_API_KEY;
-      
-      if (!hasKeywordsEverywhere) {
-        console.log('⚠️ Keywords Everywhere API not configured - using estimated data');
-        return keywords;
-      }
-      
-      // Collect all keywords for API calls
-      const allKeywords = [
-        ...keywords.primary,
-        ...keywords.secondary,
-        ...keywords.longTail,
-        ...keywords.local,
-        ...keywords.commercial,
-        ...keywords.informational,
-        ...keywords.urgency
-      ];
-      
-      console.log(`📊 Enhancing ${allKeywords.length} keywords with API data...`);
-      
-      // Get real volume data from Keywords Everywhere
-      const { KeywordsEverywhereService } = await import('./keywordsEverywhereService');
-      const keService = new KeywordsEverywhereService();
-      
-      const keywordStrings = allKeywords.map(k => k.keyword);
-      const volumeData = await keService.getSearchVolumes(keywordStrings, country);
-      
-      // Create volume lookup map
-      const volumeMap = new Map(volumeData.map((v: any) => [v.keyword.toLowerCase(), v]));
-      
-      // Enhance each category
-      const enhanceCategory = (categoryKeywords: KeywordWithMetadata[]): KeywordWithMetadata[] => {
-        return categoryKeywords.map(keyword => {
-          const apiData = volumeMap.get(keyword.keyword.toLowerCase());
-          if (apiData) {
-            return {
-              ...keyword,
-              searchVolumePotential: apiData.volume > 1000 ? 'high' : apiData.volume > 100 ? 'medium' : 'low',
-              difficulty: apiData.competition > 0.7 ? 'high' : apiData.competition > 0.3 ? 'medium' : 'low'
-            };
-          }
-          return keyword;
-        });
-      };
-      
-      return {
-        ...keywords,
-        primary: enhanceCategory(keywords.primary),
-        secondary: enhanceCategory(keywords.secondary),
-        longTail: enhanceCategory(keywords.longTail),
-        local: enhanceCategory(keywords.local),
-        commercial: enhanceCategory(keywords.commercial),
-        informational: enhanceCategory(keywords.informational),
-        urgency: enhanceCategory(keywords.urgency)
-      };
-      
-    } catch (error) {
-      console.error('API enhancement failed:', error);
-      return keywords;
-    }
-  }
 
   /**
    * Get above fold analysis (delegate to existing service)
@@ -529,7 +470,7 @@ export class EnhancedKeywordService {
   /**
    * Convert enhanced keywords to legacy format for compatibility
    */
-  private convertToLegacyFormat(keywords: GeneratedKeywordSet, businessContext: BusinessContext) {
+  private convertToLegacyFormat(keywords: GeneratedKeywordSet, businessContext: BusinessContext, apiAvailable: boolean = true) {
     // Combine all keywords and mark as branded/non-branded
     const allKeywords = [
       ...keywords.primary,
@@ -548,17 +489,28 @@ export class EnhancedKeywordService {
       .map(k => ({
         keyword: k.keyword,
         position: 0,
-        volume: this.estimateVolume(k.searchVolumePotential),
+        volume: apiAvailable ? (k.volume || null) : null,
         difficulty: this.mapDifficulty(k.difficulty),
         type: 'branded' as const
       }));
     
     const nonBrandedKeywordsList = allKeywords
-      .filter(k => !k.keyword.toLowerCase().includes(brandName))
+      .filter(k => {
+        const isNotBranded = !k.keyword.toLowerCase().includes(brandName);
+        const hasBusinessRelevance = k.businessRelevance >= 0.6; // Only high-relevance keywords
+        const hasValidVolume = k.volume === null || (k.volume >= 50 && k.volume <= 10000); // Volume limits
+        const isNotGeneric = this.isBusinessSpecificKeyword(k.keyword, businessContext);
+        
+        // console.log(`🔍 Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
+        
+        return isNotBranded && hasBusinessRelevance && hasValidVolume && isNotGeneric;
+      })
+      .sort((a, b) => b.businessRelevance - a.businessRelevance) // Sort by business relevance
+      .slice(0, 30) // Limit to top 30 most relevant
       .map(k => ({
         keyword: k.keyword,
-        position: 0,
-        volume: this.estimateVolume(k.searchVolumePotential),
+        position: 0, // Will be updated with real SERP data if available
+        volume: apiAvailable ? (k.volume || null) : null,
         difficulty: this.mapDifficulty(k.difficulty),
         type: 'non-branded' as const
       }));
@@ -570,10 +522,15 @@ export class EnhancedKeywordService {
       .map(k => ({
         keyword: k.keyword,
         position: 0,
-        volume: this.estimateVolume(k.searchVolumePotential),
+        volume: apiAvailable ? (k.volume || null) : null,
         difficulty: this.mapDifficulty(k.difficulty),
         type: k.keyword.toLowerCase().includes(brandName) ? 'branded' as const : 'non-branded' as const
       }));
+    
+    console.log(`🔍 KEYWORD GENERATION DEBUG:`);
+    console.log(`   Branded keywords: ${brandedKeywordsList.length}`);
+    console.log(`   Non-branded keywords (after filtering): ${nonBrandedKeywordsList.length}`);
+    console.log(`   Sample non-branded keywords: ${nonBrandedKeywordsList.slice(0, 3).map(k => k.keyword).join(', ')}`);
     
     return {
       brandedKeywords: brandedKeywordsList.length,
@@ -583,6 +540,60 @@ export class EnhancedKeywordService {
       topKeywords,
       topCompetitors: [] // Will be filled by competition analysis
     };
+  }
+
+  /**
+   * Enhance generated keywords with real API data
+   */
+  private async enhanceWithApiData(keywords: GeneratedKeywordSet, country: string = 'gb'): Promise<{ keywords: GeneratedKeywordSet, apiAvailable: boolean }> {
+    try {
+      // Collect all unique keywords from all categories
+      const allKeywords = [
+        ...keywords.primary,
+        ...keywords.secondary,
+        ...keywords.longTail,
+        ...keywords.local,
+        ...keywords.commercial,
+        ...keywords.informational,
+        ...keywords.urgency
+      ];
+      
+      const uniqueKeywords = [...new Set(allKeywords.map(k => k.keyword))];
+      console.log(`📊 Enhancing ${uniqueKeywords.length} keywords with API data...`);
+      
+      // Get real volumes from Keywords Everywhere API
+      const { KeywordsEverywhereService } = await import('./keywordsEverywhereService');
+      const keService = new KeywordsEverywhereService();
+      const volumeData = await keService.getSearchVolumes(uniqueKeywords, country);
+      
+      // Create volume lookup map
+      const volumeMap = new Map(volumeData.map(v => [v.keyword.toLowerCase(), v.volume]));
+      
+      // Helper function to update keyword with real volume (NO FALLBACK)
+      const updateKeywordVolume = (keyword: any) => ({
+        ...keyword,
+        volume: volumeMap.get(keyword.keyword.toLowerCase()) || null // null if no API data
+      });
+      
+      // Update all keyword categories with real API data
+      const enhancedKeywords = {
+        ...keywords,
+        primary: keywords.primary.map(updateKeywordVolume),
+        secondary: keywords.secondary.map(updateKeywordVolume),
+        longTail: keywords.longTail.map(updateKeywordVolume),
+        local: keywords.local.map(updateKeywordVolume),
+        commercial: keywords.commercial.map(updateKeywordVolume),
+        informational: keywords.informational.map(updateKeywordVolume),
+        urgency: keywords.urgency.map(updateKeywordVolume)
+      };
+      
+      console.log(`✅ API enhancement successful - real volumes applied`);
+      return { keywords: enhancedKeywords, apiAvailable: true };
+      
+    } catch (error) {
+      console.warn('⚠️ API enhancement failed:', error.message);
+      return { keywords, apiAvailable: false }; // Return original keywords, mark API as unavailable
+    }
   }
 
   /**
@@ -638,6 +649,116 @@ export class EnhancedKeywordService {
     
     const totalRelevance = allKeywords.reduce((sum, k) => sum + k.businessRelevance, 0);
     return totalRelevance / allKeywords.length;
+  }
+
+  /**
+   * Enhance non-branded keywords with real SERP positions
+   */
+  private async enhanceWithSerpPositions(keywords: any[], domain: string): Promise<void> {
+    try {
+      // Only check positions for top 10 keywords to save API credits
+      const topKeywords = keywords.slice(0, 10);
+      
+      if (topKeywords.length === 0) {
+        console.log('⚠️ No keywords to check positions for');
+        return;
+      }
+      
+      // Check if ValueSERP is available
+      const hasValueSerp = !!process.env.VALUESERP_API_KEY;
+      if (!hasValueSerp) {
+        console.log('⚠️ ValueSERP API not configured - position data unavailable');
+        return;
+      }
+      
+      console.log(`🔍 Checking SERP positions for ${topKeywords.length} top non-branded keywords...`);
+      
+      const { ValueSerpService } = await import('./valueSerpService');
+      const serpService = new ValueSerpService();
+      
+      // Check positions for each keyword
+      for (let i = 0; i < topKeywords.length; i++) {
+        const keyword = topKeywords[i];
+        try {
+          console.log(`📊 Checking position for "${keyword.keyword}" (${i + 1}/${topKeywords.length})...`);
+          const position = await serpService.checkKeywordPosition(keyword.keyword, domain);
+          
+          if (position && position > 0 && position <= 100) {
+            keyword.position = position;
+            console.log(`✅ Found ranking: "${keyword.keyword}" - Position ${position}`);
+          } else {
+            console.log(`❌ Not ranking: "${keyword.keyword}"`);
+          }
+          
+          // Small delay to respect API limits
+          if (i < topKeywords.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } catch (error) {
+          console.warn(`⚠️ Error checking position for "${keyword.keyword}":`, error.message);
+        }
+      }
+      
+      console.log(`✅ SERP position analysis complete`);
+      
+    } catch (error) {
+      console.error('❌ SERP position enhancement failed:', error);
+    }
+  }
+
+  /**
+   * Check if a keyword is business-specific rather than generic
+   */
+  private isBusinessSpecificKeyword(keyword: string, businessContext: BusinessContext): boolean {
+    const lowerKeyword = keyword.toLowerCase();
+    
+    // Filter out overly generic terms that are too competitive for SMBs
+    const genericTerms = [
+      // Core generic marketing terms
+      'digital marketing', 'online marketing', 'internet marketing', 'marketing',
+      'marketing services', 'digital marketing services', 'online marketing services',
+      
+      // Web/design generic terms
+      'web design', 'website design', 'web development', 'website development',
+      
+      // SEO/SEM generic terms
+      'seo', 'seo services', 'search engine optimization', 'sem', 'ppc',
+      
+      // Social/content generic terms
+      'social media', 'social media marketing', 'content marketing', 'content marketing strategy',
+      
+      // Business generic terms
+      'advertising', 'branding', 'graphic design', 'consulting', 'services',
+      'business', 'company', 'agency', 'solutions', 'software', 'technology',
+      
+      // Vague service terms
+      'open services', 'close services', 'professional services', 'expert services',
+      'specialist services', 'commercial services', 'residential services'
+    ];
+    
+    // Reject if it's a generic term
+    if (genericTerms.some(term => lowerKeyword === term)) {
+      return false;
+    }
+    
+    // MUCH MORE RESTRICTIVE: Accept only if it includes business name, location, or very specific services
+    const businessName = businessContext.businessName.toLowerCase();
+    const hasBusinessName = lowerKeyword.includes(businessName);
+    const hasLocation = /\b(london|birmingham|manchester|sussex|kent|surrey|devon|cornwall|essex|yorkshire)\b/.test(lowerKeyword);
+    
+    // Only accept very specific service combinations (not just any service)
+    const hasSpecificService = businessContext.services.some(service => 
+      lowerKeyword.includes(service.toLowerCase()) && lowerKeyword.split(' ').length >= 3
+    );
+    
+    // Must be very specific: 4+ words OR include business name OR include location
+    const wordCount = lowerKeyword.split(' ').length;
+    const isVerySpecific = wordCount >= 4;
+    
+    // Additional checks for business-relevant terms
+    const hasBusinessModifier = /\b(consultation|strategy|pricing|cost|quote|near me|in [a-z]+|agency in|services in)\b/.test(lowerKeyword);
+    
+    return hasBusinessName || hasLocation || (isVerySpecific && hasBusinessModifier) || hasSpecificService;
   }
 
   /**

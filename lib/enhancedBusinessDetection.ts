@@ -96,11 +96,11 @@ const BUSINESS_TYPES = {
   },
 
   'Financial Services': {
-    keywords: ['accountant', 'accounting', 'tax', 'finance', 'financial', 'investment', 'insurance', 'mortgage', 'loans', 'pension'],
-    ukTerms: ['hmrc', 'vat', 'corporation tax', 'self assessment', 'isa'],
-    schemas: ['FinancialService', 'AccountingService'],
-    urlPatterns: ['/services', '/tax', '/accounts', '/advice'],
-    subcategories: ['Accountancy', 'Financial Planning', 'Insurance', 'Mortgages', 'Tax Services']
+    keywords: ['accountant', 'accounting', 'tax', 'finance', 'financial', 'investment', 'insurance', 'mortgage', 'loans', 'pension', 'trading', 'trader', 'brokerage', 'broker', 'stocks', 'shares', 'equities', 'etf', 'etfs', 'platform', 'trading platform', 'commission', 'spread', 'portfolio', 'securities', 'markets', 'capital', 'wealth', 'advisory'],
+    ukTerms: ['hmrc', 'vat', 'corporation tax', 'self assessment', 'isa', 'fca', 'regulated', 'authorised', 'frn', 'financial conduct authority'],
+    schemas: ['FinancialService', 'AccountingService', 'InvestmentOrFinancialProduct'],
+    urlPatterns: ['/services', '/tax', '/accounts', '/advice', '/trading', '/platform', '/invest'],
+    subcategories: ['Accountancy', 'Financial Planning', 'Insurance', 'Mortgages', 'Tax Services', 'Trading Platform', 'Brokerage Services', 'Investment Advisory']
   },
 
   'Education & Training': {
