@@ -27,9 +27,23 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
   const discoveredPages = new Map<string, DiscoveredPage>();
   const sources = { sitemap: 0, internalLinks: 0, homepage: 0 };
   
+  // Helper function to normalize URLs for deduplication
+  const normalizeUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      // Remove www and trailing slash for comparison
+      const normalizedHostname = urlObj.hostname.replace(/^www\./, '');
+      const normalizedPathname = urlObj.pathname.replace(/\/$/, '') || '/';
+      return `${urlObj.protocol}//${normalizedHostname}${normalizedPathname}`;
+    } catch {
+      return url.replace(/\/$/, '');
+    }
+  };
+  
   try {
     // 1. Always include the homepage first
-    discoveredPages.set(cleanUrl, {
+    const normalizedHomepage = normalizeUrl(cleanUrl);
+    discoveredPages.set(normalizedHomepage, {
       url: cleanUrl,
       title: `Homepage - ${domain}`,
       source: 'homepage'
@@ -40,8 +54,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     console.log('Step 1: Comprehensive sitemap analysis...');
     const sitemapPages = await discoverFromSitemap(cleanUrl);
     sitemapPages.forEach(page => {
-      if (discoveredPages.size < maxPages && !discoveredPages.has(page.url)) {
-        discoveredPages.set(page.url, page);
+      const normalizedUrl = normalizeUrl(page.url);
+      if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+        discoveredPages.set(normalizedUrl, page);
         sources.sitemap++;
       }
     });
@@ -51,8 +66,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     console.log('Step 2: Multi-level internal link discovery...');
     const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages);
     crawledPages.forEach(page => {
-      if (discoveredPages.size < maxPages && !discoveredPages.has(page.url)) {
-        discoveredPages.set(page.url, page);
+      const normalizedUrl = normalizeUrl(page.url);
+      if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+        discoveredPages.set(normalizedUrl, page);
         sources.internalLinks++;
       }
     });
@@ -62,8 +78,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     console.log('Step 3: Checking common page patterns...');
     const patternPages = await discoverCommonPatterns(cleanUrl, discoveredPages);
     patternPages.forEach(page => {
-      if (discoveredPages.size < maxPages && !discoveredPages.has(page.url)) {
-        discoveredPages.set(page.url, page);
+      const normalizedUrl = normalizeUrl(page.url);
+      if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+        discoveredPages.set(normalizedUrl, page);
         sources.internalLinks++;
       }
     });
@@ -72,8 +89,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
   } catch (error) {
     console.error('Page discovery error:', error);
     // Ensure homepage is always included
-    if (!discoveredPages.has(cleanUrl)) {
-      discoveredPages.set(cleanUrl, {
+    const normalizedHomepage = normalizeUrl(cleanUrl);
+    if (!discoveredPages.has(normalizedHomepage)) {
+      discoveredPages.set(normalizedHomepage, {
         url: cleanUrl,
         title: `Homepage - ${domain}`,
         source: 'homepage'

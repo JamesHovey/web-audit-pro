@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Tooltip from "@/components/Tooltip"
 
 const AUDIT_SECTIONS = [
   {
@@ -41,15 +42,72 @@ interface PageOption {
   selected: boolean
 }
 
+// Countries supported by Keywords Everywhere API
+const COUNTRIES = [
+  { code: 'gb', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'us', name: 'United States', flag: '🇺🇸' },
+  { code: 'ca', name: 'Canada', flag: '🇨🇦' },
+  { code: 'au', name: 'Australia', flag: '🇦🇺' },
+  { code: 'in', name: 'India', flag: '🇮🇳' },
+  { code: 'de', name: 'Germany', flag: '🇩🇪' },
+  { code: 'fr', name: 'France', flag: '🇫🇷' },
+  { code: 'es', name: 'Spain', flag: '🇪🇸' },
+  { code: 'it', name: 'Italy', flag: '🇮🇹' },
+  { code: 'nl', name: 'Netherlands', flag: '🇳🇱' },
+  { code: 'br', name: 'Brazil', flag: '🇧🇷' },
+  { code: 'mx', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'ar', name: 'Argentina', flag: '🇦🇷' },
+  { code: 'co', name: 'Colombia', flag: '🇨🇴' },
+  { code: 'cl', name: 'Chile', flag: '🇨🇱' },
+  { code: 'pe', name: 'Peru', flag: '🇵🇪' },
+  { code: 'jp', name: 'Japan', flag: '🇯🇵' },
+  { code: 'kr', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'sg', name: 'Singapore', flag: '🇸🇬' },
+  { code: 'my', name: 'Malaysia', flag: '🇲🇾' },
+  { code: 'th', name: 'Thailand', flag: '🇹🇭' },
+  { code: 'id', name: 'Indonesia', flag: '🇮🇩' },
+  { code: 'ph', name: 'Philippines', flag: '🇵🇭' },
+  { code: 'vn', name: 'Vietnam', flag: '🇻🇳' },
+  { code: 'za', name: 'South Africa', flag: '🇿🇦' },
+  { code: 'ng', name: 'Nigeria', flag: '🇳🇬' },
+  { code: 'eg', name: 'Egypt', flag: '🇪🇬' },
+  { code: 'be', name: 'Belgium', flag: '🇧🇪' },
+  { code: 'ie', name: 'Ireland', flag: '🇮🇪' },
+  { code: 'se', name: 'Sweden', flag: '🇸🇪' },
+  { code: 'no', name: 'Norway', flag: '🇳🇴' },
+  { code: 'dk', name: 'Denmark', flag: '🇩🇰' },
+  { code: 'fi', name: 'Finland', flag: '🇫🇮' },
+  { code: 'at', name: 'Austria', flag: '🇦🇹' },
+  { code: 'ch', name: 'Switzerland', flag: '🇨🇭' },
+  { code: 'pt', name: 'Portugal', flag: '🇵🇹' },
+  { code: 'pl', name: 'Poland', flag: '🇵🇱' },
+  { code: 'cz', name: 'Czech Republic', flag: '🇨🇿' },
+  { code: 'hu', name: 'Hungary', flag: '🇭🇺' },
+  { code: 'ro', name: 'Romania', flag: '🇷🇴' },
+  { code: 'gr', name: 'Greece', flag: '🇬🇷' },
+  { code: 'tr', name: 'Turkey', flag: '🇹🇷' },
+  { code: 'il', name: 'Israel', flag: '🇮🇱' },
+  { code: 'ae', name: 'United Arab Emirates', flag: '🇦🇪' },
+  { code: 'sa', name: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: 'nz', name: 'New Zealand', flag: '🇳🇿' },
+  { code: 'ru', name: 'Russia', flag: '🇷🇺' },
+  { code: 'ua', name: 'Ukraine', flag: '🇺🇦' },
+  { code: 'cn', name: 'China', flag: '🇨🇳' },
+  { code: 'hk', name: 'Hong Kong', flag: '🇭🇰' },
+  { code: 'tw', name: 'Taiwan', flag: '🇹🇼' }
+]
+
 export function AuditForm() {
   const router = useRouter()
   const [url, setUrl] = useState("")
   const [selectedSections, setSelectedSections] = useState<string[]>([]) // Default to nothing selected
   const [auditScope, setAuditScope] = useState<AuditScope>('single')
+  const [country, setCountry] = useState('gb') // Default to United Kingdom
   const [discoveredPages, setDiscoveredPages] = useState<PageOption[]>([])
   const [isDiscoveringPages, setIsDiscoveringPages] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showErrorTooltip, setShowErrorTooltip] = useState(false)
   const [isValidUrl, setIsValidUrl] = useState(false)
 
   const validateUrl = (urlString: string) => {
@@ -67,6 +125,7 @@ export function AuditForm() {
     const value = e.target.value
     setUrl(value)
     setError("")
+    setShowErrorTooltip(false) // Hide tooltip when user starts typing
     setIsValidUrl(validateUrl(value))
     // Reset discovered pages when URL changes
     setDiscoveredPages([])
@@ -123,9 +182,8 @@ export function AuditForm() {
 
   const handleAuditScopeChange = (scope: AuditScope) => {
     setAuditScope(scope)
-    if (scope === 'all' && discoveredPages.length === 0 && isValidUrl) {
-      discoverPages()
-    }
+    // Remove automatic page discovery for 'all' scope
+    // Page discovery will happen during the audit process instead
   }
 
   const handleSectionToggle = (sectionId: string) => {
@@ -134,33 +192,43 @@ export function AuditForm() {
         ? prev.filter(id => id !== sectionId)
         : [...prev, sectionId]
     )
+    setShowErrorTooltip(false) // Hide tooltip when user selects sections
   }
 
   const handleSelectAll = () => {
     const allSelected = selectedSections.length === AUDIT_SECTIONS.length;
     setSelectedSections(allSelected ? [] : AUDIT_SECTIONS.map(section => section.id));
+    setShowErrorTooltip(false) // Hide tooltip when user uses select all
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!url.trim()) {
-      setError("Please enter a URL")
+      setError("Please enter a website URL to analyze")
+      setShowErrorTooltip(true)
+      setTimeout(() => setShowErrorTooltip(false), 4000)
       return
     }
 
     if (!isValidUrl) {
-      setError("Please enter a valid URL")
+      setError("Please enter a valid website URL (e.g., example.com)")
+      setShowErrorTooltip(true)
+      setTimeout(() => setShowErrorTooltip(false), 4000)
       return
     }
 
     if (selectedSections.length === 0) {
-      setError("Please select at least one audit section")
+      setError("Please choose one or more audit sections first. Select the analyses you'd like to include in your website audit.")
+      setShowErrorTooltip(true)
+      setTimeout(() => setShowErrorTooltip(false), 4000)
       return
     }
 
+    // Show loading immediately for instant feedback
     setIsLoading(true)
     setError("")
+    setShowErrorTooltip(false)
 
     try {
       // Add protocol if missing
@@ -175,6 +243,7 @@ export function AuditForm() {
           url: urlToAudit,
           sections: selectedSections,
           scope: auditScope,
+          country: country, // Include selected country
           pages: auditScope === 'custom' 
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
             : [urlToAudit] // For both 'single' and 'all' scopes, just send the main URL
@@ -189,11 +258,12 @@ export function AuditForm() {
       
       // Use Next.js router for client-side navigation
       router.push(`/audit/${data.id}`)
+      // Don't set loading to false here - let the navigation handle it
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
-      setIsLoading(false)
+      setShowErrorTooltip(false) // Hide tooltip for regular errors (they use the box)
+      setIsLoading(false) // Only set to false on error
     }
   }
 
@@ -247,6 +317,7 @@ export function AuditForm() {
           )}
         </div>
 
+
         {/* Audit Scope Selection */}
         {isValidUrl && (
           <div>
@@ -281,12 +352,33 @@ export function AuditForm() {
                   className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <label htmlFor="all-pages" className="flex-1 cursor-pointer">
-                  <div className="font-medium text-gray-900">All Discoverable Pages</div>
+                  <div className="font-medium text-gray-900 flex items-center gap-2">
+                    All Discoverable Pages
+                    <Tooltip 
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Comprehensive Website Analysis</p>
+                          <p>This option automatically discovers and audits all pages found through:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>XML Sitemaps</li>
+                            <li>Internal navigation links</li>
+                            <li>Common page patterns</li>
+                          </ul>
+                          <div className="mt-3 p-2 bg-blue-900 rounded text-white">
+                            <p className="font-medium">✓ You can click "Start Audit" immediately</p>
+                            <p className="text-sm">Page discovery happens automatically during the audit process.</p>
+                          </div>
+                        </div>
+                      }
+                      position="right"
+                    >
+                      <svg className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                    </Tooltip>
+                  </div>
                   <div className="text-sm text-gray-600">Scan sitemap and internal links to audit all pages</div>
                 </label>
-                {auditScope === 'all' && isDiscoveringPages && (
-                  <LoadingSpinner size="sm" />
-                )}
               </div>
               
               <div className="flex items-center space-x-3">
@@ -416,6 +508,38 @@ export function AuditForm() {
                       {section.label}
                     </label>
                     <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                    
+                    {/* Country Selection for Keywords Section */}
+                    {section.id === 'keywords' && selectedSections.includes('keywords') && (
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <label htmlFor={`${section.id}-country`} className="block text-sm font-medium text-blue-900 mb-2">
+                          🌍 Target Country for Keyword Analysis
+                        </label>
+                        <div className="relative">
+                          <select
+                            id={`${section.id}-country`}
+                            value={country}
+                            onChange={(e) => setCountry(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white shadow-sm"
+                            disabled={isLoading}
+                          >
+                            {COUNTRIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.flag} {c.name}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                        <p className="text-xs text-blue-700 mt-2">
+                          📊 Keywords Everywhere will provide search volumes specific to this country/region
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -431,21 +555,61 @@ export function AuditForm() {
         )}
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading || !isValidUrl || selectedSections.length === 0}
-          className="w-full btn-pmw-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none justify-center"
-        >
-          {isLoading ? (
-            <>
-              <LoadingSpinner />
-              <span className="ml-2">Starting Audit...</span>
-            </>
-          ) : (
-            'Start Audit'
+        <div className="relative">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full btn-pmw-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none justify-center"
+          >
+            {isLoading ? (
+              <>
+                <LoadingSpinner />
+                <span className="ml-2">Starting Audit...</span>
+              </>
+            ) : (
+              'Start Audit'
+            )}
+          </button>
+
+          {/* Error Tooltip */}
+          {showErrorTooltip && error && (
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
+              <div className="relative">
+                <div className="px-4 py-3 text-sm text-white bg-red-600 rounded-lg shadow-xl whitespace-nowrap max-w-sm">
+                  {error}
+                </div>
+                {/* Arrow pointing down to button */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+              </div>
+            </div>
           )}
-        </button>
+        </div>
       </form>
+
+      {/* Website Analysis Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center shadow-lg border border-gray-200">
+            <div className="mb-4">
+              <LoadingSpinner size="lg" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Analyzing Website
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Initializing comprehensive audit for {url.startsWith('http') ? url : `https://${url}`}
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-blue-800 text-sm">
+                ✓ URL validated and audit parameters configured
+              </p>
+              <p className="text-blue-700 text-xs mt-1">
+                You'll be redirected to the live audit progress page shortly...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

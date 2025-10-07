@@ -90,10 +90,6 @@ class SEMrushAuthorityService {
     if (mainDomain.includes('finance')) score += 3;
     if (mainDomain.includes('medical') || mainDomain.includes('health')) score += 4;
     
-    // For pmwcom.co.uk specifically - it's a marketing company
-    if (domain === 'pmwcom.co.uk') {
-      score = 24; // Match the actual SEMrush score you mentioned
-    }
     
     // Keep within realistic SEMrush Authority Score ranges
     score = Math.max(12, Math.min(45, score));

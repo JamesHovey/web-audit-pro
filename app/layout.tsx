@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
-import { SessionProvider } from "@/components/SessionProvider";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import HydrationFix from "@/components/HydrationFix";
 import "./globals.css";
 
@@ -28,8 +25,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -37,9 +32,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <HydrationFix />
-        <SessionProvider session={session}>
-          {children}
-        </SessionProvider>
+        {children}
       </body>
     </html>
   );

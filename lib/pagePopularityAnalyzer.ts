@@ -32,27 +32,53 @@ export async function analyzePagePopularity(domain: string): Promise<PopularPage
   const pages: PageInfo[] = [];
   const discoveredUrls = new Set<string>();
   
+  // Helper function to normalize URLs for deduplication
+  const normalizeUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      // Remove www and trailing slash for comparison
+      const normalizedHostname = urlObj.hostname.replace(/^www\./, '');
+      const normalizedPathname = urlObj.pathname.replace(/\/$/, '') || '/';
+      return `${urlObj.protocol}//${normalizedHostname}${normalizedPathname}`;
+    } catch {
+      return url.replace(/\/$/, '');
+    }
+  };
+  
   try {
     // Always include homepage FIRST (ensure it's analyzed)
     const homepageUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-    discoveredUrls.add(homepageUrl);
+    const normalizedHomepage = normalizeUrl(homepageUrl);
+    discoveredUrls.add(normalizedHomepage);
     
     // Step 1: Try to fetch and parse sitemap
     const sitemapUrls = await fetchSitemapUrls(baseUrl);
-    sitemapUrls.forEach(url => discoveredUrls.add(url));
+    console.log(`  Fetched ${sitemapUrls.length} URLs from sitemap`);
+    sitemapUrls.forEach(url => {
+      const normalizedUrl = normalizeUrl(url);
+      discoveredUrls.add(normalizedUrl);
+    });
     
     // Step 2: Fetch homepage to get navigation links
     const homepageData = await analyzeHomepage(baseUrl);
-    homepageData.navigationLinks.forEach(url => discoveredUrls.add(url));
-    homepageData.footerLinks.forEach(url => discoveredUrls.add(url));
+    homepageData.navigationLinks.forEach(url => {
+      const normalizedUrl = normalizeUrl(url);
+      discoveredUrls.add(normalizedUrl);
+    });
+    homepageData.footerLinks.forEach(url => {
+      const normalizedUrl = normalizeUrl(url);
+      discoveredUrls.add(normalizedUrl);
+    });
     
     // Step 3: Analyze discovered pages (limit to top 20 for performance)
     // Put homepage first to ensure it's always included
     const urlsArray = Array.from(discoveredUrls);
     const urlsToAnalyze = [
-      homepageUrl,
-      ...urlsArray.filter(url => url !== homepageUrl && url !== baseUrl).slice(0, 19)
+      normalizedHomepage,
+      ...urlsArray.filter(url => url !== normalizedHomepage).slice(0, 19)
     ];
+    
+    console.log(`  Discovered ${discoveredUrls.size} total URLs, analyzing top ${urlsToAnalyze.length}`);
     
     // Step 4: Build internal linking map by analyzing all pages
     const internalLinkingMap = new Map<string, string[]>();
@@ -135,7 +161,7 @@ async function fetchSitemapUrls(baseUrl: string): Promise<string[]> {
           if (urlMatches) {
             urlMatches.forEach(match => {
               const url = match.replace(/<\/?loc>/g, '');
-              if (url && !url.includes('image') && !url.includes('video')) {
+              if (url && isValidPageUrl(url, baseUrl)) {
                 urls.push(url);
               }
             });
@@ -151,6 +177,41 @@ async function fetchSitemapUrls(baseUrl: string): Promise<string[]> {
   }
   
   return urls;
+}
+
+// Helper function to validate if URL should be analyzed as a page
+function isValidPageUrl(url: string, baseUrl: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const baseObj = new URL(baseUrl);
+    
+    // Handle domain canonicalization (www vs non-www)
+    const normalizeHostname = (hostname: string) => hostname.replace(/^www\./, '');
+    const urlHostname = normalizeHostname(urlObj.hostname);
+    const baseHostname = normalizeHostname(baseObj.hostname);
+    
+    // Must be same domain (allowing www/non-www variations)
+    if (urlHostname !== baseHostname) return false;
+    
+    // Skip common non-page URLs including XML sitemaps  
+    const skipPatterns = [
+      /\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|txt|gz|zip)$/i, // Removed xml to allow proper pages
+      /\/wp-admin\//,
+      /\/admin\//,
+      /\/api\//,
+      /\/feed\//,
+      /sitemap.*\.xml$/i, // Specifically exclude sitemap XML files
+      /\?.*attachment_id=/,
+      /\/wp-content\//,
+      /\/wp-includes\//
+      // Removed # filter to allow pages with fragments temporarily
+    ];
+    
+    return !skipPatterns.some(pattern => pattern.test(url));
+    
+  } catch {
+    return false;
+  }
 }
 
 async function analyzeHomepage(baseUrl: string): Promise<{
@@ -175,10 +236,15 @@ async function analyzeHomepage(baseUrl: string): Promise<{
     if (linkMatches) {
       linkMatches.forEach(match => {
         const url = match.replace(/href=["']/, '');
+        let fullUrl = '';
         if (url.startsWith('/')) {
-          result.allInternalLinks.push(`${baseUrl}${url}`);
+          fullUrl = `${baseUrl}${url}`;
         } else if (url.includes(baseUrl.replace('https://', ''))) {
-          result.allInternalLinks.push(url);
+          fullUrl = url;
+        }
+        
+        if (fullUrl && isValidPageUrl(fullUrl, baseUrl)) {
+          result.allInternalLinks.push(fullUrl);
         }
       });
     }
@@ -193,10 +259,15 @@ async function analyzeHomepage(baseUrl: string): Promise<{
       if (navLinks) {
         navLinks.forEach(match => {
           const url = match.replace(/href=["']/, '');
+          let fullUrl = '';
           if (url.startsWith('/')) {
-            result.navigationLinks.push(`${baseUrl}${url}`);
+            fullUrl = `${baseUrl}${url}`;
           } else if (url.includes(baseUrl.replace('https://', ''))) {
-            result.navigationLinks.push(url);
+            fullUrl = url;
+          }
+          
+          if (fullUrl && isValidPageUrl(fullUrl, baseUrl)) {
+            result.navigationLinks.push(fullUrl);
           }
         });
       }
@@ -210,10 +281,15 @@ async function analyzeHomepage(baseUrl: string): Promise<{
       if (footerLinks) {
         footerLinks.forEach(match => {
           const url = match.replace(/href=["']/, '');
+          let fullUrl = '';
           if (url.startsWith('/')) {
-            result.footerLinks.push(`${baseUrl}${url}`);
+            fullUrl = `${baseUrl}${url}`;
           } else if (url.includes(baseUrl.replace('https://', ''))) {
-            result.footerLinks.push(url);
+            fullUrl = url;
+          }
+          
+          if (fullUrl && isValidPageUrl(fullUrl, baseUrl)) {
+            result.footerLinks.push(fullUrl);
           }
         });
       }
@@ -331,20 +407,20 @@ function calculatePopularityScores(pages: PageInfo[]): void {
   pages.forEach(page => {
     let score = 0;
     
-    // Homepage gets highest weight
+    // Homepage gets moderate boost (reduced from 100 to 40)
     if (page.signals.isHomepage) {
-      score += 100;
+      score += 40;
     }
     
     // Navigation position weight
     if (page.signals.navigationPosition === 0) {
-      score += 50; // Main navigation
+      score += 35; // Main navigation
     } else if (page.signals.navigationPosition === 1) {
-      score += 20; // Footer
+      score += 15; // Footer
     }
     
-    // Internal links weight (normalized)
-    score += (page.signals.internalLinkCount / maxInternalLinks) * 40;
+    // Internal links weight (normalized) - increased importance
+    score += (page.signals.internalLinkCount / maxInternalLinks) * 50;
     
     // URL depth penalty (shallower = better)
     score -= page.signals.urlDepth * 10;
@@ -369,22 +445,37 @@ function calculatePopularityScores(pages: PageInfo[]): void {
 function calculateTrafficShare(pages: PageInfo[]): void {
   const totalScore = pages.reduce((sum, p) => sum + p.popularityScore, 0);
   
-  // Use a power law distribution for more realistic traffic distribution
-  pages.forEach((page, index) => {
-    if (totalScore > 0) {
-      // Apply power law: top pages get disproportionally more traffic
-      const rankFactor = Math.pow(1 / (index + 1), 0.7);
-      const baseShare = (page.popularityScore / totalScore) * 100;
-      page.estimatedTrafficShare = parseFloat((baseShare * rankFactor * 2).toFixed(1));
-    } else {
-      page.estimatedTrafficShare = 0;
-    }
+  if (totalScore === 0) {
+    pages.forEach(page => page.estimatedTrafficShare = 0);
+    return;
+  }
+  
+  // Calculate basic proportional shares
+  pages.forEach(page => {
+    page.estimatedTrafficShare = parseFloat(((page.popularityScore / totalScore) * 100).toFixed(1));
   });
   
-  // Normalize to ensure it doesn't exceed 100%
-  const totalShare = pages.reduce((sum, p) => sum + p.estimatedTrafficShare, 0);
-  if (totalShare > 100) {
-    const factor = 100 / totalShare;
+  // Apply realistic traffic distribution constraints
+  // Homepage typically gets 30-50% of traffic, not 100%
+  const homepagePage = pages.find(p => p.signals.isHomepage);
+  if (homepagePage && homepagePage.estimatedTrafficShare > 50) {
+    // Cap homepage at 50% and redistribute excess to other pages
+    const excess = homepagePage.estimatedTrafficShare - 50;
+    homepagePage.estimatedTrafficShare = 50;
+    
+    const otherPages = pages.filter(p => !p.signals.isHomepage);
+    if (otherPages.length > 0) {
+      const redistribution = excess / otherPages.length;
+      otherPages.forEach(page => {
+        page.estimatedTrafficShare = parseFloat((page.estimatedTrafficShare + redistribution).toFixed(1));
+      });
+    }
+  }
+  
+  // Final normalization to ensure total is exactly 100%
+  const finalTotal = pages.reduce((sum, p) => sum + p.estimatedTrafficShare, 0);
+  if (finalTotal !== 100) {
+    const factor = 100 / finalTotal;
     pages.forEach(page => {
       page.estimatedTrafficShare = parseFloat((page.estimatedTrafficShare * factor).toFixed(1));
     });

@@ -352,7 +352,6 @@ async function detectHostingFromDomain(url: string): Promise<{ hosting: string |
     // Domain-specific hosting knowledge database with organization info (like OSNerd uses)
     const knownHosting: Record<string, { hosting: string; organization?: string }> = {
       'stpetershenfield.org.uk': { hosting: '34SP.com', organization: '34SP.com Limited' },
-      'pmwcom.co.uk': { hosting: 'DigitalOcean', organization: 'DigitalOcean, LLC' },
       'henryadams.co.uk': { hosting: 'Rackspace', organization: 'Rackspace Inc.' },
       'chocovision.co.uk': { hosting: 'Cloudflare', organization: 'WPEngine, Inc.' },
       'photo-fantastic-restorations.co.uk': { hosting: 'IONOS SE', organization: 'Ionos Inf' },
@@ -855,10 +854,6 @@ function analyzeTechStackFromScraping(siteData: { html: string; headers: Record<
              lowerHtml.includes('.rack.')) {
       result.hosting = 'Rackspace';
     }
-    // Specific domain knowledge for known hosting providers
-    else if (lowerHtml.includes('pmwcom.co.uk') || lowerHtml.includes('pmw')) {
-      result.hosting = 'DigitalOcean';
-    }
     else if (lowerHtml.includes('henryadams.co.uk') || lowerHtml.includes('henry adams')) {
       result.hosting = 'Rackspace';
     }
@@ -914,8 +909,8 @@ function generateSimulatedHtml(domain: string): string {
     `;
   }
   
-  // Add marketing-specific content for pmwcom.co.uk style domains
-  if (brandName.toLowerCase().includes('pmw') || brandName.toLowerCase().includes('marketing')) {
+  // Add marketing-specific content for marketing domains
+  if (brandName.toLowerCase().includes('marketing')) {
     htmlContent += `
       <h2>Marketing Services</h2>
       <p>Digital marketing agency specializing in brand strategy, content marketing, and advertising.</p>

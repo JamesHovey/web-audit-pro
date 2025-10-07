@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import LoadingMessages from "@/components/LoadingMessages"
 import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe } from 'lucide-react'
@@ -10,6 +10,8 @@ import KeywordTable from './KeywordTable'
 import BrandedKeywordTable from './BrandedKeywordTable'
 import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldKeywordTable from './AboveFoldKeywordTable'
+import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
+import KeywordCompetitionTable from './KeywordCompetitionTable'
 import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
 
@@ -125,6 +127,10 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     title: '',
     pages: [],
     filterCondition: undefined
+  })
+  const [performancePagination, setPerformancePagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 10
   })
   const [internalLinksModal, setInternalLinksModal] = useState<{ isOpen: boolean; targetPage: string; links: string[] }>({
     isOpen: false,
@@ -508,14 +514,40 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                   </div>
                                 </div>
                                 ${sectionData.aboveFoldKeywordsList && Array.isArray(sectionData.aboveFoldKeywordsList) && sectionData.aboveFoldKeywordsList.length > 0 ? `
-                                  <h4>Top Ranking Keywords (Positions 1-3)</h4>
+                                  <h4>Above Fold Keywords (All Results)</h4>
                                   <table>
                                     <thead>
                                       <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Type</th></tr>
                                     </thead>
                                     <tbody>
-                                      ${sectionData.aboveFoldKeywordsList.slice(0, 10).map(keyword => 
+                                      ${sectionData.aboveFoldKeywordsList.map(keyword => 
                                         `<tr><td>${keyword.keyword}</td><td>${keyword.position}</td><td>${keyword.volume || 'N/A'}</td><td>${keyword.type || 'N/A'}</td></tr>`
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                                ${sectionData.brandedKeywordsList && Array.isArray(sectionData.brandedKeywordsList) && sectionData.brandedKeywordsList.length > 0 ? `
+                                  <h4>All Branded Keywords</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Mentions</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${sectionData.brandedKeywordsList.map(keyword => 
+                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position ? `#${keyword.position}` : 'Not ranking'}</td><td>${(keyword.volume || 0).toLocaleString()}/mo</td><td>${keyword.mentions || 1}</td></tr>`
+                                      ).join('')}
+                                    </tbody>
+                                  </table>
+                                ` : ''}
+                                ${sectionData.nonBrandedKeywordsList && Array.isArray(sectionData.nonBrandedKeywordsList) && sectionData.nonBrandedKeywordsList.length > 0 ? `
+                                  <h4>All Non-Branded Keywords</h4>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Difficulty</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      ${sectionData.nonBrandedKeywordsList.map(keyword => 
+                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position ? `#${keyword.position}` : 'Not ranking'}</td><td>${(keyword.volume || 0).toLocaleString()}/mo</td><td>${keyword.difficulty || 'N/A'}</td></tr>`
                                       ).join('')}
                                     </tbody>
                                   </table>
@@ -559,22 +591,22 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                   </tbody>
                                 </table>
                                 ${dataToUse.largeImageDetails && Array.isArray(dataToUse.largeImageDetails) && dataToUse.largeImageDetails.length > 0 ? `
-                                  <h4>Large Images Requiring Optimization</h4>
+                                  <h4>All Large Images Requiring Optimization</h4>
                                   <table>
                                     <thead>
                                       <tr><th>Image</th><th>Size (KB)</th><th>Page</th></tr>
                                     </thead>
                                     <tbody>
-                                      ${dataToUse.largeImageDetails.slice(0, 10).map(img => 
+                                      ${dataToUse.largeImageDetails.map(img => 
                                         '<tr><td>' + (img.imageUrl.split('/').pop() || img.imageUrl) + '</td><td>' + img.sizeKB + '</td><td>' + img.pageUrl.replace(/^https?:\/\//g, '').substring(0, 50) + '...</td></tr>'
                                       ).join('')}
                                     </tbody>
                                   </table>
                                 ` : ''}
                                 ${dataToUse.recommendations && Array.isArray(dataToUse.recommendations) ? `
-                                  <h4>Key Recommendations</h4>
+                                  <h4>All Recommendations</h4>
                                   <ul>
-                                    ${dataToUse.recommendations.slice(0, 5).map(rec => '<li>' + rec + '</li>').join('')}
+                                    ${dataToUse.recommendations.map(rec => '<li>' + rec + '</li>').join('')}
                                   </ul>
                                 ` : ''}
                               `;
@@ -595,13 +627,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                   </div>
                                 </div>
                                 ${sectionData.topBacklinks && Array.isArray(sectionData.topBacklinks) && sectionData.topBacklinks.length > 0 ? `
-                                  <h4>Top Authority Backlinks</h4>
+                                  <h4>All Top Authority Backlinks</h4>
                                   <table>
                                     <thead>
                                       <tr><th>Domain</th><th>Authority</th><th>Anchor Text</th><th>Type</th></tr>
                                     </thead>
                                     <tbody>
-                                      ${sectionData.topBacklinks.slice(0, 10).map(link => 
+                                      ${sectionData.topBacklinks.map(link => 
                                         `<tr><td>${link.domain}</td><td>${link.authority}</td><td>${link.anchor}</td><td>${link.type}</td></tr>`
                                       ).join('')}
                                     </tbody>
@@ -715,7 +747,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -753,7 +785,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState)
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
               )}
             </div>
           </div>
@@ -790,7 +822,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
               )}
             </div>
           </div>
@@ -838,7 +870,9 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   undefined, 
                   showMethodologyExpanded, 
                   toggleMethodology, 
-                  setPageModalState
+                  setPageModalState,
+                  performancePagination,
+                  setPerformancePagination
                 )
               )}
             </div>
@@ -877,7 +911,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)
               )}
             </div>
           </div>
@@ -920,7 +954,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1013,7 +1047,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Internal Links Modal */}
       {internalLinksModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Internal Links Pointing to {internalLinksModal.targetPage}</h2>
@@ -1236,7 +1270,9 @@ function renderSectionResults(
   setInternalLinksModal?: (state: { isOpen: boolean; targetPage: string; links: string[] }) => void,
   showMethodologyExpanded?: {[key: string]: boolean},
   toggleMethodology?: (section: string) => void,
-  setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void
+  setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void,
+  performancePagination?: { currentPage: number; itemsPerPage: number },
+  setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void
 ) {
   switch (sectionId) {
     case "traffic":
@@ -1396,109 +1432,6 @@ function renderSectionResults(
             </div>
           </div>
 
-          {/* Popular Pages Analysis */}
-          {results.popularPages && results.popularPages.pages?.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                Most Popular Pages
-                <Tooltip 
-                  content={
-                    <div className="max-w-md">
-                      <p className="font-semibold mb-2">Page Popularity Analysis</p>
-                      <p className="mb-2">We discovered and analyzed {results.popularPages.discoveredPages} pages on this website.</p>
-                      <p className="mb-2"><strong>Analysis Method:</strong></p>
-                      <ul className="list-disc list-inside text-xs space-y-1 mb-2">
-                        <li>Crawled sitemap.xml to discover all pages</li>
-                        <li>Analyzed main navigation and footer links</li>
-                        <li>Counted internal links pointing to each page</li>
-                        <li>Evaluated page depth and URL structure</li>
-                      </ul>
-                      <p className="text-xs"><strong>Confidence:</strong> {results.popularPages.confidence === 'high' ? '🟢 High' : results.popularPages.confidence === 'medium' ? '🟡 Medium' : '🔴 Low'}</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </h4>
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Page</th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-700">Est. Traffic Share</th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-700">Internal Links</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {results.popularPages.pages.slice(0, 10).map((page: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div>
-                              <a 
-                                href={page.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 font-medium font-mono text-sm"
-                                title={page.title || page.url}
-                              >
-                                {(() => {
-                                  try {
-                                    const url = new URL(page.url);
-                                    return url.pathname === '/' ? '/' : url.pathname;
-                                  } catch {
-                                    return page.url;
-                                  }
-                                })()}
-                              </a>
-                              {page.signals?.isHomepage && (
-                                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Homepage</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="font-medium">{page.estimatedTrafficShare}%</span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => {
-                                const currentPagePath = (() => {
-                                  try {
-                                    const url = new URL(page.url);
-                                    return url.pathname === '/' ? '/' : url.pathname;
-                                  } catch {
-                                    return page.url;
-                                  }
-                                })();
-                                
-                                if (setInternalLinksModal) {
-                                  setInternalLinksModal({
-                                    isOpen: true,
-                                    targetPage: currentPagePath,
-                                    links: page.internalLinks || []
-                                  });
-                                }
-                              }}
-                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                              title="Click to view internal links"
-                            >
-                              {page.signals?.internalLinkCount || 0}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-xs text-amber-800">
-                  <strong>Note:</strong> Traffic share is estimated based on page importance signals. Actual traffic distribution may vary based on search rankings, marketing campaigns, and user behavior.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Data Source Indicator */}
           {results.dataSource && (
@@ -1570,21 +1503,6 @@ function renderSectionResults(
                 </p>
               </div>
 
-              {results.popularPages && (
-                <div>
-                  <h5 className="font-medium mb-2">📄 Page Popularity Analysis</h5>
-                  <p className="text-blue-700 leading-relaxed mb-2">
-                    When "All Discoverable Pages" is selected, we analyze which pages are likely most popular:
-                  </p>
-                  <ul className="list-disc list-inside text-blue-700 space-y-1 text-xs">
-                    <li>Discovered {results.popularPages.discoveredPages} total pages via sitemap and crawling</li>
-                    <li>Analyzed {results.popularPages.analyzedPages} pages for popularity signals</li>
-                    <li>Homepage typically receives 30-40% of total traffic</li>
-                    <li>Main navigation pages get priority (usually 40-50% combined)</li>
-                    <li>Pages with more internal links are generally more important</li>
-                  </ul>
-                </div>
-              )}
 
               <div>
                 <h5 className="font-medium mb-2">📈 Data Accuracy</h5>
@@ -1871,6 +1789,24 @@ function renderSectionResults(
               keywords={results.aboveFoldKeywordsList}
               title="Above Fold Keywords"
               description="Keywords ranking in the top 3 positions on Google (above the fold in search results)"
+              discoveryMethod={results.aboveFoldDiscoveryMethod}
+            />
+          )}
+
+          {/* Keyword Competition Analysis */}
+          {results.keywordCompetition && (
+            <KeywordCompetitionTable 
+              competitionData={results.keywordCompetition}
+              title="Keyword Competition"
+              description="Competitor websites with the highest keyword overlap based on your Above Fold Keywords"
+            />
+          )}
+
+          {/* Above Fold Competitor Analysis */}
+          {results.aboveFoldCompetitors && results.aboveFoldCompetitors.competitors && (
+            <AboveFoldCompetitorTable 
+              analysis={results.aboveFoldCompetitors}
+              title="Main Competition Analysis"
             />
           )}
 
@@ -1901,34 +1837,64 @@ function renderSectionResults(
         <div className="space-y-6">
           {/* Performance Overview Section */}
           <div>
-            <h4 className="font-semibold mb-3 text-lg">Performance Metrics</h4>
+            <h4 className="font-semibold mb-3 text-lg">
+              <Tooltip content={
+                <div className="max-w-sm">
+                  <p className="font-semibold mb-1">Performance Metrics Overview</p>
+                  <p>Average Core Web Vitals across all analyzed pages. These metrics are calculated from real page performance data.</p>
+                </div>
+              }>
+                Performance Metrics (Average)
+              </Tooltip>
+            </h4>
             
             {/* Desktop vs Mobile */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold">Desktop</h4>
+                  <h4 className="font-semibold">Desktop Performance</h4>
                   <span className={`px-2 py-1 rounded text-xs ${results.desktop?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                     {results.desktop?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
                   </span>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">LCP:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Largest Contentful Paint</p>
+                        <p>Average time for the largest content element to load across all pages. Good: &lt;2.5s</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">LCP:</span>
+                    </Tooltip>
                     <span className={results.desktop?.lcp?.includes('1.') || results.desktop?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.lcp}
+                      {results.desktop?.lcp || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">CLS:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Cumulative Layout Shift</p>
+                        <p>Average visual stability score across all pages. Good: &lt;0.1, measures unexpected layout shifts.</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">CLS:</span>
+                    </Tooltip>
                     <span className={parseFloat(results.desktop?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.cls}
+                      {results.desktop?.cls || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">INP:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Interaction to Next Paint</p>
+                        <p>Average page responsiveness across all pages. Good: &lt;200ms, measures how quickly pages respond to user interactions.</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">INP:</span>
+                    </Tooltip>
                     <span className={parseInt(results.desktop?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                      {results.desktop?.inp}
+                      {results.desktop?.inp || 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -1936,34 +1902,334 @@ function renderSectionResults(
 
               <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold">Mobile</h4>
+                  <h4 className="font-semibold">Mobile Performance</h4>
                   <span className={`px-2 py-1 rounded text-xs ${results.mobile?.status === 'pass' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                     {results.mobile?.status === 'pass' ? 'PASS' : 'NEEDS WORK'}
                   </span>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">LCP:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Largest Contentful Paint (Mobile)</p>
+                        <p>Average mobile loading performance across all pages. Mobile is typically slower than desktop. Good: &lt;2.5s</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">LCP:</span>
+                    </Tooltip>
                     <span className={results.mobile?.lcp?.includes('2.') ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.lcp}
+                      {results.mobile?.lcp || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">CLS:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Cumulative Layout Shift (Mobile)</p>
+                        <p>Average mobile visual stability across all pages. Good: &lt;0.1, measures layout shifts on mobile devices.</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">CLS:</span>
+                    </Tooltip>
                     <span className={parseFloat(results.mobile?.cls || '0') < 0.1 ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.cls}
+                      {results.mobile?.cls || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">INP:</span>
+                    <Tooltip content={
+                      <div className="max-w-sm">
+                        <p className="font-semibold mb-1">Interaction to Next Paint (Mobile)</p>
+                        <p>Average mobile responsiveness across all pages. Good: &lt;200ms, measures touch/tap response times.</p>
+                      </div>
+                    }>
+                      <span className="text-gray-600 cursor-help">INP:</span>
+                    </Tooltip>
                     <span className={parseInt(results.mobile?.inp || '0') < 200 ? 'text-green-600' : 'text-red-600'}>
-                      {results.mobile?.inp}
+                      {results.mobile?.inp || 'N/A'}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Per-Page Performance Metrics Table */}
+          {results.pages && results.pages.some((page: any) => page.performance) && (
+            <div>
+              <h4 className="font-semibold mb-3 text-lg">Page Performance Metrics</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Core Web Vitals for each page, sorted by worst-performing first. Pages with poor scores need optimization.
+              </p>
+              
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Page</th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Desktop Performance</p>
+                              <p>Overall performance score (0-100) based on Core Web Vitals and other metrics.</p>
+                            </div>
+                          }>
+                            Desktop Score
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Largest Contentful Paint (Desktop)</p>
+                              <p>Time when largest content element loads. Good: &lt;2.5s, Needs Improvement: 2.5-4s, Poor: &gt;4s</p>
+                            </div>
+                          }>
+                            Desktop LCP
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Cumulative Layout Shift (Desktop)</p>
+                              <p>Visual stability measure. Good: &lt;0.1, Needs Improvement: 0.1-0.25, Poor: &gt;0.25</p>
+                            </div>
+                          }>
+                            Desktop CLS
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Interaction to Next Paint (Desktop)</p>
+                              <p>Page responsiveness to user interactions. Good: &lt;200ms, Needs Improvement: 200-500ms, Poor: &gt;500ms</p>
+                            </div>
+                          }>
+                            Desktop INP
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Mobile Performance</p>
+                              <p>Overall performance score (0-100) for mobile devices, typically lower than desktop.</p>
+                            </div>
+                          }>
+                            Mobile Score
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Largest Contentful Paint (Mobile)</p>
+                              <p>Time when largest content element loads on mobile. Good: &lt;2.5s, Needs Improvement: 2.5-4s, Poor: &gt;4s</p>
+                            </div>
+                          }>
+                            Mobile LCP
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Cumulative Layout Shift (Mobile)</p>
+                              <p>Visual stability measure on mobile. Good: &lt;0.1, Needs Improvement: 0.1-0.25, Poor: &gt;0.25</p>
+                            </div>
+                          }>
+                            Mobile CLS
+                          </Tooltip>
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                          <Tooltip content={
+                            <div className="max-w-sm">
+                              <p className="font-semibold mb-1">Interaction to Next Paint (Mobile)</p>
+                              <p>Page responsiveness on mobile devices. Good: &lt;200ms, Needs Improvement: 200-500ms, Poor: &gt;500ms</p>
+                            </div>
+                          }>
+                            Mobile INP
+                          </Tooltip>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {(() => {
+                        // Filter and sort pages with performance data
+                        const pagesWithPerformance = results.pages
+                          .filter((page: any) => page.performance)
+                          .sort((a: any, b: any) => {
+                            // Sort by worst mobile score first (mobile is typically worse)
+                            const aScore = a.performance?.mobile?.score || 0;
+                            const bScore = b.performance?.mobile?.score || 0;
+                            return aScore - bScore;
+                          });
+                        
+                        // Calculate pagination
+                        const totalPages = Math.ceil(pagesWithPerformance.length / performancePagination.itemsPerPage);
+                        const startIndex = (performancePagination.currentPage - 1) * performancePagination.itemsPerPage;
+                        const endIndex = startIndex + performancePagination.itemsPerPage;
+                        const currentPageData = pagesWithPerformance.slice(startIndex, endIndex);
+                        
+                        return currentPageData.map((page: any, index: number) => {
+                          if (!page.performance) return null;
+                          
+                          const { desktop, mobile } = page.performance;
+                          
+                          // Scoring functions
+                          const getScoreColor = (score: number) => {
+                            if (score >= 90) return 'text-green-600';
+                            if (score >= 50) return 'text-yellow-600';
+                            return 'text-red-600';
+                          };
+                          
+                          const getLCPColor = (lcp: number) => {
+                            if (lcp < 2500) return 'text-green-600';
+                            if (lcp < 4000) return 'text-yellow-600';
+                            return 'text-red-600';
+                          };
+                          
+                          const getCLSColor = (cls: number) => {
+                            if (cls < 0.1) return 'text-green-600';
+                            if (cls < 0.25) return 'text-yellow-600';
+                            return 'text-red-600';
+                          };
+                          
+                          const getINPColor = (inp: number) => {
+                            if (inp < 200) return 'text-green-600';
+                            if (inp < 500) return 'text-yellow-600';
+                            return 'text-red-600';
+                          };
+                          
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <Tooltip content={page.url}>
+                                  <a 
+                                    href={page.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline font-medium"
+                                  >
+                                    {page.title || page.url.split('/').pop() || 'Page'}
+                                  </a>
+                                </Tooltip>
+                              </td>
+                              <td className={`px-4 py-3 text-center font-bold ${getScoreColor(desktop.score)}`}>
+                                {desktop.score}
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getLCPColor(desktop.lcp)}`}>
+                                {(desktop.lcp / 1000).toFixed(1)}s
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getCLSColor(desktop.cls)}`}>
+                                {desktop.cls.toFixed(3)}
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getINPColor(desktop.inp)}`}>
+                                {desktop.inp}ms
+                              </td>
+                              <td className={`px-4 py-3 text-center font-bold ${getScoreColor(mobile.score)}`}>
+                                {mobile.score}
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getLCPColor(mobile.lcp)}`}>
+                                {(mobile.lcp / 1000).toFixed(1)}s
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getCLSColor(mobile.cls)}`}>
+                                {mobile.cls.toFixed(3)}
+                              </td>
+                              <td className={`px-4 py-3 text-center ${getINPColor(mobile.inp)}`}>
+                                {mobile.inp}ms
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Pagination Controls */}
+              {(() => {
+                const pagesWithPerformance = results.pages.filter((page: any) => page.performance);
+                const totalPages = Math.ceil(pagesWithPerformance.length / performancePagination.itemsPerPage);
+                
+                if (totalPages <= 1) return null;
+                
+                return (
+                  <div className="flex items-center justify-between mt-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="text-sm text-gray-700">
+                      Showing {((performancePagination.currentPage - 1) * performancePagination.itemsPerPage) + 1} to{' '}
+                      {Math.min(performancePagination.currentPage * performancePagination.itemsPerPage, pagesWithPerformance.length)} of{' '}
+                      {pagesWithPerformance.length} pages
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setPerformancePagination(prev => ({ 
+                          ...prev, 
+                          currentPage: Math.max(1, prev.currentPage - 1) 
+                        }))}
+                        disabled={performancePagination.currentPage === 1}
+                        className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            // Show first, last, current, and adjacent pages
+                            return page === 1 || 
+                                   page === totalPages || 
+                                   Math.abs(page - performancePagination.currentPage) <= 1;
+                          })
+                          .map((page, index, array) => {
+                            // Add ellipsis if there's a gap
+                            const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                            
+                            return (
+                              <React.Fragment key={page}>
+                                {showEllipsis && <span className="px-2 text-gray-400">...</span>}
+                                <button
+                                  onClick={() => setPerformancePagination(prev => ({ 
+                                    ...prev, 
+                                    currentPage: page 
+                                  }))}
+                                  className={`px-3 py-1 text-sm border rounded ${
+                                    page === performancePagination.currentPage
+                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      : 'bg-white border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {page}
+                                </button>
+                              </React.Fragment>
+                            );
+                          })}
+                      </div>
+                      
+                      <button
+                        onClick={() => setPerformancePagination(prev => ({ 
+                          ...prev, 
+                          currentPage: Math.min(totalPages, prev.currentPage + 1) 
+                        }))}
+                        disabled={performancePagination.currentPage === totalPages}
+                        className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h5 className="font-semibold text-blue-900 mb-2">📊 Understanding Core Web Vitals</h5>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li><strong>Performance Score:</strong> Overall page performance (0-100). Higher is better.</li>
+                  <li><strong>LCP (Largest Contentful Paint):</strong> Loading performance. Aim for &lt;2.5 seconds.</li>
+                  <li><strong>CLS (Cumulative Layout Shift):</strong> Visual stability. Aim for &lt;0.1.</li>
+                  <li><strong>INP (Interaction to Next Paint):</strong> Interactivity. Aim for &lt;200ms.</li>
+                  <li><strong>Colors:</strong> <span className="text-green-600">Green = Good</span>, <span className="text-yellow-600">Yellow = Needs Improvement</span>, <span className="text-red-600">Red = Poor</span></li>
+                </ul>
+              </div>
+            </div>
+          )}
 
           {/* Technical Audit Section */}
           <div>
@@ -1987,7 +2253,18 @@ function renderSectionResults(
                 )}
               </div>
               <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{results.largeImages}</div>
+                <div 
+                  className="text-2xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors" 
+                  onClick={() => {
+                    const element = document.getElementById('large-images-table');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  title="Click to view large images details"
+                >
+                  {results.largeImages}
+                </div>
                 <div className="text-sm text-gray-600">Large Images</div>
               </div>
             </div>
@@ -2075,7 +2352,7 @@ function renderSectionResults(
 
           {/* Large Images Table */}
           {(results.largeImagesList || results.largeImageDetails) && (results.largeImagesList || results.largeImageDetails).length > 0 && (
-            <div>
+            <div id="large-images-table">
               <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
               <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -2102,14 +2379,16 @@ function renderSectionResults(
                             </a>
                           </td>
                           <td className="px-4 py-3">
-                            <a 
-                              href={image.pageUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline"
-                            >
-                              {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
-                            </a>
+                            <Tooltip content={image.pageUrl}>
+                              <a 
+                                href={image.pageUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline"
+                              >
+                                {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
+                              </a>
+                            </Tooltip>
                           </td>
                           <td className="px-4 py-3 text-right font-medium text-red-600">
                             {(image.sizeKB || 0).toLocaleString()}KB
@@ -2187,7 +2466,7 @@ function renderSectionResults(
           {/* How Results Were Obtained */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
             <button 
-              onClick={() => toggleMethodology?.(section === 'performance' ? 'performance' : 'technical')}
+              onClick={() => toggleMethodology?.('technical')}
               className="w-full p-6 text-left hover:bg-blue-100 transition-colors rounded-lg"
             >
               <h4 className="font-semibold text-blue-900 flex items-center justify-between">

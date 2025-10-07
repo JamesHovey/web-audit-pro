@@ -3,6 +3,40 @@
  * Discovers actual pages using sitemaps, robots.txt, and intelligent crawling
  */
 
+// More robust H1 detection that handles various edge cases
+function hasH1Tag(html: string): boolean {
+  // Remove comments and CDATA sections first
+  const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, '').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
+  
+  // Multiple detection methods for reliability
+  const patterns = [
+    /<h1[^>]*>[\s\S]*?<\/h1>/i,           // Standard pattern
+    /<h1[^>]*>[^<]*[\w\s][^<]*<\/h1>/i,    // H1 with text content
+    /<h1\b[^>]*>(?:(?!<\/h1>)[\s\S])*[a-zA-Z0-9](?:(?!<\/h1>)[\s\S])*<\/h1>/i  // H1 containing alphanumeric
+  ];
+  
+  // Try each pattern
+  for (const pattern of patterns) {
+    if (pattern.test(cleanHtml)) {
+      return true;
+    }
+  }
+  
+  // Additional check: Look for opening h1 tag and closing h1 tag separately
+  const hasOpeningTag = /<h1[^>]*>/i.test(cleanHtml);
+  const hasClosingTag = /<\/h1>/i.test(cleanHtml);
+  
+  if (hasOpeningTag && hasClosingTag) {
+    // Extract content between first h1 opening and closing tags
+    const h1Match = cleanHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    if (h1Match && h1Match[1].trim().length > 0) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 interface DiscoveredPage {
   url: string;
   title: string;
@@ -285,9 +319,9 @@ export class RealPageDiscovery {
       const title = titleMatch ? titleMatch[1].trim() : 'No title';
 
       // Check for meta elements
-      const hasTitle = /<title[^>]*>.*<\/title>/i.test(html);
+      const hasTitle = /<title[^>]*>.*<\/title>/is.test(html);
       const hasDescription = /<meta\s+name=["']description["'][^>]*>/i.test(html);
-      const hasH1 = /<h1[^>]*>.*<\/h1>/i.test(html);
+      const hasH1 = hasH1Tag(html);
 
       // Count images
       const imageMatches = html.match(/<img[^>]+>/gi) || [];

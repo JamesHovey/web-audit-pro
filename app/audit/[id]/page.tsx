@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth/next"
-import { redirect } from "next/navigation"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Navigation } from "@/components/Navigation"
 import { AuditResults } from "@/components/AuditResults"
@@ -13,18 +10,11 @@ interface PageProps {
 }
 
 export default async function AuditPage({ params }: PageProps) {
-  const session = await getServerSession(authOptions)
-
-  if (!session) {
-    redirect("/auth/signin")
-  }
-
   const { id } = await params
 
   const audit = await prisma.audit.findFirst({
     where: {
-      id,
-      userId: session.user?.id
+      id
     }
   })
 

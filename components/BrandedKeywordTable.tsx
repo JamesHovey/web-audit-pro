@@ -26,9 +26,11 @@ export default function BrandedKeywordTable({
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   
-  // Sort keywords by volume (highest to lowest)
+  // Sort keywords by volume (highest to lowest) - only show keywords with volume >= 10
   const sortedKeywords = useMemo(() => {
-    return [...(keywords || [])].sort((a, b) => (b.volume || 0) - (a.volume || 0))
+    return [...(keywords || [])]
+      .filter(k => (k.volume || 0) >= 10) // Only show keywords with volume >= 10
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
   }, [keywords])
   
   const totalPages = Math.ceil(sortedKeywords.length / itemsPerPage)
@@ -42,22 +44,23 @@ export default function BrandedKeywordTable({
         <h4 className="font-semibold text-black">{title}</h4>
         <Tooltip 
           content={
-            <div>
-              <p className="font-semibold mb-2">{title}</p>
-              <p className="mb-2">{description}</p>
+            <div className="max-w-sm">
+              <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
+              <p className="mb-2">Keywords that include your company/brand name with 10+ monthly searches</p>
               <p className="mb-2"><strong>What this shows:</strong></p>
-              <ul className="list-disc list-inside mb-2 text-xs">
-                <li>Your Google ranking position for brand terms</li>
-                <li>How often your brand appears on the page/site</li>
-                <li>Estimated monthly search volume for each term</li>
-                <li>Helps identify brand recognition and loyalty</li>
+              <ul className="list-disc list-inside mb-2 text-xs space-y-1">
+                <li>Multi-word keywords containing your brand name</li>
+                <li>Real Google Keyword Planner search volumes</li>
+                <li>Your current Google ranking positions</li>
+                <li>Keyword difficulty scores from Keywords Everywhere</li>
+                <li>Maximum 30 results, sorted by highest volume first</li>
               </ul>
-              <p><strong>Why Important:</strong> Higher rankings and mentions indicate stronger brand presence</p>
+              <p className="text-xs"><strong>Why Important:</strong> These show how people search for your brand and services together</p>
             </div>
           }
           position="top"
         >
-          <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium">?</div>
+          <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium bg-white shadow-sm">?</div>
         </Tooltip>
       </div>
       
@@ -104,39 +107,74 @@ export default function BrandedKeywordTable({
         </div>
         
         <div className="divide-y">
-          {currentKeywords.map((keyword, index) => (
-            <div key={index} className="px-4 py-3 hover:bg-gray-50">
-              <div className="grid grid-cols-12 gap-4 items-center text-sm">
-                <div className="col-span-4">
-                  <span className="text-gray-900 font-medium">{keyword.keyword}</span>
-                </div>
-                <div className="col-span-2 text-center">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    keyword.position === 0 ? 'text-gray-500 bg-gray-50' :
-                    keyword.position && keyword.position <= 3 ? 'text-green-600 bg-green-50' :
-                    keyword.position && keyword.position <= 10 ? 'text-blue-600 bg-blue-50' :
-                    keyword.position && keyword.position <= 20 ? 'text-orange-600 bg-orange-50' :
-                    'text-red-600 bg-red-50'
-                  }`}>
-                    {!keyword.position || keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
-                  </span>
-                </div>
-                <div className="col-span-3 text-center">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
-                    {keyword.mentions || 1} times
-                  </span>
-                </div>
-                <div className="col-span-3 text-center text-gray-600">
-                  {(keyword.volume || 0).toLocaleString()}/mo
+          {/* Show paginated keywords on screen */}
+          <div className="screen-only">
+            {currentKeywords.map((keyword, index) => (
+              <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                  <div className="col-span-4">
+                    <span className="text-gray-900 font-medium">{keyword.keyword}</span>
+                  </div>
+                  <div className="col-span-2 text-center">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      keyword.position === 0 ? 'text-gray-500 bg-gray-50' :
+                      keyword.position && keyword.position <= 3 ? 'text-green-600 bg-green-50' :
+                      keyword.position && keyword.position <= 10 ? 'text-blue-600 bg-blue-50' :
+                      keyword.position && keyword.position <= 20 ? 'text-orange-600 bg-orange-50' :
+                      'text-red-600 bg-red-50'
+                    }`}>
+                      {!keyword.position || keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-center">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
+                      {keyword.mentions || 1} times
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-center text-gray-600">
+                    {(keyword.volume || 0).toLocaleString()}/mo
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          
+          {/* Show all keywords in print mode */}
+          <div className="print-only">
+            {sortedKeywords.map((keyword, index) => (
+              <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                  <div className="col-span-4">
+                    <span className="text-gray-900 font-medium">{keyword.keyword}</span>
+                  </div>
+                  <div className="col-span-2 text-center">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      keyword.position === 0 ? 'text-gray-500 bg-gray-50' :
+                      keyword.position && keyword.position <= 3 ? 'text-green-600 bg-green-50' :
+                      keyword.position && keyword.position <= 10 ? 'text-blue-600 bg-blue-50' :
+                      keyword.position && keyword.position <= 20 ? 'text-orange-600 bg-orange-50' :
+                      'text-red-600 bg-red-50'
+                    }`}>
+                      {!keyword.position || keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-center">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
+                      {keyword.mentions || 1} times
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-center text-gray-600">
+                    {(keyword.volume || 0).toLocaleString()}/mo
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="screen-only flex items-center justify-between">
           <div className="text-sm text-gray-500">
             Showing {startIndex + 1}-{Math.min(endIndex, sortedKeywords.length)} of {sortedKeywords.length} keywords
           </div>

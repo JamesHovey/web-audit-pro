@@ -3,7 +3,7 @@
  * Shows detailed list of discovered pages when clicking on technical audit metrics
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -37,6 +37,13 @@ export function PageDetailsModal({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+
+  // Reset to page 1 when modal opens or filter changes
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentPage(1);
+    }
+  }, [isOpen, title, filterCondition]);
 
   if (!isOpen) return null;
 
@@ -128,7 +135,7 @@ export function PageDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -138,6 +145,14 @@ export function PageDetailsModal({
               Showing {Math.min(startIndex + 1, sortedPages.length)}-{Math.min(endIndex, sortedPages.length)} of {sortedPages.length} pages 
               {filteredPages.length !== pages.length && ` (filtered from ${pages.length} total)`}
             </p>
+            {title.includes('Missing H1') && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mt-2">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> These pages are missing H1 tags. All pages should have exactly one H1 tag for optimal SEO.
+                  Pages shown have status 200 (accessible) but no H1 tag detected.
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {/* Export Buttons */}
@@ -173,8 +188,8 @@ export function PageDetailsModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <div className="flex-1 overflow-hidden min-h-0">
+          <div className="h-full overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <table className="w-full">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
@@ -217,6 +232,11 @@ export function PageDetailsModal({
                       )}
                     </div>
                   </th>
+                  {title.includes('H1') && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      H1 Status
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -242,6 +262,15 @@ export function PageDetailsModal({
                         {page.statusCode}
                       </span>
                     </td>
+                    {title.includes('H1') && (
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                          page.hasH1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {page.hasH1 ? '✓ Has H1' : '✗ Missing H1'}
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -250,12 +279,15 @@ export function PageDetailsModal({
         </div>
 
         {/* Pagination Footer */}
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>Page {currentPage} of {totalPages}</span>
-            <span>•</span>
-            <span>{itemsPerPage} items per page</span>
-          </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <span>Page {currentPage} of {totalPages}</span>
+              <span>•</span>
+              <span>{itemsPerPage} items per page</span>
+              <span>•</span>
+              <span>{sortedPages.length} total results</span>
+            </div>
           
           <div className="flex items-center gap-3">
             {/* Pagination Controls */}
@@ -329,6 +361,19 @@ export function PageDetailsModal({
             </button>
           </div>
         </div>
+        )}
+        
+        {/* If no pagination needed, still show close button */}
+        {totalPages <= 1 && (
+          <div className="flex justify-end p-6 border-t bg-gray-50">
+            <button
+              onClick={onClose}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

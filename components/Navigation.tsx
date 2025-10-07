@@ -1,12 +1,7 @@
-"use client"
-
-import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { PMWLogo } from "./PMWLogo"
 
 export function Navigation() {
-  const { data: session } = useSession()
-
   return (
     <nav className="shadow-sm border-b" style={{ backgroundColor: 'var(--pmw-primary)', borderColor: 'var(--pmw-border)' }}>
       <div className="container-pmw">
@@ -19,26 +14,9 @@ export function Navigation() {
           </div>
           
           <div className="flex items-center space-x-4">
-            {session ? (
-              <>
-                <span className="text-white">
-                  {session.user?.name || session.user?.email}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-all"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="btn-pmw-accent text-sm px-4 py-2"
-              >
-                Sign In
-              </Link>
-            )}
+            <span className="text-white text-sm">
+              Demo Version
+            </span>
           </div>
         </div>
       </div>

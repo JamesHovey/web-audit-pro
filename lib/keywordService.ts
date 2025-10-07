@@ -91,6 +91,7 @@ interface KeywordAnalysis {
   domainAuthorityMethod?: string;
   domainAuthorityReliability?: 'high' | 'medium' | 'low';
   domainAuthoritySources?: Array<{source: string; score: number; success: boolean}>;
+  aboveFoldCompetitors?: any; // Competition analysis based on Above Fold Keywords
 }
 
 // Multi-page keyword analysis using real scraped content
@@ -124,13 +125,52 @@ export async function analyzeMultiPageKeywords(pages: string[], scope: string): 
 }
 
 // Enhanced keyword analysis using real website content
-export async function analyzeKeywords(domain: string, html: string): Promise<KeywordAnalysis> {
+export async function analyzeKeywords(domain: string, html: string, country: string = 'gb'): Promise<KeywordAnalysis> {
   try {
     const cleanDomain = domain?.replace(/^https?:\/\//, '')?.replace(/^www\./, '')?.split('/')[0] || 'example.com';
     
-    console.log(`\n=== KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
+    console.log(`\n=== ENHANCED KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
     
-    // Use Keywords Everywhere API (Bronze package) - ONLY API for keyword data
+    // Try enhanced analysis first
+    try {
+      const { analyzeKeywordsEnhanced } = await import('./enhancedKeywordService');
+      const enhancedResult = await analyzeKeywordsEnhanced(domain, html, country);
+      
+      // Convert enhanced result to legacy format for compatibility
+      const legacyResult: KeywordAnalysis = {
+        brandedKeywords: enhancedResult.brandedKeywords,
+        nonBrandedKeywords: enhancedResult.nonBrandedKeywords,
+        brandedKeywordsList: enhancedResult.brandedKeywordsList,
+        nonBrandedKeywordsList: enhancedResult.nonBrandedKeywordsList,
+        topKeywords: enhancedResult.topKeywords,
+        topCompetitors: enhancedResult.topCompetitors,
+        aboveFoldKeywords: enhancedResult.aboveFoldKeywords,
+        aboveFoldKeywordsList: enhancedResult.aboveFoldKeywordsList,
+        aboveFoldCompetitors: enhancedResult.aboveFoldCompetitors,
+        estimationMethod: enhancedResult.analysisMethod,
+        brandName: enhancedResult.businessDetection.primaryType.category,
+        dataSource: `Enhanced Analysis (${enhancedResult.businessDetection.detectionSources.join(', ')})`,
+        aboveFoldDiscoveryMethod: enhancedResult.aboveFoldKeywords && enhancedResult.aboveFoldKeywords > 0 ? 'valueserp_actual_rankings' : 'api_required',
+        intentDistribution: {
+          informational: enhancedResult.keywordsByIntent.informational,
+          commercial: enhancedResult.keywordsByIntent.commercial,
+          transactional: enhancedResult.keywordsByIntent.transactional,
+          navigational: enhancedResult.keywordsByIntent.navigational
+        }
+      };
+      
+      console.log(`✅ Enhanced analysis complete: ${enhancedResult.totalGeneratedKeywords} keywords generated`);
+      console.log(`🎯 Business Type: ${enhancedResult.businessDetection.primaryType.category} - ${enhancedResult.businessDetection.primaryType.subcategory}`);
+      console.log(`📊 Business Relevance: ${(enhancedResult.businessRelevanceScore * 100).toFixed(1)}%`);
+      
+      return legacyResult;
+      
+    } catch (enhancedError) {
+      console.log('⚠️ Enhanced analysis failed, falling back to basic analysis:', enhancedError);
+      // Continue with original implementation below
+    }
+    
+    // Original implementation as fallback
     const { KeywordsEverywhereService } = await import('./keywordsEverywhereService');
     const keService = new KeywordsEverywhereService();
     
@@ -146,19 +186,36 @@ export async function analyzeKeywords(domain: string, html: string): Promise<Key
     const businessType = await detectBusinessType(html, cleanDomain);
     const industry = detectIndustry(html, cleanDomain);
     
-    // Generate keywords based on content
-    const brandedKeywordsList = generateBrandedKeywords(brandName, businessType, industry);
-    const nonBrandedKeywordsList = generateNonBrandedKeywords(businessType, industry, html, cleanDomain);
+    console.log(`🏷️ Brand name extracted: "${brandName}" for domain: ${cleanDomain}`);
+    console.log(`🏢 Business type: ${businessType}`);
+    
+    // Generate keywords based on content - FOCUS ON LONG-TAIL ONLY
+    const rawBrandedKeywords = generateBrandedKeywords(brandName, businessType, industry);
+    console.log(`🎯 Generated ${rawBrandedKeywords.length} raw branded keywords`);
+    
+    // Allow single keywords that match the brand name, plus all multi-word keywords
+    const allowedBrandedKeywords = rawBrandedKeywords.filter(k => {
+      const wordCount = k.keyword.split(' ').length;
+      const isExactBrandMatch = k.keyword.toLowerCase() === brandName.toLowerCase();
+      return wordCount >= 2 || isExactBrandMatch;
+    });
+    console.log(`📏 ${allowedBrandedKeywords.length} branded keywords (including single brand name)`);
+    
+    const brandedKeywordsList = allowedBrandedKeywords.filter(k => k.keyword.toLowerCase().includes(brandName.toLowerCase()));
+    console.log(`🏷️ ${brandedKeywordsList.length} branded keywords containing "${brandName}":`);
+    console.log(brandedKeywordsList.slice(0, 5).map(k => `  - "${k.keyword}"`).join('\n'));
+    const nonBrandedKeywordsList = generateNonBrandedKeywords(businessType, industry, html, cleanDomain)
+      .filter(k => k.keyword.split(' ').length >= 2); // Only multi-word keywords
     
     // Get real volumes from Keywords Everywhere
     const allKeywords = [...brandedKeywordsList, ...nonBrandedKeywordsList];
     const keywordStrings = allKeywords.map(k => k.keyword);
     
-    console.log(`📊 Getting real volumes for ${keywordStrings.length} keywords from Keywords Everywhere...`);
+    console.log(`📊 Getting real volumes for ${keywordStrings.length} keywords from Keywords Everywhere (${country.toUpperCase()})...`);
     
     let volumeData: any[] = [];
     try {
-      volumeData = await keService.getSearchVolumes(keywordStrings, 'gb');
+      volumeData = await keService.getSearchVolumes(keywordStrings, country);
     } catch (error) {
       console.error('Keywords Everywhere API error:', error);
       // Continue with estimated data if API fails
@@ -202,15 +259,72 @@ export async function analyzeKeywords(domain: string, html: string): Promise<Key
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
       .slice(0, 15);
     
-    // Detect competitors
+    // Discover ACTUAL above-fold rankings (positions 1-3)
+    console.log('🔍 Discovering actual above-fold rankings...');
+    let aboveFoldKeywordsList: KeywordData[] = [];
+    let aboveFoldDiscoveryMethod = 'content_opportunity_analysis';
+    try {
+      const { discoverAboveFoldKeywords } = await import('./aboveFoldDiscovery');
+      const aboveFoldAnalysis = await discoverAboveFoldKeywords(
+        cleanDomain, 
+        html, 
+        country,
+        allEnhancedKeywords,
+        businessType
+      );
+      
+      aboveFoldDiscoveryMethod = aboveFoldAnalysis.discoveryMethod;
+      
+      if (aboveFoldAnalysis.keywords.length > 0) {
+        console.log(`✅ Found ${aboveFoldAnalysis.keywords.length} actual top 3 rankings!`);
+        aboveFoldKeywordsList = aboveFoldAnalysis.keywords.map(k => ({
+          keyword: k.keyword,
+          position: k.position,
+          volume: k.volume || 0,
+          difficulty: k.difficulty || 40,
+          type: 'non-branded' as const
+        }));
+      }
+    } catch (error) {
+      console.log('Could not discover above-fold rankings:', error);
+      // Fallback to estimated top positions
+      aboveFoldKeywordsList = topKeywords.filter(k => k.position <= 3);
+      aboveFoldDiscoveryMethod = 'content_opportunity_analysis';
+    }
+    
+    // Analyze keyword competition based on Above Fold Keywords
+    console.log('🏆 Analyzing keyword competition based on above-fold keywords...');
+    let keywordCompetition = null;
+    try {
+      const { analyzeKeywordCompetition } = await import('./keywordCompetitionService');
+      if (aboveFoldKeywordsList.length > 0) {
+        keywordCompetition = await analyzeKeywordCompetition(cleanDomain, aboveFoldKeywordsList, country);
+      }
+    } catch (error) {
+      console.log('Could not analyze keyword competition:', error);
+    }
+    
+    // Detect competitors (legacy method - keeping for now)
     const topCompetitors = await detectRealCompetitors(cleanDomain, businessType, industry);
     
     console.log(`✅ Keywords Everywhere analysis complete - ${keService.getCreditsUsed()} credits used`);
     
+    // Filter and limit branded keywords (volume >= 10, max 30, sorted by volume)
+    console.log(`🔄 Enhanced branded keywords: ${enhancedBrandedKeywords.length}`);
+    const volumeFilteredBrandedKeywords = enhancedBrandedKeywords.filter(k => (k.volume || 0) >= 10);
+    console.log(`📊 Branded keywords with volume >= 10: ${volumeFilteredBrandedKeywords.length}`);
+    
+    const filteredBrandedKeywords = volumeFilteredBrandedKeywords
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+      .slice(0, 30);
+    
+    console.log(`✅ Final branded keywords for display: ${filteredBrandedKeywords.length}`);
+    console.log(filteredBrandedKeywords.slice(0, 3).map(k => `  - "${k.keyword}" (${k.volume} vol)`).join('\n'));
+
     return {
-      brandedKeywords: enhancedBrandedKeywords.length,
+      brandedKeywords: filteredBrandedKeywords.length,
       nonBrandedKeywords: enhancedNonBrandedKeywords.length,
-      brandedKeywordsList: enhancedBrandedKeywords,
+      brandedKeywordsList: filteredBrandedKeywords,
       nonBrandedKeywordsList: enhancedNonBrandedKeywords,
       topKeywords,
       topCompetitors,
@@ -225,8 +339,11 @@ export async function analyzeKeywords(domain: string, html: string): Promise<Key
       domainAuthorityMethod: domainAuthorityResult.estimationMethod,
       domainAuthorityReliability: domainAuthorityResult.reliability,
       domainAuthoritySources: domainAuthorityResult.sources,
-      aboveFoldKeywords: topKeywords.filter(k => k.position <= 3).length,
-      aboveFoldKeywordsList: topKeywords.filter(k => k.position <= 3)
+      aboveFoldKeywords: aboveFoldKeywordsList.length,
+      aboveFoldKeywordsList: aboveFoldKeywordsList,
+      aboveFoldDiscoveryMethod: aboveFoldDiscoveryMethod,
+      keywordCompetition: keywordCompetition,
+      aboveFoldCompetitors: null // Legacy field - replaced by keywordCompetition
     };
     
   } catch (error) {
@@ -236,21 +353,17 @@ export async function analyzeKeywords(domain: string, html: string): Promise<Key
 }
 
 function extractBrandName(domain: string, html: string): string {
-  // const lowerHtml = html.toLowerCase();
-  
-  // Try to extract from title tag
-  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (titleMatch) {
-    const title = titleMatch[1];
-    const words = title.split(/[\s-|]+/).filter(word => word.length > 2);
-    if (words.length > 0) {
-      return words[0];
-    }
-  }
-  
-  // Fallback to domain name
+  // Always use domain name as the primary source for brand name
+  // This ensures we get the actual company name, not random content words
   const domainParts = domain.split('.');
-  return domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+  const primaryDomain = domainParts[0];
+  
+  // Capitalize the domain name properly
+  const brandName = primaryDomain.charAt(0).toUpperCase() + primaryDomain.slice(1);
+  
+  console.log(`🏷️ Brand name extracted from domain: "${brandName}" (domain: ${domain})`);
+  
+  return brandName;
 }
 
 // Enhanced business type detection using comprehensive analysis
@@ -273,6 +386,7 @@ async function detectBusinessType(html: string, domain: string): Promise<string>
     const lowerHtml = html.toLowerCase();
     
     const serviceTypes = [
+      { keywords: ['chocolate', 'tempering', 'moulds', 'equipment', 'machinery', 'processing'], type: 'Food Processing & Equipment' },
       { keywords: ['architect', 'architecture', 'architectural', 'design', 'building', 'construction'], type: 'Architecture & Design' },
       { keywords: ['marketing', 'advertising', 'promotion', 'branding'], type: 'Marketing & Digital' },
       { keywords: ['consulting', 'consultant', 'advisory', 'strategy'], type: 'Business Services' },
@@ -324,6 +438,53 @@ function detectIndustry(html: string, domain: string): string {
   return industries[Math.floor(seededRandom(seed, 0, industries.length))];
 }
 
+// Generate spaced variations of compound brand names
+function generateSpacedBrandVariations(brandName: string, seed: number): KeywordData[] {
+  const variations: KeywordData[] = [];
+  const lowerBrand = brandName.toLowerCase();
+  
+  // Common patterns for splitting compound brand names
+  const commonPrefixes = ['vantage', 'business', 'digital', 'prime', 'smart', 'pro', 'expert', 'elite', 'top', 'best'];
+  const commonSuffixes = ['house', 'group', 'solutions', 'services', 'works', 'lab', 'tech', 'pro', 'hub', 'point'];
+  
+  // Try to find common prefix/suffix patterns
+  for (const prefix of commonPrefixes) {
+    if (lowerBrand.startsWith(prefix) && lowerBrand.length > prefix.length) {
+      const remainder = lowerBrand.substring(prefix.length);
+      if (remainder.length >= 3) {
+        const spacedVersion = `${prefix} ${remainder}`;
+        variations.push({
+          keyword: spacedVersion,
+          position: 1,
+          volume: Math.floor(80 + seededRandom(seed + 50, 0, 200)),
+          difficulty: 12,
+          type: 'branded'
+        });
+        break; // Only add one spaced variation
+      }
+    }
+  }
+  
+  for (const suffix of commonSuffixes) {
+    if (lowerBrand.endsWith(suffix) && lowerBrand.length > suffix.length) {
+      const remainder = lowerBrand.substring(0, lowerBrand.length - suffix.length);
+      if (remainder.length >= 3) {
+        const spacedVersion = `${remainder} ${suffix}`;
+        variations.push({
+          keyword: spacedVersion,
+          position: 1,
+          volume: Math.floor(60 + seededRandom(seed + 60, 0, 150)),
+          difficulty: 15,
+          type: 'branded'
+        });
+        break; // Only add one spaced variation
+      }
+    }
+  }
+  
+  return variations;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateBrandedKeywords(brandName: string, businessType: string, _industry: string): KeywordData[] {
   try {
@@ -334,6 +495,9 @@ function generateBrandedKeywords(brandName: string, businessType: string, _indus
     // Direct brand searches
     { keyword: brandName, position: 1, volume: Math.floor(150 + seededRandom(seed + 1, 0, 500)), difficulty: 10, type: 'branded' },
     { keyword: `${brandLower}`, position: 1, volume: Math.floor(100 + seededRandom(seed + 2, 0, 300)), difficulty: 15, type: 'branded' },
+    
+    // Add spaced version for compound brand names (e.g., "Vantagehouse" -> "vantage house")
+    ...generateSpacedBrandVariations(brandName, seed),
     
     // Brand + services
     { keyword: `${brandName} services`, position: Math.floor(seededRandom(seed + 3, 1, 10)), volume: Math.floor(50 + seededRandom(seed + 3, 0, 200)), difficulty: 20, type: 'branded' },
@@ -414,6 +578,17 @@ function generateBusinessTypeBrandedKeywords(brandName: string, businessType: st
         { keyword: `${brandName} legal advice`, position: Math.floor(seededRandom(seed + 10, 1, 10)), volume: Math.floor(25 + seededRandom(seed + 10, 0, 75)), difficulty: 35, type: 'branded' }
       );
       break;
+    case 'Food & Hospitality':
+      keywords.push(
+        { keyword: `${brandName} restaurant`, position: Math.floor(seededRandom(seed + 11, 1, 10)), volume: Math.floor(50 + seededRandom(seed + 11, 0, 150)), difficulty: 25, type: 'branded' },
+        { keyword: `${brandName} menu`, position: Math.floor(seededRandom(seed + 12, 1, 10)), volume: Math.floor(40 + seededRandom(seed + 12, 0, 120)), difficulty: 20, type: 'branded' },
+        { keyword: `${brandName} food`, position: Math.floor(seededRandom(seed + 13, 1, 10)), volume: Math.floor(60 + seededRandom(seed + 13, 0, 180)), difficulty: 30, type: 'branded' },
+        { keyword: `${brandName} dining`, position: Math.floor(seededRandom(seed + 14, 1, 10)), volume: Math.floor(35 + seededRandom(seed + 14, 0, 100)), difficulty: 25, type: 'branded' },
+        { keyword: `${brandName} catering`, position: Math.floor(seededRandom(seed + 15, 1, 10)), volume: Math.floor(30 + seededRandom(seed + 15, 0, 90)), difficulty: 35, type: 'branded' },
+        { keyword: `${brandName} equipment`, position: Math.floor(seededRandom(seed + 16, 1, 10)), volume: Math.floor(45 + seededRandom(seed + 16, 0, 135)), difficulty: 30, type: 'branded' },
+        { keyword: `${brandName} supplies`, position: Math.floor(seededRandom(seed + 17, 1, 10)), volume: Math.floor(25 + seededRandom(seed + 17, 0, 75)), difficulty: 40, type: 'branded' }
+      );
+      break;
   }
   
   return keywords;
@@ -421,35 +596,49 @@ function generateBusinessTypeBrandedKeywords(brandName: string, businessType: st
 
 function generateNonBrandedKeywords(businessType: string, industry: string, html: string, domain?: string): KeywordData[] {
   try {
-    // const keywords: KeywordData[] = [];
+    console.log(`🎯 Generating business-relevant non-branded keywords for: ${businessType}`);
     
-    // Extract content-based keywords
-    const contentKeywords = extractContentKeywords(html || '', domain);
+    // Extract business-focused content keywords (improved filtering)
+    const contentKeywords = extractBusinessContentKeywords(html || '', domain, businessType);
     
     // Generate industry-specific keywords
     const industryKeywords = generateIndustryKeywords(businessType || 'Business Services', industry || 'Professional Services');
     
-    // Prioritize industry keywords and combine with content keywords
-    // Ensure we always get some industry-specific keywords for the detected business type
-    const prioritizedIndustryKeywords = (industryKeywords || []).slice(0, 8); // Take top 8 industry keywords
-    const prioritizedContentKeywords = (contentKeywords || []).slice(0, 17); // Take top 17 content keywords
+    // Generate contextual business keywords based on detected business type
+    const contextualKeywords = generateContextualBusinessKeywords(businessType, html);
     
-    const allNonBranded = [...prioritizedIndustryKeywords, ...prioritizedContentKeywords];
+    // Combine all keyword sources with priority weighting
+    const prioritizedIndustryKeywords = (industryKeywords || []).slice(0, 12); // Increased industry keywords
+    const prioritizedContentKeywords = (contentKeywords || []).slice(0, 8); // Reduced generic content
+    const prioritizedContextualKeywords = (contextualKeywords || []).slice(0, 10); // Added contextual keywords
     
-    // Remove case-insensitive duplicates and normalize to lowercase
-    const seenNonBrandedKeywords = new Set<string>();
-    const uniqueNonBranded = allNonBranded.filter(kw => {
+    const allNonBranded = [...prioritizedIndustryKeywords, ...prioritizedContentKeywords, ...prioritizedContextualKeywords];
+    
+    // Apply business relevance filtering similar to Above Fold Keywords
+    const businessRelevantKeywords = allNonBranded.filter(kw => {
+      const keyword = (kw.keyword || '').toLowerCase().trim();
+      
+      // Skip if too short or generic
+      if (keyword.length < 3) return false;
+      
+      // Apply business relevance check
+      return isBusinessRelevantKeyword(keyword) && hasAppropriateVolume(kw.volume || 0);
+    });
+    
+    // Remove duplicates and normalize
+    const seenKeywords = new Set<string>();
+    const uniqueNonBranded = businessRelevantKeywords.filter(kw => {
       const normalizedKeyword = (kw.keyword || '').toLowerCase().trim();
-      if (seenNonBrandedKeywords.has(normalizedKeyword) || normalizedKeyword.length < 2) return false;
-      seenNonBrandedKeywords.add(normalizedKeyword);
+      if (seenKeywords.has(normalizedKeyword)) return false;
+      seenKeywords.add(normalizedKeyword);
       return true;
     });
 
-    console.log(`🎯 Keyword mix: ${prioritizedIndustryKeywords.length} industry + ${prioritizedContentKeywords.length} content = ${uniqueNonBranded.length} unique`);
+    console.log(`🎯 Business keyword mix: ${prioritizedIndustryKeywords.length} industry + ${prioritizedContentKeywords.length} content + ${prioritizedContextualKeywords.length} contextual = ${uniqueNonBranded.length} business-relevant`);
 
-    return uniqueNonBranded.slice(0, 25).map(kw => ({
+    return uniqueNonBranded.slice(0, 30).map(kw => ({
       ...kw,
-      keyword: (kw.keyword || '').toLowerCase(), // Normalize to lowercase
+      keyword: (kw.keyword || '').toLowerCase(),
       volume: Math.round(kw.volume || 0),
       position: Math.round(kw.position || 1),
       difficulty: Math.round(kw.difficulty || 50),
@@ -458,11 +647,388 @@ function generateNonBrandedKeywords(businessType: string, industry: string, html
   } catch (error) {
     console.error('Error generating non-branded keywords:', error);
     return [
-      { keyword: 'professional services', position: 8, volume: 1200, difficulty: 55, type: 'non-branded' },
-      { keyword: 'business consulting', position: 12, volume: 800, difficulty: 48, type: 'non-branded' },
-      { keyword: 'expert advice', position: 15, volume: 600, difficulty: 42, type: 'non-branded' }
+      { keyword: 'commercial machinery', position: 12, volume: 800, difficulty: 48, type: 'non-branded' },
+      { keyword: 'professional equipment', position: 15, volume: 600, difficulty: 42, type: 'non-branded' },
+      { keyword: 'business services', position: 18, volume: 500, difficulty: 35, type: 'non-branded' }
     ];
   }
+}
+
+// Business relevance filtering functions (reused from Above Fold logic)
+function isBusinessRelevantKeyword(keyword: string): boolean {
+  const lowerKeyword = keyword.toLowerCase();
+  
+  // Filter out generic website elements
+  const genericTerms = [
+    'latest news', 'all rights', 'rights are', 'are reserved', 'all rights are reserved',
+    'click here', 'read more', 'learn more', 'get started', 'contact us', 'about us',
+    'privacy policy', 'terms conditions', 'cookie policy', 'home page', 'sign up',
+    'log in', 'subscribe', 'newsletter', 'follow us', 'social media', 'facebook',
+    'twitter', 'linkedin', 'instagram', 'youtube', 'have you seen', 'connect with us',
+    'get the latest', 'rights reserved', 'copyright', 'cookies', 'website uses',
+    'small businesses', 'large and small', 'before you', 'try before',
+    'we can help', 'can help you', 'help you get', 'get the best', 'you get the',
+    'over 30 years', 'best solutions', 'current promotions', 'grab a bargain'
+  ];
+  
+  // Filter out generic terms
+  if (genericTerms.some(term => lowerKeyword.includes(term))) {
+    return false;
+  }
+  
+  // Must contain business-relevant terms
+  const businessTerms = [
+    'machine', 'machines', 'equipment', 'machinery', 'apparatus', 'device', 'system',
+    'chocolate', 'confection', 'confectionery', 'candy', 'cocoa', 'food', 'processing',
+    'commercial', 'industrial', 'manufacturing', 'production', 'tempering', 'molding',
+    'refining', 'conching', 'enrobing', 'cooling', 'wrapping', 'packaging', 'melting',
+    'service', 'services', 'support', 'maintenance', 'repair', 'installation', 'training',
+    'finance', 'lease', 'rental', 'supplier', 'supplies', 'solutions', 'nut butter',
+    'cheese', 'dairy', 'ingredient', 'ingredients', 'butter', 'cream', 'second hand',
+    'used', 'refurbished', 'sale', 'industry', 'manufacturer', 'factory', 'plant'
+  ];
+  
+  return businessTerms.some(term => lowerKeyword.includes(term));
+}
+
+function hasAppropriateVolume(volume: number): boolean {
+  return volume >= 10 && volume <= 10000; // Business-relevant volume range
+}
+
+function extractBusinessContentKeywords(html: string, domain?: string, businessType?: string): KeywordData[] {
+  const keywords: KeywordData[] = [];
+  
+  // Filter HTML content to focus on business areas
+  const businessContent = filterBusinessContent(html);
+  const lowerText = businessContent.toLowerCase();
+  
+  // Extract title and meta description for context
+  const title = extractTitle(html);
+  const metaDescription = extractMetaDescription(html);
+  const headings = extractHeadings(html);
+  
+  // Focus on business-relevant content areas
+  const businessFocusedContent = `${title} ${metaDescription} ${headings.join(' ')} ${businessContent}`.toLowerCase();
+  
+  // Extract only business-relevant contextual keywords
+  const contentBasedKeywords = extractBusinessContextualKeywords(businessFocusedContent, businessType);
+  
+  // Convert to KeywordData format
+  const baseSeed = hashCode((domain || 'default') + html.substring(0, 200));
+  contentBasedKeywords.forEach((keyword, index) => {
+    if (keyword.length > 8 && keyword.length < 50 && isBusinessRelevantKeyword(keyword)) {
+      keywords.push({
+        keyword: keyword,
+        position: Math.floor(Math.random() * 15) + 8, // Positions 8-22 for non-branded
+        volume: Math.floor(estimateKeywordVolume(keyword) * (0.5 + seededRandom(baseSeed + index + 100, 0, 1.0))),
+        difficulty: Math.floor(estimateKeywordDifficulty(keyword) + seededRandom(baseSeed + index + 200, -15, 15)),
+        type: 'non-branded'
+      });
+    }
+  });
+  
+  return keywords.slice(0, 15); // Limit to top business-relevant keywords
+}
+
+function filterBusinessContent(html: string): string {
+  if (!html) return '';
+  
+  // Remove script, style, and other non-content elements
+  let cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  cleanHtml = cleanHtml.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, ''); // Remove navigation
+  cleanHtml = cleanHtml.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, ''); // Remove footer
+  
+  // Extract text and filter out generic lines
+  const text = cleanHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const lines = text.split(/[\n\r.!?]+/);
+  
+  const businessLines = lines.filter(line => {
+    const lowerLine = line.toLowerCase().trim();
+    
+    // Skip lines with generic content
+    const genericPatterns = [
+      'all rights reserved', 'copyright', '©', 'privacy policy', 'terms', 'conditions',
+      'cookie policy', 'latest news', 'follow us', 'social media', 'newsletter',
+      'subscribe', 'sign up', 'log in', 'contact us', 'about us', 'home page'
+    ];
+    
+    return !genericPatterns.some(pattern => lowerLine.includes(pattern)) && lowerLine.length > 10;
+  });
+  
+  return businessLines.join(' ');
+}
+
+function extractBusinessContextualKeywords(content: string, businessType?: string): string[] {
+  const keywords: string[] = [];
+  const words = content.split(/\s+/).filter(word => word.length > 2);
+  
+  // Extract business-focused phrases (2-4 words)
+  for (let i = 0; i < words.length - 1; i++) {
+    // Two word phrases
+    const twoWord = `${words[i]} ${words[i+1]}`;
+    if (isBusinessPhrase(twoWord, businessType)) {
+      keywords.push(twoWord);
+    }
+    
+    // Three word phrases
+    if (i < words.length - 2) {
+      const threeWord = `${words[i]} ${words[i+1]} ${words[i+2]}`;
+      if (isBusinessPhrase(threeWord, businessType)) {
+        keywords.push(threeWord);
+      }
+    }
+    
+    // Four word phrases (for specific services)
+    if (i < words.length - 3) {
+      const fourWord = `${words[i]} ${words[i+1]} ${words[i+2]} ${words[i+3]}`;
+      if (isBusinessPhrase(fourWord, businessType) && fourWord.length < 40) {
+        keywords.push(fourWord);
+      }
+    }
+  }
+  
+  // Remove duplicates and return unique business phrases
+  return [...new Set(keywords)].filter(k => k.length > 8 && k.length < 50);
+}
+
+function isBusinessPhrase(phrase: string, businessType?: string): boolean {
+  const lowerPhrase = phrase.toLowerCase();
+  
+  // Must contain business terms
+  const businessTerms = [
+    'machine', 'equipment', 'chocolate', 'commercial', 'industrial', 'processing',
+    'manufacturing', 'tempering', 'molding', 'food', 'service', 'supplier', 'machinery'
+  ];
+  
+  const hasBusinessTerm = businessTerms.some(term => lowerPhrase.includes(term));
+  if (!hasBusinessTerm) return false;
+  
+  // Additional relevance for specific business types
+  if (businessType === 'Food & Hospitality') {
+    const foodTerms = ['chocolate', 'food', 'nut butter', 'cheese', 'dairy', 'ingredient'];
+    return foodTerms.some(term => lowerPhrase.includes(term));
+  }
+  
+  return true;
+}
+
+function generateContextualBusinessKeywords(businessType: string, html: string): KeywordData[] {
+  const keywords: KeywordData[] = [];
+  const baseSeed = hashCode(businessType + html.substring(0, 100));
+  
+  // Generate business-type specific keywords
+  let contextualKeywords: string[] = [];
+  
+  switch (businessType) {
+    case 'Food & Hospitality':
+      contextualKeywords = [
+        'commercial food equipment',
+        'industrial food processing',
+        'food manufacturing machinery',
+        'food processing machinery',
+        'commercial kitchen equipment',
+        'food production machinery',
+        'confectionery equipment',
+        'dairy processing equipment',
+        'food machinery supplier',
+        'commercial food processing',
+        'industrial food machinery',
+        'food equipment supplier',
+        'restaurant equipment',
+        'catering services',
+        'hospitality services'
+      ];
+      break;
+      
+    case 'Marketing & Digital':
+      contextualKeywords = [
+        'digital marketing agency',
+        'marketing services',
+        'advertising campaigns',
+        'brand strategy',
+        'social media marketing',
+        'seo services',
+        'ppc advertising',
+        'content marketing',
+        'graphic design services',
+        'web design agency',
+        'marketing consultancy',
+        'digital advertising',
+        'brand development',
+        'creative agency',
+        'marketing strategy',
+        'online marketing',
+        'digital campaigns',
+        'brand identity',
+        'marketing communications',
+        'full service agency'
+      ];
+      break;
+      
+    case 'Legal Services':
+      contextualKeywords = [
+        'legal services',
+        'solicitor services',
+        'family law',
+        'commercial law',
+        'employment law',
+        'personal injury',
+        'conveyancing services',
+        'legal advice',
+        'litigation services',
+        'legal consultation',
+        'property law',
+        'criminal law',
+        'divorce law',
+        'legal representation',
+        'law firm',
+        'legal expertise',
+        'court representation',
+        'legal support',
+        'legal guidance',
+        'professional legal'
+      ];
+      break;
+      
+    case 'Healthcare & Medical':
+      contextualKeywords = [
+        'medical services',
+        'healthcare services',
+        'medical treatment',
+        'health consultation',
+        'medical care',
+        'healthcare professionals',
+        'medical expertise',
+        'health screening',
+        'medical diagnosis',
+        'healthcare solutions',
+        'medical specialists',
+        'health services',
+        'medical practice',
+        'healthcare providers',
+        'medical consultation',
+        'health assessment',
+        'medical support',
+        'healthcare delivery',
+        'medical professionals',
+        'health management'
+      ];
+      break;
+      
+    case 'Construction & Trades':
+      contextualKeywords = [
+        'building services',
+        'construction work',
+        'home improvements',
+        'building contractors',
+        'construction projects',
+        'building maintenance',
+        'property development',
+        'construction services',
+        'building work',
+        'home renovations',
+        'construction company',
+        'building solutions',
+        'property services',
+        'construction expertise',
+        'building professionals',
+        'construction management',
+        'building specialists',
+        'property maintenance',
+        'construction contractors',
+        'building industry'
+      ];
+      break;
+      
+    case 'Financial Services':
+      contextualKeywords = [
+        'financial services',
+        'accounting services',
+        'tax advice',
+        'financial planning',
+        'business accounting',
+        'tax preparation',
+        'financial consultation',
+        'bookkeeping services',
+        'financial management',
+        'tax services',
+        'financial advice',
+        'accounting solutions',
+        'financial expertise',
+        'tax planning',
+        'financial support',
+        'accounting firm',
+        'financial guidance',
+        'tax compliance',
+        'financial professionals',
+        'accounting consultancy'
+      ];
+      break;
+      
+    case 'Architecture & Design':
+      contextualKeywords = [
+        'architectural services',
+        'design services',
+        'architectural design',
+        'building design',
+        'planning services',
+        'architectural consultancy',
+        'design consultancy',
+        'architectural planning',
+        'design solutions',
+        'architectural expertise',
+        'design professionals',
+        'planning permission',
+        'architectural drawings',
+        'design development',
+        'architectural projects',
+        'design innovation',
+        'architectural practice',
+        'design studio',
+        'architectural specialists',
+        'planning consultancy'
+      ];
+      break;
+      
+    default:
+      // Generic business keywords for unlisted types
+      contextualKeywords = [
+        'business services',
+        'professional services',
+        'commercial solutions',
+        'business solutions',
+        'professional expertise',
+        'business consultancy',
+        'commercial services',
+        'professional support',
+        'business management',
+        'commercial expertise',
+        'professional advice',
+        'business development',
+        'commercial consultancy',
+        'professional guidance',
+        'business strategy',
+        'commercial support',
+        'professional solutions',
+        'business expertise',
+        'commercial guidance',
+        'professional services'
+      ];
+      break;
+  }
+  
+  contextualKeywords.forEach((keyword, index) => {
+    keywords.push({
+      keyword: keyword.toLowerCase(),
+      position: Math.floor(seededRandom(baseSeed + index + 1, 8, 22)), // Positions 8-22
+      volume: Math.floor(seededRandom(baseSeed + index + 100, 50, 2000)), // 50-2000 volume range
+      difficulty: Math.floor(seededRandom(baseSeed + index + 200, 35, 65)), // 35-65 difficulty
+      type: 'non-branded'
+    });
+  });
+  
+  return keywords;
 }
 
 function extractContentKeywords(html: string, domain?: string): KeywordData[] {
@@ -661,6 +1227,20 @@ function generateIndustryKeywords(businessType: string, _industry: string): Keyw
   // const keywords: KeywordData[] = [];
   
   const keywordSets = {
+    'Food Processing & Equipment': [
+      { keyword: 'chocolate machines uk', position: 12, volume: 320, difficulty: 48 },
+      { keyword: 'chocolate tempering machine', position: 15, volume: 280, difficulty: 52 },
+      { keyword: 'chocolate processing equipment', position: 18, volume: 420, difficulty: 45 },
+      { keyword: 'chocolate moulds uk', position: 20, volume: 180, difficulty: 38 },
+      { keyword: 'commercial chocolate equipment', position: 22, volume: 350, difficulty: 55 },
+      { keyword: 'chocolate manufacturing machinery', position: 25, volume: 260, difficulty: 50 },
+      { keyword: 'food processing machinery uk', position: 28, volume: 480, difficulty: 58 },
+      { keyword: 'nut butter machines', position: 30, volume: 220, difficulty: 42 },
+      { keyword: 'chocolate enrobing machine', position: 32, volume: 190, difficulty: 46 },
+      { keyword: 'industrial chocolate equipment', position: 35, volume: 310, difficulty: 60 },
+      { keyword: 'chocolate conching machine', position: 38, volume: 150, difficulty: 44 },
+      { keyword: 'chocolate cooling tunnel', position: 40, volume: 120, difficulty: 40 }
+    ],
     'Architecture & Design': [
       { keyword: 'architects devon', position: 12, volume: 520, difficulty: 45 },
       { keyword: 'architects exeter', position: 15, volume: 320, difficulty: 42 },
@@ -697,7 +1277,7 @@ function generateIndustryKeywords(businessType: string, _industry: string): Keyw
     ]
   };
   
-  const industryKeywords = keywordSets[businessType as keyof typeof keywordSets] || keywordSets['Marketing & Digital'];
+  const industryKeywords = keywordSets[businessType as keyof typeof keywordSets] || keywordSets['Business Services'];
   
   return industryKeywords.map(kw => ({
     ...kw,

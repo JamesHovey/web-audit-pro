@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
-    const { url, sections, scope = 'single', pages = [url] } = body
+    const { url, sections, scope = 'single', country = 'gb', pages = [url] } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -29,10 +21,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 })
     }
 
-    // Create audit record with scope and pages info
+    // Ensure demo user exists
+    const demoUserId = "demo-user-id"
+    let demoUser = await prisma.user.findUnique({
+      where: { id: demoUserId }
+    })
+    
+    if (!demoUser) {
+      // Create demo user if it doesn't exist
+      demoUser = await prisma.user.create({
+        data: {
+          id: demoUserId,
+          email: "demo@webauditpro.com",
+          name: "Demo User"
+        }
+      })
+    }
+
+    // Create audit record with demo user
     const audit = await prisma.audit.create({
       data: {
-        userId: session.user.id,
+        userId: demoUserId,
         url,
         sections: sections,
         status: "pending",
@@ -88,37 +97,8 @@ export async function POST(request: NextRequest) {
             // Always use getCostEffectiveTrafficData for consistent traffic numbers
             results.traffic = await getCostEffectiveTrafficData(url)
             
-            // For "All Discoverable Pages", add page popularity analysis
-            if (scope === 'all') {
-              const { analyzePagePopularity } = await import('@/lib/pagePopularityAnalyzer')
-              const popularPagesResult = await analyzePagePopularity(url)
-              
-              if (popularPagesResult.pages.length > 0) {
-                results.traffic.popularPages = {
-                  pages: popularPagesResult.pages.map(page => ({
-                    url: page.url,
-                    title: page.title,
-                    estimatedTrafficShare: page.estimatedTrafficShare,
-                    signals: {
-                      isHomepage: page.signals.isHomepage,
-                      navigationPosition: page.signals.navigationPosition,
-                      internalLinkCount: page.signals.internalLinkCount,
-                      urlDepth: page.signals.urlDepth
-                    },
-                    internalLinks: page.internalLinks
-                  })),
-                  methodology: popularPagesResult.methodology,
-                  confidence: popularPagesResult.confidence,
-                  discoveredPages: popularPagesResult.discoveredPages,
-                  analyzedPages: popularPagesResult.analyzedPages
-                }
-              }
-              results.traffic.scope = scope
-              results.traffic.totalPages = popularPagesResult.discoveredPages || pages.length
-            } else {
-              results.traffic.scope = scope
-              results.traffic.totalPages = pages.length
-            }
+            results.traffic.scope = scope
+            results.traffic.totalPages = pages.length
 
           } else if (section === 'keywords') {
             const { analyzeKeywords } = await import('@/lib/keywordService')
@@ -128,7 +108,9 @@ export async function POST(request: NextRequest) {
             // Fetch HTML content for more accurate analysis
             let htmlContent = '';
             try {
-              const response = await fetch(mainPage, {
+              // Normalize URL to ensure it has a protocol
+              const normalizedUrl = mainPage.startsWith('http') ? mainPage : `https://${mainPage}`;
+              const response = await fetch(normalizedUrl, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
                 redirect: 'follow',
                 signal: AbortSignal.timeout(10000)
@@ -140,7 +122,7 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for keyword analysis:', error);
             }
             
-            results.keywords = await analyzeKeywords(url, htmlContent)
+            results.keywords = await analyzeKeywords(url, htmlContent, country)
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')

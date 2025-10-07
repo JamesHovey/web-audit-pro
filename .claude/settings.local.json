@@ -37,7 +37,10 @@
       "WebFetch(domain:www.domcop.com)",
       "WebFetch(domain:www.livingspacearchitects.com)",
       "WebFetch(domain:trajectdata.com)",
-      "WebFetch(domain:www.lupagedigital.com)"
+      "WebFetch(domain:www.lupagedigital.com)",
+      "WebFetch(domain:www.valueserp.com)",
+      "WebFetch(domain:docs.trajectdata.com)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": [],

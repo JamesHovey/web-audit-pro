@@ -99,9 +99,8 @@ export default function NonBrandedKeywordTable({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h4 className="font-semibold text-black">{title}</h4>
-        <div className="relative group inline-block">
-          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 w-80">
+        <Tooltip 
+          content={
             <div>
               <p className="font-semibold mb-2">Non-branded Keywords</p>
               <p className="mb-2 text-xs">{description}</p>
@@ -115,9 +114,11 @@ export default function NonBrandedKeywordTable({
               </div>
               <p className="text-xs font-medium text-yellow-300">Note: "Not ranking" means no verified position data available</p>
             </div>
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-          </div>
-        </div>
+          }
+          position="bottom"
+        >
+          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
+        </Tooltip>
       </div>
       
       <div className="border rounded-lg overflow-hidden">
@@ -172,30 +173,56 @@ export default function NonBrandedKeywordTable({
         </div>
         
         <div className="divide-y">
-          {currentKeywords.map((keyword, index) => {
-            return (
-              <div key={index} className="px-4 py-3 hover:bg-gray-50">
-                <div className="grid grid-cols-12 gap-4 items-center text-sm">
-                  <div className="col-span-6">
-                    <span className="text-gray-900 font-medium">{keyword.keyword}</span>
-                  </div>
-                  <div className="col-span-2 text-center">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(keyword.position)}`}>
-                      {keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
-                    </span>
-                  </div>
-                  <div className="col-span-4 text-center text-gray-600">
-                    {(keyword.volume || 0).toLocaleString()}/mo
+          {/* Show paginated keywords on screen */}
+          <div className="screen-only">
+            {currentKeywords.map((keyword, index) => {
+              return (
+                <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                  <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                    <div className="col-span-6">
+                      <span className="text-gray-900 font-medium">{keyword.keyword}</span>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(keyword.position)}`}>
+                        {keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
+                      </span>
+                    </div>
+                    <div className="col-span-4 text-center text-gray-600">
+                      {(keyword.volume || 0).toLocaleString()}/mo
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+          
+          {/* Show all keywords in print mode */}
+          <div className="print-only">
+            {sortedKeywords.map((keyword, index) => {
+              return (
+                <div key={index} className="px-4 py-3 hover:bg-gray-50">
+                  <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                    <div className="col-span-6">
+                      <span className="text-gray-900 font-medium">{keyword.keyword}</span>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(keyword.position)}`}>
+                        {keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
+                      </span>
+                    </div>
+                    <div className="col-span-4 text-center text-gray-600">
+                      {(keyword.volume || 0).toLocaleString()}/mo
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
       
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="screen-only flex items-center justify-between">
           <div className="text-sm text-gray-500">
             Showing {startIndex + 1}-{Math.min(endIndex, sortedKeywords.length)} of {sortedKeywords.length} keywords
             {filteredKeywords.length < (keywords || []).length && (

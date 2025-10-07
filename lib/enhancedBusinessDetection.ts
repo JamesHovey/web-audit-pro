@@ -55,11 +55,19 @@ const BUSINESS_TYPES = {
     subcategories: ['Car Repair', 'Car Sales', 'MOT Testing', 'Parts & Accessories', 'Car Rental']
   },
 
+  'Food Processing & Equipment': {
+    keywords: ['chocolate machines', 'chocolate equipment', 'food processing', 'food machinery', 'tempering', 'chocolate moulds', 'nut butter machines', 'processing equipment', 'food manufacturing', 'chocolate processing', 'equipment supplier', 'machinery supplier', 'commercial equipment', 'industrial equipment'],
+    ukTerms: ['equipment hire', 'machinery finance', 'try before you buy', 'equipment leasing', 'uk supplier'],
+    schemas: ['Organization', 'LocalBusiness', 'Store'],
+    urlPatterns: ['/equipment', '/machinery', '/chocolate', '/processing', '/supplier', '/finance'],
+    subcategories: ['Chocolate Equipment', 'Food Processing Equipment', 'Nut Processing Equipment']
+  },
+
   'Food & Hospitality': {
-    keywords: ['restaurant', 'cafe', 'food', 'dining', 'menu', 'kitchen', 'chef', 'catering', 'hotel', 'accommodation', 'pub', 'bar'],
-    ukTerms: ['takeaway', 'gastropub', 'bed and breakfast', 'guest house'],
+    keywords: ['restaurant', 'cafe', 'dining', 'menu', 'kitchen', 'chef', 'catering', 'hotel', 'accommodation', 'pub', 'bar', 'bistro', 'brasserie', 'eatery', 'food service', 'hospitality'],
+    ukTerms: ['takeaway', 'gastropub', 'bed and breakfast', 'guest house', 'fine dining', 'table booking'],
     schemas: ['Restaurant', 'FoodEstablishment', 'Hotel'],
-    urlPatterns: ['/menu', '/booking', '/rooms', '/dining'],
+    urlPatterns: ['/menu', '/booking', '/rooms', '/dining', '/restaurant'],
     subcategories: ['Restaurant', 'Cafe', 'Catering', 'Hotel', 'Pub/Bar']
   },
 
@@ -72,10 +80,10 @@ const BUSINESS_TYPES = {
   },
 
   'Marketing & Digital': {
-    keywords: ['marketing', 'advertising', 'digital', 'seo', 'ppc', 'social media', 'branding', 'website', 'web design', 'agency'],
-    ukTerms: ['digital marketing', 'google ads', 'facebook ads'],
-    schemas: ['AdvertisingAgency', 'MarketingAgency'],
-    urlPatterns: ['/services', '/portfolio', '/case-studies', '/digital'],
+    keywords: ['marketing', 'advertising', 'digital', 'seo', 'ppc', 'social media', 'branding', 'website', 'web design', 'agency', 'communications', 'creative', 'strategy', 'campaign', 'brand', 'content', 'graphic design', 'pr', 'public relations'],
+    ukTerms: ['digital marketing', 'google ads', 'facebook ads', 'marketing agency', 'communications agency', 'full service'],
+    schemas: ['AdvertisingAgency', 'MarketingAgency', 'Organization'],
+    urlPatterns: ['/services', '/portfolio', '/case-studies', '/digital', '/about'],
     subcategories: ['Digital Marketing', 'SEO Agency', 'Web Design', 'Advertising', 'Social Media']
   },
 
@@ -407,10 +415,16 @@ export class EnhancedBusinessDetector {
     const methods = candidates.filter(c => c.type === topType).map(c => c.method);
     const config = BUSINESS_TYPES[topType as keyof typeof BUSINESS_TYPES];
     
+    // Determine specific subcategory based on content analysis
+    let subcategory = config?.subcategories[0] || 'General';
+    if (config?.subcategories) {
+      subcategory = this.detectSpecificSubcategory(topType, config.subcategories);
+    }
+    
     return {
       primaryType: {
         category: topType,
-        subcategory: config?.subcategories[0] || 'General',
+        subcategory,
         confidence,
         detectionMethods: methods,
         relevantKeywords: config?.keywords.slice(0, 10) || []
@@ -422,6 +436,118 @@ export class EnhancedBusinessDetector {
         detectionMethods: candidates.filter(c => c.type === type).map(c => c.method),
         relevantKeywords: BUSINESS_TYPES[type as keyof typeof BUSINESS_TYPES]?.keywords.slice(0, 5) || []
       }))
+    };
+  }
+
+  /**
+   * Detect specific subcategory within a business type
+   */
+  private detectSpecificSubcategory(businessType: string, subcategories: string[]): string {
+    if (!this.htmlContent) return subcategories[0];
+    
+    const content = this.htmlContent.toLowerCase();
+    
+    // Special logic for Food Processing & Equipment
+    if (businessType === 'Food Processing & Equipment') {
+      if (content.includes('chocolate') && (content.includes('machine') || content.includes('equipment') || content.includes('tempering') || content.includes('mould'))) {
+        return 'Chocolate Equipment';
+      }
+      if (content.includes('nut butter') || (content.includes('nut') && content.includes('processing'))) {
+        return 'Nut Processing Equipment';
+      }
+      return 'Food Processing Equipment';
+    }
+    
+    // For other business types, use simple keyword matching
+    for (const subcategory of subcategories) {
+      const subcatWords = subcategory.toLowerCase().split(' ');
+      if (subcatWords.some(word => content.includes(word))) {
+        return subcategory;
+      }
+    }
+    
+    return subcategories[0];
+  }
+
+  // Store HTML content for subcategory detection
+  private htmlContent: string = '';
+
+  /**
+   * Main detection method combining multiple approaches (updated to store HTML)
+   */
+  async detectBusinessType(domain: string, html: string): Promise<BusinessDetectionResult> {
+    console.log(`🔍 Enhanced business detection for: ${domain}`);
+    
+    // Store HTML for subcategory detection
+    this.htmlContent = html;
+    
+    const detectionSources: string[] = [];
+    const candidates: { type: string; confidence: number; method: string }[] = [];
+    
+    // Method 1: Content Analysis (Free)
+    const contentResult = this.analyzeContent(html);
+    if (contentResult.type) {
+      candidates.push({ type: contentResult.type, confidence: contentResult.confidence, method: 'content_analysis' });
+      detectionSources.push('Content Analysis');
+    }
+    
+    // Method 2: URL Structure Analysis (Free)
+    const urlResult = this.analyzeUrlStructure(html, domain);
+    if (urlResult.type) {
+      candidates.push({ type: urlResult.type, confidence: urlResult.confidence, method: 'url_analysis' });
+      detectionSources.push('URL Structure');
+    }
+    
+    // Method 3: Schema.org Markup (Free)
+    const schemaResult = this.analyzeSchemaMarkup(html);
+    if (schemaResult.type) {
+      candidates.push({ type: schemaResult.type, confidence: schemaResult.confidence, method: 'schema_markup' });
+      detectionSources.push('Schema Markup');
+    }
+    
+    // Method 4: Domain Name Analysis (Free)
+    const domainResult = this.analyzeDomainName(domain);
+    if (domainResult.type) {
+      candidates.push({ type: domainResult.type, confidence: domainResult.confidence, method: 'domain_analysis' });
+      detectionSources.push('Domain Analysis');
+    }
+    
+    // Method 5: UK-Specific Detection (Free)
+    const ukResult = this.analyzeUKSpecificTerms(html);
+    if (ukResult.type) {
+      candidates.push({ type: ukResult.type, confidence: ukResult.confidence, method: 'uk_terms' });
+      detectionSources.push('UK Business Terms');
+    }
+    
+    // Method 6: Navigation Analysis (Free)
+    const navResult = this.analyzeNavigation(html);
+    if (navResult.type) {
+      candidates.push({ type: navResult.type, confidence: navResult.confidence, method: 'navigation' });
+      detectionSources.push('Navigation Analysis');
+    }
+    
+    // Combine results with weighted scoring
+    const finalResult = this.combineResults(candidates);
+    
+    // Determine company size
+    const companySize = this.detectCompanySize(html);
+    
+    // Check if it's a local business
+    const localBusiness = this.isLocalBusiness(html);
+    
+    // Check if UK-specific
+    const ukSpecific = this.isUKBusiness(domain, html);
+    
+    console.log(`✅ Detection complete: ${finalResult.primaryType.category} (${finalResult.primaryType.confidence})`);
+    console.log(`📊 Sources used: ${detectionSources.join(', ')}`);
+    
+    return {
+      primaryType: finalResult.primaryType,
+      secondaryTypes: finalResult.secondaryTypes,
+      ukSpecific,
+      localBusiness,
+      companySize,
+      detectionSources
     };
   }
   
