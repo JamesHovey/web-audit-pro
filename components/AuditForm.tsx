@@ -5,6 +5,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from "@/components/Tooltip"
+import { ukDetectionService, UKDetectionResult } from "@/lib/ukDetectionService"
 
 const AUDIT_SECTIONS = [
   {
@@ -103,6 +104,8 @@ export function AuditForm() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]) // Default to nothing selected
   const [auditScope, setAuditScope] = useState<AuditScope>('single')
   const [country, setCountry] = useState('gb') // Default to United Kingdom
+  const [isUKCompany, setIsUKCompany] = useState(false) // New state for UK company flag
+  const [ukDetection, setUkDetection] = useState<UKDetectionResult | null>(null)
   const [discoveredPages, setDiscoveredPages] = useState<PageOption[]>([])
   const [isDiscoveringPages, setIsDiscoveringPages] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -130,6 +133,34 @@ export function AuditForm() {
     // Reset discovered pages when URL changes
     setDiscoveredPages([])
     setAuditScope('single')
+    // Reset UK detection when URL changes
+    setUkDetection(null)
+    
+    // Auto-detect UK if URL is valid
+    if (validateUrl(value)) {
+      detectUKCompany(value)
+    }
+  }
+
+  const detectUKCompany = async (urlToDetect: string) => {
+    try {
+      const detection = await ukDetectionService.detectUKCompany(urlToDetect)
+      setUkDetection(detection)
+      
+      // Auto-set UK company flag based on detection (behind the scenes)
+      setIsUKCompany(detection.isUKCompany)
+      
+      console.log('🔍 UK Detection (Hidden):', {
+        url: urlToDetect,
+        isUK: detection.isUKCompany,
+        confidence: detection.confidence,
+        reasoning: detection.reasoning
+      })
+    } catch (error) {
+      console.error('UK detection failed:', error)
+      setUkDetection(null)
+      setIsUKCompany(false) // Default to non-UK on failure
+    }
   }
 
   const discoverPages = async () => {
@@ -244,6 +275,7 @@ export function AuditForm() {
           sections: selectedSections,
           scope: auditScope,
           country: country, // Include selected country
+          isUKCompany: isUKCompany, // Include UK company flag
           pages: auditScope === 'custom' 
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
             : [urlToAudit] // For both 'single' and 'all' scopes, just send the main URL
@@ -316,7 +348,6 @@ export function AuditForm() {
             </div>
           )}
         </div>
-
 
         {/* Audit Scope Selection */}
         {isValidUrl && (

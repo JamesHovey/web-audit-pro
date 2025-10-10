@@ -449,7 +449,7 @@ export class EnhancedKeywordService {
           }
           
           // Higher confidence if capitalized properly
-          if (cleaned.split(' ').every(word => word[0] === word[0].toUpperCase())) {
+          if (cleaned.split(' ').every(word => word.length > 0 && word[0] === word[0].toUpperCase())) {
             confidence += 0.05;
           }
           

@@ -46,7 +46,8 @@ export class SophisticatedBusinessContextService {
   async analyzeBusinessIntelligence(
     domain: string, 
     html: string, 
-    companyName?: string
+    companyName?: string,
+    isUKCompany?: boolean
   ): Promise<BusinessIntelligence> {
     console.log(`🧠 Starting sophisticated business analysis for: ${domain}`);
     
@@ -85,7 +86,7 @@ export class SophisticatedBusinessContextService {
     // 2. Government Registry Lookup
     if (companyName) {
       try {
-        const registryData = await this.lookupCompanyRegistry(companyName, domain);
+        const registryData = await this.lookupCompanyRegistry(companyName, domain, html, isUKCompany);
         if (registryData) {
           intelligence.sicCodes = registryData.sicCodes;
           intelligence.naicsCode = registryData.naicsCode;
@@ -242,16 +243,70 @@ export class SophisticatedBusinessContextService {
   }
 
   /**
+   * Detect if a company is UK-based from multiple signals
+   */
+  private isUKCompany(domain: string, html: string): boolean {
+    const domainLower = domain.toLowerCase();
+    const htmlLower = html.toLowerCase();
+    
+    // Strong UK indicators
+    const ukDomainExtensions = ['.co.uk', '.uk', '.org.uk', '.gov.uk', '.ac.uk', '.ltd.uk', '.plc.uk'];
+    const hasDomainIndicator = ukDomainExtensions.some(ext => domainLower.includes(ext));
+    
+    // UK-specific terms in content
+    const ukBusinessTerms = [
+      'registered in england', 'registered in scotland', 'registered in wales',
+      'companies house', 'company number', 'vat number gb', 'gb vat',
+      'united kingdom', 'uk limited', 'ltd company', 'plc company',
+      'registered office:', 'company registration number'
+    ];
+    const hasContentIndicator = ukBusinessTerms.some(term => htmlLower.includes(term));
+    
+    // UK addresses/postcodes pattern
+    const ukPostcodePattern = /\b[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}\b/gi;
+    const hasUKPostcode = ukPostcodePattern.test(html);
+    
+    // UK phone number patterns (+44, 01, 02, etc.)
+    const ukPhonePattern = /(\+44|0044|01[0-9]{8,9}|02[0-9]{8,9}|07[0-9]{9})/;
+    const hasUKPhone = ukPhonePattern.test(html);
+    
+    // Decision logic
+    if (hasDomainIndicator) {
+      console.log(`🇬🇧 UK company detected via domain: ${domain}`);
+      return true;
+    }
+    
+    // Need at least 2 content indicators for non-UK domains
+    const indicatorCount = 
+      (hasContentIndicator ? 1 : 0) + 
+      (hasUKPostcode ? 1 : 0) + 
+      (hasUKPhone ? 1 : 0);
+    
+    if (indicatorCount >= 2) {
+      console.log(`🇬🇧 UK company detected via content signals (${indicatorCount} indicators)`);
+      return true;
+    }
+    
+    console.log(`🌍 Non-UK company: ${domain} (no UK indicators found)`);
+    return false;
+  }
+
+  /**
    * Lookup company in government registries
    */
-  private async lookupCompanyRegistry(companyName: string, domain: string): Promise<{
+  private async lookupCompanyRegistry(companyName: string, domain: string, html?: string, isUKCompany?: boolean): Promise<{
     sicCodes: string[];
     naicsCode: string;
     category: string;
   } | null> {
     
-    // Try UK Companies House first (if .co.uk or company name suggests UK)
-    if (domain.includes('.co.uk') || domain.includes('.uk')) {
+    // Use explicit UK flag if provided, otherwise auto-detect
+    const shouldUseCompaniesHouse = isUKCompany !== undefined 
+      ? isUKCompany 
+      : (html ? this.isUKCompany(domain, html) : false);
+    
+    if (shouldUseCompaniesHouse) {
+      console.log(`🇬🇧 UK company confirmed ${isUKCompany !== undefined ? '(user specified)' : '(auto-detected)'}: ${domain}`);
       try {
         const ukData = await this.lookupCompaniesHouse(companyName);
         if (ukData) return ukData;

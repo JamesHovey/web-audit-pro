@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, sections, scope = 'single', country = 'gb', pages = [url] } = body
+    const { url, sections, scope = 'single', country = 'gb', isUKCompany = false, pages = [url] } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for keyword analysis:', error);
             }
             
-            results.keywords = await analyzeKeywords(url, htmlContent, country)
+            results.keywords = await analyzeKeywords(url, htmlContent, country, isUKCompany)
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')

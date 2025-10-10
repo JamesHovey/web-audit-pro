@@ -125,7 +125,7 @@ export async function analyzeMultiPageKeywords(pages: string[], scope: string): 
 }
 
 // Enhanced keyword analysis using real website content
-export async function analyzeKeywords(domain: string, html: string, country: string = 'gb'): Promise<KeywordAnalysis> {
+export async function analyzeKeywords(domain: string, html: string, country: string = 'gb', isUKCompany: boolean = false): Promise<KeywordAnalysis> {
   try {
     const cleanDomain = domain?.replace(/^https?:\/\//, '')?.replace(/^www\./, '')?.split('/')[0] || 'example.com';
     
@@ -209,7 +209,7 @@ export async function analyzeKeywords(domain: string, html: string, country: str
     const brandedKeywordsList = allowedBrandedKeywords.filter(k => k.keyword.toLowerCase().includes(brandName.toLowerCase()));
     console.log(`🏷️ ${brandedKeywordsList.length} branded keywords containing "${brandName}":`);
     console.log(brandedKeywordsList.slice(0, 5).map(k => `  - "${k.keyword}"`).join('\n'));
-    const nonBrandedKeywordsList = generateNonBrandedKeywords(businessType, industry, html, cleanDomain)
+    const nonBrandedKeywordsList = (await generateNonBrandedKeywords(businessType, industry, html, cleanDomain, isUKCompany))
       .filter(k => k.keyword.split(' ').length >= 2); // Only multi-word keywords
     
     // Get real volumes from Keywords Everywhere
@@ -599,12 +599,12 @@ function generateBusinessTypeBrandedKeywords(brandName: string, businessType: st
   return keywords;
 }
 
-function generateNonBrandedKeywords(businessType: string, industry: string, html: string, domain?: string): KeywordData[] {
+async function generateNonBrandedKeywords(businessType: string, industry: string, html: string, domain?: string, isUKCompany?: boolean): Promise<KeywordData[]> {
   try {
     console.log(`🎯 Generating business-relevant non-branded keywords for: ${businessType}`);
     
     // Extract actual keywords from website content
-    const actualContentKeywords = await extractActualWebsiteKeywords(html || '', domain, businessType);
+    const actualContentKeywords = await extractActualWebsiteKeywords(html || '', domain, businessType, isUKCompany);
     
     // Generate industry-specific keywords with realistic volumes
     const industryKeywords = generateIndustryKeywords(businessType || 'Business Services', industry || 'Professional Services');
@@ -666,7 +666,7 @@ function generateNonBrandedKeywords(businessType: string, industry: string, html
 }
 
 // Extract actual keywords from website content
-async function extractActualWebsiteKeywords(html: string, domain?: string, businessType?: string): Promise<KeywordData[]> {
+async function extractActualWebsiteKeywords(html: string, domain?: string, businessType?: string, isUKCompany?: boolean): Promise<KeywordData[]> {
   const keywords: KeywordData[] = [];
   const baseSeed = hashCode((domain || 'default') + html.substring(0, 300));
   
@@ -678,11 +678,12 @@ async function extractActualWebsiteKeywords(html: string, domain?: string, busin
     // Get company name from meta tags or title
     const companyName = extractCompanyName(html, domain || '');
     
-    // Run sophisticated business analysis
+    // Run sophisticated business analysis with UK flag
     businessIntelligence = await sophisticatedService.analyzeBusinessIntelligence(
       domain || 'example.com',
       html,
-      companyName
+      companyName,
+      isUKCompany
     );
     
     console.log(`🧠 Sophisticated business context initialized:
@@ -797,8 +798,9 @@ async function extractActualWebsiteKeywords(html: string, domain?: string, busin
   Array.from(extractedPhrases).forEach((phraseWithSource, index) => {
     const [phrase, source] = phraseWithSource.split('|');
     // Phrase is already checked for business relevance above
-      // Calculate realistic volume based on phrase length and type
-      const wordCount = phrase.split(' ').length;
+    
+    // Calculate realistic volume based on phrase length and type
+    const wordCount = phrase.split(' ').length;
       let baseVolume = 1000;
       
       // Adjust volume based on word count (longer = lower volume)
@@ -830,7 +832,6 @@ async function extractActualWebsiteKeywords(html: string, domain?: string, busin
         difficulty: Math.round(difficulty),
         type: 'non-branded'
       });
-    }
   });
   
   // Sort by volume and return top keywords
