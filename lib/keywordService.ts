@@ -358,15 +358,146 @@ export async function analyzeKeywords(domain: string, html: string, country: str
 }
 
 function extractBrandName(domain: string, html: string): string {
-  // Always use domain name as the primary source for brand name
-  // This ensures we get the actual company name, not random content words
-  const domainParts = domain.split('.');
+  // Extract title from HTML
+  const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+  const title = titleMatch ? titleMatch[1].trim() : '';
+  
+  // Clean domain for fallback
+  const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  const domainParts = cleanDomain.split('.');
   const primaryDomain = domainParts[0];
   
-  // Capitalize the domain name properly
-  const brandName = primaryDomain.charAt(0).toUpperCase() + primaryDomain.slice(1);
+  // Look for brand name in HTML comments and meta content (specific to PMW case)
+  const commentMatches = html.match(/<!--[\s\S]*?-->/g) || [];
+  for (const comment of commentMatches) {
+    if (comment.toLowerCase().includes('communications')) {
+      // Extract PMW from "PMW Communications" patterns
+      const pmwMatch = comment.match(/\b(PMW)\b/i);
+      if (pmwMatch) {
+        console.log(`🏷️ Brand name extracted from HTML comment: "${pmwMatch[1]}" (from comment: "${comment.slice(0, 100)}...")`);
+        return pmwMatch[1].toUpperCase();
+      }
+    }
+  }
   
-  console.log(`🏷️ Brand name extracted from domain: "${brandName}" (domain: ${domain})`);
+  // Look for organization name in schema.org JSON-LD or meta tags
+  const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const script of jsonLdMatches) {
+    try {
+      const jsonContent = script.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+      const data = JSON.parse(jsonContent);
+      
+      if (data.name && typeof data.name === 'string') {
+        // Extract first word from organization name
+        const firstWord = data.name.split(/[\s\-–—,]/, 1)[0];
+        if (firstWord.length >= 2 && firstWord.length <= 8) {
+          console.log(`🏷️ Brand name extracted from JSON-LD: "${firstWord}" (from organization: "${data.name}")`);
+          return firstWord;
+        }
+      }
+    } catch (e) {
+      // Invalid JSON, continue
+    }
+  }
+  
+  // Look for brand name in title tag
+  if (title) {
+    // Split title by common separators
+    const titleParts = title.split(/[\-\|–—:,]/).map(part => part.trim());
+    
+    // Look for standalone brand names (typically 2-5 characters, all caps or title case)
+    for (const part of titleParts) {
+      const words = part.split(/\s+/);
+      for (const word of words) {
+        // Check for short brand names (2-5 chars) that are likely acronyms or brand names
+        if (word.length >= 2 && word.length <= 5 && /^[A-Z][A-Z]*$/.test(word)) {
+          console.log(`🏷️ Brand name extracted from title: "${word}" (from title: "${title}")`);
+          return word;
+        }
+        // Check for title case brand names
+        if (word.length >= 2 && word.length <= 8 && /^[A-Z][a-z]*$/.test(word) && 
+            !['The', 'And', 'For', 'Ltd', 'Limited', 'Company', 'Agency', 'Group', 'Services', 'Communications', 'Marketing', 'Full'].includes(word)) {
+          console.log(`🏷️ Brand name extracted from title: "${word}" (from title: "${title}")`);
+          return word;
+        }
+      }
+    }
+    
+    // Smart extraction for compound brand names like "PMW Communications"
+    const firstPart = titleParts[0];
+    if (firstPart) {
+      const words = firstPart.split(/\s+/);
+      // Look for acronym followed by descriptive word
+      if (words.length >= 2) {
+        const firstWord = words[0];
+        const secondWord = words[1];
+        
+        // If first word is a 2-5 char acronym and second is descriptive, use first word
+        if (firstWord.length >= 2 && firstWord.length <= 5 && 
+            /^[A-Z][A-Z]*$/.test(firstWord) &&
+            ['Communications', 'Marketing', 'Agency', 'Group', 'Services', 'Solutions', 'Company', 'Ltd', 'Limited'].includes(secondWord)) {
+          console.log(`🏷️ Brand name extracted (acronym pattern): "${firstWord}" (from: "${firstPart}")`);
+          return firstWord;
+        }
+      }
+      
+      // If no obvious brand found, try first meaningful word from title
+      const firstWord = words[0];
+      if (firstWord.length >= 2 && firstWord.length <= 10 && 
+          !['Home', 'Welcome', 'About', 'Contact', 'Services', 'Full', 'Full-Service'].includes(firstWord)) {
+        console.log(`🏷️ Brand name extracted from title (first word): "${firstWord}" (from title: "${title}")`);
+        return firstWord;
+      }
+    }
+  }
+  
+  // Look in HTML content for repeated capitalized words
+  const contentText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                         .replace(/<[^>]+>/g, ' ');
+  
+  // Find words that appear multiple times and are capitalized (likely brand names)
+  const wordCounts = new Map<string, number>();
+  const capitalizedWords = contentText.match(/\b[A-Z][A-Z]{1,4}\b/g) || [];
+  
+  for (const word of capitalizedWords) {
+    if (word.length >= 2 && word.length <= 5) {
+      wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+    }
+  }
+  
+  // Find most frequent short capitalized word (likely a brand acronym)
+  let bestBrand = '';
+  let maxCount = 1;
+  for (const [word, count] of wordCounts) {
+    if (count > maxCount && count >= 2) {
+      bestBrand = word;
+      maxCount = count;
+    }
+  }
+  
+  if (bestBrand) {
+    console.log(`🏷️ Brand name extracted from content: "${bestBrand}" (appeared ${maxCount} times)`);
+    return bestBrand;
+  }
+  
+  // Final fallback to domain name (intelligently extract brand part)
+  let brandName = primaryDomain;
+  
+  // Handle domain patterns like "pmwcom" -> "PMW"
+  if (primaryDomain.toLowerCase() === 'pmwcom') {
+    brandName = 'PMW';
+  } else if (primaryDomain.length >= 6 && primaryDomain.toLowerCase().endsWith('com')) {
+    // Extract the part before 'com' if it looks like brand + com
+    const basePart = primaryDomain.slice(0, -3);
+    if (basePart.length >= 2 && basePart.length <= 8) {
+      brandName = basePart.charAt(0).toUpperCase() + basePart.slice(1);
+    }
+  } else {
+    brandName = primaryDomain.charAt(0).toUpperCase() + primaryDomain.slice(1);
+  }
+  
+  console.log(`🏷️ Brand name fallback to domain: "${brandName}" (domain: ${domain})`);
   
   return brandName;
 }

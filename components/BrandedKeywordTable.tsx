@@ -26,11 +26,12 @@ export default function BrandedKeywordTable({
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   
-  // Sort keywords by volume (highest to lowest) - only show keywords with real volume data >= 50
+  // Sort keywords by volume (highest to lowest) - show branded keywords with volume > 5, limit to top 10
   const sortedKeywords = useMemo(() => {
     return [...(keywords || [])]
-      .filter(k => k.volume !== null && k.volume !== undefined && k.volume >= 50) // Only show keywords with real volume >= 50
-      .sort((a, b) => b.volume - a.volume) // Sort by volume descending
+      .filter(k => k.volume !== null && k.volume !== undefined && (k.volume || 0) > 5) // Show branded keywords with volume > 5
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0)) // Sort by volume descending
+      .slice(0, 10) // Limit to top 10 results
   }, [keywords])
   
   const totalPages = Math.ceil(sortedKeywords.length / itemsPerPage)
@@ -50,11 +51,11 @@ export default function BrandedKeywordTable({
             content={
               <div className="max-w-sm">
                 <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
-                <p className="mb-2">Keywords that include your company/brand name with 50+ monthly searches</p>
+                <p className="mb-2">Keywords that include your company/brand name (includes all branded terms)</p>
                 {hasKeywordsButLowVolume ? (
-                  <p className="text-xs"><strong>Low volume keywords found:</strong> We identified branded keywords for this website, but they don't currently get meaningful search volumes (50+/month).</p>
+                  <p className="text-xs"><strong>Low volume keywords found:</strong> We identified branded keywords for this website, but they don't currently get meaningful search volumes (5+/month).</p>
                 ) : (
-                  <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (50+/month) were discovered for this website.</p>
+                  <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (5+/month) were discovered for this website.</p>
                 )}
               </div>
             }
@@ -67,11 +68,11 @@ export default function BrandedKeywordTable({
           {hasKeywordsButLowVolume ? (
             <div>
               <p className="text-sm font-medium text-blue-600 mb-2">✓ Branded keywords identified!</p>
-              <p className="text-sm">We found {keywords.length} branded keyword{keywords.length > 1 ? 's' : ''} for your brand, but they don't currently get meaningful search volumes (50+/month).</p>
+              <p className="text-sm">We found {keywords.length} branded keyword{keywords.length > 1 ? 's' : ''} for your brand, but they don't currently get meaningful search volumes (5+/month).</p>
               <p className="text-xs text-gray-400 mt-2">This often happens with newer brands or niche businesses. Focus on building brand awareness to increase search volume.</p>
             </div>
           ) : (
-            <p className="text-sm">No branded keywords with sufficient search volume (50+/month) found.</p>
+            <p className="text-sm">No branded keywords with sufficient search volume (5+/month) found.</p>
           )}
         </div>
       </div>
@@ -86,7 +87,7 @@ export default function BrandedKeywordTable({
           content={
             <div className="max-w-sm">
               <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
-              <p className="mb-2">Keywords that include your company/brand name with 50+ monthly searches</p>
+              <p className="mb-2">Keywords that include your company/brand name (includes all branded terms)</p>
               <p className="mb-2"><strong>What this shows:</strong></p>
               <ul className="list-disc list-inside mb-2 text-xs space-y-1">
                 <li>Multi-word keywords containing your brand name</li>
@@ -292,7 +293,7 @@ export default function BrandedKeywordTable({
           ) : hasKeywordsButLowVolume ? (
             <>
               <p>
-                <strong>Brand awareness opportunity:</strong> We found branded keywords, but they have lower search volumes (under 50/month).
+                <strong>Brand awareness opportunity:</strong> We found branded keywords, but they have lower search volumes (under 5/month).
               </p>
               <div className="space-y-1">
                 <p><strong>Action items to grow brand awareness:</strong></p>

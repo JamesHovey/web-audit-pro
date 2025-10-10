@@ -10,9 +10,11 @@ export interface SemanticKeyword {
   relevanceScore: number;
   searchVolume?: number;
   difficulty?: number;
-  intent: 'commercial' | 'informational' | 'navigational' | 'transactional';
+  intent: 'commercial' | 'informational' | 'navigational' | 'transactional' | 'branded';
   longtail: boolean;
-  source: 'extracted' | 'semantic' | 'competitor' | 'suggestion';
+  source: 'extracted' | 'semantic' | 'competitor' | 'suggestion' | 'branded';
+  competition?: number;
+  cpc?: number;
 }
 
 export class SemanticKeywordExpansion {

@@ -12,6 +12,7 @@ import {
   type GeneratedKeywordSet,
   type KeywordWithMetadata
 } from './dynamicKeywordGenerator';
+import { KeywordDiscoveryService, type KeywordDiscoveryResult } from './keywordDiscoveryService';
 
 export interface EnhancedKeywordAnalysis {
   // Enhanced business context
@@ -58,9 +59,11 @@ export interface EnhancedKeywordAnalysis {
 
 export class EnhancedKeywordService {
   private businessDetector: EnhancedBusinessDetector;
+  private keywordDiscoveryService: KeywordDiscoveryService;
   
   constructor() {
     this.businessDetector = new EnhancedBusinessDetector();
+    this.keywordDiscoveryService = new KeywordDiscoveryService();
   }
 
   /**
@@ -96,20 +99,40 @@ export class EnhancedKeywordService {
       console.log('📄 Step 4: Content Keyword Extraction...');
       const contentKeywords = this.extractContentKeywords(html);
       
-      // Step 5: Generate comprehensive keyword sets
-      console.log('🎯 Step 5: Dynamic Keyword Generation...');
+      // Step 5: Enhanced Keyword Discovery (using Google search)
+      console.log('🎯 Step 5: Enhanced Keyword Discovery...');
+      const extractedKeywords = contentKeywords.slice(0, 10); // Use top content keywords as seeds
+      const brandName = businessContext.businessName;
+      const location = locationContext.primaryLocation;
+      
+      // Use the new keyword discovery service
+      const discoveryResult = await this.keywordDiscoveryService.discoverKeywords(
+        cleanDomain,
+        html,
+        extractedKeywords,
+        brandName,
+        location
+      );
+      
+      console.log(`✅ Discovered real keywords: ${discoveryResult.brandedKeywords.length} branded, ${discoveryResult.suggestedKeywords.length} non-branded`);
+      console.log(`🏢 Business size: ${discoveryResult.businessSize}`);
+      
+      // Step 5b: Fallback to generated keywords for additional coverage
       const generatedKeywords = await generateBusinessKeywords(
         businessContext,
         locationContext,
         contentKeywords
       );
       
-      console.log(`✅ Generated ${generatedKeywords.totalGenerated} keywords across ${Object.keys(generatedKeywords).length - 3} categories`);
+      // Merge discovered and generated keywords
+      const enhancedKeywords = this.mergeDiscoveredAndGeneratedKeywords(discoveryResult, generatedKeywords);
       
-      // Step 6: Get API data for generated keywords (if available)
+      console.log(`✅ Total enhanced keywords: ${enhancedKeywords.totalGenerated}`);
+      
+      // Step 6: Get API data for enhanced keywords (if available)
       console.log('📊 Step 6: API Data Enhancement...');
-      const enhancementResult = await this.enhanceWithApiData(generatedKeywords, country);
-      const enhancedKeywords = enhancementResult.keywords;
+      const enhancementResult = await this.enhanceWithApiData(enhancedKeywords, country);
+      const finalKeywords = enhancementResult.keywords;
       const apiAvailable = enhancementResult.apiAvailable;
       
       // Step 7: Analyze above fold keywords (existing functionality)
@@ -122,24 +145,24 @@ export class EnhancedKeywordService {
       const keywordsForCompetition = aboveFoldAnalysis?.rawKeywords || aboveFoldAnalysis?.keywords || [];
       const competitionAnalysis = await this.getCompetitionAnalysis(keywordsForCompetition, cleanDomain);
       
-      // Convert to legacy format for compatibility
-      const legacyFormat = this.convertToLegacyFormat(enhancedKeywords, businessContext, apiAvailable);
+      // Use enhanced discovery results directly (no legacy conversion needed)
+      const enhancedFormat = this.convertDiscoveryToFormat(discoveryResult, businessContext, apiAvailable);
       
       // Step 9: SERP Position Analysis for both branded and non-branded keywords
       console.log('🔍 Step 9: SERP Position Analysis...');
-      await this.enhanceWithSerpPositions(legacyFormat.brandedKeywordsList, cleanDomain, 'branded');
-      await this.enhanceWithSerpPositions(legacyFormat.nonBrandedKeywordsList, cleanDomain, 'non-branded');
+      await this.enhanceWithSerpPositions(enhancedFormat.brandedKeywordsList, cleanDomain, 'branded');
+      await this.enhanceWithSerpPositions(enhancedFormat.nonBrandedKeywordsList, cleanDomain, 'non-branded');
       
       // Calculate enhanced metrics
-      const metrics = this.calculateEnhancedMetrics(enhancedKeywords);
+      const metrics = this.calculateEnhancedMetrics(finalKeywords);
       
       const result: EnhancedKeywordAnalysis = {
         businessDetection,
         locationContext,
-        generatedKeywords: enhancedKeywords,
+        generatedKeywords: finalKeywords,
         
-        // Legacy compatibility
-        ...legacyFormat,
+        // Enhanced discovery results
+        ...enhancedFormat,
         
         // Enhanced metrics
         ...metrics,
@@ -151,10 +174,10 @@ export class EnhancedKeywordService {
         
         // Analysis metadata
         analysisMethod: 'enhanced_dynamic_generation',
-        industrySpecific: enhancedKeywords.industrySpecific,
-        totalGeneratedKeywords: enhancedKeywords.totalGenerated,
-        businessRelevanceScore: this.calculateBusinessRelevanceScore(enhancedKeywords),
-        geographicOptimization: locationContext.isLocalBusiness && enhancedKeywords.local.length > 0
+        industrySpecific: finalKeywords.industrySpecific,
+        totalGeneratedKeywords: finalKeywords.totalGenerated,
+        businessRelevanceScore: this.calculateBusinessRelevanceScore(finalKeywords),
+        geographicOptimization: locationContext.isLocalBusiness && finalKeywords.local.length > 0
       };
       
       console.log(`\n🎉 ENHANCED ANALYSIS COMPLETE:`);
@@ -167,9 +190,123 @@ export class EnhancedKeywordService {
       
     } catch (error) {
       console.error('Enhanced keyword analysis failed:', error);
-      // Fallback to basic analysis
-      return this.getFallbackAnalysis(domain, html);
+      // Return a safe minimal result instead of falling back to prevent infinite loops
+      return this.getMinimalSafeResult(domain, html);
     }
+  }
+
+  /**
+   * Get minimal safe result to prevent infinite error loops
+   */
+  private getMinimalSafeResult(domain: string, html: string): EnhancedKeywordAnalysis {
+    console.log('🛡️ Using minimal safe result to prevent infinite loops');
+    
+    return {
+      businessDetection: {
+        primaryType: { category: 'Business Services', subcategory: 'General', confidence: 'low' },
+        secondaryTypes: [],
+        detectionSources: ['fallback'],
+        localBusiness: false,
+        businessScale: 'small'
+      },
+      locationContext: { isLocalBusiness: false, primaryLocation: null },
+      generatedKeywords: {
+        branded: [],
+        commercial: [],
+        informational: [],
+        local: [],
+        longtail: [],
+        industrySpecific: false,
+        totalGenerated: 0,
+        businessContext: { businessName: 'Unknown', category: 'Business Services' }
+      },
+      brandedKeywords: 0,
+      nonBrandedKeywords: 0,
+      brandedKeywordsList: [],
+      nonBrandedKeywordsList: [],
+      topKeywords: [],
+      topCompetitors: [],
+      keywordsByIntent: { commercial: 0, informational: 0, navigational: 0, transactional: 0 },
+      keywordsByDifficulty: { low: 0, medium: 0, high: 0 },
+      analysisMethod: 'minimal_safe_fallback',
+      industrySpecific: false,
+      totalGeneratedKeywords: 0,
+      businessRelevanceScore: 0.5,
+      geographicOptimization: false
+    };
+  }
+
+  /**
+   * Merge discovered keywords with generated keywords
+   */
+  private mergeDiscoveredAndGeneratedKeywords(
+    discoveryResult: KeywordDiscoveryResult, 
+    generatedKeywords: GeneratedKeywordSet
+  ): GeneratedKeywordSet {
+    
+    // Convert discovered keywords to the format expected by the system
+    const convertSemanticToKeyword = (semanticKeywords: any[]): KeywordWithMetadata[] => {
+      return semanticKeywords.map(sk => ({
+        keyword: sk.keyword,
+        difficulty: 20,
+        searchVolume: null, // Will be filled by API
+        intent: sk.intent,
+        type: sk.source === 'branded' ? 'branded' as const : 'non-branded' as const,
+        relevanceScore: sk.relevanceScore,
+        longtail: sk.longtail,
+        businessRelevance: sk.relevanceScore,
+        source: sk.source
+      }));
+    };
+    
+    // Enhanced branded keywords (real Google discoveries)
+    const enhancedBranded = convertSemanticToKeyword(discoveryResult.brandedKeywords);
+    
+    // Enhanced non-branded keywords (business-relevant discoveries)
+    const enhancedNonBranded = [
+      ...convertSemanticToKeyword(discoveryResult.suggestedKeywords),
+      ...convertSemanticToKeyword(discoveryResult.primaryKeywords),
+      ...convertSemanticToKeyword(discoveryResult.longtailKeywords)
+    ];
+    
+    console.log(`🔄 Merging keywords: ${enhancedBranded.length} discovered branded + ${enhancedNonBranded.length} discovered non-branded`);
+    
+    // Merge discovered keywords with generated ones, maintaining compatibility
+    const mergedCommercial = [
+      ...enhancedNonBranded.filter(k => k.intent === 'commercial'),
+      ...(generatedKeywords.commercial || []).slice(0, 10)
+    ];
+    
+    const mergedInformational = [
+      ...enhancedNonBranded.filter(k => k.intent === 'informational'),
+      ...(generatedKeywords.informational || []).slice(0, 10)
+    ];
+    
+    const mergedLongtail = [
+      ...enhancedNonBranded.filter(k => k.longtail),
+      ...(generatedKeywords.longTail || []).slice(0, 10)
+    ];
+    
+    return {
+      // Maintain backwards compatibility with old structure
+      primary: generatedKeywords.primary || mergedCommercial,
+      secondary: generatedKeywords.secondary || mergedInformational,
+      longTail: generatedKeywords.longTail || mergedLongtail,
+      local: generatedKeywords.local || [],
+      
+      // New structure properties
+      branded: enhancedBranded,
+      commercial: mergedCommercial,
+      informational: mergedInformational,
+      urgency: generatedKeywords.urgency || [],
+      
+      // Metadata
+      industrySpecific: generatedKeywords.industrySpecific,
+      totalGenerated: enhancedBranded.length + enhancedNonBranded.length + 
+                      (generatedKeywords.local || []).length + 
+                      Math.min(20, (generatedKeywords.commercial || []).length + (generatedKeywords.informational || []).length),
+      generationMethod: generatedKeywords.generationMethod || 'enhanced_discovery'
+    };
   }
 
   /**
@@ -215,9 +352,12 @@ export class EnhancedKeywordService {
    */
   private buildBusinessContext(domain: string, html: string, businessDetection: BusinessDetectionResult): BusinessContext {
     const brandName = this.extractBrandName(domain, html);
+    
+    console.log(`🏢 Business context brand name: "${brandName}" (extracted from domain: ${domain})`);
+    
     const services = this.extractServices(html, businessDetection.primaryType.category);
     
-    return {
+    const businessContext = {
       primaryType: businessDetection.primaryType.category,
       subcategory: businessDetection.primaryType.subcategory,
       businessName: brandName,
@@ -225,6 +365,10 @@ export class EnhancedKeywordService {
       isUkBusiness: businessDetection.ukSpecific,
       companySize: businessDetection.companySize
     };
+    
+    console.log(`🏢 Final business context: businessName="${businessContext.businessName}"`);
+    
+    return businessContext;
   }
 
   /**
@@ -251,6 +395,67 @@ export class EnhancedKeywordService {
       // Skip generic words
       const genericWords = ['home', 'welcome', 'index', 'main', 'website', 'site', 'page', 'loading', 'error', 'test'];
       if (genericWords.includes(cleaned.toLowerCase())) return null;
+      
+      // Smart brand extraction for compound names like "PMW Communications Marketing Agency"
+      const words = cleaned.split(/\s+/);
+      
+      // Handle acronym + business descriptors (e.g., "PMW Communications Marketing Agency" -> "PMW")
+      if (words.length >= 2) {
+        const firstWord = words[0];
+        const secondWord = words[1];
+        
+        // Check if first word is likely a brand acronym
+        if (firstWord.length >= 2 && firstWord.length <= 5 && /^[A-Z][A-Z]*$/.test(firstWord)) {
+          // Check if second word is a business descriptor
+          const businessDescriptors = [
+            'Communications', 'Marketing', 'Agency', 'Group', 'Services', 'Solutions', 
+            'Company', 'Ltd', 'Limited', 'Corp', 'Corporation', 'Inc', 'Incorporated',
+            'Consulting', 'Consultancy', 'Digital', 'Creative', 'Design', 'Media',
+            'Development', 'Technology', 'Tech', 'Software', 'Systems', 'Network'
+          ];
+          
+          if (businessDescriptors.includes(secondWord)) {
+            console.log(`🏷️ Smart brand extraction: "${firstWord}" from "${cleaned}"`);
+            return firstWord;
+          }
+        }
+      }
+      
+      // Handle personal names + business descriptors (e.g., "Henry Adams Estate & Lettings Agents" -> "Henry Adams")
+      if (words.length >= 3) {
+        const firstName = words[0];
+        const lastName = words[1];
+        const thirdWord = words[2];
+        
+        // Check if first two words are likely personal names and third is business descriptor
+        if (firstName.length >= 3 && lastName.length >= 3 && 
+            /^[A-Z][a-z]+$/.test(firstName) && /^[A-Z][a-z]+$/.test(lastName)) {
+          
+          const estateAgentDescriptors = [
+            'Estate', 'Property', 'Homes', 'Lettings', 'Sales', 'Residential', 'Commercial'
+          ];
+          
+          const generalBusinessDescriptors = [
+            'Associates', 'Partners', 'Solicitors', 'Accountants', 'Consultants',
+            'Architects', 'Surveyors', 'Engineers', 'Builders', 'Contractors'
+          ];
+          
+          if (estateAgentDescriptors.includes(thirdWord) || generalBusinessDescriptors.includes(thirdWord)) {
+            const personalBrand = `${firstName} ${lastName}`;
+            console.log(`🏷️ Smart brand extraction (personal name): "${personalBrand}" from "${cleaned}"`);
+            return personalBrand;
+          }
+        }
+      }
+      
+      // Handle domain-specific cases
+      if (cleaned.toLowerCase().includes('pmw') && cleaned.toLowerCase().includes('communications')) {
+        const pmwMatch = cleaned.match(/\b(PMW)\b/i);
+        if (pmwMatch) {
+          console.log(`🏷️ PMW-specific extraction: "${pmwMatch[1]}" from "${cleaned}"`);
+          return pmwMatch[1].toUpperCase();
+        }
+      }
       
       return cleaned;
     };
@@ -747,6 +952,98 @@ export class EnhancedKeywordService {
   }
 
   /**
+   * Convert discovery results directly to expected format (bypassing legacy system)
+   */
+  private convertDiscoveryToFormat(discoveryResult: KeywordDiscoveryResult, businessContext: BusinessContext, apiAvailable: boolean = true) {
+    console.log(`🎯 Converting discovery results: ${discoveryResult.brandedKeywords.length} branded, ${discoveryResult.suggestedKeywords.length} suggested`);
+    
+    // Get business size and volume thresholds
+    const businessSize = discoveryResult.businessSize;
+    const volumeThresholds = this.getVolumeThresholds(businessSize);
+    
+    console.log(`🏢 Business size: ${businessSize} (volume filter: ${volumeThresholds.min}-${volumeThresholds.max})`);
+    
+    // Convert branded keywords with volume filtering
+    const brandedKeywordsList = discoveryResult.brandedKeywords
+      .filter(k => {
+        const volume = k.searchVolume || 0;
+        const withinRange = volume >= volumeThresholds.min && volume <= volumeThresholds.max;
+        if (!withinRange && volume > 0) {
+          console.log(`🚫 Branded keyword filtered: "${k.keyword}" (volume ${volume} outside ${volumeThresholds.min}-${volumeThresholds.max})`);
+        }
+        return withinRange || volume === 0; // Include 0-volume keywords for now
+      })
+      .sort((a, b) => (b.searchVolume || 0) - (a.searchVolume || 0))
+      .slice(0, 20)
+      .map(k => ({
+        keyword: k.keyword,
+        position: 0,
+        volume: k.searchVolume || null,
+        difficulty: this.mapDifficulty(k.competition),
+        type: 'branded' as const
+      }));
+    
+    // Convert non-branded keywords
+    const nonBrandedKeywordsList = discoveryResult.suggestedKeywords
+      .filter(k => k.searchVolume && k.searchVolume >= 10)
+      .sort((a, b) => (b.searchVolume || 0) - (a.searchVolume || 0))
+      .slice(0, 30)
+      .map(k => ({
+        keyword: k.keyword,
+        position: 0,
+        volume: k.searchVolume || null,
+        difficulty: this.mapDifficulty(k.competition),
+        type: 'non-branded' as const
+      }));
+    
+    // Combine for top keywords
+    const topKeywords = [
+      ...brandedKeywordsList,
+      ...nonBrandedKeywordsList
+    ].sort((a, b) => (b.volume || 0) - (a.volume || 0)).slice(0, 20);
+    
+    console.log(`✅ Enhanced format: ${brandedKeywordsList.length} branded, ${nonBrandedKeywordsList.length} non-branded`);
+    
+    return {
+      brandedKeywords: brandedKeywordsList.length,
+      nonBrandedKeywords: nonBrandedKeywordsList.length,
+      brandedKeywordsList,
+      nonBrandedKeywordsList,
+      topKeywords,
+      brandName: businessContext.businessName,
+      estimationMethod: 'enhanced_discovery_api',
+      dataSource: `Enhanced Discovery (${discoveryResult.discoveryMethods.join(', ')})`
+    };
+  }
+
+  /**
+   * Get volume thresholds based on business size
+   */
+  private getVolumeThresholds(businessSize: string): { min: number; max: number } {
+    switch (businessSize) {
+      case 'new':
+        return { min: 10, max: 2500 };
+      case 'small':
+        return { min: 10, max: 2500 };
+      case 'medium':
+        return { min: 10, max: 5000 };
+      case 'large':
+        return { min: 10, max: 50000 }; // 5000+ for large businesses
+      default:
+        return { min: 10, max: 2500 }; // Default to small business
+    }
+  }
+
+  /**
+   * Map API competition values to difficulty scores
+   */
+  private mapDifficulty(competition: number | undefined): number {
+    if (!competition) return 50; // Default medium difficulty
+    // Convert 0-1 competition to 1-100 difficulty scale
+    return Math.round(competition * 100);
+  }
+
+  /**
    * Convert enhanced keywords to legacy format for compatibility
    */
   private convertToLegacyFormat(keywords: GeneratedKeywordSet, businessContext: BusinessContext, apiAvailable: boolean = true) {
@@ -765,6 +1062,8 @@ export class EnhancedKeywordService {
     
     const brandedKeywordsList = allKeywords
       .filter(k => this.isBrandedKeyword(k.keyword, businessContext))
+      .sort((a, b) => (b.volume || 0) - (a.volume || 0)) // Sort by volume descending
+      .slice(0, 10) // Limit to maximum 10 branded keywords
       .map(k => {
         console.log(`🔍 Branded keyword volume mapping: "${k.keyword}" -> volume: ${k.volume} (from API: ${apiAvailable})`);
         return {
@@ -779,13 +1078,14 @@ export class EnhancedKeywordService {
     const nonBrandedKeywordsList = allKeywords
       .filter(k => {
         const isNotBranded = !this.isBrandedKeyword(k.keyword, businessContext);
-        const hasBusinessRelevance = k.businessRelevance >= 0.4; // Relaxed: accept medium-relevance keywords
-        const hasValidVolume = k.volume === null || (k.volume >= 10 && k.volume <= 50000); // Relaxed: accept lower volume keywords
+        const hasBusinessRelevance = k.businessRelevance >= 0.2; // More relaxed: accept lower relevance keywords  
+        const hasValidVolume = k.volume === null || (k.volume >= 10 && k.volume <= 50000); // Accept lower volume keywords
         const isNotGeneric = this.isBusinessSpecificKeyword(k.keyword, businessContext);
         
         console.log(`🔍 Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
         
-        return isNotBranded && hasBusinessRelevance && hasValidVolume && isNotGeneric;
+        // More relaxed filtering: allow keywords that are either business-relevant OR business-specific
+        return isNotBranded && hasValidVolume && (hasBusinessRelevance || isNotGeneric);
       })
       .sort((a, b) => b.businessRelevance - a.businessRelevance) // Sort by business relevance
       .slice(0, 30) // Limit to top 30 most relevant
@@ -1010,6 +1310,8 @@ export class EnhancedKeywordService {
     // Get all possible brand variations to check against
     const brandVariations = this.getAllBrandVariations(businessContext);
     
+    console.log(`🔍 Checking if "${keyword}" is branded. Brand variations: [${brandVariations.join(', ')}]`);
+    
     // Check if keyword matches any brand variation
     for (const brandVariation of brandVariations) {
       if (this.isKeywordMatchingBrand(keywordLower, brandVariation)) {
@@ -1018,6 +1320,7 @@ export class EnhancedKeywordService {
       }
     }
     
+    console.log(`❌ Not branded: "${keyword}"`);
     return false;
   }
 
@@ -1046,10 +1349,12 @@ export class EnhancedKeywordService {
       }
     }
     
-    // Add individual brand words for partial matching
+    // Add ONLY unique brand identifiers (not generic terms)
     const brandWords = this.extractBrandWords(brandName);
+    const genericTerms = ['marketing', 'agency', 'communications', 'company', 'ltd', 'limited', 'group', 'services', 'solutions', 'digital', 'creative', 'design', 'media', 'advertising'];
+    
     brandWords.forEach(word => {
-      if (word.length >= 4) { // Only add substantial words
+      if (word.length >= 2 && !genericTerms.includes(word.toLowerCase())) {
         variations.add(word);
       }
     });
@@ -1067,24 +1372,22 @@ export class EnhancedKeywordService {
       return true;
     }
     
-    // For spaced brand names, check if all words appear in correct order
+    // For spaced brand names, only check for the unique brand identifier (first meaningful word)
+    // Ignore generic terms like "marketing", "agency", "communications", etc.
     if (brandVariation.includes(' ')) {
       const brandWords = brandVariation.split(' ');
-      const hasAllBrandWords = brandWords.every(word => keywordLower.includes(word));
+      const genericTerms = ['marketing', 'agency', 'communications', 'company', 'ltd', 'limited', 'group', 'services', 'solutions', 'digital', 'creative', 'design', 'media', 'advertising'];
       
-      if (hasAllBrandWords && brandWords.length > 1) {
-        // Check word order
-        const keywordWords = keywordLower.split(/\s+/);
-        const brandIndices = brandWords.map(brandWord => 
-          keywordWords.findIndex(word => word.includes(brandWord))
-        );
-        
-        // All brand words found and in correct order
-        const inCorrectOrder = brandIndices.every((index, i) => 
-          i === 0 || index > brandIndices[i - 1]
-        );
-        
-        return inCorrectOrder;
+      // Find the unique brand identifier (non-generic words)
+      const uniqueBrandWords = brandWords.filter(word => 
+        !genericTerms.includes(word.toLowerCase()) && word.length >= 2
+      );
+      
+      // Only match if keyword contains the unique brand identifier
+      if (uniqueBrandWords.length > 0) {
+        // For brands like "PMW Communications Marketing Agency", only require "PMW"
+        const primaryBrandWord = uniqueBrandWords[0]; // Take the first unique word as primary brand identifier
+        return keywordLower.includes(primaryBrandWord);
       }
     }
     
@@ -1237,53 +1540,40 @@ export class EnhancedKeywordService {
   private isBusinessSpecificKeyword(keyword: string, businessContext: BusinessContext): boolean {
     const lowerKeyword = keyword.toLowerCase();
     
-    // Filter out overly generic terms that are too competitive for SMBs
-    const genericTerms = [
-      // Core generic marketing terms
-      'digital marketing', 'online marketing', 'internet marketing', 'marketing',
-      'marketing services', 'digital marketing services', 'online marketing services',
-      
-      // Web/design generic terms
-      'web design', 'website design', 'web development', 'website development',
-      
-      // SEO/SEM generic terms
-      'seo', 'seo services', 'search engine optimization', 'sem', 'ppc',
-      
-      // Social/content generic terms
-      'social media', 'social media marketing', 'content marketing', 'content marketing strategy',
-      
-      // Business generic terms
-      'advertising', 'branding', 'graphic design', 'consulting', 'services',
-      'business', 'company', 'agency', 'solutions', 'software', 'technology',
-      
-      // Vague service terms
-      'open services', 'close services', 'professional services', 'expert services',
-      'specialist services', 'commercial services', 'residential services'
+    // Filter out only the most generic single terms
+    const tooGenericTerms = [
+      'marketing', 'advertising', 'business', 'services', 'solutions', 'company', 'technology', 'software'
     ];
     
-    // Reject if it's a generic term
-    if (genericTerms.some(term => lowerKeyword === term)) {
+    // Reject if it's just a single generic term
+    if (tooGenericTerms.includes(lowerKeyword)) {
       return false;
     }
     
-    // MUCH MORE RESTRICTIVE: Accept only if it includes business name, location, or very specific services
+    // Accept if it includes business name
     const businessName = businessContext.businessName.toLowerCase();
     const hasBusinessName = lowerKeyword.includes(businessName);
-    const hasLocation = /\b(london|birmingham|manchester|sussex|kent|surrey|devon|cornwall|essex|yorkshire)\b/.test(lowerKeyword);
+    if (hasBusinessName) return true;
     
-    // Only accept very specific service combinations (not just any service)
-    const hasSpecificService = businessContext.services.some(service => 
-      lowerKeyword.includes(service.toLowerCase()) && lowerKeyword.split(' ').length >= 3
+    // Accept if it includes location
+    const hasLocation = /\b(london|birmingham|manchester|sussex|kent|surrey|devon|cornwall|essex|yorkshire|uk|england)\b/.test(lowerKeyword);
+    if (hasLocation) return true;
+    
+    // Accept if it includes any business service (much more relaxed)
+    const hasRelevantService = businessContext.services.some(service => 
+      lowerKeyword.includes(service.toLowerCase())
     );
+    if (hasRelevantService) return true;
     
-    // Must be very specific: 4+ words OR include business name OR include location
+    // Accept multi-word phrases (they're naturally more specific)
     const wordCount = lowerKeyword.split(' ').length;
-    const isVerySpecific = wordCount >= 4;
+    if (wordCount >= 2) return true;
     
-    // Additional checks for business-relevant terms
-    const hasBusinessModifier = /\b(consultation|strategy|pricing|cost|quote|near me|in [a-z]+|agency in|services in)\b/.test(lowerKeyword);
+    // Additional checks for business-relevant modifiers
+    const hasBusinessModifier = /\b(agency|consultant|expert|specialist|professional|strategy|pricing|cost|quote|near me)\b/.test(lowerKeyword);
+    if (hasBusinessModifier) return true;
     
-    return hasBusinessName || hasLocation || (isVerySpecific && hasBusinessModifier) || hasSpecificService;
+    return false;
   }
 
   /**

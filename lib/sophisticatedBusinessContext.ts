@@ -184,8 +184,9 @@ export class SophisticatedBusinessContextService {
     category: string;
     confidence: number;
   } | null> {
-    if (!this.googleApiKey) {
-      console.log('⚠️ Google API key not configured');
+    // Skip Google Natural Language API if not properly configured or if we want to save costs
+    if (!this.googleApiKey || process.env.SKIP_GOOGLE_NLP === 'true') {
+      console.log('⚠️ Google Natural Language API skipped (not configured or disabled)');
       return null;
     }
 
@@ -211,7 +212,19 @@ export class SophisticatedBusinessContextService {
       );
 
       if (!response.ok) {
-        throw new Error(`Google API error: ${response.status}`);
+        const errorBody = await response.text();
+        console.error(`Google Natural Language API error ${response.status}:`, errorBody);
+        
+        // Handle specific error cases
+        if (response.status === 403) {
+          console.log('💡 Google Natural Language API requires billing to be enabled in Google Cloud Console');
+          console.log('   Visit: https://console.cloud.google.com/billing');
+          console.log('   Or set SKIP_GOOGLE_NLP=true in .env.local to skip this API');
+        } else if (response.status === 401) {
+          console.log('💡 Invalid Google API key. Please check GOOGLE_API_KEY in .env.local');
+        }
+        
+        return null; // Return null instead of throwing to allow graceful fallback
       }
 
       const data = await response.json();
