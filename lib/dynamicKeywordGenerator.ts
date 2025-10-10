@@ -142,6 +142,15 @@ export class DynamicKeywordGenerator {
         this.createKeywordMetadata(businessName, 'primary', 'navigational', 'low', 1.0),
         this.createKeywordMetadata(`${businessName} services`, 'primary', 'commercial', 'medium', 0.8)
       );
+      
+      // Add natural brand name variations (e.g., "henryadams" -> "henry adams")
+      const brandVariations = this.generateBrandNameVariations(businessName);
+      brandVariations.forEach(variation => {
+        keywords.push(
+          this.createKeywordMetadata(variation, 'primary', 'navigational', 'low', 0.95),
+          this.createKeywordMetadata(`${variation} services`, 'primary', 'commercial', 'medium', 0.75)
+        );
+      });
     }
 
     // Add service-specific variations
@@ -422,9 +431,17 @@ export class DynamicKeywordGenerator {
       `${businessName} services`,
       ...this.businessContext.services,
       ...this.contentKeywords.slice(0, 10)
-    ].filter(k => k && k.length > 2);
+    ];
+    
+    // Add brand name variations to fallback keywords too
+    const brandVariations = this.generateBrandNameVariations(businessName);
+    brandVariations.forEach(variation => {
+      fallbackKeywords.push(variation, `${variation} services`);
+    });
+    
+    const filteredKeywords = fallbackKeywords.filter(k => k && k.length > 2);
 
-    const keywords: KeywordWithMetadata[] = fallbackKeywords.map(keyword => 
+    const keywords: KeywordWithMetadata[] = filteredKeywords.map(keyword => 
       this.createKeywordMetadata(keyword, 'primary', 'commercial', 'medium', 0.5)
     );
 
@@ -524,6 +541,144 @@ export class DynamicKeywordGenerator {
       phrase.toLowerCase().includes(term) || 
       term.includes(phrase.toLowerCase())
     );
+  }
+
+  /**
+   * Generate comprehensive brand name variations
+   * Handles both compound->spaced and spaced->compound
+   */
+  private generateBrandNameVariations(brandName: string): string[] {
+    const variations: string[] = [];
+    
+    // Case 1: Brand name has spaces -> generate compound version
+    if (brandName.includes(' ')) {
+      const compoundVersion = brandName.replace(/\s+/g, '');
+      if (compoundVersion !== brandName && compoundVersion.length >= 6) {
+        variations.push(compoundVersion);
+        console.log(`🏷️ Generated compound variation: "${brandName}" -> "${compoundVersion}"`);
+      }
+    }
+    
+    // Case 2: Brand name is compound -> generate spaced version
+    if (!brandName.includes(' ')) {
+      const splitVariations = this.splitCompoundBrandName(brandName);
+      if (splitVariations.length > 1) {
+        const spacedVersion = splitVariations.join(' ');
+        if (spacedVersion !== brandName) {
+          variations.push(spacedVersion);
+          console.log(`🏷️ Generated spaced variation: "${brandName}" -> "${spacedVersion}"`);
+        }
+      }
+    }
+    
+    return variations;
+  }
+
+  /**
+   * Split compound brand names using enhanced heuristics
+   */
+  private splitCompoundBrandName(brandName: string): string[] {
+    // For names 6+ characters, try splitting at different points
+    if (brandName.length >= 6) {
+      // Score different splits to find the best one
+      const splitCandidates: { split: string[], score: number }[] = [];
+      
+      for (let i = 3; i <= brandName.length - 3; i++) {
+        const part1 = brandName.substring(0, i);
+        const part2 = brandName.substring(i);
+        
+        // Check if both parts look like real words
+        const score1 = this.getWordScore(part1);
+        const score2 = this.getWordScore(part2);
+        
+        if (score1 > 0 && score2 > 0) {
+          const totalScore = score1 + score2;
+          splitCandidates.push({ 
+            split: [part1, part2], 
+            score: totalScore 
+          });
+        }
+      }
+      
+      // Return the highest scoring split
+      if (splitCandidates.length > 0) {
+        const bestSplit = splitCandidates.reduce((best, current) => 
+          current.score > best.score ? current : best
+        );
+        console.log(`📝 Split compound brand "${brandName}" -> ["${bestSplit.split[0]}", "${bestSplit.split[1]}"] (score: ${bestSplit.score})`);
+        return bestSplit.split;
+      }
+    }
+    
+    return [brandName];
+  }
+
+  /**
+   * Score how likely a string is to be a real word (higher = more likely)
+   */
+  private getWordScore(word: string): number {
+    if (word.length < 3) return 0;
+    
+    let score = 0;
+    
+    // Common English names/words that boost score
+    const commonWords = [
+      'henry', 'adams', 'john', 'smith', 'david', 'wilson', 'james', 'brown',
+      'robert', 'jones', 'michael', 'davis', 'william', 'miller', 'richard',
+      'moore', 'charles', 'taylor', 'thomas', 'anderson', 'mark', 'white'
+    ];
+    
+    if (commonWords.includes(word.toLowerCase())) {
+      score += 100; // Very high score for known names
+    }
+    
+    // Vowel distribution scoring
+    const vowelCount = (word.match(/[aeiou]/g) || []).length;
+    const consonantCount = word.length - vowelCount;
+    const vowelRatio = vowelCount / word.length;
+    
+    if (vowelCount === 0 || consonantCount === 0) {
+      return 0; // No vowels or no consonants = not a word
+    }
+    
+    // Ideal vowel ratio is around 0.3-0.5
+    if (vowelRatio >= 0.25 && vowelRatio <= 0.6) {
+      score += 50;
+    } else if (vowelRatio >= 0.15 && vowelRatio <= 0.7) {
+      score += 20;
+    }
+    
+    // Length bonus (4-6 characters is typical for names)
+    if (word.length >= 4 && word.length <= 6) {
+      score += 30;
+    } else if (word.length >= 3 && word.length <= 8) {
+      score += 15;
+    }
+    
+    // Common name endings
+    if (word.endsWith('son') || word.endsWith('ton') || word.endsWith('ham') ||
+        word.endsWith('ford') || word.endsWith('wood') || word.endsWith('field')) {
+      score += 25;
+    }
+    
+    // Common name patterns
+    if (/^[a-z]{4,6}$/.test(word)) { // Simple 4-6 letter words
+      score += 10;
+    }
+    
+    // Penalize awkward letter combinations
+    if (word.includes('rya') || word.includes('xqz') || word.includes('yyy')) {
+      score -= 30;
+    }
+    
+    return Math.max(0, score);
+  }
+
+  /**
+   * Basic heuristic to check if a string looks like a real word (for backwards compatibility)
+   */
+  private looksLikeRealWord(word: string): boolean {
+    return this.getWordScore(word) > 30;
   }
 
   private deduplicateKeywords(keywords: KeywordWithMetadata[]): KeywordWithMetadata[] {

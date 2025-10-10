@@ -288,7 +288,7 @@ export class PuppeteerSerpScraper {
             
             let url = '';
             let title = '';
-            let linkElement = element;
+            const linkElement = element;
 
             // Handle different element types
             if (element.tagName === 'A') {
@@ -306,7 +306,7 @@ export class PuppeteerSerpScraper {
             if (url && title && url.startsWith('http')) {
               try {
                 const urlObj = new URL(url);
-                let domain = urlObj.hostname.replace(/^www\./, '');
+                const domain = urlObj.hostname.replace(/^www\./, '');
                 
                 // Filter out unwanted domains
                 const unwantedDomains = [

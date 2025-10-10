@@ -13,8 +13,8 @@ interface ValueSerpOrganicResult {
   snippet?: string;
   cached_page_link?: string;
   related_pages_link?: string;
-  sitelinks?: any;
-  rich_snippet?: any;
+  sitelinks?: unknown;
+  rich_snippet?: unknown;
 }
 
 interface ValueSerpResponse {
@@ -47,10 +47,10 @@ interface ValueSerpResponse {
     query_displayed?: string;
   };
   organic_results: ValueSerpOrganicResult[];
-  paid_results?: any[];
-  local_results?: any[];
-  answer_box?: any;
-  knowledge_graph?: any;
+  paid_results?: unknown[];
+  local_results?: unknown[];
+  answer_box?: unknown;
+  knowledge_graph?: unknown;
   related_searches?: string[];
 }
 
@@ -81,6 +81,19 @@ export class ValueSerpService {
    */
   isConfigured(): boolean {
     return !!this.apiKey;
+  }
+
+  /**
+   * Check simple keyword position for a domain
+   */
+  async checkKeywordPosition(keyword: string, domain: string): Promise<number | null> {
+    try {
+      const ranking = await this.getKeywordRankings(keyword, domain);
+      return ranking.position;
+    } catch (error) {
+      console.warn(`Failed to check position for "${keyword}":`, error.message);
+      return null;
+    }
   }
 
   /**

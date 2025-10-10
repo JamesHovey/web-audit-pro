@@ -1,13 +1,9 @@
 /**
- * Professional Backlink Analysis Service
- * Primary: DataForSEO API (cost-effective pay-per-use)
- * Fallback: Majestic API or OpenPageRank for domain authority
- * Falls back to clear messaging when APIs not available
+ * Simplified Backlink Analysis Service for Cloud Deployment
+ * Uses only APIs that work well in serverless environments
+ * Primary: OpenPageRank for domain authority (free)
+ * Secondary: Web scraping fallback where possible
  */
-
-import { analyzeDataForSeoBacklinks } from './dataForSeoBacklinkService';
-import { analyzeMajesticBacklinks } from './majesticBacklinkService';
-import { getDomainAuthority } from './openPageRankService';
 
 interface BacklinkData {
   domain: string;
@@ -15,8 +11,6 @@ interface BacklinkData {
   authority: number;
   type: 'dofollow' | 'nofollow';
   url: string;
-  trustFlow?: number;
-  citationFlow?: number;
 }
 
 interface BacklinkAnalysis {
@@ -33,63 +27,32 @@ interface BacklinkAnalysis {
   error?: string;
 }
 
+interface OpenPageRankResponse {
+  status_code: number;
+  response: Array<{
+    status_code: number;
+    error: string;
+    page_rank_integer: number;
+    page_rank_decimal: number;
+    rank: string;
+    domain: string;
+  }>;
+}
+
 class BacklinkService {
   
   async analyzeBacklinks(url: string): Promise<BacklinkAnalysis> {
-    console.log(`🔗 Professional backlink analysis for: ${url}`);
+    console.log(`🔗 Analyzing backlinks for: ${url}`);
     
     try {
-      // Try DataForSEO first (most cost-effective and comprehensive)
-      const dataForSeoResult = await analyzeDataForSeoBacklinks(url);
+      // Get domain authority from OpenPageRank (free tier)
+      const domainAuthorityResult = await this.getDomainAuthority(url);
       
-      if (dataForSeoResult.success) {
-        console.log(`✅ Retrieved comprehensive backlink data from ${dataForSeoResult.dataSource}`);
-        return {
-          success: true,
-          domainAuthority: dataForSeoResult.domainAuthority,
-          totalBacklinks: dataForSeoResult.totalBacklinks,
-          referringDomains: dataForSeoResult.referringDomains,
-          dofollowLinks: dataForSeoResult.dofollowLinks,
-          nofollowLinks: dataForSeoResult.nofollowLinks,
-          topBacklinks: dataForSeoResult.topBacklinks.map(link => ({
-            domain: link.domain,
-            anchor: link.anchor,
-            authority: link.authority,
-            type: link.type,
-            url: link.url,
-            trustFlow: link.trustFlow,
-            citationFlow: link.citationFlow
-          })),
-          analysisMethod: dataForSeoResult.analysisMethod,
-          dataSource: dataForSeoResult.dataSource,
-          analysisUrl: url
-        };
-      }
-      
-      // Fall back to OpenPageRank + Majestic combination
-      const domainAuthorityResult = await getDomainAuthority(url);
-      const majesticResult = await analyzeMajesticBacklinks(url);
-      
-      if (majesticResult.success) {
-        // Use Majestic backlink data with OpenPageRank domain authority
-        console.log(`✅ Retrieved backlinks from ${majesticResult.dataSource} and domain authority from ${domainAuthorityResult.dataSource}`);
-        return {
-          success: true,
-          domainAuthority: domainAuthorityResult.success ? 
-            Math.round(domainAuthorityResult.authority * 10) : // Convert 0-10 to 0-100 scale
-            majesticResult.domainAuthority,
-          totalBacklinks: majesticResult.totalBacklinks,
-          referringDomains: majesticResult.referringDomains,
-          dofollowLinks: majesticResult.dofollowLinks,
-          nofollowLinks: majesticResult.nofollowLinks,
-          topBacklinks: majesticResult.topBacklinks,
-          analysisMethod: 'hybrid_analysis',
-          dataSource: `${domainAuthorityResult.dataSource} + ${majesticResult.dataSource}`,
-          analysisUrl: majesticResult.analysisUrl
-        };
-      } else if (domainAuthorityResult.success) {
-        // Only domain authority available from OpenPageRank
-        console.log(`✅ Retrieved domain authority from ${domainAuthorityResult.dataSource}`);
+      if (domainAuthorityResult.success) {
+        console.log(`✅ Retrieved domain authority from OpenPageRank`);
+        
+        // For now, provide domain authority only
+        // Note: Full backlinks data requires paid APIs like Majestic ($50/month) or DataForSEO
         return {
           success: true,
           domainAuthority: Math.round(domainAuthorityResult.authority * 10), // Convert 0-10 to 0-100 scale
@@ -99,18 +62,72 @@ class BacklinkService {
           nofollowLinks: 0,
           topBacklinks: [],
           analysisMethod: 'domain_authority_only',
-          dataSource: domainAuthorityResult.dataSource,
+          dataSource: 'OpenPageRank (Free)',
           analysisUrl: `https://www.domcop.com/openpagerank/`
         };
       } else {
-        // No APIs configured - return clear message
-        console.log('⚠️ No backlink/authority APIs configured');
+        // No APIs configured - return helpful guidance
+        console.log('⚠️ No backlink APIs configured');
         return this.getApiNotConfiguredResponse(url, domainAuthorityResult.error);
       }
       
     } catch (error) {
       console.error('Backlink analysis error:', error);
       return this.getApiNotConfiguredResponse(url, error.message);
+    }
+  }
+  
+  private async getDomainAuthority(url: string): Promise<{success: boolean, authority: number, error?: string}> {
+    const apiKey = process.env.OPENPAGERANK_API_KEY;
+    const domain = this.cleanDomain(url);
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        authority: 0,
+        error: 'OpenPageRank API key not configured. Get free API key at: https://www.domcop.com/openpagerank/'
+      };
+    }
+
+    try {
+      console.log(`📊 Getting domain authority for: ${domain}`);
+      
+      const response = await fetch(`https://openpagerank.com/api/v1.0/getPageRank?domains[]=${encodeURIComponent(domain)}`, {
+        headers: {
+          'API-OPR': apiKey
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenPageRank API error: ${response.status}`);
+      }
+
+      const data: OpenPageRankResponse = await response.json();
+      
+      if (data.status_code === 200 && data.response && data.response.length > 0) {
+        const domainData = data.response[0];
+        
+        if (domainData.status_code === 200) {
+          return {
+            success: true,
+            authority: domainData.page_rank_decimal || domainData.page_rank_integer || 0
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        authority: 0,
+        error: 'Domain not found in OpenPageRank database'
+      };
+      
+    } catch (error) {
+      console.error('OpenPageRank error:', error);
+      return {
+        success: false,
+        authority: 0,
+        error: `OpenPageRank API error: ${error.message}`
+      };
     }
   }
   
@@ -128,7 +145,7 @@ class BacklinkService {
       analysisMethod: 'api_required',
       dataSource: 'API Key Required',
       analysisUrl: `https://majestic.com/reports/site-explorer?q=${encodeURIComponent(domain)}`,
-      error: 'Free domain authority available with OpenPageRank API (add OPENPAGERANK_API_KEY). Full backlink data requires Majestic API subscription ($49.99/month).'
+      error: error || 'To get backlinks data, you need: 1) Free domain authority with OpenPageRank API (add OPENPAGERANK_API_KEY), 2) Full backlink analysis requires Majestic API ($50/month) or DataForSEO API.'
     };
   }
   

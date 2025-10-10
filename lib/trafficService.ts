@@ -225,7 +225,7 @@ export async function getTrafficData(domain: string, includePageAnalysis: boolea
   try {
     const { estimateFreeTrafficData, convertToTrafficData } = await import('./freeTrafficEstimator');
     const estimatedData = await estimateFreeTrafficData(cleanDomain);
-    let trafficData = convertToTrafficData(estimatedData);
+    const trafficData = convertToTrafficData(estimatedData);
     
     console.log(`Successfully estimated traffic using free web scraping (confidence: ${estimatedData.confidence})`);
     console.log(`12-month average organic traffic: ${estimatedData.monthlyOrganicTraffic} visits/month`);

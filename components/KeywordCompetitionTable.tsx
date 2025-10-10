@@ -9,6 +9,7 @@ interface CompetitorData {
   overlapPercentage: number;
   sharedKeywords: string[];
   averagePosition: number;
+  authority?: number; // Domain authority score
 }
 
 interface KeywordCompetitionAnalysis {
@@ -16,6 +17,7 @@ interface KeywordCompetitionAnalysis {
   totalKeywordsAnalyzed: number;
   analysisMethod: string;
   creditsUsed: number;
+  targetDomainAuthority?: number; // Authority of the website being audited
 }
 
 interface KeywordCompetitionTableProps {
@@ -65,7 +67,19 @@ export default function KeywordCompetitionTable({
     return null;
   }
 
-  const competitors = competitionData.competitors || [];
+  // Filter competitors: only show those with overlap >= 40% and competition != 'Low'
+  // Also exclude sortlist.co.uk from results
+  const competitors = (competitionData.competitors || []).filter(competitor => {
+    const overlapPercent = competitor.overlapPercentage || 0;
+    const competition = competitor.competition || competitor.competitionLevel || '';
+    const domain = (competitor.domain || '').toLowerCase();
+    
+    // Filter out sortlist.co.uk, competitors with overlap < 40%, or competition = 'Low'
+    return domain !== 'sortlist.co.uk' && 
+           overlapPercent >= 40 && 
+           competition.toLowerCase() !== 'low';
+  });
+  
   const totalPages = Math.ceil(competitors.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
@@ -81,6 +95,25 @@ export default function KeywordCompetitionTable({
     if (percentage >= 40) return 'text-yellow-600 bg-yellow-50'
     if (percentage >= 20) return 'text-blue-600 bg-blue-50'
     return 'text-gray-600 bg-gray-50'
+  }
+
+  const getAuthorityColor = (authority: number, targetAuthority?: number) => {
+    if (!targetAuthority) {
+      // Default coloring when no comparison available
+      if (authority >= 70) return 'text-red-600 bg-red-50'
+      if (authority >= 50) return 'text-orange-600 bg-orange-50'
+      if (authority >= 30) return 'text-yellow-600 bg-yellow-50'
+      if (authority >= 10) return 'text-blue-600 bg-blue-50'
+      return 'text-gray-600 bg-gray-50'
+    }
+    
+    // Comparison-based coloring
+    const diff = authority - targetAuthority;
+    if (diff >= 20) return 'text-red-600 bg-red-50' // Much stronger
+    if (diff >= 10) return 'text-orange-600 bg-orange-50' // Stronger
+    if (diff >= -10) return 'text-yellow-600 bg-yellow-50' // Similar
+    if (diff >= -20) return 'text-blue-600 bg-blue-50' // Weaker
+    return 'text-green-600 bg-green-50' // Much weaker
   }
 
   return (
@@ -116,19 +149,37 @@ export default function KeywordCompetitionTable({
           </svg>
           📊 Competition Analysis Results
         </div>
-        <p className="text-blue-700 text-xs mt-1">
-          Analyzed {competitionData.totalKeywordsAnalyzed} Above Fold Keywords and found {competitors.length} competing domains. 
-          Higher overlap percentages indicate stronger direct competitors.
-        </p>
+        <div className="text-blue-700 text-xs mt-1">
+          <p>
+            Analyzed {competitionData.totalKeywordsAnalyzed} Above Fold Keywords and found {competitors.length} competing domains.
+            {competitionData.targetDomainAuthority && (
+              <span className="ml-2">
+                <strong>Your Domain Authority: DA {competitionData.targetDomainAuthority}</strong>
+              </span>
+            )}
+          </p>
+          <p className="mt-1">
+            Higher overlap percentages indicate stronger direct competitors. Authority scores show SEO competitiveness.
+          </p>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-gray-50 px-4 py-3">
           <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
-            <div className="col-span-4">
+            <div className="col-span-3">
               Competitor Domain
               <Tooltip 
                 content="Competing websites that rank for the same Above Fold Keywords as your site"
+                position="top"
+              >
+                <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
+              </Tooltip>
+            </div>
+            <div className="col-span-2 text-center">
+              Authority
+              <Tooltip 
+                content="Domain Authority score (1-100) indicating SEO strength. Higher scores mean stronger domains."
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
@@ -161,7 +212,7 @@ export default function KeywordCompetitionTable({
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
               </Tooltip>
             </div>
-            <div className="col-span-2 text-center">
+            <div className="col-span-1 text-center">
               Details
             </div>
           </div>
@@ -171,13 +222,22 @@ export default function KeywordCompetitionTable({
           {paginatedCompetitors.map((competitor, index) => (
             <div key={competitor.domain} className="px-4 py-3 hover:bg-gray-50">
               <div className="grid grid-cols-12 gap-4 items-center text-sm">
-                <div className="col-span-4">
+                <div className="col-span-3">
                   <div className="flex flex-col">
                     <span className="text-gray-900 font-medium">{competitor.domain}</span>
                     <span className="text-gray-500 text-xs">
                       Direct competitor for Above Fold Keywords
                     </span>
                   </div>
+                </div>
+                <div className="col-span-2 text-center">
+                  {competitor.authority !== undefined ? (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAuthorityColor(competitor.authority, competitionData?.targetDomainAuthority)}`}>
+                      DA {competitor.authority}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">N/A</span>
+                  )}
                 </div>
                 <div className="col-span-2 text-center">
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getOverlapColor(competitor.overlapPercentage)}`}>
@@ -197,12 +257,12 @@ export default function KeywordCompetitionTable({
                     #{competitor.averagePosition}
                   </span>
                 </div>
-                <div className="col-span-2 text-center">
+                <div className="col-span-1 text-center">
                   <button
                     onClick={() => toggleExpanded(competitor.domain)}
                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                   >
-                    {expandedCompetitor === competitor.domain ? 'Hide' : 'View'} Keywords
+                    {expandedCompetitor === competitor.domain ? 'Hide' : 'View'}
                   </button>
                 </div>
               </div>
@@ -286,6 +346,54 @@ export default function KeywordCompetitionTable({
           </div>
         </div>
       )}
+
+      {/* Conclusion Section */}
+      <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+        <h5 className="font-semibold text-orange-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="text-orange-800 text-sm space-y-2">
+          {competitors.length > 0 ? (
+            <>
+              <p>
+                <strong>Competition analysis complete!</strong> Found {competitors.length} direct competitors competing for your top-ranking keywords. 
+                Understanding your competition is crucial for maintaining and improving your search rankings.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to stay competitive:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  {competitors.some(c => c.authority && competitionData?.targetDomainAuthority && c.authority > competitionData.targetDomainAuthority + 10) && (
+                    <li><strong>Authority building:</strong> Several competitors have significantly higher domain authority - focus on building backlinks</li>
+                  )}
+                  <li>Monitor these competitors' content and SEO strategies regularly</li>
+                  <li>Analyze their top-performing content for keywords you both target</li>
+                  <li>Look for keyword gaps where competitors rank but you don't</li>
+                  <li>Create better, more comprehensive content for shared keywords</li>
+                  <li>Track position changes monthly to detect competitive threats</li>
+                </ul>
+              </div>
+              <p className="mt-2 text-orange-700">
+                <strong>Priority:</strong> Focus on competitors with 60%+ overlap and similar/higher authority scores.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Unique position detected!</strong> No significant direct competitors found for your top-ranking keywords. 
+                This could indicate a niche market or opportunity for market leadership.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to maintain advantage:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Continue monitoring for emerging competitors in your keyword space</li>
+                  <li>Expand your keyword targeting to capture more market share</li>
+                  <li>Create comprehensive content to establish thought leadership</li>
+                  <li>Consider targeting related keywords where competition might exist</li>
+                  <li>Build content moats around your key terms to prevent competitor entry</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -14,12 +14,12 @@ interface ViewportConfig {
 
 interface ResponsiveIssue {
   type: 'layout_break' | 'small_touch_targets' | 'small_text' | 'horizontal_scroll' | 
-        'image_scaling' | 'navigation_issues' | 'content_hidden' | 'viewport_meta' | 
-        'missing_breakpoints' | 'poor_breakpoints';
+        'image_scaling' | 'navigation_issues' | 'content_hidden' | 'viewport_meta';
   severity: 'critical' | 'warning' | 'minor';
   description: string;
   element?: string;
   recommendation: string;
+  page?: string; // Add page information for table display
 }
 
 interface ViewportAnalysis {
@@ -66,8 +66,8 @@ const VIEWPORT_CONFIGS: ViewportConfig[] = [
   },
   {
     name: 'Desktop Standard',
-    width: 1366,
-    height: 768,
+    width: 1920,
+    height: 1080,
     deviceType: 'desktop',
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   },
@@ -208,7 +208,7 @@ export class ViewportAnalysisService {
       const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [];
       const linkMatches = html.match(/<link[^>]*rel=['"]stylesheet['"][^>]*>/gi) || [];
       
-      let allCSS = styleMatches.join('\n');
+      const allCSS = styleMatches.join('\n');
       
       // Analyze for media queries
       const mediaQueryRegex = /@media[^{]*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi;
@@ -348,31 +348,7 @@ export class ViewportAnalysisService {
       });
     }
     
-    // Check for appropriate breakpoints
-    if (cssAnalysis.breakpoints.length === 0) {
-      issues.push({
-        type: 'missing_breakpoints',
-        severity: 'critical',
-        description: 'No responsive breakpoints detected',
-        recommendation: 'Implement CSS media queries for different screen sizes'
-      });
-    }
-    
-    // Check for proper responsive breakpoints
-    if (cssAnalysis.isCMSSite) {
-      const hasProperBreakpoints = cssAnalysis.breakpoints.some(bp => 
-        bp === 768 || bp === 1024 || bp === 1200
-      );
-      
-      if (!hasProperBreakpoints && viewport.deviceType !== 'desktop') {
-        issues.push({
-          type: 'poor_breakpoints',
-          severity: 'warning',
-          description: 'Responsive breakpoints may not follow industry standards',
-          recommendation: 'Consider using standard breakpoints: 768px (mobile), 1024px (tablet), 1200px (desktop)'
-        });
-      }
-    }
+    // Breakpoint-related issues removed as requested
     
     // Check for modern CSS usage
     if (!cssAnalysis.usesFlexbox && !cssAnalysis.usesGrid && viewport.deviceType === 'mobile') {
@@ -418,7 +394,7 @@ export class ViewportAnalysisService {
     if (cssAnalysis.hasViewportMeta) cssBonus += 10;
     if (cssAnalysis.usesFlexbox || cssAnalysis.usesGrid) cssBonus += 10;
     if (cssAnalysis.hasResponsiveImages) cssBonus += 5;
-    if (cssAnalysis.breakpoints.length >= 2) cssBonus += 5;
+    // Breakpoint bonus removed as requested
     
     return Math.min(100, Math.round(avgViewportScore + cssBonus));
   }
@@ -456,7 +432,7 @@ export class ViewportAnalysisService {
       
       if (affectedViewports.length >= 2) {
         globalIssues.push({
-          type: issueType as any,
+          type: issueType as string,
           severity: 'critical',
           description: `${issueType.replace('_', ' ')} affects multiple device types`,
           recommendation: `Fix ${issueType.replace('_', ' ')} across all responsive breakpoints`
@@ -485,9 +461,7 @@ export class ViewportAnalysisService {
       recommendations.push('📱 Add viewport meta tag for proper mobile rendering');
     }
     
-    if (cssAnalysis.breakpoints.length < 2) {
-      recommendations.push('📐 Implement responsive breakpoints for tablet and mobile devices');
-    }
+    // Breakpoint recommendations removed as requested
     
     if (cssAnalysis.isCMSSite) {
       recommendations.push('🎨 Review responsive settings for all content sections and widgets');

@@ -16,6 +16,7 @@ interface NonBrandedKeywordTableProps {
   keywords: KeywordData[]
   title: string
   description: string
+  auditType?: 'page' | 'website' | 'full' // Add audit type to determine title
 }
 
 type SortField = 'keyword' | 'position' | 'volume'
@@ -24,8 +25,20 @@ type SortOrder = 'asc' | 'desc'
 export default function NonBrandedKeywordTable({ 
   keywords, 
   title, 
-  description
+  description,
+  auditType = 'website'
 }: NonBrandedKeywordTableProps) {
+  
+  // Determine the appropriate title based on audit type
+  const getContextualTitle = (baseTitle: string) => {
+    if (baseTitle.includes('All Non-branded Keywords')) {
+      const contextWord = auditType === 'page' ? 'webpage' : 'website';
+      return `All Non-branded Keywords on this ${contextWord}`;
+    }
+    return title;
+  };
+  
+  const contextualTitle = getContextualTitle(title);
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<SortField>('volume')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -76,7 +89,7 @@ export default function NonBrandedKeywordTable({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-black">{title}</h4>
+          <h4 className="font-semibold text-black">{contextualTitle}</h4>
           <Tooltip 
             content={
               <div>
@@ -128,7 +141,7 @@ export default function NonBrandedKeywordTable({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h4 className="font-semibold text-black">{title}</h4>
+        <h4 className="font-semibold text-black">{contextualTitle}</h4>
         <Tooltip 
           content={
             <div>
@@ -309,6 +322,52 @@ export default function NonBrandedKeywordTable({
           </div>
         </div>
       )}
+
+      {/* Conclusion Section */}
+      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <h5 className="font-semibold text-green-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="text-green-800 text-sm space-y-2">
+          {sortedKeywords.length > 0 ? (
+            <>
+              <p>
+                <strong>Opportunity found!</strong> You have {sortedKeywords.length} non-branded keywords with search volume. 
+                These represent potential traffic from people looking for your services.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to capture more traffic:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  {sortedKeywords.some(k => !k.position || k.position === 0) && (
+                    <li>Create content targeting keywords where you don't rank yet</li>
+                  )}
+                  {sortedKeywords.some(k => k.position && k.position > 10) && (
+                    <li>Improve rankings for keywords where you rank on page 2+ (position 11+)</li>
+                  )}
+                  <li>Optimize existing pages to better target high-volume keywords</li>
+                  <li>Create comprehensive content around your highest-volume non-branded terms</li>
+                  <li>Focus on keywords with realistic competition levels for quick wins</li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Growth opportunity:</strong> Limited non-branded keyword presence found. 
+                This means you're missing out on potential customers searching for your services.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to start capturing organic traffic:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Research keywords your target customers use to find services like yours</li>
+                  <li>Create valuable content around common industry terms and questions</li>
+                  <li>Optimize your website for local searches if you serve local customers</li>
+                  <li>Build topic clusters around your main services and expertise</li>
+                  <li>Consider content marketing to establish authority in your field</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

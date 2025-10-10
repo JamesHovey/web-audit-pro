@@ -38,6 +38,9 @@ export default function BrandedKeywordTable({
   const endIndex = startIndex + itemsPerPage
   const currentKeywords = sortedKeywords.slice(startIndex, endIndex)
 
+  // Check if we have branded keywords but they're filtered out by volume
+  const hasKeywordsButLowVolume = keywords && keywords.length > 0 && sortedKeywords.length === 0;
+  
   if (!keywords || keywords.length === 0 || sortedKeywords.length === 0) {
     return (
       <div className="space-y-4">
@@ -48,7 +51,11 @@ export default function BrandedKeywordTable({
               <div className="max-w-sm">
                 <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
                 <p className="mb-2">Keywords that include your company/brand name with 50+ monthly searches</p>
-                <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (50+/month) were discovered for this website.</p>
+                {hasKeywordsButLowVolume ? (
+                  <p className="text-xs"><strong>Low volume keywords found:</strong> We identified branded keywords for this website, but they don't currently get meaningful search volumes (50+/month).</p>
+                ) : (
+                  <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (50+/month) were discovered for this website.</p>
+                )}
               </div>
             }
             position="top"
@@ -57,7 +64,15 @@ export default function BrandedKeywordTable({
           </Tooltip>
         </div>
         <div className="border rounded-lg p-8 text-center text-gray-500">
-          <p className="text-sm">No branded keywords with sufficient search volume (50+/month) found.</p>
+          {hasKeywordsButLowVolume ? (
+            <div>
+              <p className="text-sm font-medium text-blue-600 mb-2">✓ Branded keywords identified!</p>
+              <p className="text-sm">We found {keywords.length} branded keyword{keywords.length > 1 ? 's' : ''} for your brand, but they don't currently get meaningful search volumes (50+/month).</p>
+              <p className="text-xs text-gray-400 mt-2">This often happens with newer brands or niche businesses. Focus on building brand awareness to increase search volume.</p>
+            </div>
+          ) : (
+            <p className="text-sm">No branded keywords with sufficient search volume (50+/month) found.</p>
+          )}
         </div>
       </div>
     );
@@ -251,6 +266,63 @@ export default function BrandedKeywordTable({
           </div>
         </div>
       )}
+
+      {/* Conclusion Section */}
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h5 className="font-semibold text-blue-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="text-blue-800 text-sm space-y-2">
+          {sortedKeywords.length > 0 ? (
+            <>
+              <p>
+                <strong>Good news!</strong> You have {sortedKeywords.length} branded keywords with significant search volume. 
+                This shows people are actively searching for your brand.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to improve:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  {sortedKeywords.some(k => !k.position || k.position > 5) && (
+                    <li>Optimize pages for branded keywords where you rank below position 5</li>
+                  )}
+                  <li>Create dedicated landing pages for high-volume branded terms</li>
+                  <li>Ensure your brand name appears in page titles and meta descriptions</li>
+                  <li>Monitor competitor rankings for your branded keywords</li>
+                </ul>
+              </div>
+            </>
+          ) : hasKeywordsButLowVolume ? (
+            <>
+              <p>
+                <strong>Brand awareness opportunity:</strong> We found branded keywords, but they have lower search volumes (under 50/month).
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to grow brand awareness:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Increase brand marketing efforts to drive more branded searches</li>
+                  <li>Focus on social media and content marketing to build brand recognition</li>
+                  <li>Monitor these keywords as your brand grows</li>
+                  <li>Consider local SEO if you're a local business</li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Brand awareness opportunity:</strong> No significant branded keyword searches found. 
+                This suggests limited brand recognition in search.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to build brand presence:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Invest in brand marketing and awareness campaigns</li>
+                  <li>Ensure consistent brand naming across all online platforms</li>
+                  <li>Create valuable content that encourages people to search for your brand</li>
+                  <li>Focus on local SEO and Google My Business if applicable</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

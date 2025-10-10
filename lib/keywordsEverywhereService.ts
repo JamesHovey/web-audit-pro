@@ -48,12 +48,15 @@ export class KeywordsEverywhereService {
   /**
    * Get real search volumes for keywords
    */
-  async getSearchVolumes(keywords: string[], country: string = 'us', currency: string = 'usd'): Promise<VolumeData[]> {
+  async getSearchVolumes(keywords: string[], country: string = 'uk', currency: string = 'gbp'): Promise<VolumeData[]> {
     if (!this.apiKey) {
       throw new Error('Keywords Everywhere API key not configured. Please add KEYWORDS_EVERYWHERE_API_KEY to your .env.local file.');
     }
 
-    console.log(`🔍 Keywords Everywhere: Getting volumes for ${keywords.length} keywords...`);
+    // Transform 'gb' to 'uk' for Keywords Everywhere API compatibility
+    const apiCountry = country.toLowerCase() === 'gb' ? 'uk' : country;
+    
+    console.log(`🔍 Keywords Everywhere: Getting volumes for ${keywords.length} keywords in ${apiCountry.toUpperCase()}...`);
 
     try {
       // Keywords Everywhere API supports max 100 keywords per request
@@ -61,7 +64,7 @@ export class KeywordsEverywhereService {
       const allResults: VolumeData[] = [];
 
       for (const batch of batches) {
-        const batchResults = await this.fetchVolumesBatch(batch, country, currency);
+        const batchResults = await this.fetchVolumesBatch(batch, apiCountry, currency);
         allResults.push(...batchResults);
         
         // Small delay between batches to respect rate limits
@@ -90,6 +93,15 @@ export class KeywordsEverywhereService {
       currency: currency.toUpperCase(),
       dataSource: 'gkp' // Google Keyword Planner
     };
+
+    // Debug: Log the exact request being sent
+    console.log(`📤 Keywords Everywhere API Request:`, {
+      country: requestBody.country,
+      currency: requestBody.currency,
+      dataSource: requestBody.dataSource,
+      keywordCount: keywords.length,
+      sampleKeywords: keywords.filter(k => k.toLowerCase().includes('henry') || k.toLowerCase().includes('adams')).slice(0, 3)
+    });
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',
@@ -123,6 +135,37 @@ export class KeywordsEverywhereService {
     // Log credits information
     if (data.credits) {
       console.log(`💰 Keywords Everywhere: ${data.credits.toLocaleString()} credits remaining`);
+    }
+
+    // Debug: Log raw API response for branded keywords with full details
+    const brandedKeywords = data.data.filter(item => 
+      item.keyword.toLowerCase().includes('henryadams') || 
+      item.keyword.toLowerCase().includes('henry adams')
+    );
+    if (brandedKeywords.length > 0) {
+      console.log(`🔍 RAW Keywords Everywhere response for branded keywords:`, 
+        brandedKeywords.map(item => ({
+          keyword: item.keyword,
+          volume: item.vol,
+          cpc: item.cpc,
+          competition: item.competition,
+          trend: item.trend ? `${item.trend.length} months of data` : 'no trend data'
+        }))
+      );
+      
+      // Log the FULL response object to debug country issues
+      console.log(`🌍 FULL API Response for debugging country issue:`, {
+        requestCountry: country.toUpperCase(),
+        requestCurrency: currency.toUpperCase(),
+        apiResponseCredits: data.credits,
+        firstKeywordFullData: data.data[0],
+        responseMetadata: {
+          creditsUsed: data.credits_consumed,
+          creditsRemaining: data.credits,
+          timeElapsed: data.time
+        },
+        sampleTrendData: data.data[0]?.trend?.slice(0, 3)
+      });
     }
 
     // Transform response to our format
@@ -182,7 +225,7 @@ export class KeywordsEverywhereService {
 /**
  * Convenience function to get volumes for keywords
  */
-export async function getKeywordVolumes(keywords: string[], country: string = 'us'): Promise<VolumeData[]> {
+export async function getKeywordVolumes(keywords: string[], country: string = 'uk'): Promise<VolumeData[]> {
   const service = new KeywordsEverywhereService();
   return await service.getSearchVolumes(keywords, country);
 }

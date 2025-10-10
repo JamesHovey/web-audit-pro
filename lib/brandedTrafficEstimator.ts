@@ -19,7 +19,7 @@ export class BrandedTrafficEstimator {
   /**
    * Get estimated monthly branded traffic for a domain
    * @param domain - The domain to analyze (e.g., "pmwcom.co.uk")
-   * @param country - Country code for search volumes (e.g., "gb", "us")
+   * @param country - Country code for search volumes (e.g., "uk", "us")
    * @returns Promise<number> - Estimated monthly branded traffic
    */
   async getMonthlyBrandedTraffic(domain: string, country: string = 'gb'): Promise<number> {

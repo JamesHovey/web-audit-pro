@@ -125,9 +125,10 @@ export class EnhancedKeywordService {
       // Convert to legacy format for compatibility
       const legacyFormat = this.convertToLegacyFormat(enhancedKeywords, businessContext, apiAvailable);
       
-      // Step 9: SERP Position Analysis (disabled for now - API method needs implementation)
-      // console.log('🔍 Step 9: SERP Position Analysis...');
-      // await this.enhanceWithSerpPositions(legacyFormat.nonBrandedKeywordsList, cleanDomain);
+      // Step 9: SERP Position Analysis for both branded and non-branded keywords
+      console.log('🔍 Step 9: SERP Position Analysis...');
+      await this.enhanceWithSerpPositions(legacyFormat.brandedKeywordsList, cleanDomain, 'branded');
+      await this.enhanceWithSerpPositions(legacyFormat.nonBrandedKeywordsList, cleanDomain, 'non-branded');
       
       // Calculate enhanced metrics
       const metrics = this.calculateEnhancedMetrics(enhancedKeywords);
@@ -230,28 +231,305 @@ export class EnhancedKeywordService {
    * Extract brand name from domain and content
    */
   private extractBrandName(domain: string, html: string): string {
-    // Try to extract from domain
-    const domainParts = domain.replace(/\.(com|co\.uk|uk|org|net)$/, '').split('.');
-    let brandCandidate = domainParts[0] || 'business';
+    const brandCandidates: { source: string; value: string; confidence: number }[] = [];
     
-    // Clean up common prefixes/suffixes
-    brandCandidate = brandCandidate
+    // Clean domain for comparison
+    const domainParts = domain.replace(/\.(com|co\.uk|uk|org|net|io|app)$/, '').split('.');
+    let domainBrand = domainParts[0] || 'business';
+    domainBrand = domainBrand
       .replace(/^(www|the|a|an)/, '')
       .replace(/(ltd|limited|inc|corp|company)$/, '')
       .trim();
+    const domainBrandFormatted = domainBrand.charAt(0).toUpperCase() + domainBrand.slice(1).toLowerCase();
     
-    // Try to find brand name in HTML title or h1
-    const titleMatch = html.match(/<title[^>]*>([^<]+)</i);
-    const h1Match = html.match(/<h1[^>]*>([^<]+)</i);
-    
-    if (titleMatch && titleMatch[1].length < 50) {
-      const titleWords = titleMatch[1].split(/\s+/).slice(0, 2);
-      if (titleWords.length > 0 && titleWords[0].length > 2) {
-        brandCandidate = titleWords.join(' ');
+    // Helper function to clean and validate brand names
+    const cleanBrandName = (name: string): string | null => {
+      if (!name) return null;
+      const cleaned = name.trim().replace(/[^\w\s&.-]/g, '').trim();
+      if (cleaned.length < 2 || cleaned.length > 100) return null;
+      
+      // Skip generic words
+      const genericWords = ['home', 'welcome', 'index', 'main', 'website', 'site', 'page', 'loading', 'error', 'test'];
+      if (genericWords.includes(cleaned.toLowerCase())) return null;
+      
+      return cleaned;
+    };
+
+    // 1. HIGHEST PRIORITY: Schema.org/JSON-LD structured data
+    const jsonLdMatches = html.match(/<script\s+type=["']application\/ld\+json["'][^>]*>([^<]+)<\/script>/gi);
+    if (jsonLdMatches) {
+      for (const match of jsonLdMatches) {
+        try {
+          const jsonContent = match.replace(/<script[^>]*>|<\/script>/gi, '').trim();
+          const data = JSON.parse(jsonContent);
+          
+          // Check for Organization schema
+          if (data['@type'] === 'Organization' && data.name) {
+            const cleaned = cleanBrandName(data.name);
+            if (cleaned) brandCandidates.push({ source: 'schema:Organization', value: cleaned, confidence: 0.98 });
+          }
+          
+          // Check for nested organization
+          if (data.organization?.name) {
+            const cleaned = cleanBrandName(data.organization.name);
+            if (cleaned) brandCandidates.push({ source: 'schema:org.name', value: cleaned, confidence: 0.95 });
+          }
+          
+          // Check for publisher/author
+          if (data.publisher?.name) {
+            const cleaned = cleanBrandName(data.publisher.name);
+            if (cleaned) brandCandidates.push({ source: 'schema:publisher', value: cleaned, confidence: 0.92 });
+          }
+          
+          // Legal name has high confidence
+          if (data.legalName) {
+            const cleaned = cleanBrandName(data.legalName);
+            if (cleaned) brandCandidates.push({ source: 'schema:legalName', value: cleaned, confidence: 0.95 });
+          }
+          
+          // Brand property
+          if (data.brand?.name) {
+            const cleaned = cleanBrandName(data.brand.name);
+            if (cleaned) brandCandidates.push({ source: 'schema:brand', value: cleaned, confidence: 0.94 });
+          }
+          
+          // Alternative name
+          if (data.alternateName) {
+            const cleaned = cleanBrandName(data.alternateName);
+            if (cleaned) brandCandidates.push({ source: 'schema:alternateName', value: cleaned, confidence: 0.85 });
+          }
+          
+          // General name field
+          if (data.name && !data['@type']) {
+            const cleaned = cleanBrandName(data.name);
+            if (cleaned) brandCandidates.push({ source: 'schema:name', value: cleaned, confidence: 0.88 });
+          }
+          
+        } catch (e) {
+          // Invalid JSON, continue
+        }
       }
     }
-    
-    return brandCandidate.charAt(0).toUpperCase() + brandCandidate.slice(1).toLowerCase();
+
+    // 2. HIGH PRIORITY: Open Graph metadata
+    const ogSiteName = html.match(/<meta\s+(?:property|name)=["']og:site_name["']\s+content=["']([^"']+)["']/i);
+    if (ogSiteName && ogSiteName[1]) {
+      const cleaned = cleanBrandName(ogSiteName[1]);
+      if (cleaned) brandCandidates.push({ source: 'og:site_name', value: cleaned, confidence: 0.96 });
+    }
+
+    // 3. HIGH PRIORITY: Meta application-name
+    const appName = html.match(/<meta\s+name=["']application-name["']\s+content=["']([^"']+)["']/i);
+    if (appName && appName[1]) {
+      const cleaned = cleanBrandName(appName[1]);
+      if (cleaned) brandCandidates.push({ source: 'application-name', value: cleaned, confidence: 0.94 });
+    }
+
+    // 4. HIGH PRIORITY: Copyright notices
+    const copyrightMatches = html.match(/©\s*(?:\d{4}[\s-]*)?([^.,"'\n\r<]{3,50})(?:\s+(?:ltd|limited|inc|corp|company|llc|all rights reserved))?/gi);
+    if (copyrightMatches) {
+      for (const match of copyrightMatches.slice(0, 3)) {
+        const nameMatch = match.match(/©\s*(?:\d{4}[\s-]*)?([^.,"'\n\r<]{3,50})/i);
+        if (nameMatch && nameMatch[1]) {
+          const cleaned = cleanBrandName(nameMatch[1].replace(/\s+(?:ltd|limited|inc|corp|company|llc|all rights reserved)$/i, ''));
+          if (cleaned) brandCandidates.push({ source: 'copyright', value: cleaned, confidence: 0.90 });
+        }
+      }
+    }
+
+    // 5. PWA Manifest data
+    const manifestLink = html.match(/<link\s+rel=["']manifest["']\s+href=["']([^"']+)["']/i);
+    if (manifestLink) {
+      // Note: In a real implementation, you'd fetch the manifest.json file
+      // For now, we'll look for inline manifest data or common patterns
+    }
+
+    // 6. MEDIUM-HIGH PRIORITY: Microdata
+    const microdataOrg = html.match(/<[^>]+itemtype=["']https?:\/\/schema\.org\/Organization["'][^>]*>[\s\S]*?<[^>]+itemprop=["']name["'][^>]*>([^<]+)<\/[^>]+>/i);
+    if (microdataOrg && microdataOrg[1]) {
+      const cleaned = cleanBrandName(microdataOrg[1]);
+      if (cleaned) brandCandidates.push({ source: 'microdata:org', value: cleaned, confidence: 0.92 });
+    }
+
+    // 7. Twitter Card metadata
+    const twitterSite = html.match(/<meta\s+name=["']twitter:site["']\s+content=["']@?([^"']+)["']/i);
+    if (twitterSite && twitterSite[1]) {
+      const cleaned = cleanBrandName(twitterSite[1]);
+      if (cleaned) brandCandidates.push({ source: 'twitter:site', value: cleaned, confidence: 0.85 });
+    }
+
+    const twitterCreator = html.match(/<meta\s+name=["']twitter:creator["']\s+content=["']@?([^"']+)["']/i);
+    if (twitterCreator && twitterCreator[1]) {
+      const cleaned = cleanBrandName(twitterCreator[1]);
+      if (cleaned) brandCandidates.push({ source: 'twitter:creator', value: cleaned, confidence: 0.80 });
+    }
+
+    // 8. MEDIUM PRIORITY: Meta tags
+    const metaTags = [
+      { pattern: /<meta\s+name=["']author["']\s+content=["']([^"'@]+)["']/i, source: 'meta:author', confidence: 0.75 },
+      { pattern: /<meta\s+name=["']publisher["']\s+content=["']([^"']+)["']/i, source: 'meta:publisher', confidence: 0.85 },
+      { pattern: /<meta\s+name=["']copyright["']\s+content=["']([^"']+)["']/i, source: 'meta:copyright', confidence: 0.80 }
+    ];
+
+    for (const tag of metaTags) {
+      const match = html.match(tag.pattern);
+      if (match && match[1]) {
+        const cleaned = cleanBrandName(match[1].replace(/©|\d{4}|all rights reserved/gi, ''));
+        if (cleaned && !cleaned.includes('@')) {
+          brandCandidates.push({ source: tag.source, value: cleaned, confidence: tag.confidence });
+        }
+      }
+    }
+
+    // 9. Open Graph title parsing
+    const ogTitle = html.match(/<meta\s+(?:property|name)=["']og:title["']\s+content=["']([^"']+)["']/i);
+    if (ogTitle && ogTitle[1]) {
+      const titleParts = ogTitle[1].split(/[\|\-\:]/);
+      for (const part of titleParts) {
+        const cleaned = cleanBrandName(part);
+        if (cleaned && cleaned.length > 3) {
+          // Higher confidence if it matches domain
+          const confidence = part.toLowerCase().includes(domainBrand.toLowerCase()) ? 0.82 : 0.75;
+          brandCandidates.push({ source: 'og:title', value: cleaned, confidence });
+          break;
+        }
+      }
+    }
+
+    // 10. Navigation brand analysis
+    const navBrandPatterns = [
+      /<a[^>]*class[^>]*navbar-brand[^>]*>([^<]+)</i,
+      /<a[^>]*class[^>]*brand[^>]*>([^<]+)</i,
+      /<a[^>]*href=["'][\/]?["'][^>]*>([^<]+)</i
+    ];
+
+    for (const pattern of navBrandPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        const cleaned = cleanBrandName(match[1]);
+        if (cleaned) {
+          brandCandidates.push({ source: 'navigation', value: cleaned, confidence: 0.78 });
+          break;
+        }
+      }
+    }
+
+    // 11. Logo alt text analysis
+    const logoPatterns = [
+      /<img[^>]+alt=["']([^"']*logo[^"']*)["']/gi,
+      /<img[^>]+alt=["']([^"']*brand[^"']*)["']/gi,
+      /<img[^>]+src=["'][^"']*logo[^"']*["'][^>]*alt=["']([^"']+)["']/gi
+    ];
+
+    for (const pattern of logoPatterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        const altText = match[1].replace(/logo|brand|image/gi, '').trim();
+        const cleaned = cleanBrandName(altText);
+        if (cleaned && cleaned.length > 2) {
+          brandCandidates.push({ source: 'logo-alt', value: cleaned, confidence: 0.70 });
+          break;
+        }
+      }
+    }
+
+    // 12. Title tag analysis (improved)
+    const titleMatch = html.match(/<title[^>]*>([^<]+)</i);
+    if (titleMatch && titleMatch[1]) {
+      const titleParts = titleMatch[1].split(/[\|\-\:]/);
+      
+      for (const part of titleParts) {
+        const cleaned = cleanBrandName(part);
+        if (cleaned && cleaned.length > 3) {
+          let confidence = 0.65;
+          
+          // Higher confidence if matches domain
+          if (part.toLowerCase().includes(domainBrand.toLowerCase())) {
+            confidence = 0.80;
+          }
+          
+          // Higher confidence if capitalized properly
+          if (cleaned.split(' ').every(word => word[0] === word[0].toUpperCase())) {
+            confidence += 0.05;
+          }
+          
+          brandCandidates.push({ source: 'title', value: cleaned, confidence });
+        }
+      }
+    }
+
+    // 13. H1 tag analysis
+    const h1Matches = html.match(/<h1[^>]*>([^<]+)<\/h1>/gi);
+    if (h1Matches) {
+      for (const h1 of h1Matches.slice(0, 2)) {
+        const h1Text = h1.replace(/<[^>]+>/g, '').trim();
+        const cleaned = cleanBrandName(h1Text);
+        if (cleaned && cleaned.length > 3 && cleaned.length < 50) {
+          const confidence = h1Text.toLowerCase().includes(domainBrand.toLowerCase()) ? 0.72 : 0.65;
+          brandCandidates.push({ source: 'h1', value: cleaned, confidence });
+        }
+      }
+    }
+
+    // 14. Contact/About section analysis
+    const aboutSection = html.match(/(?:about\s+us|about\s+(?:the\s+)?company|who\s+we\s+are)[^<]*<[^>]*>([^<]{10,100})/i);
+    if (aboutSection && aboutSection[1]) {
+      // Extract potential brand names from about text
+      const aboutText = aboutSection[1];
+      const brandMatches = aboutText.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b/g);
+      if (brandMatches) {
+        for (const match of brandMatches.slice(0, 2)) {
+          const cleaned = cleanBrandName(match);
+          if (cleaned && cleaned.length > 3) {
+            brandCandidates.push({ source: 'about-section', value: cleaned, confidence: 0.68 });
+          }
+        }
+      }
+    }
+
+    // 15. Social media link analysis
+    const socialPatterns = [
+      /facebook\.com\/([^\/?"'\s]+)/i,
+      /twitter\.com\/([^\/?"'\s]+)/i,
+      /linkedin\.com\/company\/([^\/?"'\s]+)/i,
+      /instagram\.com\/([^\/?"'\s]+)/i
+    ];
+
+    for (const pattern of socialPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1] && match[1] !== 'share') {
+        const socialHandle = match[1].replace(/[-_]/g, ' ');
+        const cleaned = cleanBrandName(socialHandle);
+        if (cleaned) {
+          brandCandidates.push({ source: 'social-media', value: cleaned, confidence: 0.70 });
+        }
+      }
+    }
+
+    // 16. Domain baseline (always include)
+    brandCandidates.push({ source: 'domain', value: domainBrandFormatted, confidence: 0.40 });
+
+    // Remove duplicates and sort by confidence
+    const uniqueCandidates = new Map();
+    for (const candidate of brandCandidates) {
+      const key = candidate.value.toLowerCase();
+      if (!uniqueCandidates.has(key) || uniqueCandidates.get(key).confidence < candidate.confidence) {
+        uniqueCandidates.set(key, candidate);
+      }
+    }
+
+    const sortedCandidates = Array.from(uniqueCandidates.values()).sort((a, b) => b.confidence - a.confidence);
+
+    // Debug logging
+    if (sortedCandidates.length > 1) {
+      console.log('🏷️ Brand name detection results:');
+      sortedCandidates.slice(0, 5).forEach(c => {
+        console.log(`  - "${c.value}" (${c.source}, confidence: ${c.confidence.toFixed(2)})`);
+      });
+      console.log(`🎯 Selected: "${sortedCandidates[0].value}" from ${sortedCandidates[0].source}`);
+    }
+
+    return sortedCandidates[0]?.value || domainBrandFormatted;
   }
 
   /**
@@ -443,7 +721,7 @@ export class EnhancedKeywordService {
       domain: comp.domain,
       overlap: comp.overlapPercentage,
       keywords: comp.overlapCount,
-      authority: Math.floor(Math.random() * 50) + 30, // Placeholder - would need DA API
+      authority: comp.authority || 30, // Use real authority from KeywordCompetitionService
       description: `Competes for ${comp.overlapCount} shared keywords`,
       matchingKeywords: comp.sharedKeywords || [],
       competitionLevel: comp.overlapPercentage >= 60 ? 'high' : 
@@ -463,7 +741,8 @@ export class EnhancedKeywordService {
       totalCompetitors: competitors.length,
       averageOverlap,
       competitionIntensity,
-      keywordClusters
+      keywordClusters,
+      targetDomainAuthority: rawAnalysis.targetDomainAuthority // Include target domain authority for comparison
     };
   }
 
@@ -485,23 +764,26 @@ export class EnhancedKeywordService {
     const brandName = businessContext.businessName.toLowerCase();
     
     const brandedKeywordsList = allKeywords
-      .filter(k => k.keyword.toLowerCase().includes(brandName))
-      .map(k => ({
-        keyword: k.keyword,
-        position: 0,
-        volume: apiAvailable ? (k.volume || null) : null,
-        difficulty: this.mapDifficulty(k.difficulty),
-        type: 'branded' as const
-      }));
+      .filter(k => this.isBrandedKeyword(k.keyword, businessContext))
+      .map(k => {
+        console.log(`🔍 Branded keyword volume mapping: "${k.keyword}" -> volume: ${k.volume} (from API: ${apiAvailable})`);
+        return {
+          keyword: k.keyword,
+          position: 0, // Will be updated with real SERP data
+          volume: apiAvailable ? (k.volume || null) : null,
+          difficulty: this.mapDifficulty(k.difficulty),
+          type: 'branded' as const
+        };
+      });
     
     const nonBrandedKeywordsList = allKeywords
       .filter(k => {
-        const isNotBranded = !k.keyword.toLowerCase().includes(brandName);
-        const hasBusinessRelevance = k.businessRelevance >= 0.6; // Only high-relevance keywords
-        const hasValidVolume = k.volume === null || (k.volume >= 50 && k.volume <= 10000); // Volume limits
+        const isNotBranded = !this.isBrandedKeyword(k.keyword, businessContext);
+        const hasBusinessRelevance = k.businessRelevance >= 0.4; // Relaxed: accept medium-relevance keywords
+        const hasValidVolume = k.volume === null || (k.volume >= 10 && k.volume <= 50000); // Relaxed: accept lower volume keywords
         const isNotGeneric = this.isBusinessSpecificKeyword(k.keyword, businessContext);
         
-        // console.log(`🔍 Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
+        console.log(`🔍 Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
         
         return isNotBranded && hasBusinessRelevance && hasValidVolume && isNotGeneric;
       })
@@ -524,7 +806,7 @@ export class EnhancedKeywordService {
         position: 0,
         volume: apiAvailable ? (k.volume || null) : null,
         difficulty: this.mapDifficulty(k.difficulty),
-        type: k.keyword.toLowerCase().includes(brandName) ? 'branded' as const : 'non-branded' as const
+        type: this.isBrandedKeyword(k.keyword, businessContext) ? 'branded' as const : 'non-branded' as const
       }));
     
     console.log(`🔍 KEYWORD GENERATION DEBUG:`);
@@ -569,11 +851,20 @@ export class EnhancedKeywordService {
       // Create volume lookup map
       const volumeMap = new Map(volumeData.map(v => [v.keyword.toLowerCase(), v.volume]));
       
+      // Debug: Log volume data for branded keywords
+      console.log(`📊 Volume data received from Keywords Everywhere:`, volumeData.filter(v => 
+        v.keyword.toLowerCase().includes('henryadams') || v.keyword.toLowerCase().includes('henry adams')
+      ));
+      
       // Helper function to update keyword with real volume (NO FALLBACK)
-      const updateKeywordVolume = (keyword: any) => ({
-        ...keyword,
-        volume: volumeMap.get(keyword.keyword.toLowerCase()) || null // null if no API data
-      });
+      const updateKeywordVolume = (keyword: any) => {
+        const mappedVolume = volumeMap.get(keyword.keyword.toLowerCase());
+        console.log(`📊 Volume mapping: "${keyword.keyword}" -> ${mappedVolume} (was: ${keyword.volume})`);
+        return {
+          ...keyword,
+          volume: mappedVolume || null // null if no API data
+        };
+      };
       
       // Update all keyword categories with real API data
       const enhancedKeywords = {
@@ -652,26 +943,27 @@ export class EnhancedKeywordService {
   }
 
   /**
-   * Enhance non-branded keywords with real SERP positions
+   * Enhance keywords with real SERP positions
    */
-  private async enhanceWithSerpPositions(keywords: any[], domain: string): Promise<void> {
+  private async enhanceWithSerpPositions(keywords: any[], domain: string, type: 'branded' | 'non-branded'): Promise<void> {
     try {
-      // Only check positions for top 10 keywords to save API credits
-      const topKeywords = keywords.slice(0, 10);
+      // Limit branded keywords to top 5, non-branded to top 8 to save API credits
+      const maxKeywords = type === 'branded' ? 5 : 8;
+      const topKeywords = keywords.slice(0, maxKeywords);
       
       if (topKeywords.length === 0) {
-        console.log('⚠️ No keywords to check positions for');
+        console.log(`⚠️ No ${type} keywords to check positions for`);
         return;
       }
       
       // Check if ValueSERP is available
       const hasValueSerp = !!process.env.VALUESERP_API_KEY;
       if (!hasValueSerp) {
-        console.log('⚠️ ValueSERP API not configured - position data unavailable');
+        console.log(`⚠️ ValueSERP API not configured - ${type} position data unavailable`);
         return;
       }
       
-      console.log(`🔍 Checking SERP positions for ${topKeywords.length} top non-branded keywords...`);
+      console.log(`🔍 Checking SERP positions for ${topKeywords.length} top ${type} keywords...`);
       
       const { ValueSerpService } = await import('./valueSerpService');
       const serpService = new ValueSerpService();
@@ -680,30 +972,263 @@ export class EnhancedKeywordService {
       for (let i = 0; i < topKeywords.length; i++) {
         const keyword = topKeywords[i];
         try {
-          console.log(`📊 Checking position for "${keyword.keyword}" (${i + 1}/${topKeywords.length})...`);
+          console.log(`📊 Checking ${type} position for "${keyword.keyword}" (${i + 1}/${topKeywords.length})...`);
           const position = await serpService.checkKeywordPosition(keyword.keyword, domain);
           
           if (position && position > 0 && position <= 100) {
             keyword.position = position;
-            console.log(`✅ Found ranking: "${keyword.keyword}" - Position ${position}`);
+            console.log(`✅ Found ${type} ranking: "${keyword.keyword}" - Position ${position}`);
           } else {
             console.log(`❌ Not ranking: "${keyword.keyword}"`);
+            // Keep position as 0 to show "Not ranking" in UI
           }
           
           // Small delay to respect API limits
           if (i < topKeywords.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (error) {
           console.warn(`⚠️ Error checking position for "${keyword.keyword}":`, error.message);
+          // Leave position as 0 to show "Not ranking"
         }
       }
       
-      console.log(`✅ SERP position analysis complete`);
+      console.log(`✅ ${type} SERP position analysis complete`);
       
     } catch (error) {
-      console.error('❌ SERP position enhancement failed:', error);
+      console.error(`❌ ${type} SERP position enhancement failed:`, error);
     }
+  }
+
+  /**
+   * Check if a keyword is branded (includes brand name or natural variations)
+   */
+  private isBrandedKeyword(keyword: string, businessContext: BusinessContext): boolean {
+    const keywordLower = keyword.toLowerCase();
+    const brandName = businessContext.businessName.toLowerCase();
+    
+    // Get all possible brand variations to check against
+    const brandVariations = this.getAllBrandVariations(businessContext);
+    
+    // Check if keyword matches any brand variation
+    for (const brandVariation of brandVariations) {
+      if (this.isKeywordMatchingBrand(keywordLower, brandVariation)) {
+        console.log(`✅ Branded keyword detected: "${keyword}" (matches brand variation "${brandVariation}")`);
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get all possible brand variations (compound, spaced, domain-based, title-based)
+   */
+  private getAllBrandVariations(businessContext: BusinessContext): string[] {
+    const variations = new Set<string>();
+    const brandName = businessContext.businessName.toLowerCase();
+    
+    // Add the main brand name
+    variations.add(brandName);
+    
+    // If brand name has spaces, also add compound version
+    if (brandName.includes(' ')) {
+      const compoundVersion = brandName.replace(/\s+/g, '');
+      variations.add(compoundVersion);
+    }
+    
+    // If brand name is compound, add spaced version
+    if (!brandName.includes(' ')) {
+      const brandWords = this.extractBrandWords(brandName);
+      if (brandWords.length > 1) {
+        const spacedVersion = brandWords.join(' ');
+        variations.add(spacedVersion);
+      }
+    }
+    
+    // Add individual brand words for partial matching
+    const brandWords = this.extractBrandWords(brandName);
+    brandWords.forEach(word => {
+      if (word.length >= 4) { // Only add substantial words
+        variations.add(word);
+      }
+    });
+    
+    console.log(`🏷️ Brand variations for "${brandName}": [${Array.from(variations).join(', ')}]`);
+    return Array.from(variations);
+  }
+
+  /**
+   * Check if a keyword matches a specific brand variation
+   */
+  private isKeywordMatchingBrand(keywordLower: string, brandVariation: string): boolean {
+    // Exact match or contains the brand
+    if (keywordLower.includes(brandVariation)) {
+      return true;
+    }
+    
+    // For spaced brand names, check if all words appear in correct order
+    if (brandVariation.includes(' ')) {
+      const brandWords = brandVariation.split(' ');
+      const hasAllBrandWords = brandWords.every(word => keywordLower.includes(word));
+      
+      if (hasAllBrandWords && brandWords.length > 1) {
+        // Check word order
+        const keywordWords = keywordLower.split(/\s+/);
+        const brandIndices = brandWords.map(brandWord => 
+          keywordWords.findIndex(word => word.includes(brandWord))
+        );
+        
+        // All brand words found and in correct order
+        const inCorrectOrder = brandIndices.every((index, i) => 
+          i === 0 || index > brandIndices[i - 1]
+        );
+        
+        return inCorrectOrder;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Extract individual words from brand name, handling compound names
+   */
+  private extractBrandWords(brandName: string): string[] {
+    // Handle cases like "henryadams" -> ["henry", "adams"]
+    // Split on common patterns
+    let words: string[] = [];
+    
+    // First try splitting on spaces, hyphens, underscores
+    if (brandName.includes(' ') || brandName.includes('-') || brandName.includes('_')) {
+      words = brandName.split(/[\s\-_]+/).filter(w => w.length > 0);
+    } else {
+      // Try to detect camelCase or compound words
+      // Look for common patterns where capital letters indicate word boundaries
+      const camelCaseMatch = brandName.match(/[a-z]+|[A-Z][a-z]*/g);
+      if (camelCaseMatch && camelCaseMatch.length > 1) {
+        words = camelCaseMatch;
+      } else {
+        // Try splitting at common word boundaries for known patterns
+        // This is where we can add logic for "henryadams" -> "henry" + "adams"
+        words = this.splitCompoundBrandName(brandName);
+      }
+    }
+    
+    // If no splitting worked, return the original as single word
+    if (words.length === 0) {
+      words = [brandName];
+    }
+    
+    return words.map(w => w.toLowerCase()).filter(w => w.length > 1);
+  }
+
+  /**
+   * Split compound brand names using enhanced heuristics (same as dynamicKeywordGenerator)
+   */
+  private splitCompoundBrandName(brandName: string): string[] {
+    // For names 6+ characters, try splitting at different points
+    if (brandName.length >= 6) {
+      // Score different splits to find the best one
+      const splitCandidates: { split: string[], score: number }[] = [];
+      
+      for (let i = 3; i <= brandName.length - 3; i++) {
+        const part1 = brandName.substring(0, i);
+        const part2 = brandName.substring(i);
+        
+        // Check if both parts look like real words
+        const score1 = this.getWordScore(part1);
+        const score2 = this.getWordScore(part2);
+        
+        if (score1 > 0 && score2 > 0) {
+          const totalScore = score1 + score2;
+          splitCandidates.push({ 
+            split: [part1, part2], 
+            score: totalScore 
+          });
+        }
+      }
+      
+      // Return the highest scoring split
+      if (splitCandidates.length > 0) {
+        const bestSplit = splitCandidates.reduce((best, current) => 
+          current.score > best.score ? current : best
+        );
+        console.log(`📝 Enhanced split compound brand "${brandName}" -> ["${bestSplit.split[0]}", "${bestSplit.split[1]}"] (score: ${bestSplit.score})`);
+        return bestSplit.split;
+      }
+    }
+    
+    return [brandName];
+  }
+
+  /**
+   * Score how likely a string is to be a real word (same as dynamicKeywordGenerator)
+   */
+  private getWordScore(word: string): number {
+    if (word.length < 3) return 0;
+    
+    let score = 0;
+    
+    // Common English names/words that boost score
+    const commonWords = [
+      'henry', 'adams', 'john', 'smith', 'david', 'wilson', 'james', 'brown',
+      'robert', 'jones', 'michael', 'davis', 'william', 'miller', 'richard',
+      'moore', 'charles', 'taylor', 'thomas', 'anderson', 'mark', 'white',
+      'vantage', 'house', 'space', 'tech', 'data', 'digital', 'smart', 'pro'
+    ];
+    
+    if (commonWords.includes(word.toLowerCase())) {
+      score += 100; // Very high score for known names
+    }
+    
+    // Vowel distribution scoring
+    const vowelCount = (word.match(/[aeiou]/g) || []).length;
+    const consonantCount = word.length - vowelCount;
+    const vowelRatio = vowelCount / word.length;
+    
+    if (vowelCount === 0 || consonantCount === 0) {
+      return 0; // No vowels or no consonants = not a word
+    }
+    
+    // Ideal vowel ratio is around 0.3-0.5
+    if (vowelRatio >= 0.25 && vowelRatio <= 0.6) {
+      score += 50;
+    } else if (vowelRatio >= 0.15 && vowelRatio <= 0.7) {
+      score += 20;
+    }
+    
+    // Length bonus (4-6 characters is typical for names)
+    if (word.length >= 4 && word.length <= 6) {
+      score += 30;
+    } else if (word.length >= 3 && word.length <= 8) {
+      score += 15;
+    }
+    
+    // Common name endings
+    if (word.endsWith('son') || word.endsWith('ton') || word.endsWith('ham') ||
+        word.endsWith('ford') || word.endsWith('wood') || word.endsWith('field')) {
+      score += 25;
+    }
+    
+    // Common name patterns
+    if (/^[a-z]{4,6}$/.test(word)) { // Simple 4-6 letter words
+      score += 10;
+    }
+    
+    // Penalize awkward letter combinations
+    if (word.includes('rya') || word.includes('xqz') || word.includes('yyy')) {
+      score -= 30;
+    }
+    
+    return Math.max(0, score);
+  }
+
+  /**
+   * Basic heuristic to check if a string looks like a real word (for backwards compatibility)
+   */
+  private looksLikeRealWord(word: string): boolean {
+    return this.getWordScore(word) > 30;
   }
 
   /**

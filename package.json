@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
     "@auth/prisma-adapter": "^2.10.0",
     "@prisma/client": "^6.13.0",
     "@types/bcryptjs": "^2.4.6",

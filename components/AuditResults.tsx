@@ -12,9 +12,12 @@ import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldKeywordTable from './AboveFoldKeywordTable'
 import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
 import KeywordCompetitionTable from './KeywordCompetitionTable'
+import RecommendedKeywordTable from './RecommendedKeywordTable'
 import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
 import ViewportAnalysis from './ViewportAnalysis'
+import OverallAuditConclusion from './OverallAuditConclusion'
+// import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
   id: string
@@ -124,8 +127,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [pageModalState, setPageModalState] = useState<{
     isOpen: boolean;
     title: string;
-    pages: any[];
-    filterCondition?: (page: any) => boolean;
+    pages: unknown[];
+    filterCondition?: (page: unknown) => boolean;
   }>({
     isOpen: false,
     title: '',
@@ -823,11 +826,19 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       </div>
 
+      {/* AI Summary - DISABLED: Claude API temporarily disabled */}
+      {/* {audit.status === "completed" && (
+        <AuditSummary 
+          auditId={audit.id} 
+          isAuditComplete={audit.status === "completed"} 
+        />
+      )} */}
+
       {/* Only show results when audit is complete */}
       {showResults ? (
         <>
           {/* Keywords Section - Full Width */}
-          {audit.sections.includes('keywords') && (
+          {audit?.sections?.includes('keywords') && (
         <div className="card-pmw mb-6">
           <div className="p-6">
             <div className="mb-4">
@@ -854,7 +865,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -864,7 +875,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       )}
 
       {/* Traffic Insights - Full Width */}
-      {audit.sections.includes('traffic') && (
+      {audit?.sections?.includes('traffic') && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -892,7 +903,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
               )}
             </div>
           </div>
@@ -900,7 +911,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       )}
 
       {/* Technology Stack - Full Width */}
-      {audit.sections.includes('technology') && (
+      {audit?.sections?.includes('technology') && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -929,7 +940,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
               )}
             </div>
           </div>
@@ -937,7 +948,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       )}
 
       {/* Performance & Technical Audit - Full Width */}
-      {(audit.sections.includes('performance') || audit.sections.includes('technical')) && (
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -972,15 +983,16 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 <LoadingMessages section="performance" />
               ) : (
                 renderSectionResults(
-                  audit.sections.includes('technical') ? "technical" : "performance", 
-                  {...(audit.results?.performance || {}), ...(audit.results?.technical || {})}, 
+                  audit?.sections?.includes('technical') ? "technical" : "performance", 
+                  {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})}, 
                   undefined, 
                   showMethodologyExpanded, 
                   toggleMethodology, 
                   setPageModalState,
                   performancePagination,
                   setPerformancePagination,
-                  setShowCoreWebVitalsGuide
+                  setShowCoreWebVitalsGuide,
+                  audit?.auditType
                 )
               )}
             </div>
@@ -990,7 +1002,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
 
       {/* Authority & Backlinks - Full Width */}
-      {audit.sections.includes('backlinks') && (
+      {audit?.sections?.includes('backlinks') && (
         <div className="card-pmw">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1019,7 +1031,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
               )}
             </div>
           </div>
@@ -1028,7 +1040,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Other Sections - 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {audit.sections.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical' && section !== 'backlinks').map((sectionId) => (
+        {audit?.sections?.filter(section => section !== 'keywords' && section !== 'technology' && section !== 'traffic' && section !== 'performance' && section !== 'technical' && section !== 'backlinks').map((sectionId) => (
           <div key={sectionId} className="card-pmw">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1062,7 +1074,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1097,7 +1109,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analyzing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  We're conducting a comprehensive audit of {audit.sections.length} sections.
+                  We're conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
                   This typically takes 1-2 minutes.
                 </p>
                 
@@ -1886,7 +1898,8 @@ function renderSectionResults(
   setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void,
   performancePagination?: { currentPage: number; itemsPerPage: number },
   setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void,
-  setShowCoreWebVitalsGuide?: (show: boolean) => void
+  setShowCoreWebVitalsGuide?: (show: boolean) => void,
+  auditType?: string
 ) {
   switch (sectionId) {
     case "traffic":
@@ -2455,14 +2468,31 @@ function renderSectionResults(
             />
           )}
 
+          {/* Recommended Non-branded Keywords Table */}
+          {results.nonBrandedKeywordsList && (
+            <RecommendedKeywordTable 
+              keywords={results.nonBrandedKeywordsList}
+              title="Recommended Non-branded Keywords"
+              description="Business-relevant keywords we recommend you target to improve your search visibility"
+              auditType={auditType === 'page' ? 'page' : 'website'}
+            />
+          )}
+
           {/* Non-branded Keywords Table */}
           {results.nonBrandedKeywordsList && (
             <NonBrandedKeywordTable 
               keywords={results.nonBrandedKeywordsList}
               title="All Non-branded Keywords"
               description="Complete list of industry and service-related keywords that drive new customer acquisition"
+              auditType={auditType === 'page' ? 'page' : 'website'}
             />
           )}
+
+          {/* Overall Audit Conclusion - Summary of all sections */}
+          <OverallAuditConclusion 
+            results={results}
+            auditType={auditType === 'page' ? 'page' : 'website'}
+          />
 
         </div>
       )
@@ -2890,7 +2920,43 @@ function renderSectionResults(
           {/* Viewport Responsiveness Analysis */}
           {results.viewportAnalysis && (
             <div>
-              <h4 className="font-semibold mb-3 text-lg">Viewport Responsiveness Analysis</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <h4 className="font-semibold text-lg">Viewport Responsiveness Analysis</h4>
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">How Viewport Analysis Works</p>
+                      <p className="mb-2">This tool automatically tests your website across 4 critical device viewports:</p>
+                      <ul className="list-disc list-inside text-sm space-y-1 mb-2">
+                        <li><strong>Desktop (1920x1080):</strong> Standard desktop resolution</li>
+                        <li><strong>Laptop (1440x900):</strong> Standard laptop screen size</li>
+                        <li><strong>Tablet (768x1024):</strong> iPad portrait orientation</li>
+                        <li><strong>Mobile (375x667):</strong> iPhone standard size</li>
+                      </ul>
+                      <p className="mb-2"><strong>What We Check:</strong></p>
+                      <ul className="list-disc list-inside text-sm space-y-1 mb-2">
+                        <li>Content visibility and readability at each viewport</li>
+                        <li>Layout integrity (no overlapping elements)</li>
+                        <li>Navigation accessibility on all devices</li>
+                        <li>Image and media scaling appropriateness</li>
+                        <li>Touch target sizes on mobile devices</li>
+                        <li>Horizontal scrolling issues</li>
+                      </ul>
+                      <p className="mb-2"><strong>Scoring System:</strong></p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>90-100: Excellent - Fully responsive</li>
+                        <li>70-89: Good - Minor issues only</li>
+                        <li>50-69: Fair - Some responsive problems</li>
+                        <li>Below 50: Poor - Significant issues</li>
+                      </ul>
+                      <p className="mt-2 text-xs">Each viewport is weighted equally in the overall score.</p>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
               <p className="text-sm text-gray-600 mb-4">
                 Analysis of how your website displays across different device types and screen sizes, including Elementor-specific optimizations.
               </p>
@@ -3182,6 +3248,12 @@ function renderSectionResults(
               </div>
             )}
           </div>
+
+          {/* Overall Audit Conclusion for Performance Section */}
+          <OverallAuditConclusion 
+            results={results}
+            auditType={auditType === 'page' ? 'page' : 'website'}
+          />
         </div>
       )
 

@@ -43,10 +43,16 @@
       "Bash(sed:*)",
       "Bash(awk:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:staging-site.mondeumcapital.co.uk)"
+      "WebFetch(domain:staging-site.mondeumcapital.co.uk)",
+      "WebFetch(domain:api.keywordseverywhere.com)",
+      "WebFetch(domain:keywordseverywhere.com)",
+      "Bash(npx next build:*)"
     ],
     "deny": [],
     "ask": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "/Users/jameshovey/Documents"
+    ]
   }
 }

@@ -19,7 +19,7 @@ interface PageSpeedResults {
 }
 
 class PageSpeedService {
-  private baseUrl = 'https://www.googleapis.com/pagespeedinline/v5/runPagespeed';
+  private baseUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
   
   async analyzePerformance(url: string): Promise<PageSpeedResults> {
     try {
@@ -40,6 +40,15 @@ class PageSpeedService {
       
     } catch (error) {
       console.error('PageSpeed Insights API error:', error);
+      
+      // If it's an API key issue, provide specific guidance
+      if (error instanceof Error && error.message.includes('403')) {
+        console.error('🔑 API Key Issue Detected:');
+        console.error('- Check if PageSpeed Insights API is enabled in Google Cloud Console');
+        console.error('- Verify API key restrictions (Application/API restrictions)');
+        console.error('- Ensure API key has PageSpeed Insights API permissions');
+      }
+      
       // Fallback to web scraping PageSpeed Insights if API fails
       return this.fallbackWebScraping(url);
     }
@@ -67,7 +76,14 @@ class PageSpeedService {
     });
     
     if (!response.ok) {
-      throw new Error(`PageSpeed API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`PageSpeed API Error Details:`, {
+        status: response.status,
+        statusText: response.statusText,
+        url: apiUrl.toString(),
+        response: errorText.substring(0, 500)
+      });
+      throw new Error(`PageSpeed API error: ${response.status} - ${response.statusText}`);
     }
     
     return await response.json();
@@ -108,10 +124,9 @@ class PageSpeedService {
     const recommendations = new Set<string>();
     
     // Extract opportunities from both desktop and mobile results
-    const allOpportunities = [
-      ...(desktopResult?.lighthouseResult?.audits || {}),
-      ...(mobileResult?.lighthouseResult?.audits || {})
-    ];
+    const desktopAudits = desktopResult?.lighthouseResult?.audits || {};
+    const mobileAudits = mobileResult?.lighthouseResult?.audits || {};
+    const allAudits = { ...desktopAudits, ...mobileAudits };
     
     // Map common audit IDs to user-friendly recommendations
     const auditMap: Record<string, string> = {
@@ -132,7 +147,7 @@ class PageSpeedService {
     };
     
     Object.keys(auditMap).forEach(auditId => {
-      if (allOpportunities[auditId] && allOpportunities[auditId].score < 0.9) {
+      if (allAudits[auditId] && allAudits[auditId].score < 0.9) {
         recommendations.add(auditMap[auditId]);
       }
     });

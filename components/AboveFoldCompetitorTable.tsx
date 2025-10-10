@@ -19,6 +19,7 @@ interface CompetitorAnalysis {
   averageOverlap: number;
   competitionIntensity: 'high' | 'medium' | 'low';
   keywordClusters: { [industry: string]: string[] };
+  targetDomainAuthority?: number; // Authority of the website being audited
 }
 
 interface AboveFoldCompetitorTableProps {
@@ -34,11 +35,24 @@ export default function AboveFoldCompetitorTable({
   const itemsPerPage = 5
   
   const { 
-    competitors = [], 
+    competitors: rawCompetitors = [], 
     competitionIntensity = 'low', 
     averageOverlap = 0, 
     keywordClusters = {} 
   } = analysis || {};
+  
+  // Filter competitors: only show those with overlap >= 40% and competitionLevel != 'low'
+  // Also exclude sortlist.co.uk from results
+  const competitors = rawCompetitors.filter((competitor: CompetitorData) => {
+    const overlapPercent = competitor?.overlap || 0;
+    const competition = competitor?.competitionLevel || '';
+    const domain = (competitor?.domain || '').toLowerCase();
+    
+    // Filter out sortlist.co.uk, competitors with overlap < 40%, or competition = 'low'
+    return domain !== 'sortlist.co.uk' && 
+           overlapPercent >= 40 && 
+           competition.toLowerCase() !== 'low';
+  });
   
   // Pagination
   const totalPages = Math.ceil(competitors.length / itemsPerPage)
@@ -62,6 +76,25 @@ export default function AboveFoldCompetitorTable({
       case 'low': return 'text-green-600';
       default: return 'text-gray-600';
     }
+  }
+
+  const getAuthorityColor = (authority: number, targetAuthority?: number) => {
+    if (!targetAuthority) {
+      // Default coloring when no comparison available
+      if (authority >= 70) return 'text-red-600 bg-red-50'
+      if (authority >= 50) return 'text-orange-600 bg-orange-50'
+      if (authority >= 30) return 'text-yellow-600 bg-yellow-50'
+      if (authority >= 10) return 'text-blue-600 bg-blue-50'
+      return 'text-gray-600 bg-gray-50'
+    }
+    
+    // Comparison-based coloring
+    const diff = authority - targetAuthority;
+    if (diff >= 20) return 'text-red-600 bg-red-50' // Much stronger
+    if (diff >= 10) return 'text-orange-600 bg-orange-50' // Stronger
+    if (diff >= -10) return 'text-yellow-600 bg-yellow-50' // Similar
+    if (diff >= -20) return 'text-blue-600 bg-blue-50' // Weaker
+    return 'text-green-600 bg-green-50' // Much weaker
   }
 
   if (!competitors || competitors.length === 0) {
@@ -109,7 +142,7 @@ export default function AboveFoldCompetitorTable({
       </div>
 
       {/* Competition Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="bg-gray-50 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-gray-900">{competitors.length}</div>
           <div className="text-sm text-gray-600">Competitors Found</div>
@@ -124,25 +157,14 @@ export default function AboveFoldCompetitorTable({
           </div>
           <div className="text-sm text-gray-600">Market Intensity</div>
         </div>
+        <div className="bg-blue-50 p-4 rounded-lg text-center border border-blue-200">
+          <div className="text-2xl font-bold text-blue-900">
+            {analysis.targetDomainAuthority || 'N/A'}
+          </div>
+          <div className="text-sm text-blue-600">Your Domain Authority</div>
+        </div>
       </div>
 
-      {/* Keyword Clusters */}
-      {Object.keys(keywordClusters).length > 0 && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h5 className="font-medium text-blue-900 mb-2">Keyword Categories Found:</h5>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(keywordClusters).map(([cluster, keywords]) => (
-              <span 
-                key={cluster}
-                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                title={`${keywords.length} keywords in this category`}
-              >
-                {cluster} ({keywords.length})
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Competitors Table */}
       <div className="border rounded-lg overflow-hidden">
@@ -217,11 +239,7 @@ export default function AboveFoldCompetitorTable({
                     </span>
                   </div>
                   <div className="col-span-2 text-center">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      (competitor?.authority || 0) >= 50 ? 'bg-green-100 text-green-800' :
-                      (competitor?.authority || 0) >= 30 ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAuthorityColor(competitor?.authority || 0, analysis.targetDomainAuthority)}`}>
                       DA {competitor?.authority || 0}
                     </span>
                   </div>
@@ -321,6 +339,57 @@ export default function AboveFoldCompetitorTable({
           </div>
         </div>
       )}
+
+      {/* Conclusion Section */}
+      <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <h5 className="font-semibold text-red-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="text-red-800 text-sm space-y-2">
+          {competitors.length > 0 ? (
+            <>
+              <p>
+                <strong>Competitive landscape identified!</strong> Found {competitors.length} main competitors based on your top-ranking keywords (positions 1-3). 
+                These are your most direct SEO competitors who are successfully competing for the same valuable search terms.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to outrank competitors:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  {competitionIntensity === 'high' && (
+                    <li><strong>High competition detected:</strong> This is a competitive market - expect longer timeframes for ranking improvements</li>
+                  )}
+                  {analysis.targetDomainAuthority && competitors.some(c => c.authority > (analysis.targetDomainAuthority || 0) + 15) && (
+                    <li><strong>Authority gap:</strong> Focus on link building - some competitors have much higher domain authority</li>
+                  )}
+                  <li>Study the content strategies of top competitors with 60%+ overlap</li>
+                  <li>Identify content gaps where competitors rank but you don't</li>
+                  <li>Create superior content for keywords where you're closely competing</li>
+                  <li>Monitor competitor backlink strategies and replicate successful tactics</li>
+                  <li>Set up alerts to track when competitors publish new content</li>
+                </ul>
+              </div>
+              <p className="mt-2 text-red-700">
+                <strong>Quick win:</strong> Target keywords where you rank #4-10 and competitors are weaker.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Market leadership opportunity!</strong> No major competitors detected for your top-ranking positions. 
+                You may be in a niche market or have achieved strong market dominance.
+              </p>
+              <div className="space-y-1">
+                <p><strong>Action items to maintain leadership:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Continuously monitor for emerging competitors entering your space</li>
+                  <li>Expand keyword targeting to capture adjacent markets</li>
+                  <li>Create comprehensive content to build authority moats</li>
+                  <li>Consider broader keyword research to find growth opportunities</li>
+                  <li>Focus on building brand authority to maintain competitive advantages</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
