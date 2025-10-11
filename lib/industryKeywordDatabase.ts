@@ -249,6 +249,15 @@ export const INDUSTRY_KEYWORD_DATABASE: { [industry: string]: IndustryKeywords }
       informational: ['financial planning guide', 'investment advice', 'pension planning', 'retirement savings', 'wealth building'],
       local: ['financial advisor near me', 'local financial planning', 'investment advisor in', 'area financial consultant', 'nearby pension advice'],
       urgency: ['urgent financial advice', 'emergency financial help', 'immediate investment advice', 'urgent pension advice', 'emergency financial planning']
+    },
+    'Insurance Services': {
+      primary: ['insurance broker', 'commercial insurance', 'business insurance', 'insurance advisory', 'risk management', 'insurance solutions', 'broking services', 'insurance distribution', 'corporate insurance', 'insurance consulting'],
+      secondary: ['liability insurance', 'professional indemnity', 'directors insurance', 'cyber insurance', 'property insurance', 'fleet insurance', 'construction insurance', 'healthcare insurance', 'technology insurance', 'financial lines insurance'],
+      longTail: ['commercial insurance broker services', 'business risk management solutions', 'corporate insurance advisory services', 'professional indemnity insurance broking', 'commercial property insurance quotes', 'specialist insurance for businesses'],
+      commercial: ['insurance quotes', 'insurance broker fees', 'commercial insurance cost', 'business insurance prices', 'insurance advisory rates', 'corporate insurance packages', 'insurance broker commission'],
+      informational: ['what is commercial insurance', 'business insurance guide', 'risk management strategies', 'insurance broker benefits', 'commercial insurance explained', 'business risk assessment', 'insurance compliance requirements'],
+      local: ['insurance broker near me', 'local commercial insurance', 'UK insurance broker', 'business insurance', 'commercial insurance advisor', 'insurance broking firm'],
+      urgency: ['urgent insurance cover', 'immediate business insurance', 'emergency insurance broker', 'fast track insurance', 'same day insurance quotes', 'urgent risk management help']
     }
   },
 
@@ -291,6 +300,96 @@ export const INDUSTRY_KEYWORD_DATABASE: { [industry: string]: IndustryKeywords }
       informational: ['skincare advice', 'beauty treatment guide', 'facial benefits', 'beauty therapy tips', 'skincare routine'],
       local: ['beauty therapist near me', 'local beauty salon', 'beauty treatment in', 'area beauty therapy', 'nearby beauty services'],
       urgency: ['urgent beauty treatment', 'same day facial', 'last minute beauty appointment', 'emergency beauty help', 'immediate beauty service']
+    }
+  },
+
+  'Fitness & Sports': {
+    'Gym & Fitness': {
+      primary: ['gym', 'fitness', 'fitness center', 'health club', 'workout', 'exercise', 'training', 'bodybuilding', 'strength training', 'cardio'],
+      secondary: ['gym membership', 'fitness classes', 'personal training', 'group fitness', 'weights', 'cardio equipment', 'fitness studio', 'wellness center', 'athletic training'],
+      longTail: ['affordable gym membership', 'no contract gym membership', 'student gym membership', 'corporate gym membership', 'gym with personal training', 'fitness center with classes'],
+      commercial: ['gym membership cost', 'fitness class prices', 'personal training rates', 'gym membership deals', 'fitness center fees', 'join gym today'],
+      informational: ['gym equipment guide', 'fitness tips', 'workout routines', 'exercise benefits', 'fitness center facilities', 'gym safety guidelines'],
+      local: ['gym near me', 'local fitness center', 'fitness classes in', 'gym membership', 'health club in'],
+      urgency: ['join gym today', 'start fitness now', 'immediate gym access', 'same day gym membership', 'urgent fitness help']
+    },
+    'Personal Training': {
+      primary: ['personal trainer', 'personal training', 'fitness coach', 'one on one training', 'private trainer', 'fitness instructor'],
+      secondary: ['weight loss training', 'strength coach', 'fitness consultation', 'exercise program', 'training sessions', 'fitness goals'],
+      longTail: ['certified personal trainer', 'weight loss personal trainer', 'strength training coach', 'fitness trainer for beginners', 'one on one fitness coaching'],
+      commercial: ['personal trainer cost', 'personal training rates', 'fitness coach prices', 'hire personal trainer', 'book training session'],
+      informational: ['personal training benefits', 'choosing a personal trainer', 'fitness coaching guide', 'personal training tips', 'workout planning'],
+      local: ['personal trainer near me', 'local fitness coach', 'personal training in', 'fitness instructor', 'area personal trainer'],
+      urgency: ['urgent fitness help', 'immediate personal training', 'start training today', 'emergency fitness coach', 'quick fitness results']
+    },
+    'Sports Clubs': {
+      primary: ['sports club', 'athletic club', 'sports center', 'recreation center', 'sporting activities', 'sports facilities'],
+      secondary: ['team sports', 'individual sports', 'sports coaching', 'athletic training', 'sports equipment', 'recreational activities'],
+      longTail: ['local sports club membership', 'youth sports programs', 'adult sports leagues', 'competitive sports training', 'recreational sports activities'],
+      commercial: ['sports club membership', 'sports coaching fees', 'athletic training cost', 'sports equipment rental', 'sports program prices'],
+      informational: ['sports club benefits', 'choosing sports activities', 'sports training guide', 'athletic development', 'sports safety'],
+      local: ['sports club near me', 'local athletic center', 'sports facilities in', 'recreation center', 'area sports programs'],
+      urgency: ['join sports club today', 'immediate sports training', 'urgent athletic help', 'start sports now', 'quick sports results']
+    }
+  },
+
+  'Entertainment & Recreation': {
+    'Indoor Karting': {
+      primary: ['indoor karting', 'go karting', 'karting experience', 'racing venue', 'karting center', 'motorsport venue', 'karting track', 'go kart racing', 'indoor racing', 'karting facility'],
+      secondary: ['karting parties', 'corporate karting', 'kids karting', 'family karting', 'group karting', 'karting events', 'racing instruction', 'karting academy', 'professional karting', 'karting training'],
+      longTail: ['indoor go karting birthday parties', 'corporate team building karting events', 'kids karting party packages', 'professional karting training courses', 'fastest indoor karting tracks', 'karting experience vouchers'],
+      commercial: ['karting prices', 'book karting session', 'karting party packages', 'corporate karting rates', 'karting experience vouchers', 'group karting booking', 'karting gift cards'],
+      informational: ['what is indoor karting', 'karting safety guide', 'how fast are go karts', 'karting for beginners', 'corporate karting benefits', 'kids karting age limits', 'karting track layout'],
+      local: ['karting near me', 'local karting center', 'indoor karting', 'karting venue', 'go karting track', 'karting facility'],
+      urgency: ['book karting today', 'last minute karting booking', 'same day karting session', 'urgent party venue booking', 'immediate karting experience', 'walk in karting sessions']
+    },
+    'Escape Rooms': {
+      primary: ['escape room', 'escape game', 'puzzle room', 'mystery room', 'adventure room', 'immersive experience', 'team challenge', 'escape experience'],
+      secondary: ['escape room themes', 'group escape rooms', 'corporate escape rooms', 'birthday escape rooms', 'family escape rooms', 'escape room booking', 'puzzle solving', 'team building escape'],
+      longTail: ['escape room birthday party packages', 'corporate team building escape rooms', 'family friendly escape room experiences', 'most challenging escape rooms', 'escape room gift vouchers'],
+      commercial: ['escape room prices', 'book escape room', 'escape room packages', 'group escape room rates', 'escape room vouchers', 'escape room gift cards'],
+      informational: ['how do escape rooms work', 'escape room tips', 'best escape room strategies', 'escape room difficulty levels', 'what to expect escape room'],
+      local: ['escape room near me', 'local escape rooms', 'escape room', 'escape game venue', 'puzzle room'],
+      urgency: ['book escape room today', 'last minute escape room', 'same day escape room booking', 'urgent team building activity', 'immediate escape room experience']
+    },
+    'Entertainment Centers': {
+      primary: ['entertainment center', 'family entertainment', 'indoor entertainment', 'activity center', 'fun center', 'recreation venue', 'entertainment venue', 'activity park'],
+      secondary: ['birthday parties', 'corporate events', 'group activities', 'family fun', 'kids activities', 'adult entertainment', 'party venues', 'team building activities'],
+      longTail: ['indoor family entertainment center', 'birthday party entertainment venues', 'corporate team building entertainment', 'all weather family activities', 'group entertainment packages'],
+      commercial: ['entertainment center prices', 'party package deals', 'group booking rates', 'entertainment vouchers', 'corporate event packages', 'birthday party costs'],
+      informational: ['what activities are available', 'age restrictions entertainment', 'party planning guide', 'group activity ideas', 'entertainment center facilities'],
+      local: ['entertainment center near me', 'local family fun', 'indoor activities', 'entertainment venue', 'activity center'],
+      urgency: ['book entertainment today', 'last minute party venue', 'same day activity booking', 'urgent entertainment booking', 'immediate party solution']
+    }
+  },
+
+  'Scientific Equipment & Instruments': {
+    'Particle Science Equipment': {
+      primary: ['particle analyzer', 'particle sizing equipment', 'particle characterization', 'particle size analyzer', 'particle counter', 'particle measurement', 'particle distribution analyzer', 'laser diffraction', 'dynamic light scattering', 'particle shape analyzer'],
+      secondary: ['particle analysis instruments', 'size distribution measurement', 'particle size distribution', 'particle morphology', 'zeta potential analyzer', 'particle stability testing', 'particle concentration measurement', 'aerosol particle counter'],
+      longTail: ['laser diffraction particle size analyzer', 'dynamic light scattering particle analyzer', 'automated particle size distribution analyzer', 'high resolution particle size analyzer', 'pharmaceutical particle size testing equipment'],
+      commercial: ['particle analyzer price', 'particle sizing equipment cost', 'particle analyzer quote', 'particle measurement system', 'buy particle analyzer', 'particle sizing equipment supplier'],
+      informational: ['particle size analysis methods', 'particle characterization techniques', 'how particle analyzers work', 'particle sizing principles', 'particle measurement guide', 'particle analysis applications'],
+      local: ['particle analyzer UK', 'particle sizing equipment UK', 'particle analysis equipment', 'UK particle measurement', 'particle analyzer supplier'],
+      urgency: ['urgent particle analysis', 'immediate particle testing', 'fast particle characterization', 'emergency particle measurement', 'same day particle analysis']
+    },
+    'Laboratory Instruments': {
+      primary: ['laboratory instruments', 'lab equipment', 'analytical instruments', 'scientific instruments', 'research equipment', 'laboratory equipment', 'lab instrumentation', 'analytical equipment', 'testing instruments', 'measurement equipment'],
+      secondary: ['spectroscopy equipment', 'chromatography systems', 'microscopy equipment', 'laboratory balances', 'pH meters', 'laboratory automation', 'sample preparation equipment', 'laboratory consumables'],
+      longTail: ['high precision laboratory instruments', 'automated laboratory equipment systems', 'research grade analytical instruments', 'university laboratory equipment', 'pharmaceutical laboratory instruments'],
+      commercial: ['laboratory equipment prices', 'lab instruments cost', 'analytical equipment quote', 'buy laboratory instruments', 'lab equipment supplier', 'laboratory instrument financing'],
+      informational: ['laboratory equipment guide', 'analytical instrument selection', 'lab equipment maintenance', 'laboratory instrumentation basics', 'how to choose lab equipment'],
+      local: ['laboratory equipment UK', 'lab instruments UK', 'UK laboratory suppliers', 'laboratory equipment distributor', 'lab equipment near me'],
+      urgency: ['urgent lab equipment', 'emergency laboratory instruments', 'immediate equipment replacement', 'fast laboratory equipment delivery', 'same day lab equipment']
+    },
+    'Analytical Equipment': {
+      primary: ['analytical equipment', 'analytical instruments', 'testing equipment', 'analysis instruments', 'quality control equipment', 'analytical testing', 'measurement instruments', 'characterization equipment', 'analytical systems', 'testing systems'],
+      secondary: ['stability testing equipment', 'dissolution testing', 'chemical analysis equipment', 'materials testing equipment', 'pharmaceutical testing equipment', 'environmental testing equipment', 'food testing equipment'],
+      longTail: ['pharmaceutical analytical testing equipment', 'materials characterization equipment', 'environmental analysis instruments', 'food safety testing equipment', 'chemical analysis laboratory equipment'],
+      commercial: ['analytical equipment prices', 'testing equipment cost', 'analytical instruments quote', 'quality control equipment supplier', 'buy analytical equipment'],
+      informational: ['analytical testing methods', 'quality control procedures', 'analytical equipment selection', 'testing equipment guide', 'analytical instrument calibration'],
+      local: ['analytical equipment UK', 'testing equipment UK', 'UK analytical instruments', 'analytical equipment supplier', 'testing equipment distributor'],
+      urgency: ['urgent analytical testing', 'emergency equipment calibration', 'immediate testing equipment', 'fast analytical equipment', 'same day equipment service']
     }
   }
 };

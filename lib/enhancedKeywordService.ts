@@ -55,6 +55,12 @@ export interface EnhancedKeywordAnalysis {
   totalGeneratedKeywords: number;
   businessRelevanceScore: number;
   geographicOptimization: boolean;
+  
+  // Domain Authority
+  domainAuthority?: number;
+  domainAuthorityMethod?: string;
+  domainAuthorityReliability?: 'high' | 'medium' | 'low';
+  domainAuthoritySources?: Array<{source: string; score: number; success: boolean}>;
 }
 
 export class EnhancedKeywordService {
@@ -156,6 +162,25 @@ export class EnhancedKeywordService {
       // Calculate enhanced metrics
       const metrics = this.calculateEnhancedMetrics(finalKeywords);
       
+      // Step 10: Domain Authority calculation
+      console.log('📊 Step 10: Domain Authority Calculation...');
+      let domainAuthorityResult;
+      try {
+        console.log(`🔍 Starting domain authority calculation for: ${cleanDomain}`);
+        const { DomainAuthorityEstimator } = await import('./domainAuthority');
+        const domainAuthorityEstimator = new DomainAuthorityEstimator();
+        domainAuthorityResult = await domainAuthorityEstimator.estimateDomainAuthority(cleanDomain, html);
+        console.log(`✅ Domain Authority: ${domainAuthorityResult.domainAuthority} (${domainAuthorityResult.estimationMethod})`);
+      } catch (error) {
+        console.error(`❌ Domain Authority calculation failed:`, error);
+        domainAuthorityResult = {
+          domainAuthority: 0,
+          estimationMethod: 'error',
+          reliability: 'low' as const,
+          sources: []
+        };
+      }
+      
       const result: EnhancedKeywordAnalysis = {
         businessDetection,
         locationContext,
@@ -177,7 +202,13 @@ export class EnhancedKeywordService {
         industrySpecific: finalKeywords.industrySpecific,
         totalGeneratedKeywords: finalKeywords.totalGenerated,
         businessRelevanceScore: this.calculateBusinessRelevanceScore(finalKeywords),
-        geographicOptimization: locationContext.isLocalBusiness && finalKeywords.local.length > 0
+        geographicOptimization: locationContext.isLocalBusiness && finalKeywords.local.length > 0,
+        
+        // Domain Authority
+        domainAuthority: domainAuthorityResult.domainAuthority,
+        domainAuthorityMethod: domainAuthorityResult.estimationMethod,
+        domainAuthorityReliability: domainAuthorityResult.reliability,
+        domainAuthoritySources: domainAuthorityResult.sources
       };
       
       console.log(`\n🎉 ENHANCED ANALYSIS COMPLETE:`);
@@ -881,22 +912,29 @@ export class EnhancedKeywordService {
    * Get competition analysis (delegate to existing service)
    */
   private async getCompetitionAnalysis(aboveFoldKeywords: any[], domain: string) {
-    if (aboveFoldKeywords.length === 0) return null;
+    if (aboveFoldKeywords.length === 0) {
+      console.log('🚫 No above-fold keywords for competition analysis');
+      return null;
+    }
     
     try {
+      console.log(`🏆 Starting competition analysis with ${aboveFoldKeywords.length} above-fold keywords...`);
       const { KeywordCompetitionService } = await import('./keywordCompetitionService');
       const service = new KeywordCompetitionService(domain);
       
       const rawAnalysis = await service.analyzeCompetitorOverlap(aboveFoldKeywords);
       
       // Transform to expected format for AboveFoldCompetitorTable
-      if (rawAnalysis && rawAnalysis.competitors) {
-        return this.transformCompetitionAnalysis(rawAnalysis);
+      if (rawAnalysis && rawAnalysis.competitors && rawAnalysis.competitors.length > 0) {
+        const transformed = this.transformCompetitionAnalysis(rawAnalysis);
+        console.log(`✅ Competition analysis complete: transformed ${transformed?.totalCompetitors || 0} competitors`);
+        return transformed;
       }
       
+      console.log('⚠️ No competitors found in analysis result');
       return null;
     } catch (error) {
-      console.error('Competition analysis failed:', error);
+      console.error('❌ Competition analysis failed:', error);
       return null;
     }
   }
@@ -941,14 +979,18 @@ export class EnhancedKeywordService {
       }
     });
 
-    return {
-      competitors: transformedCompetitors,
-      totalCompetitors: competitors.length,
+    // Ensure JSON-safe data structure
+    const result = {
+      competitors: transformedCompetitors.slice(0, 10), // Limit to 10 competitors to prevent data size issues
+      totalCompetitors: Math.min(competitors.length, 10),
       averageOverlap,
       competitionIntensity,
-      keywordClusters,
-      targetDomainAuthority: rawAnalysis.targetDomainAuthority // Include target domain authority for comparison
+      keywordClusters: JSON.parse(JSON.stringify(keywordClusters)), // Ensure serializable
+      targetDomainAuthority: rawAnalysis.targetDomainAuthority || null
     };
+    
+    console.log(`🎯 Competition analysis result: ${result.totalCompetitors} competitors, average overlap: ${result.averageOverlap}%`);
+    return result;
   }
 
   /**

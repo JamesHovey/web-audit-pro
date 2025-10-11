@@ -17,6 +17,16 @@ export interface ApiCosts {
     planType: string
     lastUpdated: string
   }
+  claudeApi: {
+    tokensUsed: number
+    totalCost: number
+    requestsThisMonth: number
+    avgCostPerRequest: number
+    lastUpdated: string
+    model: string
+    businessAnalysisRequests: number
+    conclusionGenerationRequests: number
+  }
 }
 
 export class CostingService {
@@ -52,6 +62,9 @@ export class CostingService {
       // Fetch ValueSERP balance  
       const vsBalance = await this.getValueSerpBalance()
 
+      // Fetch Claude API usage
+      const claudeUsage = await this.getClaudeApiUsage()
+
       this.cachedCosts = {
         keywordsEverywhere: {
           creditsRemaining: keBalance.remaining,
@@ -66,6 +79,14 @@ export class CostingService {
           costPer1000: 1.60, // $1.60 per 1000 searches
           planType: vsBalance.planType,
           lastUpdated: new Date().toISOString()
+        },
+        claudeApi: {
+          tokensUsed: claudeUsage.tokensUsed,
+          totalCost: claudeUsage.totalCost,
+          requestsThisMonth: claudeUsage.requestsThisMonth,
+          avgCostPerRequest: claudeUsage.avgCostPerRequest,
+          lastUpdated: new Date().toISOString(),
+          model: 'claude-3-5-haiku-20241022'
         }
       }
 
@@ -131,12 +152,109 @@ export class CostingService {
   }
 
   /**
-   * Calculate cost for a specific audit
+   * Get Claude API usage from local storage or tracking
    */
-  calculateAuditCost(keCredits: number, vsSearches: number): number {
+  private async getClaudeApiUsage(): Promise<{
+    tokensUsed: number, 
+    totalCost: number, 
+    requestsThisMonth: number, 
+    avgCostPerRequest: number
+  }> {
+    try {
+      // In a real implementation, this would pull from local storage or a database
+      // For now, return estimated values based on typical usage
+      const storedUsage = this.getStoredClaudeUsage()
+      
+      return {
+        tokensUsed: storedUsage.tokensUsed,
+        totalCost: storedUsage.totalCost,
+        requestsThisMonth: storedUsage.requestsThisMonth,
+        avgCostPerRequest: storedUsage.requestsThisMonth > 0 
+          ? storedUsage.totalCost / storedUsage.requestsThisMonth 
+          : 0.038 // Default average cost per request
+      }
+    } catch (error) {
+      console.warn('Could not fetch Claude API usage:', error)
+      return {
+        tokensUsed: 0,
+        totalCost: 0,
+        requestsThisMonth: 0,
+        avgCostPerRequest: 0.038
+      }
+    }
+  }
+
+  /**
+   * Get stored Claude usage from localStorage
+   */
+  private getStoredClaudeUsage(): {
+    tokensUsed: number,
+    totalCost: number,
+    requestsThisMonth: number
+  } {
+    if (typeof window === 'undefined') {
+      // Server-side rendering
+      return { tokensUsed: 0, totalCost: 0, requestsThisMonth: 0 }
+    }
+
+    try {
+      const stored = localStorage.getItem('claude-api-usage')
+      if (stored) {
+        const data = JSON.parse(stored)
+        
+        // Check if data is from current month
+        const currentMonth = new Date().getMonth()
+        const storedMonth = new Date(data.lastUpdated).getMonth()
+        
+        if (currentMonth === storedMonth) {
+          return data
+        }
+      }
+    } catch (error) {
+      console.warn('Error reading Claude usage from localStorage:', error)
+    }
+
+    // Return defaults if no stored data or from previous month
+    return {
+      tokensUsed: 0,
+      totalCost: 0,
+      requestsThisMonth: 0
+    }
+  }
+
+  /**
+   * Update Claude API usage tracking
+   */
+  updateClaudeUsage(tokensUsed: number, cost: number): void {
+    if (typeof window === 'undefined') return
+
+    try {
+      const current = this.getStoredClaudeUsage()
+      const updated = {
+        tokensUsed: current.tokensUsed + tokensUsed,
+        totalCost: current.totalCost + cost,
+        requestsThisMonth: current.requestsThisMonth + 1,
+        lastUpdated: new Date().toISOString()
+      }
+
+      localStorage.setItem('claude-api-usage', JSON.stringify(updated))
+      
+      // Clear cache to force refresh on next request
+      this.clearCache()
+      
+    } catch (error) {
+      console.warn('Error updating Claude usage in localStorage:', error)
+    }
+  }
+
+  /**
+   * Calculate cost for a specific audit (updated to include Claude)
+   */
+  calculateAuditCost(keCredits: number, vsSearches: number, claudeCost?: number): number {
     const keCost = keCredits * 0.00024 // 24¢ per 1000 credits
     const vsCost = vsSearches * 0.0016 // $1.60 per 1000 searches
-    return Math.round((keCost + vsCost) * 1000) / 1000 // Round to 3 decimal places
+    const totalCost = keCost + vsCost + (claudeCost || 0)
+    return Math.round(totalCost * 1000) / 1000 // Round to 3 decimal places
   }
 
   /**
@@ -174,6 +292,14 @@ export class CostingService {
         costPer1000: 1.60,
         planType: '25K Searches/month ($50/month)',
         lastUpdated: new Date().toISOString()
+      },
+      claudeApi: {
+        tokensUsed: 0,
+        totalCost: 0,
+        requestsThisMonth: 0,
+        avgCostPerRequest: 0.038,
+        lastUpdated: new Date().toISOString(),
+        model: 'claude-3-5-haiku-20241022'
       }
     }
   }

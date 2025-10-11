@@ -80,9 +80,10 @@ export default function BrandedKeywordTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h4 className="font-semibold text-black">{title}</h4>
+    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{title}</h4>
         <Tooltip 
           content={
             <div className="max-w-sm">
@@ -169,7 +170,7 @@ export default function BrandedKeywordTable({
                   </div>
                   <div className="col-span-3 text-center">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
-                      {keyword.mentions || 1} times
+                      {keyword.mentions || 1}
                     </span>
                   </div>
                   <div className="col-span-3 text-center text-gray-600">
@@ -201,7 +202,7 @@ export default function BrandedKeywordTable({
                   </div>
                   <div className="col-span-3 text-center">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
-                      {keyword.mentions || 1} times
+                      {keyword.mentions || 1}
                     </span>
                   </div>
                   <div className="col-span-3 text-center text-gray-600">
@@ -270,7 +271,10 @@ export default function BrandedKeywordTable({
 
       {/* Conclusion Section */}
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h5 className="font-semibold text-blue-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="flex items-center gap-3 mb-3">
+          <img src="/office-worker-light-skin-tone-svgrepo-com.svg" alt="Office Worker" className="w-10 h-10" />
+          <h5 className="font-semibold text-blue-900">Conclusion & Next Steps</h5>
+        </div>
         <div className="text-blue-800 text-sm space-y-2">
           {sortedKeywords.length > 0 ? (
             <>
@@ -282,11 +286,11 @@ export default function BrandedKeywordTable({
                 <p><strong>Action items to improve:</strong></p>
                 <ul className="list-disc list-inside ml-2 space-y-1">
                   {sortedKeywords.some(k => !k.position || k.position > 5) && (
-                    <li>Optimize pages for branded keywords where you rank below position 5</li>
+                    <li>Optimize pages for branded keywords on search engines where you rank below position 5</li>
                   )}
                   <li>Create dedicated landing pages for high-volume branded terms</li>
                   <li>Ensure your brand name appears in page titles and meta descriptions</li>
-                  <li>Monitor competitor rankings for your branded keywords</li>
+                  <li>Monitor competitor rankings for your branded keywords on search engines</li>
                 </ul>
               </div>
             </>
@@ -324,6 +328,7 @@ export default function BrandedKeywordTable({
           )}
         </div>
       </div>
+    </div>
     </div>
   )
 }

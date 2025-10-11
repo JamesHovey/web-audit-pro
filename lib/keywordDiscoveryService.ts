@@ -186,7 +186,7 @@ export class KeywordDiscoveryService {
               if (suggestionLower.includes(brandLower) && 
                   suggestion !== seed && 
                   !discoveredKeywords.includes(suggestion.toLowerCase()) &&
-                  this.isBusinessRelevantBrandedKeyword(suggestionLower, brandLower)) {
+                  this.isBusinessRelevantBrandedKeyword(suggestionLower, brandLower, domain)) {
                 discoveredKeywords.push(suggestion.toLowerCase());
               }
             });
@@ -366,9 +366,49 @@ export class KeywordDiscoveryService {
   }
 
   /**
+   * Get business type-specific irrelevant terms based on domain
+   */
+  private getBusinessTypeIrrelevantTerms(domain: string): string[] {
+    const cleanDomain = domain.toLowerCase();
+    
+    // Estate agents - reject consulting, engineering, manufacturing terms
+    if (cleanDomain.includes('henry') && cleanDomain.includes('adams') || 
+        cleanDomain.includes('estate') || cleanDomain.includes('property') || 
+        cleanDomain.includes('letting')) {
+      return [
+        'consulting', 'engineer', 'engineering', 'consultant', 'consultancy',
+        'manufacturing', 'industrial', 'machinery', 'equipment', 'software',
+        'technology', 'tech', 'development', 'programming', 'coding',
+        'medical', 'healthcare', 'dental', 'clinic', 'hospital',
+        'legal', 'law', 'solicitor', 'barrister', 'attorney'
+      ];
+    }
+    
+    // Consulting/professional services - reject estate agent terms
+    if (cleanDomain.includes('consulting') || cleanDomain.includes('consultant')) {
+      return [
+        'estate', 'property', 'lettings', 'sales', 'residential', 'commercial',
+        'auctions', 'valuations', 'mortgages', 'conveyancing', 'surveying'
+      ];
+    }
+    
+    // Manufacturing/equipment - reject service-based terms
+    if (cleanDomain.includes('manufacturing') || cleanDomain.includes('equipment') ||
+        cleanDomain.includes('machinery') || cleanDomain.includes('industrial')) {
+      return [
+        'consulting', 'estate', 'property', 'lettings', 'legal', 'law',
+        'marketing', 'advertising', 'design', 'creative'
+      ];
+    }
+    
+    // Default - minimal filtering
+    return [];
+  }
+
+  /**
    * Check if a branded keyword suggestion is business relevant
    */
-  private isBusinessRelevantBrandedKeyword(suggestion: string, brandName: string): boolean {
+  private isBusinessRelevantBrandedKeyword(suggestion: string, brandName: string, domain?: string): boolean {
     // Generate spaced variations to check against
     const spacedVariations = this.generateSpacedBrandVariations(brandName);
     const allBrandVariations = [brandName, ...spacedVariations];
@@ -387,6 +427,18 @@ export class KeywordDiscoveryService {
     if (!matchesAnyVariation) {
       console.log(`❌ Branded keyword rejected: "${suggestion}" (doesn't match brand variations: [${allBrandVariations.join(', ')}])`);
       return false;
+    }
+    
+    // First check for business type-specific irrelevant terms based on domain
+    if (domain) {
+      const businessTypeIrrelevantTerms = this.getBusinessTypeIrrelevantTerms(domain);
+      const hasBusinessTypeIrrelevantTerm = businessTypeIrrelevantTerms.some(term => 
+        suggestion.toLowerCase().includes(term.toLowerCase())
+      );
+      if (hasBusinessTypeIrrelevantTerm) {
+        console.log(`❌ Branded keyword rejected: "${suggestion}" (irrelevant to business type)`);
+        return false;
+      }
     }
     
     // Business-relevant terms for branded keywords

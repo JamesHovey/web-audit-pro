@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ClaudeConclusionService, type AuditData, type ConclusionResult } from '../lib/claudeConclusionService'
 
 interface OverallAuditConclusionProps {
   results: {
@@ -20,12 +21,78 @@ interface OverallAuditConclusionProps {
       overallScore: number
       globalIssues: Array<any>
     }
+    businessType?: {
+      category: string
+      subcategory: string
+      description: string
+    }
   }
+  domain: string
   auditType?: 'page' | 'website' | 'full'
 }
 
-export default function OverallAuditConclusion({ results, auditType = 'website' }: OverallAuditConclusionProps) {
+export default function OverallAuditConclusion({ results, domain, auditType = 'website' }: OverallAuditConclusionProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [claudeConclusions, setClaudeConclusions] = useState<ConclusionResult | null>(null)
+  const [loadingConclusions, setLoadingConclusions] = useState(true)
+  const [conclusionError, setConclusionError] = useState<string | null>(null)
+
+  // Generate Claude conclusions when component mounts
+  useEffect(() => {
+    async function generateConclusions() {
+      if (!results.businessType) {
+        setConclusionError('Business type information required for Claude conclusions')
+        setLoadingConclusions(false)
+        return
+      }
+
+      try {
+        setLoadingConclusions(true)
+        setConclusionError(null)
+
+        // Prepare audit data for Claude
+        const auditData: AuditData = {
+          domain,
+          businessType: results.businessType,
+          keywordFindings: {
+            totalKeywords: (results.brandedKeywordsList?.length || 0) + (results.nonBrandedKeywordsList?.length || 0),
+            topPerformingKeywords: results.aboveFoldKeywordsList?.slice(0, 5).map(k => k.keyword || k.term) || [],
+            missingOpportunities: [], // Could be enhanced with more data
+            competitorKeywords: results.keywordCompetition?.competitors?.slice(0, 5).map(c => c.domain) || []
+          },
+          technicalFindings: {
+            pageSpeed: results.viewportAnalysis?.overallScore || 0,
+            mobileScore: results.viewportAnalysis?.overallScore || 0,
+            issues: results.viewportAnalysis?.globalIssues?.map(i => i.description || i.message || 'Technical issue') || [],
+            recommendations: ['Improve mobile responsiveness', 'Optimize page speed', 'Fix technical errors']
+          },
+          contentFindings: {
+            titleIssues: 0, // Could be enhanced with title analysis
+            metaDescriptionIssues: 0, // Could be enhanced with meta analysis
+            headingStructure: 'Standard H1-H6 hierarchy',
+            contentGaps: ['Industry-specific content', 'Local content', 'Service pages']
+          },
+          competitorAnalysis: {
+            topCompetitors: results.keywordCompetition?.competitors?.slice(0, 3).map(c => c.domain) || [],
+            competitiveGaps: ['Higher domain authority needed', 'More content required'],
+            opportunities: ['Long-tail keywords', 'Local SEO', 'Content marketing']
+          }
+        }
+
+        const conclusionService = new ClaudeConclusionService()
+        const conclusions = await conclusionService.generateConclusions(auditData)
+        setClaudeConclusions(conclusions)
+
+      } catch (error) {
+        console.error('Failed to generate Claude conclusions:', error)
+        setConclusionError('Failed to generate intelligent conclusions. Using fallback analysis.')
+      } finally {
+        setLoadingConclusions(false)
+      }
+    }
+
+    generateConclusions()
+  }, [domain, results])
   
   // Randomly select an office worker image
   const officeWorkerImages = [
@@ -251,11 +318,101 @@ export default function OverallAuditConclusion({ results, auditType = 'website' 
         </div>
       </div>
 
+      {/* Claude Executive Summary */}
+      {claudeConclusions && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">🧠</span>
+            <h3 className="text-xl font-semibold text-gray-900">AI Executive Summary</h3>
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+              Claude AI Analysis
+            </span>
+          </div>
+          
+          <p className="text-gray-800 mb-4 bg-white p-4 rounded-lg border">
+            {claudeConclusions.executiveSummary}
+          </p>
+
+          {claudeConclusions.keyInsights.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-semibold text-blue-900 mb-2">🔍 Key Insights</h4>
+                <ul className="text-blue-800 text-sm space-y-1">
+                  {claudeConclusions.keyInsights.map((insight, index) => (
+                    <li key={index}>• {insight}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {claudeConclusions.industrySpecificAdvice.length > 0 && (
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="font-semibold text-purple-900 mb-2">🎯 Industry-Specific Advice</h4>
+                  <ul className="text-purple-800 text-sm space-y-1">
+                    {claudeConclusions.industrySpecificAdvice.map((advice, index) => (
+                      <li key={index}>• {advice}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Priority Action Plan */}
       <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">🎯 Prioritized Action Plan</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">🎯 Prioritized Action Plan</h3>
+          {claudeConclusions && (
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+              🧠 AI-Powered Analysis
+            </span>
+          )}
+        </div>
         
-        {allPriorities.length > 0 ? (
+        {loadingConclusions ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-3 text-gray-600">Generating intelligent conclusions...</span>
+          </div>
+        ) : claudeConclusions && claudeConclusions.priorityRecommendations.length > 0 ? (
+          <div className="space-y-3">
+            {claudeConclusions.priorityRecommendations.map((item, index) => (
+              <div
+                key={index}
+                className={`border-l-4 p-4 rounded-r-lg ${getPriorityColor(item.priority)}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-bold uppercase px-2 py-1 rounded ${getPriorityTextColor(item.priority)} bg-white`}>
+                        {item.priority} Priority
+                      </span>
+                      <span className="font-medium text-gray-900">{item.title}</span>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                        {item.category}
+                      </span>
+                    </div>
+                    <p className={`text-sm ${getPriorityTextColor(item.priority)} mb-2`}>
+                      <strong>Description:</strong> {item.description}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs">
+                      <span className={`${getPriorityTextColor(item.priority)}`}>
+                        <strong>Impact:</strong> {item.estimatedImpact}
+                      </span>
+                      <span className={`${getPriorityTextColor(item.priority)}`}>
+                        <strong>Difficulty:</strong> {item.difficulty}
+                      </span>
+                      <span className={`${getPriorityTextColor(item.priority)}`}>
+                        <strong>Timeline:</strong> {item.timeframe}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : allPriorities.length > 0 ? (
           <div className="space-y-3">
             {allPriorities.map((item, index) => (
               <div
@@ -285,6 +442,12 @@ export default function OverallAuditConclusion({ results, auditType = 'website' 
           <div className="text-center py-8 text-gray-500">
             <p>🎉 Excellent! No major issues detected.</p>
             <p className="text-sm mt-1">Continue monitoring and optimizing for sustained growth.</p>
+          </div>
+        )}
+        
+        {conclusionError && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm">{conclusionError}</p>
           </div>
         )}
       </div>
@@ -350,45 +513,101 @@ export default function OverallAuditConclusion({ results, auditType = 'website' 
 
       {/* Next Steps Timeline */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">⏰ Recommended Timeline</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-white rounded-lg border">
-            <h4 className="font-semibold text-red-600 mb-2">Week 1-2: Critical Issues</h4>
-            <ul className="text-sm text-gray-700 space-y-1">
-              {priorities.critical.length > 0 ? (
-                priorities.critical.map((item, index) => (
-                  <li key={index}>• {item.category}</li>
-                ))
-              ) : (
-                <li>• No critical issues ✅</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="p-4 bg-white rounded-lg border">
-            <h4 className="font-semibold text-orange-600 mb-2">Month 1: High Priority</h4>
-            <ul className="text-sm text-gray-700 space-y-1">
-              {priorities.high.length > 0 ? (
-                priorities.high.map((item, index) => (
-                  <li key={index}>• {item.category}</li>
-                ))
-              ) : (
-                <li>• No high priority issues ✅</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="p-4 bg-white rounded-lg border">
-            <h4 className="font-semibold text-blue-600 mb-2">Ongoing: Optimization</h4>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>• Monitor keyword rankings</li>
-              <li>• Content optimization</li>
-              <li>• Competitive analysis</li>
-              <li>• Performance tracking</li>
-            </ul>
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">⏰ Recommended Timeline</h3>
+          {claudeConclusions && claudeConclusions.nextSteps.length > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+              🧠 AI Next Steps
+            </span>
+          )}
         </div>
+        
+        {claudeConclusions && claudeConclusions.nextSteps.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-purple-600 mb-2">🧠 AI-Powered Next Steps</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {claudeConclusions.nextSteps.map((step, index) => (
+                  <li key={index}>• {step}</li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-red-600 mb-2">Week 1-2: Critical Issues</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {claudeConclusions.priorityRecommendations.filter(r => r.priority === 'high' && r.timeframe === 'immediate').length > 0 ? (
+                  claudeConclusions.priorityRecommendations
+                    .filter(r => r.priority === 'high' && r.timeframe === 'immediate')
+                    .map((item, index) => (
+                      <li key={index}>• {item.title}</li>
+                    ))
+                ) : (
+                  <li>• No critical immediate issues ✅</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-blue-600 mb-2">Ongoing: Optimization</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {claudeConclusions.priorityRecommendations.filter(r => r.timeframe === 'long-term').length > 0 ? (
+                  claudeConclusions.priorityRecommendations
+                    .filter(r => r.timeframe === 'long-term')
+                    .slice(0, 4)
+                    .map((item, index) => (
+                      <li key={index}>• {item.title}</li>
+                    ))
+                ) : (
+                  <>
+                    <li>• Monitor keyword rankings</li>
+                    <li>• Content optimization</li>
+                    <li>• Competitive analysis</li>
+                    <li>• Performance tracking</li>
+                  </>
+                )}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-red-600 mb-2">Week 1-2: Critical Issues</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {priorities.critical.length > 0 ? (
+                  priorities.critical.map((item, index) => (
+                    <li key={index}>• {item.category}</li>
+                  ))
+                ) : (
+                  <li>• No critical issues ✅</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-orange-600 mb-2">Month 1: High Priority</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {priorities.high.length > 0 ? (
+                  priorities.high.map((item, index) => (
+                    <li key={index}>• {item.category}</li>
+                  ))
+                ) : (
+                  <li>• No high priority issues ✅</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-blue-600 mb-2">Ongoing: Optimization</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• Monitor keyword rankings</li>
+                <li>• Content optimization</li>
+                <li>• Competitive analysis</li>
+                <li>• Performance tracking</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

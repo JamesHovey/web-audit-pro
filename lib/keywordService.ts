@@ -156,7 +156,12 @@ export async function analyzeKeywords(domain: string, html: string, country: str
           commercial: enhancedResult.keywordsByIntent.commercial,
           transactional: enhancedResult.keywordsByIntent.transactional,
           navigational: enhancedResult.keywordsByIntent.navigational
-        }
+        },
+        // Domain Authority from enhanced analysis
+        domainAuthority: enhancedResult.domainAuthority,
+        domainAuthorityMethod: enhancedResult.domainAuthorityMethod,
+        domainAuthorityReliability: enhancedResult.domainAuthorityReliability,
+        domainAuthoritySources: enhancedResult.domainAuthoritySources
       };
       
       console.log(`✅ Enhanced analysis complete: ${enhancedResult.totalGeneratedKeywords} keywords generated`);
@@ -252,10 +257,22 @@ export async function analyzeKeywords(domain: string, html: string, country: str
     });
     
     // Calculate domain authority
-    const { DomainAuthorityEstimator } = await import('./domainAuthority');
-    const domainAuthorityEstimator = new DomainAuthorityEstimator();
-    const domainAuthorityResult = await domainAuthorityEstimator.estimateDomainAuthority(cleanDomain, html);
-    console.log(`Domain Authority: ${domainAuthorityResult.domainAuthority} (${domainAuthorityResult.estimationMethod})`);
+    let domainAuthorityResult;
+    try {
+      console.log(`🔍 Starting domain authority calculation for: ${cleanDomain}`);
+      const { DomainAuthorityEstimator } = await import('./domainAuthority');
+      const domainAuthorityEstimator = new DomainAuthorityEstimator();
+      domainAuthorityResult = await domainAuthorityEstimator.estimateDomainAuthority(cleanDomain, html);
+      console.log(`✅ Domain Authority: ${domainAuthorityResult.domainAuthority} (${domainAuthorityResult.estimationMethod})`);
+    } catch (error) {
+      console.error(`❌ Domain Authority calculation failed:`, error);
+      domainAuthorityResult = {
+        domainAuthority: 0,
+        estimationMethod: 'error',
+        reliability: 'low' as const,
+        sources: []
+      };
+    }
     
     // Get top keywords
     const allEnhancedKeywords = [...enhancedBrandedKeywords, ...enhancedNonBrandedKeywords];

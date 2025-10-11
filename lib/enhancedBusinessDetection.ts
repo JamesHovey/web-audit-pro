@@ -47,6 +47,14 @@ const BUSINESS_TYPES = {
     subcategories: ['General Practice', 'Dental', 'Veterinary', 'Mental Health', 'Specialist Medicine']
   },
 
+  'Fitness & Sports': {
+    keywords: ['gym', 'fitness', 'exercise', 'workout', 'personal trainer', 'training', 'muscle', 'strength', 'cardio', 'sports', 'athletic', 'health club', 'fitness center', 'wellness', 'bodybuilding', 'crossfit', 'pilates', 'yoga', 'spin', 'aerobics', 'weights', 'equipment', 'membership', 'classes', 'coach', 'bootcamp'],
+    ukTerms: ['leisure centre', 'sports centre', 'health club', 'personal training', 'group classes', 'monthly membership'],
+    schemas: ['SportsActivityLocation', 'ExerciseGym', 'HealthClub'],
+    urlPatterns: ['/membership', '/classes', '/personal-training', '/facilities', '/timetable', '/join'],
+    subcategories: ['Gym & Fitness', 'Personal Training', 'Sports Clubs', 'Wellness Centers', 'Martial Arts']
+  },
+
   'Automotive': {
     keywords: ['car', 'vehicle', 'automotive', 'garage', 'mot', 'repair', 'mechanic', 'service', 'parts', 'tyres', 'brake', 'engine'],
     ukTerms: ['mot test', 'dvla', 'tax disc', 'insurance', 'breakdown'],
@@ -56,7 +64,7 @@ const BUSINESS_TYPES = {
   },
 
   'Food Processing & Equipment': {
-    keywords: ['chocolate machines', 'chocolate equipment', 'food processing', 'food machinery', 'tempering', 'chocolate moulds', 'nut butter machines', 'processing equipment', 'food manufacturing', 'chocolate processing', 'equipment supplier', 'machinery supplier', 'commercial equipment', 'industrial equipment'],
+    keywords: ['chocolate machines', 'chocolate equipment', 'food processing', 'food machinery', 'tempering', 'chocolate moulds', 'nut butter machines', 'processing equipment', 'food manufacturing', 'chocolate processing', 'equipment supplier', 'machinery supplier', 'commercial food equipment', 'industrial food equipment'],
     ukTerms: ['equipment hire', 'machinery finance', 'try before you buy', 'equipment leasing', 'uk supplier'],
     schemas: ['Organization', 'LocalBusiness', 'Store'],
     urlPatterns: ['/equipment', '/machinery', '/chocolate', '/processing', '/supplier', '/finance'],
@@ -96,11 +104,11 @@ const BUSINESS_TYPES = {
   },
 
   'Financial Services': {
-    keywords: ['accountant', 'accounting', 'tax', 'finance', 'financial', 'investment', 'insurance', 'mortgage', 'loans', 'pension', 'trading', 'trader', 'brokerage', 'broker', 'stocks', 'shares', 'equities', 'etf', 'etfs', 'platform', 'trading platform', 'commission', 'spread', 'portfolio', 'securities', 'markets', 'capital', 'wealth', 'advisory'],
-    ukTerms: ['hmrc', 'vat', 'corporation tax', 'self assessment', 'isa', 'fca', 'regulated', 'authorised', 'frn', 'financial conduct authority'],
-    schemas: ['FinancialService', 'AccountingService', 'InvestmentOrFinancialProduct'],
-    urlPatterns: ['/services', '/tax', '/accounts', '/advice', '/trading', '/platform', '/invest'],
-    subcategories: ['Accountancy', 'Financial Planning', 'Insurance', 'Mortgages', 'Tax Services', 'Trading Platform', 'Brokerage Services', 'Investment Advisory']
+    keywords: ['accountant', 'accounting', 'tax', 'finance', 'financial', 'investment', 'insurance', 'mortgage', 'loans', 'pension', 'trading', 'trader', 'brokerage', 'broker', 'stocks', 'shares', 'equities', 'etf', 'etfs', 'platform', 'trading platform', 'commission', 'spread', 'portfolio', 'securities', 'markets', 'capital', 'wealth', 'advisory', 'insurance broker', 'commercial insurance', 'risk management', 'claims management', 'reinsurance', 'underwriting', 'insurance distribution', 'insurance advisory', 'broking services'],
+    ukTerms: ['hmrc', 'vat', 'corporation tax', 'self assessment', 'isa', 'fca', 'regulated', 'authorised', 'frn', 'financial conduct authority', 'lloyd\'s', 'london market', 'insurance market'],
+    schemas: ['FinancialService', 'AccountingService', 'InvestmentOrFinancialProduct', 'InsuranceAgency'],
+    urlPatterns: ['/services', '/tax', '/accounts', '/advice', '/trading', '/platform', '/invest', '/insurance', '/brokers', '/risk', '/claims'],
+    subcategories: ['Accountancy', 'Financial Planning', 'Insurance Services', 'Mortgages', 'Tax Services', 'Trading Platform', 'Brokerage Services', 'Investment Advisory']
   },
 
   'Education & Training': {
@@ -117,6 +125,22 @@ const BUSINESS_TYPES = {
     schemas: ['BeautySalon', 'HealthAndBeautyBusiness'],
     urlPatterns: ['/treatments', '/services', '/booking', '/prices'],
     subcategories: ['Hair Salon', 'Beauty Therapy', 'Nail Salon', 'Spa', 'Aesthetic Clinic']
+  },
+
+  'Entertainment & Recreation': {
+    keywords: ['karting', 'go-kart', 'racing', 'entertainment', 'party venue', 'corporate events', 'team building', 'indoor activities', 'family entertainment', 'motorsport', 'racing venue', 'adventure', 'thrill', 'experience', 'birthday parties', 'group activities'],
+    ukTerms: ['stag do', 'hen party', 'corporate entertainment', 'team building activities', 'party packages', 'group booking'],
+    schemas: ['EntertainmentBusiness', 'SportsActivityLocation', 'AmusementPark'],
+    urlPatterns: ['/parties', '/corporate', '/booking', '/experiences', '/events', '/groups'],
+    subcategories: ['Indoor Karting', 'Escape Rooms', 'Adventure Parks', 'Entertainment Centers', 'Racing Venues']
+  },
+
+  'Scientific Equipment & Instruments': {
+    keywords: ['scientific equipment', 'laboratory instruments', 'analytical instruments', 'research equipment', 'testing equipment', 'particle analyzer', 'spectrometer', 'microscope', 'chromatography', 'instrumentation', 'measurement equipment', 'calibration', 'particle sizing', 'characterization', 'stability testing', 'quality control instruments', 'lab equipment', 'scientific instruments', 'analytical testing', 'research instruments'],
+    ukTerms: ['laboratory', 'research facility', 'quality assurance', 'equipment supplier', 'instrument distributor', 'technical support', 'maintenance services'],
+    schemas: ['Organization', 'LocalBusiness', 'Store', 'Manufacturer'],
+    urlPatterns: ['/products', '/instruments', '/equipment', '/applications', '/services', '/training', '/support', '/laboratory', '/research'],
+    subcategories: ['Particle Science Equipment', 'Laboratory Instruments', 'Analytical Equipment', 'Research Instruments', 'Quality Control Equipment']
   }
 };
 
@@ -456,6 +480,26 @@ export class EnhancedBusinessDetector {
         return 'Nut Processing Equipment';
       }
       return 'Food Processing Equipment';
+    }
+    
+    // Special logic for Financial Services
+    if (businessType === 'Financial Services') {
+      if (content.includes('insurance') && (content.includes('broker') || content.includes('broking') || content.includes('distribution') || content.includes('risk management'))) {
+        return 'Insurance Services';
+      }
+      if (content.includes('accounting') || content.includes('tax') || content.includes('bookkeeping')) {
+        return 'Accountancy';
+      }
+      if (content.includes('investment') || content.includes('wealth') || content.includes('pension')) {
+        return 'Financial Planning';
+      }
+      if (content.includes('mortgage') || content.includes('loan')) {
+        return 'Mortgages';
+      }
+      if (content.includes('trading') || content.includes('platform') || content.includes('stocks')) {
+        return 'Trading Platform';
+      }
+      return 'Financial Planning';
     }
     
     // For other business types, use simple keyword matching

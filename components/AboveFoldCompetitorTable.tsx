@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
 import Tooltip from './Tooltip'
 
 interface CompetitorData {
@@ -31,8 +31,8 @@ export default function AboveFoldCompetitorTable({
   analysis,
   title = "Main Competition Analysis"
 }: AboveFoldCompetitorTableProps) {
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  // Removed pagination - showing top 10 results only
+  const maxResults = 10
   
   const { 
     competitors: rawCompetitors = [], 
@@ -54,11 +54,8 @@ export default function AboveFoldCompetitorTable({
            competition.toLowerCase() !== 'low';
   });
   
-  // Pagination
-  const totalPages = Math.ceil(competitors.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedCompetitors = competitors.slice(startIndex, endIndex)
+  // Limit to top 10 competitors
+  const displayedCompetitors = competitors.slice(0, maxResults)
   
   const getCompetitionColor = (level: string) => {
     switch (level) {
@@ -117,9 +114,10 @@ export default function AboveFoldCompetitorTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h4 className="font-semibold text-black">{title}</h4>
+    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{title}</h4>
         <Tooltip 
           content={
             <div>
@@ -215,7 +213,7 @@ export default function AboveFoldCompetitorTable({
         <div className="divide-y">
           {/* Show paginated competitors on screen */}
           <div className="screen-only">
-            {paginatedCompetitors.map((competitor, index) => (
+            {displayedCompetitors.map((competitor, index) => (
               <div key={index} className="px-4 py-3 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center text-sm">
                   <div className="col-span-3">
@@ -286,63 +284,18 @@ export default function AboveFoldCompetitorTable({
         </div>
       </div>
       
-      {totalPages > 1 && (
-        <div className="screen-only flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Showing {startIndex + 1}-{Math.min(endIndex, competitors.length)} of {competitors.length} competitors
-          </div>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-            >
-              Previous
-            </button>
-            
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                let pageNumber
-                if (totalPages <= 3) {
-                  pageNumber = i + 1
-                } else if (currentPage <= 2) {
-                  pageNumber = i + 1
-                } else if (currentPage >= totalPages - 1) {
-                  pageNumber = totalPages - 2 + i
-                } else {
-                  pageNumber = currentPage - 1 + i
-                }
-                
-                return (
-                  <button
-                    key={pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                    className={`px-3 py-1 text-sm rounded ${
-                      currentPage === pageNumber 
-                        ? 'bg-blue-500 text-white' 
-                        : 'border hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                )
-              })}
-            </div>
-            
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-            >
-              Next
-            </button>
-          </div>
+      {competitors.length > maxResults && (
+        <div className="screen-only text-sm text-gray-500 text-center mt-2">
+          Showing top {maxResults} of {competitors.length} high-competition sites
         </div>
       )}
 
       {/* Conclusion Section */}
       <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-        <h5 className="font-semibold text-red-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="flex items-center gap-3 mb-3">
+          <img src="/office-worker-medium-skin-tone-svgrepo-com.svg" alt="Office Worker" className="w-10 h-10" />
+          <h5 className="font-semibold text-red-900">Conclusion & Next Steps</h5>
+        </div>
         <div className="text-red-800 text-sm space-y-2">
           {competitors.length > 0 ? (
             <>
@@ -390,6 +343,7 @@ export default function AboveFoldCompetitorTable({
           )}
         </div>
       </div>
+    </div>
     </div>
   )
 }

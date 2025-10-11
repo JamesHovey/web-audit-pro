@@ -47,7 +47,10 @@
       "WebFetch(domain:api.keywordseverywhere.com)",
       "WebFetch(domain:keywordseverywhere.com)",
       "Bash(npx next build:*)",
-      "WebFetch(domain:developer.company-information.service.gov.uk)"
+      "WebFetch(domain:developer.company-information.service.gov.uk)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:www.ardonagh.com)",
+      "WebFetch(domain:adaptive-instruments.com)"
     ],
     "deny": [],
     "ask": [],

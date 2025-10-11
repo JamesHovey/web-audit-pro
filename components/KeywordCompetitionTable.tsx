@@ -117,9 +117,10 @@ export default function KeywordCompetitionTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h4 className="font-semibold text-black">{title}</h4>
+    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{title}</h4>
         <Tooltip 
           content={
             <div>
@@ -349,7 +350,10 @@ export default function KeywordCompetitionTable({
 
       {/* Conclusion Section */}
       <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-        <h5 className="font-semibold text-orange-900 mb-2">🎯 Conclusion & Next Steps</h5>
+        <div className="flex items-center gap-3 mb-3">
+          <img src="/office-worker-dark-skin-tone-svgrepo-com.svg" alt="Office Worker" className="w-10 h-10" />
+          <h5 className="font-semibold text-orange-900">Conclusion & Next Steps</h5>
+        </div>
         <div className="text-orange-800 text-sm space-y-2">
           {competitors.length > 0 ? (
             <>
@@ -394,6 +398,7 @@ export default function KeywordCompetitionTable({
           )}
         </div>
       </div>
+    </div>
     </div>
   )
 }

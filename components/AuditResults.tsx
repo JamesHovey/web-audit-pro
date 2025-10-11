@@ -9,7 +9,6 @@ import Tooltip from './Tooltip'
 import KeywordTable from './KeywordTable'
 import BrandedKeywordTable from './BrandedKeywordTable'
 import NonBrandedKeywordTable from './NonBrandedKeywordTable'
-import AboveFoldKeywordTable from './AboveFoldKeywordTable'
 import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
 import KeywordCompetitionTable from './KeywordCompetitionTable'
 import RecommendedKeywordTable from './RecommendedKeywordTable'
@@ -115,7 +114,6 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
   const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
-  const [showAboveFoldKeywordsGuide, setShowAboveFoldKeywordsGuide] = useState(false)
   const [showMethodologyExpanded, setShowMethodologyExpanded] = useState<{[key: string]: boolean}>({
     traffic: false,
     performance: false,
@@ -534,7 +532,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                                   </table>
                                 ` : ''}
                                 ${sectionData.brandedKeywordsList && Array.isArray(sectionData.brandedKeywordsList) && sectionData.brandedKeywordsList.length > 0 ? `
-                                  <h4>All Branded Keywords</h4>
+                                  <h4>Branded keywords on Search engines</h4>
                                   <table>
                                     <thead>
                                       <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Mentions</th></tr>
@@ -1575,13 +1573,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       )}
 
-      {/* Non-branded Keywords Guide Modal */}
+      {/* Recommended Keywords Guide Modal */}
       {showNonBrandedKeywordsGuide && (
         <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-2xl font-semibold text-gray-900">🎯 Non-branded Keywords: The Complete Guide</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">🎯 Recommended Keywords: The Complete Guide</h2>
               <button
                 onClick={() => setShowNonBrandedKeywordsGuide(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1594,9 +1592,9 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* What Are Non-branded Keywords */}
+              {/* What Are Recommended Keywords */}
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                <h3 className="text-lg font-semibold text-green-600 mb-3">🔍 What Are Non-branded Keywords?</h3>
+                <h3 className="text-lg font-semibold text-green-600 mb-3">🔍 What Are Recommended Keywords?</h3>
                 <p className="text-gray-700 mb-2">
                   These are search terms related to your services or products that <strong>don't include your brand name</strong>. 
                   They're how potential customers find you when they don't know your business exists yet.
@@ -1755,136 +1753,6 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       )}
 
-      {/* Above Fold Keywords Guide Modal */}
-      {showAboveFoldKeywordsGuide && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Above Fold Keywords Guide</h2>
-                <button
-                  onClick={() => setShowAboveFoldKeywordsGuide(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-6 text-gray-700">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">What Are Above Fold Keywords?</h3>
-                  <p className="leading-relaxed">
-                    Above Fold Keywords are the specific search terms where your website appears in the <strong>top 3 positions</strong> (1st, 2nd, or 3rd place) 
-                    on Google's search results. These are called "above the fold" because they appear immediately when someone searches - no scrolling required.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">Why Only Top 3 Positions?</h3>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <ul className="space-y-2">
-                      <li><strong>Position 1:</strong> Gets ~35% of all clicks</li>
-                      <li><strong>Position 2:</strong> Gets ~15% of all clicks</li>
-                      <li><strong>Position 3:</strong> Gets ~10% of all clicks</li>
-                      <li><strong>Position 4+:</strong> Combined get only ~40% of clicks</li>
-                    </ul>
-                    <p className="mt-3 text-sm text-blue-700">
-                      <strong>The top 3 positions capture 60% of all clicks</strong> - these are the positions that really matter for traffic.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">Our Strict Criteria</h3>
-                  <p className="leading-relaxed mb-3">
-                    We only show keywords that meet <strong>both</strong> of these requirements:
-                  </p>
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <ul className="space-y-2">
-                      <li>✅ <strong>Ranking in positions 1-3</strong> (verified by real-time Google search)</li>
-                      <li>✅ <strong>Search volume over 50/month</strong> (actual people searching for this)</li>
-                    </ul>
-                  </div>
-                  <p className="mt-3 text-sm text-gray-600">
-                    If no keywords meet both criteria, we show no results instead of lower-quality opportunities.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">How We Get This Data</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">🔍 Real-Time Rankings</h4>
-                      <p className="text-sm">
-                        We use ValueSERP API to check actual Google search results for your domain, 
-                        ensuring positions are current and accurate.
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">📊 Search Volumes</h4>
-                      <p className="text-sm">
-                        Keywords Everywhere API provides real Google Keyword Planner data 
-                        showing how many people search for each term monthly.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">What This Tells You</h3>
-                  <div className="space-y-3">
-                    <div className="border-l-4 border-green-400 pl-4">
-                      <h4 className="font-medium">Your Current Winners</h4>
-                      <p className="text-sm text-gray-600">
-                        These keywords are already driving traffic to your site. Double down on content around these topics.
-                      </p>
-                    </div>
-                    <div className="border-l-4 border-blue-400 pl-4">
-                      <h4 className="font-medium">Content That Works</h4>
-                      <p className="text-sm text-gray-600">
-                        The pages ranking for these keywords have proven Google-worthy. Use them as templates for new content.
-                      </p>
-                    </div>
-                    <div className="border-l-4 border-purple-400 pl-4">
-                      <h4 className="font-medium">Traffic Potential</h4>
-                      <p className="text-sm text-gray-600">
-                        Each keyword represents real monthly visitors already finding you. Protect and improve these rankings.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-600">If You See No Results</h3>
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="leading-relaxed">
-                      No results means your site doesn't currently rank in the top 3 for any keywords with meaningful search volume. 
-                      This is common for:
-                    </p>
-                    <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                      <li>New websites (less than 6 months old)</li>
-                      <li>Sites with limited content</li>
-                      <li>Highly competitive industries</li>
-                      <li>Sites needing technical SEO improvements</li>
-                    </ul>
-                    <p className="mt-3 text-sm">
-                      <strong>Next steps:</strong> Focus on creating quality content, building backlinks, and improving technical SEO fundamentals.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-blue-100 p-4 rounded-lg border border-blue-300">
-                  <h4 className="font-medium mb-2">💡 Pro Tip</h4>
-                  <p className="text-sm">
-                    If you have Above Fold Keywords, these represent your site's current SEO strengths. 
-                    Create more content around these topics and similar keywords to build topical authority with Google.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -2268,7 +2136,15 @@ function renderSectionResults(
           {/* Keywords Overview - Enhanced Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{results.brandedKeywords || results.brandedKeywordsList?.length || 0}</div>
+              <button 
+                onClick={() => {
+                  const element = document.getElementById('branded-keywords-section');
+                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-2xl font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+              >
+                {results.brandedKeywords || results.brandedKeywordsList?.length || 0}
+              </button>
               <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                 Branded Keywords
                 <Tooltip 
@@ -2288,13 +2164,21 @@ function renderSectionResults(
               </div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{results.nonBrandedKeywords || results.nonBrandedKeywordsList?.length || 0}</div>
+              <button 
+                onClick={() => {
+                  const element = document.getElementById('non-branded-keywords-section');
+                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-2xl font-bold text-green-600 hover:text-green-800 transition-colors cursor-pointer"
+              >
+                {results.nonBrandedKeywords || results.nonBrandedKeywordsList?.length || 0}
+              </button>
               <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Non-branded Keywords
+                Recommended keywords
                 <Tooltip 
                   content={
                     <div>
-                      <p className="font-semibold mb-2">Non-branded Keywords</p>
+                      <p className="font-semibold mb-2">Recommended keywords</p>
                       <p className="mb-2"><strong>Definition:</strong> Search terms related to your services/products that don&apos;t include your brand name</p>
                       <p className="mb-2"><strong>Examples:</strong> &quot;marketing agency London&quot;, &quot;digital marketing services&quot;, &quot;brand strategy consultant&quot;</p>
                       <p className="mb-2"><strong>Importance:</strong> Drives new customer acquisition. Higher competition but larger market opportunity.</p>
@@ -2308,7 +2192,10 @@ function renderSectionResults(
               </div>
               <div className="mt-2 flex justify-center">
                 <button 
-                  onClick={() => setShowNonBrandedKeywordsGuide(true)}
+                  onClick={() => {
+                    const element = document.getElementById('recommended-keywords-section');
+                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
                   className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-full text-xs font-medium transition-colors"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2316,26 +2203,6 @@ function renderSectionResults(
                   </svg>
                   <span>Guide</span>
                 </button>
-              </div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{results.aboveFoldKeywords || 0}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Above Fold Keywords
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Above Fold Keywords</p>
-                      <p className="mb-2"><strong>Definition:</strong> Keywords that appear in the immediately visible area of your pages (above the fold)</p>
-                      <p className="mb-2"><strong>Includes:</strong> Title tags, H1 headings, first paragraph, meta descriptions</p>
-                      <p className="mb-2"><strong>Importance:</strong> These keywords get maximum visibility and SEO weight</p>
-                      <p><strong>Best Practice:</strong> Focus your most important keywords above the fold</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
               </div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
@@ -2421,26 +2288,6 @@ function renderSectionResults(
           )}
 
 
-          {/* Above Fold Keywords Table */}
-          {results.aboveFoldKeywordsList && results.aboveFoldKeywordsList.length > 0 && (
-            <div className="space-y-4">
-              <AboveFoldKeywordTable 
-                keywords={results.aboveFoldKeywordsList}
-                title="Above Fold Keywords"
-                description="Keywords ranking in the top 3 positions on Google (above the fold in search results)"
-                discoveryMethod={results.aboveFoldDiscoveryMethod}
-              />
-              <div className="flex justify-center">
-                <button
-                  onClick={() => setShowAboveFoldKeywordsGuide(true)}
-                  className="inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Above Fold Keywords Guide
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Keyword Competition Analysis */}
           {results.keywordCompetition && (
@@ -2451,48 +2298,54 @@ function renderSectionResults(
             />
           )}
 
-          {/* Above Fold Competitor Analysis */}
-          {results.aboveFoldCompetitors && results.aboveFoldCompetitors.competitors && (
-            <AboveFoldCompetitorTable 
-              analysis={results.aboveFoldCompetitors}
-              title="Main Competition Analysis"
-            />
-          )}
-
           {/* Branded Keywords Table */}
           {results.brandedKeywordsList && (
+            <div id="branded-keywords-section">
             <BrandedKeywordTable 
               keywords={results.brandedKeywordsList}
-              title="All Branded Keywords"
+              title="Branded keywords on Search engines"
               description="Complete list of search terms that include your brand name or company name"
             />
+            </div>
           )}
 
-          {/* Recommended Non-branded Keywords Table */}
+          {/* Recommended Keywords Table */}
           {results.nonBrandedKeywordsList && (
+            <div id="recommended-keywords-section">
             <RecommendedKeywordTable 
               keywords={results.nonBrandedKeywordsList}
-              title="Recommended Non-branded Keywords"
+              title="Recommended target keywords"
               description="Business-relevant keywords we recommend you target to improve your search visibility"
               auditType={auditType === 'page' ? 'page' : 'website'}
             />
+            </div>
           )}
 
-          {/* Non-branded Keywords Table */}
+          {/* Keywords with Search Volume Table */}
           {results.nonBrandedKeywordsList && (
+            <div id="non-branded-keywords-section">
             <NonBrandedKeywordTable 
               keywords={results.nonBrandedKeywordsList}
-              title="All Non-branded Keywords"
+              title="Keywords with search volume"
               description="Complete list of industry and service-related keywords that drive new customer acquisition"
               auditType={auditType === 'page' ? 'page' : 'website'}
             />
+            </div>
           )}
 
-          {/* Overall Audit Conclusion - Summary of all sections */}
-          <OverallAuditConclusion 
-            results={results}
-            auditType={auditType === 'page' ? 'page' : 'website'}
-          />
+          {/* Main Competition Analysis - moved below Keywords with Search Volume */}
+          {results.aboveFoldCompetitors && results.aboveFoldCompetitors.competitors && (
+            <div id="competition-analysis-section">
+            <AboveFoldCompetitorTable 
+              analysis={{
+                ...results.aboveFoldCompetitors,
+                targetDomainAuthority: results.domainAuthority
+              }}
+              title="Main Competition Analysis"
+            />
+            </div>
+          )}
+
 
         </div>
       )
@@ -3249,11 +3102,6 @@ function renderSectionResults(
             )}
           </div>
 
-          {/* Overall Audit Conclusion for Performance Section */}
-          <OverallAuditConclusion 
-            results={results}
-            auditType={auditType === 'page' ? 'page' : 'website'}
-          />
         </div>
       )
 

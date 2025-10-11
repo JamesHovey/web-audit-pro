@@ -100,9 +100,10 @@ export default function ViewportAnalysis({ results }: ViewportAnalysisProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Overall Score Header */}
-      <div className="bg-white rounded-lg border p-6">
+    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+      <div className="space-y-6">
+        {/* Overall Score Header */}
+        <div className="bg-gray-50 rounded-lg border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Responsive Design Analysis</h3>
           <div className="flex items-center gap-4">
@@ -407,7 +408,10 @@ export default function ViewportAnalysis({ results }: ViewportAnalysisProps) {
 
               {/* Conclusion Section */}
               <div className="mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                <h5 className="font-semibold text-teal-900 mb-2">🎯 Conclusion & Next Steps</h5>
+                <div className="flex items-center gap-3 mb-3">
+                  <img src="/office-worker-light-skin-tone-svgrepo-com.svg" alt="Office Worker" className="w-10 h-10" />
+                  <h5 className="font-semibold text-teal-900">Conclusion & Next Steps</h5>
+                </div>
                 <div className="text-teal-800 text-sm space-y-2">
                   {results.overallScore >= 80 ? (
                     <>
@@ -474,6 +478,7 @@ export default function ViewportAnalysis({ results }: ViewportAnalysisProps) {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

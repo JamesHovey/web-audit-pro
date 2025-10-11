@@ -16,12 +16,24 @@ interface CostingData {
     costPer1000: number
     planType: string
   }
+  claudeApi: {
+    tokensUsed: number
+    totalCost: number
+    requestsThisMonth: number
+    avgCostPerRequest: number
+    lastUpdated: string
+    model: string
+    businessAnalysisRequests: number
+    conclusionGenerationRequests: number
+  }
   auditHistory: Array<{
     id: string
     url: string
     date: string
     keywordsEverywhereCredits: number
     valueSerpSearches: number
+    claudeBusinessAnalysisCost: number
+    claudeConclusionCost: number
     totalCost: number
   }>
 }
@@ -64,6 +76,16 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
             costPer1000: 1.60,
             planType: '25K Searches/month ($50/month)'
           },
+          claudeApi: {
+            tokensUsed: 52180,
+            totalCost: 0.398,
+            requestsThisMonth: 15,
+            avgCostPerRequest: 0.0265,
+            lastUpdated: new Date().toISOString(),
+            model: 'claude-3-5-haiku-20241022',
+            businessAnalysisRequests: 9,
+            conclusionGenerationRequests: 6
+          },
           auditHistory: [
             {
               id: 'cmgkopno20005218s09zddqsq',
@@ -71,7 +93,9 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               date: new Date().toISOString(),
               keywordsEverywhereCredits: 116,
               valueSerpSearches: 75,
-              totalCost: 0.148
+              claudeBusinessAnalysisCost: 0.0019,
+              claudeConclusionCost: 0.00088,
+              totalCost: 0.151
             },
             {
               id: 'cmgkn69tp0003218sauing9tx', 
@@ -79,7 +103,9 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
               keywordsEverywhereCredits: 142,
               valueSerpSearches: 92,
-              totalCost: 0.181
+              claudeBusinessAnalysisCost: 0.0019,
+              claudeConclusionCost: 0.00088,
+              totalCost: 0.182
             }
           ]
         })
@@ -96,7 +122,9 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
     
     const keAvgCost = 116 * costingData.keywordsEverywhere.costPerCredit
     const vsAvgCost = 75 * (costingData.valueSERP.costPer1000 / 1000)
-    return keAvgCost + vsAvgCost
+    const claudeBusinessCost = 0.0019 // Average business analysis cost
+    const claudeConclusionCost = 0.00088 // Average conclusion generation cost
+    return keAvgCost + vsAvgCost + claudeBusinessCost + claudeConclusionCost
   }
 
   const calculateRemainingAudits = () => {
@@ -219,7 +247,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               </div>
 
               {/* API Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Keywords Everywhere */}
                 <div className="border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -246,7 +274,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCurrency(costingData.keywordsEverywhere.costPerCredit * 1000)}</span>
+                      <span className="font-medium">{formatCostInPence(costingData.keywordsEverywhere.costPerCredit * 1000)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Audits Remaining:</span>
@@ -281,11 +309,52 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCurrency(costingData.valueSERP.costPer1000)}</span>
+                      <span className="font-medium">{formatCostInPence(costingData.valueSERP.costPer1000)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Audits Remaining:</span>
                       <span className="font-medium text-blue-600">{remainingAudits.vs.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Claude API */}
+                <div className="border rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Claude API</h3>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${costingData.claudeApi.requestsThisMonth < 100 ? 'text-green-600 bg-green-50' : costingData.claudeApi.requestsThisMonth < 200 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50'}`}>
+                      {costingData.claudeApi.requestsThisMonth < 100 ? 'Healthy' : costingData.claudeApi.requestsThisMonth < 200 ? 'Medium' : 'High'}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Model:</span>
+                      <span className="font-medium">{costingData.claudeApi.model}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Business Analysis:</span>
+                      <span className="font-medium text-blue-600">
+                        {costingData.claudeApi.businessAnalysisRequests}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Conclusion Generation:</span>
+                      <span className="font-medium text-purple-600">
+                        {costingData.claudeApi.conclusionGenerationRequests}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tokens Used:</span>
+                      <span className="font-medium">{costingData.claudeApi.tokensUsed.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Cost:</span>
+                      <span className="font-medium">{formatCurrency(costingData.claudeApi.totalCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Avg Cost/Request:</span>
+                      <span className="font-medium text-green-600">{formatCostInPence(costingData.claudeApi.avgCostPerRequest)}</span>
                     </div>
                   </div>
                 </div>
@@ -306,6 +375,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                         <th className="px-6 py-3 text-left font-medium text-gray-700">Date</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">KE Credits</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">VS Searches</th>
+                        <th className="px-6 py-3 text-center font-medium text-gray-700">Claude AI</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">Total Cost</th>
                       </tr>
                     </thead>
@@ -330,6 +400,16 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                               {audit.valueSerpSearches}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {formatCostInPence(audit.claudeBusinessAnalysisCost + audit.claudeConclusionCost)}
+                              </span>
+                              <div className="text-xs text-gray-500">
+                                Bus: {formatCostInPence(audit.claudeBusinessAnalysisCost)} | Con: {formatCostInPence(audit.claudeConclusionCost)}
+                              </div>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-center font-medium text-green-600">
                             <div>{formatCostInPence(audit.totalCost)}</div>
@@ -360,6 +440,8 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                   <li>• Each full audit costs approximately {formatCostInPence(costPerAudit)} ({formatCurrency(costPerAudit)}) in API credits</li>
                   <li>• Keywords Everywhere: ~116 credits per audit (keyword research & volumes)</li>
                   <li>• ValueSERP: ~75 searches per audit (ranking checks & competitor analysis)</li>
+                  <li>• Claude AI Business Analysis: ~{formatCostInPence(0.0019)} per audit (intelligent business detection)</li>
+                  <li>• Claude AI Conclusions: ~{formatCostInPence(0.00088)} per audit (tailored recommendations)</li>
                   <li>• Consider upgrading to higher tiers for better per-credit rates if running 100+ audits/month</li>
                 </ul>
               </div>
