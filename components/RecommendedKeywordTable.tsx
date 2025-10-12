@@ -36,14 +36,36 @@ export default function RecommendedKeywordTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const itemsPerPage = 10
   
-  // Filter for recommended keywords: high relevance but lower volume threshold
+  // Filter for recommended keywords: exclude top 3 rankings, include achievable opportunities
   const recommendedKeywords = useMemo(() => {
-    return (keywords || []).filter(k => {
-      const hasRelevance = (k.businessRelevance || 0) >= 0.7; // High relevance threshold
-      const hasReasonableVolume = k.volume !== null && k.volume !== undefined && k.volume >= 10; // Lower volume threshold
+    console.log('🎯 Filtering recommended keywords from', keywords?.length || 0, 'total keywords');
+    
+    const filtered = (keywords || []).filter(k => {
+      const hasRelevance = (k.businessRelevance || 0) >= 0.6;
+      const hasReasonableVolume = k.volume !== null && k.volume !== undefined && k.volume >= 0;
       const isNotBranded = k.type === 'non-branded';
-      return isNotBranded && hasRelevance && hasReasonableVolume;
+      
+      // Position-based filtering logic
+      const position = k.position;
+      const isAlreadyTopRanking = position >= 1 && position <= 3; // Exclude positions 1-3
+      const hasImprovementPotential = position >= 4 && position <= 10; // Include positions 4-10
+      const isUnranked = position === 0 || position > 10; // Include unranked or ranking beyond page 1
+      
+      // Achievability check: if we have competitor DA data, filter out highly competitive keywords
+      const averageCompetitorDA = (k as any).averageCompetitorDA || 0;
+      const targetDA = 35; // Estimated target DA - could be passed as prop
+      const isAchievable = averageCompetitorDA === 0 || averageCompetitorDA <= (targetDA + 20); // Achievable if competitors aren't vastly superior
+      
+      // Include if: not already top ranking AND (has improvement potential OR unranked) AND meets other criteria AND is achievable
+      const includeKeyword = !isAlreadyTopRanking && (hasImprovementPotential || isUnranked) && isNotBranded && hasRelevance && hasReasonableVolume && isAchievable;
+      
+      console.log(`Keyword: "${k.keyword}", position: ${position}, avgCompetitorDA: ${averageCompetitorDA}, achievable: ${isAchievable}, included: ${includeKeyword}`);
+      
+      return includeKeyword;
     });
+    
+    console.log(`✅ Found ${filtered.length} achievable recommended keywords`);
+    return filtered;
   }, [keywords])
   
   // Sort keywords based on current sort field and order
@@ -159,13 +181,14 @@ export default function RecommendedKeywordTable({
               <div className="mb-2 text-xs">
                 <p className="font-medium mb-1">Why these keywords are recommended:</p>
                 <ul className="list-disc list-inside space-y-1 pl-2">
-                  <li>High business relevance score (70%+)</li>
-                  <li>Achievable search volume (10+ monthly)</li>
-                  <li>Strategic targeting opportunities</li>
+                  <li>High business relevance score (60%+)</li>
+                  <li>Not already ranking in top 3 positions</li>
+                  <li>Room for improvement (positions 4-10) or new opportunities</li>
+                  <li>Achievable search volume</li>
                   <li>Aligned with your business type</li>
                 </ul>
               </div>
-              <p className="text-xs font-medium text-blue-300">💡 Focus on these keywords to improve your organic visibility</p>
+              <p className="text-xs font-medium text-blue-300">💡 Focus on these keywords to improve or establish your organic visibility</p>
             </div>
           }
           position="top"
@@ -183,7 +206,7 @@ export default function RecommendedKeywordTable({
           💡 {sortedKeywords.length} Keyword Opportunities Found
         </div>
         <p className="text-green-700 text-xs mt-1">
-          These are high-relevance keywords we recommend targeting to improve your {contextWord}'s search visibility.
+          These are high-relevance keywords we recommend targeting. Excludes keywords where you already rank in top 3 positions, focuses on improvement opportunities.
         </p>
       </div>
       
@@ -241,17 +264,30 @@ export default function RecommendedKeywordTable({
         <div className="divide-y">
           {currentKeywords.map((keyword, index) => {
             const relevanceScore = keyword.businessRelevance || 0;
+            const position = keyword.position;
+            const hasImprovementPotential = position >= 4 && position <= 10;
+            
             return (
               <div key={index} className="px-4 py-3 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center text-sm">
                   <div className="col-span-5">
                     <div className="flex flex-col">
                       <span className="text-gray-900 font-medium">{keyword.keyword}</span>
-                      {keyword.category && (
-                        <span className="text-gray-500 text-xs capitalize">
-                          {keyword.category} • {keyword.intent || 'General'}
-                        </span>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {keyword.category && (
+                          <span className="text-gray-500 text-xs capitalize">
+                            {keyword.category} • {keyword.intent || 'General'}
+                          </span>
+                        )}
+                        {hasImprovementPotential && (
+                          <span className="text-orange-600 text-xs bg-orange-50 px-2 py-1 rounded-md inline-flex items-center gap-1 w-fit">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Currently ranking #{position} - Room for improvement
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="col-span-3 text-center text-gray-600">

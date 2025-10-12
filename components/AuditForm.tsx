@@ -591,7 +591,12 @@ export function AuditForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full btn-pmw-primary disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none justify-center"
+            className={`w-full justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none ${
+              selectedSections.length > 0 
+                ? 'bg-[#42499c] hover:bg-[#353f85] text-white font-medium py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200'
+                : 'btn-pmw-primary'
+            }`}
+            style={selectedSections.length > 0 ? { borderRadius: '20px' } : {}}
           >
             {isLoading ? (
               <>

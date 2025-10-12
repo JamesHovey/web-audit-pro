@@ -253,16 +253,52 @@ export class CostingService {
   calculateAuditCost(keCredits: number, vsSearches: number, claudeCost?: number): number {
     const keCost = keCredits * 0.00024 // 24¢ per 1000 credits
     const vsCost = vsSearches * 0.0016 // $1.60 per 1000 searches
-    const totalCost = keCost + vsCost + (claudeCost || 0)
+    const totalCost = keCost + vsCost + (claudeCost || 0.038) // Default Claude cost per audit
     return Math.round(totalCost * 1000) / 1000 // Round to 3 decimal places
   }
 
   /**
-   * Estimate remaining audits based on current balances
+   * Get detailed cost breakdown for an audit
+   */
+  getAuditCostBreakdown(keCredits: number, vsSearches: number, claudeCost?: number): {
+    keywordsEverywhere: number,
+    valueSERP: number, 
+    claude: number,
+    total: number,
+    details: {
+      keCreditsUsed: number,
+      vsSearchesUsed: number,
+      keCostPer1000: number,
+      vsCostPer1000: number
+    }
+  } {
+    const keCost = keCredits * 0.00024;
+    const vsCost = vsSearches * 0.0016;
+    const actualClaudeCost = claudeCost || 0.038;
+    const total = keCost + vsCost + actualClaudeCost;
+
+    return {
+      keywordsEverywhere: keCost,
+      valueSERP: vsCost,
+      claude: actualClaudeCost,
+      total: Math.round(total * 1000) / 1000,
+      details: {
+        keCreditsUsed: keCredits,
+        vsSearchesUsed: vsSearches,
+        keCostPer1000: 0.24,
+        vsCostPer1000: 1.60
+      }
+    };
+  }
+
+  /**
+   * Estimate remaining audits based on current balances (updated with real usage data)
    */
   calculateRemainingAudits(costs: ApiCosts): {ke: number, vs: number, limiting: number} {
-    const avgKeCreditsPerAudit = 116
-    const avgVsSearchesPerAudit = 75
+    // Updated based on actual audit usage we observed:
+    // PMW audit used ~553 Keywords Everywhere credits + ~150 ValueSERP searches
+    const avgKeCreditsPerAudit = 550 // Real data from enhanced keyword analysis
+    const avgVsSearchesPerAudit = 150 // Real data from above fold + competition analysis
 
     const keAudits = Math.floor(costs.keywordsEverywhere.creditsRemaining / avgKeCreditsPerAudit)
     const vsAudits = Math.floor(costs.valueSERP.searchesRemaining / avgVsSearchesPerAudit)
@@ -272,6 +308,31 @@ export class CostingService {
       vs: vsAudits,
       limiting: Math.min(keAudits, vsAudits)
     }
+  }
+
+  /**
+   * Get estimated cost per audit based on real usage
+   */
+  getEstimatedCostPerAudit(): {
+    keywordsEverywhere: number,
+    valueSERP: number,
+    claude: number,
+    total: number
+  } {
+    const avgKeCredits = 550;
+    const avgVsSearches = 150;
+    const claudeCost = 0.038;
+
+    const keCost = avgKeCredits * 0.00024;
+    const vsCost = avgVsSearches * 0.0016;
+    const total = keCost + vsCost + claudeCost;
+
+    return {
+      keywordsEverywhere: keCost,
+      valueSERP: vsCost,
+      claude: claudeCost,
+      total: Math.round(total * 1000) / 1000
+    };
   }
 
   /**

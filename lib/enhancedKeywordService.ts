@@ -61,6 +61,17 @@ export interface EnhancedKeywordAnalysis {
   domainAuthorityMethod?: string;
   domainAuthorityReliability?: 'high' | 'medium' | 'low';
   domainAuthoritySources?: Array<{source: string; score: number; success: boolean}>;
+  
+  // API Cost Tracking
+  volumeCreditsUsed?: number;
+  serpSearchesUsed?: number;
+  totalAuditCost?: number;
+  apiDataSource?: string;
+  costBreakdown?: {
+    keywordsEverywhere: number;
+    valueSERP: number;
+    claude: number;
+  };
 }
 
 export class EnhancedKeywordService {
@@ -70,6 +81,64 @@ export class EnhancedKeywordService {
   constructor() {
     this.businessDetector = new EnhancedBusinessDetector();
     this.keywordDiscoveryService = new KeywordDiscoveryService();
+  }
+
+  /**
+   * Calculate actual API costs incurred during this audit
+   */
+  private calculateActualAPICosts(enhancedKeywords: any, aboveFoldAnalysis: any): {
+    keywordsEverywhereCredits: number,
+    valueSerpSearches: number,
+    keywordsEverywhereCost: number,
+    valueSerpCost: number,
+    claudeCost: number,
+    totalCost: number
+  } {
+    // Get Keywords Everywhere usage from the service
+    let keCredits = 0;
+    try {
+      const { KeywordsEverywhereService } = require('./keywordsEverywhereService');
+      const keService = new KeywordsEverywhereService();
+      keCredits = keService.getCreditsUsed() || 0;
+    } catch (error) {
+      console.warn('Could not get Keywords Everywhere usage:', error);
+    }
+
+    // Get ValueSERP usage from above fold analysis
+    let vsSearches = 0;
+    try {
+      vsSearches = aboveFoldAnalysis?.creditsUsed || 0;
+      // Also check if ValueSERP service tracks usage
+      const { ValueSerpService } = require('./valueSerpService');
+      const vsService = new ValueSerpService();
+      if (vsService.getCreditsUsed) {
+        vsSearches += vsService.getCreditsUsed() || 0;
+      }
+    } catch (error) {
+      console.warn('Could not get ValueSERP usage:', error);
+    }
+
+    // Calculate costs based on API pricing
+    const keCost = keCredits * 0.00024; // $0.24 per 1000 credits
+    const vsCost = vsSearches * 0.0016; // $1.60 per 1000 searches  
+    const claudeCost = 0.038; // Estimated per audit (business detection + above fold analysis)
+    
+    const totalCost = keCost + vsCost + claudeCost;
+
+    console.log(`💰 AUDIT COST BREAKDOWN:
+    • Keywords Everywhere: ${keCredits} credits = $${keCost.toFixed(4)}
+    • ValueSERP: ${vsSearches} searches = $${vsCost.toFixed(4)}  
+    • Claude API: $${claudeCost.toFixed(4)}
+    • Total: $${totalCost.toFixed(4)}`);
+
+    return {
+      keywordsEverywhereCredits: keCredits,
+      valueSerpSearches: vsSearches,
+      keywordsEverywhereCost: keCost,
+      valueSerpCost: vsCost,
+      claudeCost: claudeCost,
+      totalCost: totalCost
+    };
   }
 
   /**
@@ -84,6 +153,7 @@ export class EnhancedKeywordService {
       const cleanDomain = domain?.replace(/^https?:\/\//, '')?.replace(/^www\./, '')?.split('/')[0] || 'example.com';
       
       console.log(`\n=== ENHANCED KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
+      console.log(`🌍 Country parameter received: "${country}"`);
       
       // Step 1: Enhanced business type detection
       console.log('🔍 Step 1: Enhanced Business Detection...');
@@ -181,6 +251,9 @@ export class EnhancedKeywordService {
         };
       }
       
+      // Calculate actual API costs from this audit
+      const actualCosts = this.calculateActualAPICosts(enhancedKeywords, aboveFoldAnalysis);
+      
       const result: EnhancedKeywordAnalysis = {
         businessDetection,
         locationContext,
@@ -208,7 +281,18 @@ export class EnhancedKeywordService {
         domainAuthority: domainAuthorityResult.domainAuthority,
         domainAuthorityMethod: domainAuthorityResult.estimationMethod,
         domainAuthorityReliability: domainAuthorityResult.reliability,
-        domainAuthoritySources: domainAuthorityResult.sources
+        domainAuthoritySources: domainAuthorityResult.sources,
+        
+        // API Cost Tracking (NEW)
+        volumeCreditsUsed: actualCosts.keywordsEverywhereCredits,
+        serpSearchesUsed: actualCosts.valueSerpSearches,
+        totalAuditCost: actualCosts.totalCost,
+        apiDataSource: 'Keywords Everywhere + ValueSERP APIs',
+        costBreakdown: {
+          keywordsEverywhere: actualCosts.keywordsEverywhereCost,
+          valueSERP: actualCosts.valueSerpCost,
+          claude: actualCosts.claudeCost
+        }
       };
       
       console.log(`\n🎉 ENHANCED ANALYSIS COMPLETE:`);
@@ -1186,6 +1270,7 @@ export class EnhancedKeywordService {
       console.log(`📊 Enhancing ${uniqueKeywords.length} keywords with API data...`);
       
       // Get real volumes from Keywords Everywhere API
+      console.log(`🌍 Calling Keywords Everywhere API with country: "${country}"`);
       const { KeywordsEverywhereService } = await import('./keywordsEverywhereService');
       const keService = new KeywordsEverywhereService();
       const volumeData = await keService.getSearchVolumes(uniqueKeywords, country);
@@ -1638,14 +1723,12 @@ export class EnhancedKeywordService {
   }
 
   /**
-   * Fallback analysis when enhanced analysis fails
+   * Fallback analysis when enhanced analysis fails - NO FAKE DATA
    */
   private async getFallbackAnalysis(domain: string, html: string): Promise<EnhancedKeywordAnalysis> {
-    // Import and use original keyword service
-    const { analyzeKeywords } = await import('./keywordService');
-    const basicAnalysis = await analyzeKeywords(domain, html);
+    console.log('⚠️ Enhanced analysis failed - returning minimal real-data-only result');
     
-    // Convert to enhanced format
+    // Return minimal safe result with NO fake volume data
     return {
       businessDetection: {
         primaryType: { category: 'Business Services', subcategory: 'General', confidence: 'low', detectionMethods: ['fallback'], relevantKeywords: [] },
@@ -1666,15 +1749,21 @@ export class EnhancedKeywordService {
         urgency: [],
         totalGenerated: 0,
         industrySpecific: false,
-        generationMethod: 'fallback'
+        generationMethod: 'api_only_fallback'
       },
-      ...basicAnalysis,
+      // NO fake data - empty arrays only
+      brandedKeywords: 0,
+      nonBrandedKeywords: 0,
+      brandedKeywordsList: [],
+      nonBrandedKeywordsList: [],
+      topKeywords: [],
+      topCompetitors: [],
       keywordsByIntent: { commercial: 0, informational: 0, navigational: 0, transactional: 0 },
       keywordsByDifficulty: { low: 0, medium: 0, high: 0 },
-      analysisMethod: 'fallback_basic',
+      analysisMethod: 'api_only_no_fallback_data',
       industrySpecific: false,
-      totalGeneratedKeywords: basicAnalysis.topKeywords.length,
-      businessRelevanceScore: 0.5,
+      totalGeneratedKeywords: 0,
+      businessRelevanceScore: 0,
       geographicOptimization: false
     };
   }

@@ -42,13 +42,8 @@ export class KeywordCompetitionService {
     const useValueSerp = isValueSerpConfigured();
     
     if (!useValueSerp) {
-      console.log('⚠️ ValueSERP API required for competitor analysis');
-      return {
-        competitors: [],
-        totalKeywordsAnalyzed: 0,
-        analysisMethod: 'api_required',
-        creditsUsed: 0
-      };
+      console.log('⚠️ ValueSERP API not configured, using Claude-powered competitor analysis');
+      return await this.getClaudePoweredCompetitorAnalysis(aboveFoldKeywords, country);
     }
 
     const { ValueSerpService } = await import('./valueSerpService');
@@ -236,6 +231,80 @@ export class KeywordCompetitionService {
       return 25; // Default low authority
     }
   }
+
+  /**
+   * Claude-powered competitor analysis using Keywords Everywhere data and business intelligence
+   */
+  private async getClaudePoweredCompetitorAnalysis(
+    keywords: Array<{keyword: string; position: number; volume?: number}>,
+    country: string = 'gb'
+  ): Promise<KeywordCompetitionAnalysis> {
+    console.log('🧠 Using Claude for intelligent competitor analysis...');
+    
+    try {
+      // Get enhanced keyword data from Keywords Everywhere
+      let keywordsWithData = keywords;
+      
+      try {
+        const { KeywordsEverywhereService } = await import('./keywordsEverywhereService');
+        const keService = new KeywordsEverywhereService();
+        const volumeData = await keService.getSearchVolumes(
+          keywords.map(k => k.keyword), 
+          country
+        );
+        
+        // Enhance keywords with volume data
+        keywordsWithData = keywords.map(k => {
+          const volumeInfo = volumeData.find(v => v.keyword.toLowerCase() === k.keyword.toLowerCase());
+          return {
+            ...k,
+            volume: volumeInfo?.volume || k.volume || 0
+          };
+        });
+        
+        console.log(`✅ Enhanced ${keywordsWithData.length} keywords with volume data`);
+      } catch (error) {
+        console.warn('Keywords Everywhere enhancement failed, using existing data:', error);
+      }
+      
+      // Call server-side API for Claude analysis
+      const response = await fetch('/api/competition-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          domain: this.domain,
+          keywords: keywordsWithData,
+          country: country
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const claudeAnalysis = await response.json();
+      
+      return {
+        competitors: claudeAnalysis.competitors || [],
+        totalKeywordsAnalyzed: keywords.length,
+        analysisMethod: claudeAnalysis.analysisMethod || 'claude_powered_intelligence',
+        creditsUsed: 0
+      };
+      
+    } catch (error) {
+      console.error('Claude competitor analysis failed:', error);
+      return {
+        competitors: [],
+        totalKeywordsAnalyzed: keywords.length,
+        analysisMethod: 'claude_failed',
+        creditsUsed: 0
+      };
+    }
+  }
+
+
 }
 
 /**

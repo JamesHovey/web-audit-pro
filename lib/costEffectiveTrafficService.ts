@@ -1419,15 +1419,86 @@ async function estimateTrafficFromAnalysis(analysis: { siteQuality: 'high' | 'me
   
   console.log(`✅ Final countries with traffic:`, topCountries.map(c => ({ country: c.country, percentage: c.percentage, traffic: c.traffic })));
   
-  return {
+  let trafficData = {
     monthlyOrganicTraffic: monthlyOrganic,
     monthlyPaidTraffic: monthlyPaid,
     brandedTraffic: branded,
     topCountries,
     trafficTrend: generateTrendEstimate(monthlyOrganic, monthlyPaid, seed),
-    dataSource: 'mcp-analysis',
-    confidence: siteQuality === 'high' ? 'medium' : 'low'
+    dataSource: 'mcp-analysis' as const,
+    confidence: (siteQuality === 'high' ? 'medium' : 'low') as 'high' | 'medium' | 'low'
   };
+
+  // Enhance with Claude AI analysis if available
+  console.log('🤖 Checking for Claude API enhancement...');
+  if (process.env.ANTHROPIC_API_KEY) {
+    console.log('✅ ANTHROPIC_API_KEY is configured, attempting Claude enhancement...');
+    try {
+      const { ClaudeTrafficAnalyzer } = await import('./claudeTrafficAnalyzer');
+      const claudeAnalyzer = new ClaudeTrafficAnalyzer();
+      
+      console.log('📝 Using scraped HTML for Claude analysis...');
+      if (html && html.length > 100) {
+        console.log(`📊 Enhancing traffic data with Claude AI (${html.length} bytes of HTML)...`);
+        const metrics = {
+          indexedPages: contentVolume,
+          domainAuthority: Math.round(30 + (siteQuality === 'high' ? 40 : siteQuality === 'medium' ? 20 : 0)),
+          contentQuality: siteQuality === 'high' ? 80 : siteQuality === 'medium' ? 60 : 40
+        };
+        
+        const claudeInsights = await claudeAnalyzer.analyzeTrafficPatterns(
+          domain,
+          html,
+          metrics
+        );
+        
+        if (claudeInsights) {
+          trafficData = claudeAnalyzer.enhanceTrafficData(trafficData, claudeInsights);
+          console.log('✅ Traffic data enhanced with Claude AI insights');
+          
+          // Add Traffic Quality Analysis
+          console.log('🎯 Running traffic quality analysis...');
+          const { TrafficQualityScorer } = await import('./trafficQualityScorer');
+          const qualityScorer = new TrafficQualityScorer();
+          const qualityMetrics = await qualityScorer.analyzeTrafficQuality(
+            domain,
+            html,
+            trafficData,
+            claudeInsights.industryClassification?.primary || 'general'
+          );
+          
+          if (qualityMetrics) {
+            trafficData.qualityMetrics = qualityMetrics;
+            console.log(`✅ Traffic quality analysis complete - Grade: ${qualityMetrics.qualityGrade}`);
+          }
+          
+          // Add Technical SEO Impact Analysis
+          console.log('🔧 Running technical SEO impact analysis...');
+          const { TechnicalSEOImpactCalculator } = await import('./technicalSEOImpactCalculator');
+          const seoCalculator = new TechnicalSEOImpactCalculator();
+          const technicalImpact = await seoCalculator.calculateTechnicalImpact(
+            domain,
+            html,
+            trafficData.monthlyOrganicTraffic,
+            claudeInsights.industryClassification?.primary || 'general'
+          );
+          
+          if (technicalImpact) {
+            trafficData.technicalImpact = technicalImpact;
+            console.log(`✅ Technical SEO analysis complete - ${technicalImpact.trafficImpactPercentage}% traffic at risk`);
+          }
+        } else {
+          console.log('⚠️ No insights returned from Claude');
+        }
+      }
+    } catch (claudeError) {
+      console.error('❌ Claude analysis error:', claudeError);
+    }
+  } else {
+    console.log('⚠️ ANTHROPIC_API_KEY not configured, skipping Claude enhancement');
+  }
+  
+  return trafficData;
 }
 
 function estimateDomainAge(domain: string): number {

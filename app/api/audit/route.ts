@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             results.traffic.totalPages = pages.length
 
           } else if (section === 'keywords') {
-            const { analyzeKeywords } = await import('@/lib/keywordService')
+            const { analyzeKeywordsEnhanced } = await import('@/lib/enhancedKeywordService')
             // Use the main domain page for analysis with HTML content
             const mainPage = pages[0] || url
             
@@ -122,19 +122,42 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for keyword analysis:', error);
             }
             
-            results.keywords = await analyzeKeywords(url, htmlContent, country, isUKCompany)
+            console.log('🚀 Using enhanced keyword analysis with real API data only');
+            results.keywords = await analyzeKeywordsEnhanced(url, htmlContent, country)
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             results.technical = await performTechnicalAudit(url)
 
           } else if (section === 'performance') {
-            const { analyzePageSpeed } = await import('@/lib/pageSpeedService')
-            results.performance = await analyzePageSpeed(url)
-            
-            // Also run technical audit when performance is selected (combined section)
+            // Enhanced performance analysis with Claude AI
+            const { analyzePageSpeedWithClaude } = await import('@/lib/pageSpeedService')
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+            
+            // First run technical audit to get comprehensive data
+            console.log('🔧 Running technical audit...')
             results.technical = await performTechnicalAudit(url)
+            
+            // Fetch HTML content for Claude analysis
+            let htmlContent = '';
+            try {
+              const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+              const response = await fetch(normalizedUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout(15000)
+              });
+              if (response.ok) {
+                htmlContent = await response.text();
+                console.log('✅ HTML content fetched for Claude analysis')
+              }
+            } catch (error) {
+              console.log('Could not fetch HTML content for performance analysis:', error);
+            }
+            
+            // Run enhanced PageSpeed analysis with Claude AI
+            console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
+            results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
 
           } else if (section === 'backlinks') {
             const { analyzeBacklinks } = await import('@/lib/backlinkService')

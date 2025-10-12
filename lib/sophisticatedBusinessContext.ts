@@ -535,10 +535,19 @@ export class SophisticatedBusinessContextService {
   // Helper methods
   private categorizeFromEntities(entities: string[]): string {
     // Business categorization logic based on detected entities
-    const financialTerms = ['investment', 'capital', 'fund', 'trading', 'finance'];
+    // PRIORITY ORDER: More specific industries first, broad terms last
+    
+    const marketingTerms = ['marketing', 'advertising', 'digital agency', 'ad agency', 'communications', 'branding', 'media buying', 'seo', 'ppc', 'social media marketing'];
+    const financialTerms = ['investment banking', 'capital management', 'fund management', 'trading firm', 'financial advisor', 'wealth management']; // More specific
     const legalTerms = ['legal', 'law', 'solicitor', 'court', 'litigation'];
     const healthTerms = ['medical', 'health', 'care', 'clinic', 'treatment'];
     
+    // Check marketing/advertising first (highest priority)
+    if (entities.some(e => marketingTerms.some(t => e.includes(t)))) {
+      return 'digital-marketing';
+    }
+    
+    // More specific financial terms (not just "finance")
     if (entities.some(e => financialTerms.some(t => e.includes(t)))) {
       return 'financial-services';
     }

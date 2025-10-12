@@ -814,8 +814,8 @@ export class AboveFoldDiscoveryService {
       // Return keywords with estimated volumes
       return keywords.map(keyword => ({
         keyword,
-        volume: this.estimateVolume(keyword),
-        difficulty: this.estimateDifficulty(keyword)
+        volume: null, // Only use real API data
+        difficulty: 50 // Default difficulty
       }));
     }
   }
@@ -958,10 +958,10 @@ export class AboveFoldDiscoveryService {
       });
     } catch (error) {
       console.log('Could not get volume data:', error);
-      // Continue with estimated volumes
+      // NO FAKE DATA - only use null when API fails
       keywords.forEach(kw => {
-        kw.volume = this.estimateVolume(kw.keyword);
-        kw.difficulty = this.estimateDifficulty(kw.keyword);
+        kw.volume = null; // Only use real API data
+        kw.difficulty = 50; // Default difficulty only
       });
     }
   }

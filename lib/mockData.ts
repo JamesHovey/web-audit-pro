@@ -87,54 +87,26 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
 
   if (sections.includes('keywords')) {
     try {
-      // Use realistic keyword analysis instead of random generation
-      const { analyzeKeywords } = await import('./keywordService');
+      // NO FAKE DATA - return minimal structure only
+      console.log('⚠️ Mock data requested for keywords - returning empty structure (no fake volumes)');
       
-      try {
-        // For demonstration, use simulated HTML content based on domain
-        const simulatedHtml = generateSimulatedHtml(domain);
-        const keywordAnalysis = await analyzeKeywords(domain, simulatedHtml);
-        
-        mockResults.keywords = {
-          brandedKeywords: keywordAnalysis.brandedKeywords || 0,
-          nonBrandedKeywords: keywordAnalysis.nonBrandedKeywords || 0,
-          brandedKeywordsList: keywordAnalysis.brandedKeywordsList || [],
-          nonBrandedKeywordsList: keywordAnalysis.nonBrandedKeywordsList || [],
-          topKeywords: keywordAnalysis.topKeywords || [],
-          topCompetitors: keywordAnalysis.topCompetitors || []
-        };
-      } catch (keywordError) {
-        console.error('Keyword analysis failed, using fallback:', keywordError);
-        throw keywordError; // Re-throw to trigger outer catch
-      }
-    } catch (error) {
-      // Ultimate fallback to basic generation if everything fails
-      console.error('All keyword analysis failed, using basic fallback:', error);
-      const brandName = domain?.replace('.com', '')?.replace('www.', '')?.replace('.co.uk', '') || 'Brand';
       mockResults.keywords = {
-        brandedKeywords: seededRandom(seed + 20, 15, 25),
-        nonBrandedKeywords: seededRandom(seed + 21, 40, 80),
-        brandedKeywordsList: [
-          { keyword: `${brandName}`, position: 1, volume: seededRandom(seed + 22, 200, 500), difficulty: 20, type: 'branded' },
-          { keyword: `${brandName} reviews`, position: seededRandom(seed + 23, 1, 5), volume: seededRandom(seed + 24, 150, 400), difficulty: 25, type: 'branded' },
-          { keyword: `${brandName} services`, position: seededRandom(seed + 25, 2, 8), volume: seededRandom(seed + 26, 100, 300), difficulty: 30, type: 'branded' }
-        ],
-        nonBrandedKeywordsList: [
-          { keyword: 'professional services', position: 8, volume: 1200, difficulty: 55, type: 'non-branded' },
-          { keyword: 'business consulting', position: 12, volume: 800, difficulty: 48, type: 'non-branded' },
-          { keyword: 'expert advice', position: 15, volume: 600, difficulty: 42, type: 'non-branded' }
-        ],
-        topKeywords: [
-          { keyword: 'professional services', position: 8, volume: 1200, difficulty: 55, type: 'non-branded' },
-          { keyword: `${brandName} reviews`, position: seededRandom(seed + 27, 1, 5), volume: seededRandom(seed + 28, 150, 400), difficulty: 25, type: 'branded' },
-          { keyword: 'business consulting', position: 12, volume: 800, difficulty: 48, type: 'non-branded' },
-          { keyword: `${brandName} services`, position: seededRandom(seed + 29, 2, 8), volume: seededRandom(seed + 30, 100, 300), difficulty: 30, type: 'branded' }
-        ],
-        topCompetitors: [
-          { domain: "competitor1.com", overlap: seededRandom(seed + 31, 25, 45), keywords: seededRandom(seed + 32, 50, 150), authority: seededRandom(seed + 33, 40, 70), description: "Digital marketing competitor" },
-          { domain: "competitor2.com", overlap: seededRandom(seed + 34, 20, 35), keywords: seededRandom(seed + 35, 40, 120), authority: seededRandom(seed + 36, 35, 65), description: "Marketing services provider" },
-          { domain: "competitor3.com", overlap: seededRandom(seed + 37, 15, 30), keywords: seededRandom(seed + 38, 30, 100), authority: seededRandom(seed + 39, 30, 60), description: "Business consultancy firm" }
-        ]
+        brandedKeywords: 0,
+        nonBrandedKeywords: 0,
+        brandedKeywordsList: [],
+        nonBrandedKeywordsList: [],
+        topKeywords: [],
+        topCompetitors: []
+      };
+    } catch (error) {
+      console.error('Mock keyword generation failed:', error);
+      mockResults.keywords = {
+        brandedKeywords: 0,
+        nonBrandedKeywords: 0,
+        brandedKeywordsList: [],
+        nonBrandedKeywordsList: [],
+        topKeywords: [],
+        topCompetitors: []
       };
     }
   }
@@ -245,8 +217,9 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
 
   if (sections.includes('technology')) {
     try {
-      // Use professional API-based technology detection instead of pattern matching
+      // Use professional API-based technology detection with Claude AI enhancement
       const { detectTechStack, getHostingOrganization } = await import('./professionalTechDetection');
+      const { analyzeTechnologyWithClaude } = await import('./claudeTechnologyAnalyzer');
       
       console.log(`🔍 Using professional API detection for: ${url}`);
       const professionalTechStack = await detectTechStack(url);
@@ -266,22 +239,53 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
       let enhancedOrganization = professionalTechStack.organization || hostingOrganization;
       
       // Convert professional result to our format
-      mockResults.technology = {
+      const baseTechnologyData = {
         cms: professionalTechStack.cms || 'Not detected',
         framework: professionalTechStack.framework || 'Not detected', 
         pageBuilder: professionalTechStack.pageBuilder || null,
-        ecommerce: professionalTechStack.plugins?.includes('WooCommerce') ? 'WooCommerce' : null,
+        ecommerce: professionalTechStack.ecommerce || null,
         analytics: professionalTechStack.analytics || 'Not detected',
         hosting: enhancedHosting || 'Not detected',
         cdn: professionalTechStack.cdn || null,
         organization: enhancedOrganization || null,
         plugins: professionalTechStack.plugins || [],
+        pluginAnalysis: professionalTechStack.pluginAnalysis || null,
+        detectedPlatform: professionalTechStack.detectedPlatform || professionalTechStack.cms,
+        totalPlugins: professionalTechStack.totalPlugins || 0,
         technologies: [
           'HTML5', 'CSS3', 'JavaScript',
           ...(professionalTechStack.other || [])
         ].filter(Boolean),
         source: professionalTechStack.source || 'fallback',
         confidence: professionalTechStack.confidence || 'low'
+      };
+
+      // Fetch HTML content for Claude analysis
+      let htmlContent = '';
+      try {
+        const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+        const response = await fetch(normalizedUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(15000)
+        });
+        if (response.ok) {
+          htmlContent = await response.text();
+          console.log('✅ HTML content fetched for Claude technology analysis');
+        }
+      } catch (error) {
+        console.log('Could not fetch HTML content for technology analysis:', error);
+      }
+
+      // Run Claude AI analysis for enhanced insights
+      console.log('🧠 Running Claude technology intelligence analysis...');
+      const technologyIntelligence = await analyzeTechnologyWithClaude(url, htmlContent, baseTechnologyData);
+
+      // Combine base data with Claude intelligence
+      mockResults.technology = {
+        ...baseTechnologyData,
+        enhancedWithAI: true,
+        technologyIntelligence
       };
       
       console.log(`✅ Professional detection completed with ${professionalTechStack.confidence} confidence via ${professionalTechStack.source}`);

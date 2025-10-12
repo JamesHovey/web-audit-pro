@@ -57,6 +57,7 @@ export class KeywordsEverywhereService {
     const apiCountry = country.toLowerCase() === 'gb' ? 'uk' : country;
     
     console.log(`🔍 Keywords Everywhere: Getting volumes for ${keywords.length} keywords in ${apiCountry.toUpperCase()}...`);
+    console.log(`🌍 Country transformation: input="${country}" -> api="${apiCountry}" -> request="${apiCountry.toUpperCase()}"`);
 
     try {
       // Keywords Everywhere API supports max 100 keywords per request
@@ -100,7 +101,7 @@ export class KeywordsEverywhereService {
       currency: requestBody.currency,
       dataSource: requestBody.dataSource,
       keywordCount: keywords.length,
-      sampleKeywords: keywords.filter(k => k.toLowerCase().includes('henry') || k.toLowerCase().includes('adams')).slice(0, 3)
+      sampleKeywords: keywords.filter(k => k.toLowerCase().includes('henry') || k.toLowerCase().includes('adams') || k.toLowerCase().includes('pmw')).slice(0, 3)
     });
 
     const response = await fetch(this.baseUrl, {
@@ -140,7 +141,8 @@ export class KeywordsEverywhereService {
     // Debug: Log raw API response for branded keywords with full details
     const brandedKeywords = data.data.filter(item => 
       item.keyword.toLowerCase().includes('henryadams') || 
-      item.keyword.toLowerCase().includes('henry adams')
+      item.keyword.toLowerCase().includes('henry adams') ||
+      item.keyword.toLowerCase().includes('pmw')
     );
     if (brandedKeywords.length > 0) {
       console.log(`🔍 RAW Keywords Everywhere response for branded keywords:`, 

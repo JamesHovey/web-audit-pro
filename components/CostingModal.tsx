@@ -144,7 +144,8 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
-      minimumFractionDigits: 3
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount)
   }
 
@@ -176,7 +177,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   const remainingAudits = calculateRemainingAudits()
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -185,7 +186,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               <PoundSterling className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900">API Costing Dashboard</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Costing</h2>
               <p className="text-gray-600">Real-time credit usage and audit costs</p>
             </div>
           </div>
@@ -242,123 +243,10 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                     {formatCurrency(costPerAudit * 100)}
                   </div>
                   <p className="text-purple-700 text-sm">For 100 audits/month</p>
-                  <p className="text-purple-600 text-xs mt-1">That's £{(costPerAudit * 100).toFixed(0)} for 100 audits</p>
+                  <p className="text-purple-600 text-xs mt-1">That's £{(costPerAudit * 100).toFixed(2)} for 100 audits</p>
                 </div>
               </div>
 
-              {/* API Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Keywords Everywhere */}
-                <div className="border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Keywords Everywhere</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getHealthStatus(costingData.keywordsEverywhere.creditsRemaining, 100000).color}`}>
-                      {getHealthStatus(costingData.keywordsEverywhere.creditsRemaining, 100000).status}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Plan:</span>
-                      <span className="font-medium">{costingData.keywordsEverywhere.planType}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Credits Remaining:</span>
-                      <span className="font-medium text-green-600">
-                        {costingData.keywordsEverywhere.creditsRemaining.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Credits Used:</span>
-                      <span className="font-medium">{costingData.keywordsEverywhere.creditsUsed.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCostInPence(costingData.keywordsEverywhere.costPerCredit * 1000)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Audits Remaining:</span>
-                      <span className="font-medium text-blue-600">{remainingAudits.ke.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ValueSERP */}
-                <div className="border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">ValueSERP</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getHealthStatus(costingData.valueSERP.searchesRemaining, 25000).color}`}>
-                      {getHealthStatus(costingData.valueSERP.searchesRemaining, 25000).status}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Plan:</span>
-                      <span className="font-medium">{costingData.valueSERP.planType}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Searches Remaining:</span>
-                      <span className="font-medium text-green-600">
-                        {costingData.valueSERP.searchesRemaining.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Searches Used:</span>
-                      <span className="font-medium">{costingData.valueSERP.searchesUsed.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCostInPence(costingData.valueSERP.costPer1000)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Audits Remaining:</span>
-                      <span className="font-medium text-blue-600">{remainingAudits.vs.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Claude API */}
-                <div className="border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Claude API</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${costingData.claudeApi.requestsThisMonth < 100 ? 'text-green-600 bg-green-50' : costingData.claudeApi.requestsThisMonth < 200 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50'}`}>
-                      {costingData.claudeApi.requestsThisMonth < 100 ? 'Healthy' : costingData.claudeApi.requestsThisMonth < 200 ? 'Medium' : 'High'}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Model:</span>
-                      <span className="font-medium">{costingData.claudeApi.model}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Business Analysis:</span>
-                      <span className="font-medium text-blue-600">
-                        {costingData.claudeApi.businessAnalysisRequests}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Conclusion Generation:</span>
-                      <span className="font-medium text-purple-600">
-                        {costingData.claudeApi.conclusionGenerationRequests}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tokens Used:</span>
-                      <span className="font-medium">{costingData.claudeApi.tokensUsed.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Cost:</span>
-                      <span className="font-medium">{formatCurrency(costingData.claudeApi.totalCost)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Avg Cost/Request:</span>
-                      <span className="font-medium text-green-600">{formatCostInPence(costingData.claudeApi.avgCostPerRequest)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Audit History */}
               <div className="border rounded-lg">

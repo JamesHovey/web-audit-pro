@@ -225,10 +225,55 @@ export async function getTrafficData(domain: string, includePageAnalysis: boolea
   try {
     const { estimateFreeTrafficData, convertToTrafficData } = await import('./freeTrafficEstimator');
     const estimatedData = await estimateFreeTrafficData(cleanDomain);
-    const trafficData = convertToTrafficData(estimatedData);
+    let trafficData = convertToTrafficData(estimatedData);
     
     console.log(`Successfully estimated traffic using free web scraping (confidence: ${estimatedData.confidence})`);
     console.log(`12-month average organic traffic: ${estimatedData.monthlyOrganicTraffic} visits/month`);
+    
+    // Enhance with Claude AI analysis if available
+    console.log('Checking for Claude API enhancement...');
+    if (process.env.ANTHROPIC_API_KEY) {
+      console.log('ANTHROPIC_API_KEY is configured, attempting Claude enhancement...');
+      try {
+        const { ClaudeTrafficAnalyzer } = await import('./claudeTrafficAnalyzer');
+        const claudeAnalyzer = new ClaudeTrafficAnalyzer();
+        
+        // Fetch homepage HTML directly using server-side scraping
+        console.log(`Fetching HTML for Claude analysis from: https://${cleanDomain}`);
+        const scraperResponse = await fetch(`https://${cleanDomain}`, {
+          headers: { 
+            'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)',
+            'Accept': 'text/html,application/xhtml+xml'
+          }
+        });
+        
+        if (scraperResponse.ok) {
+          const htmlContent = await scraperResponse.text();
+          console.log(`Fetched ${htmlContent.length} bytes of HTML`);
+          if (htmlContent) {
+            console.log('Enhancing traffic data with Claude AI analysis...');
+            const claudeInsights = await claudeAnalyzer.analyzeTrafficPatterns(
+              cleanDomain,
+              htmlContent,
+              estimatedData.metrics
+            );
+            
+            if (claudeInsights) {
+              trafficData = claudeAnalyzer.enhanceTrafficData(trafficData, claudeInsights);
+              console.log('✅ Traffic data enhanced with AI insights');
+            } else {
+              console.log('⚠️ No insights returned from Claude');
+            }
+          }
+        } else {
+          console.log(`Failed to fetch HTML: ${scraperResponse.status}`);
+        }
+      } catch (claudeError) {
+        console.error('❌ Claude analysis error:', claudeError);
+      }
+    } else {
+      console.log('ANTHROPIC_API_KEY not configured, skipping Claude enhancement');
+    }
     
     // Add page popularity analysis if requested
     if (includePageAnalysis) {

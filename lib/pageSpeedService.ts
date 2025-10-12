@@ -1,7 +1,12 @@
 /**
- * Real PageSpeed Insights API Service
+ * Real PageSpeed Insights API Service with Claude AI Enhancement
  * Gets actual Core Web Vitals data from Google's PageSpeed Insights API
+ * Enhanced with intelligent analysis and recommendations from Claude
  */
+
+import { analyzePerformanceWithClaude } from './claudePerformanceAnalyzer';
+import { analyzeTechnicalSEOWithClaude } from './claudeTechnicalSEOAnalyzer';
+import { analyzeImageOptimizationWithClaude } from './claudeImageOptimizationAnalyzer';
 
 interface CoreWebVitals {
   lcp: string;
@@ -16,6 +21,11 @@ interface PageSpeedResults {
   mobile: CoreWebVitals;
   recommendations: string[];
   analysisUrl: string;
+  // Claude AI Enhanced Analysis
+  enhancedWithAI?: boolean;
+  performanceDiagnosis?: any;
+  technicalSEOIntelligence?: any;
+  imageOptimizationStrategy?: any;
 }
 
 class PageSpeedService {
@@ -237,4 +247,43 @@ class PageSpeedService {
 export async function analyzePageSpeed(url: string): Promise<PageSpeedResults> {
   const service = new PageSpeedService();
   return await service.analyzePerformance(url);
+}
+
+// Enhanced version with Claude AI analysis
+export async function analyzePageSpeedWithClaude(
+  url: string, 
+  htmlContent: string, 
+  technicalAuditData: any
+): Promise<PageSpeedResults> {
+  try {
+    console.log(`🚀 Starting enhanced PageSpeed analysis with Claude for ${url}`);
+    
+    // Get base PageSpeed analysis
+    const service = new PageSpeedService();
+    const baseResults = await service.analyzePerformance(url);
+    
+    // Run Claude analyses in parallel for efficiency
+    console.log(`🧠 Running Claude AI analyses...`);
+    const [performanceDiagnosis, technicalSEOIntelligence, imageOptimizationStrategy] = await Promise.all([
+      analyzePerformanceWithClaude(url, htmlContent, baseResults, technicalAuditData),
+      analyzeTechnicalSEOWithClaude(url, htmlContent, technicalAuditData),
+      analyzeImageOptimizationWithClaude(url, htmlContent, technicalAuditData.largeImageDetails || [])
+    ]);
+    
+    console.log(`✅ Claude AI analyses complete for ${url}`);
+    
+    // Return enhanced results
+    return {
+      ...baseResults,
+      enhancedWithAI: true,
+      performanceDiagnosis,
+      technicalSEOIntelligence,
+      imageOptimizationStrategy
+    };
+    
+  } catch (error) {
+    console.error('Enhanced PageSpeed analysis failed, falling back to base analysis:', error);
+    const service = new PageSpeedService();
+    return await service.analyzePerformance(url);
+  }
 }

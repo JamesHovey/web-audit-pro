@@ -2,6 +2,7 @@
 // Using direct website analysis for cost-effective, accurate technology detection
 
 import { detectHostingProvider } from './enhancedHostingDetection';
+import { detectUniversalPlugins } from './claudePluginDetection';
 
 interface TechStackResult {
   cms?: string;
@@ -32,10 +33,16 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
       console.log('✅ Used Direct Website Analysis + Enhanced Hosting Detection');
       
       // Override hosting info with enhanced detection if available
-      if (hostingInfo.provider && hostingInfo.confidence !== 'low') {
+      if (hostingInfo.provider) {
         result.hosting = hostingInfo.provider;
         result.organization = hostingInfo.organization;
+        
+        // Special handling for Cloudflare bypass attempts
+        if (hostingInfo.method === 'cloudflare-bypass') {
+          console.log(`🔍 Applied Cloudflare bypass result: ${hostingInfo.provider}`);
+        }
       }
+      
       
       return { ...result, source: 'direct', confidence: 'high' };
     }
@@ -78,7 +85,40 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
     const html = await response.text();
     const headers = Object.fromEntries(response.headers.entries());
     
-    return await analyzeHTMLAndHeaders(html, headers, cleanUrl);
+    const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
+    
+    // Universal Claude-powered plugin detection for all CMS platforms
+    console.log('🧠 Running Claude-powered universal plugin detection...');
+    try {
+      const pluginAnalysis = await detectUniversalPlugins(html, headers, cleanUrl, result.cms);
+      
+      // Enhance the result with Claude plugin analysis
+      result.pluginAnalysis = pluginAnalysis;
+      result.detectedPlatform = pluginAnalysis.platform;
+      
+      // Update plugins with categorized results
+      if (pluginAnalysis.totalPluginsDetected > 0) {
+        result.plugins = pluginAnalysis.pluginsByCategory;
+        result.totalPlugins = pluginAnalysis.totalPluginsDetected;
+        
+        // Update specific fields based on detected plugins
+        const ecommercePlugins = pluginAnalysis.pluginsByCategory.ecommerce;
+        if (ecommercePlugins && ecommercePlugins.length > 0) {
+          result.ecommerce = ecommercePlugins[0].name;
+        }
+        
+        const pageBuilders = pluginAnalysis.pluginsByCategory['page-builder'];
+        if (pageBuilders && pageBuilders.length > 0) {
+          result.pageBuilder = pageBuilders[0].name;
+        }
+      }
+      
+      console.log(`✅ Claude plugin analysis complete: ${pluginAnalysis.totalPluginsDetected} plugins detected for ${pluginAnalysis.platform}`);
+    } catch (error) {
+      console.error('Claude plugin detection failed, continuing with basic detection:', error);
+    }
+    
+    return result;
     
   } catch (error) {
     console.error('Direct analysis error:', error);

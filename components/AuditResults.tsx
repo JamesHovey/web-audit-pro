@@ -12,10 +12,16 @@ import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
 import KeywordCompetitionTable from './KeywordCompetitionTable'
 import RecommendedKeywordTable from './RecommendedKeywordTable'
+import PaidAdvertisingOpportunities from './PaidAdvertisingOpportunities'
 import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
 import ViewportAnalysis from './ViewportAnalysis'
 import OverallAuditConclusion from './OverallAuditConclusion'
+import TrafficInsightsConclusion from './TrafficInsightsConclusion'
+import PerformanceTechnicalConclusion from './PerformanceTechnicalConclusion'
+import TechnologyStackConclusion from './TechnologyStackConclusion'
+import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
+import CompetitionAnalysis from './CompetitionAnalysis'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -257,570 +263,356 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mb-4">
-        <button 
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Dashboard</span>
-        </button>
-        
-        <button
-          onClick={() => {
-            const sitemapUrl = `/sitemap?domain=${encodeURIComponent(audit.url)}`;
-            window.open(sitemapUrl, '_blank');
-          }}
-          className="btn-pmw-secondary text-sm px-4 py-2"
-        >
-          <Globe className="w-5 h-5" />
-          <span>View Sitemap</span>
-        </button>
-      </div>
-
-      {/* Status Header */}
-      <div className="card-pmw">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(audit.status)}`}>
+      {/* Compact Header with all controls inline */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          {/* Left side - Navigation and Status */}
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Back to Dashboard</span>
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(audit.status)}`}>
                 {getStatusText(audit.status)}
               </span>
               {isPolling && <LoadingSpinner size="sm" />}
             </div>
-            <p className="text-gray-600 mt-2">
-              Started: {new Date(audit.createdAt).toLocaleString('en-GB', { 
-                year: 'numeric', 
+            
+            <div className="text-xs text-gray-600 flex gap-4">
+              <span>Started: {new Date(audit.createdAt).toLocaleString('en-GB', { 
                 month: '2-digit', 
                 day: '2-digit', 
                 hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-              })}
-            </p>
-            
-            {/* Progress info has been moved to the modal */}
-            {audit.completedAt && (
-              <p className="text-gray-600">
-                Completed: {new Date(audit.completedAt).toLocaleString('en-GB', { 
-                  year: 'numeric', 
+                minute: '2-digit'
+              })}</span>
+              {audit.completedAt && (
+                <span>Completed: {new Date(audit.completedAt).toLocaleString('en-GB', { 
                   month: '2-digit', 
                   day: '2-digit', 
                   hour: '2-digit', 
-                  minute: '2-digit', 
-                  second: '2-digit' 
-                })}
-              </p>
-            )}
+                  minute: '2-digit'
+                })}</span>
+              )}
+            </div>
           </div>
           
-          {audit.status === "completed" && (
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => {
-                  try {
-                    console.log('Main PDF export clicked - exporting full audit');
-                    
-                    const targetUrl = new URL(audit.url);
-                    const domain = targetUrl.hostname;
-                    const currentDate = new Date();
-                    
-                    const printContent = `
-                      <html>
-                        <head>
-                          <title>SEO Audit Report - ${domain}</title>
-                          <style>
-                            @media print {
-                              body { margin: 0; }
-                              .no-print { display: none; }
-                              .page-break { page-break-before: always; }
-                            }
-                            body { 
-                              font-family: Arial, sans-serif; 
-                              margin: 20px; 
-                              line-height: 1.4;
-                              color: #333;
-                            }
-                            .header { 
-                              margin-bottom: 40px; 
-                              border-bottom: 3px solid #2563eb; 
-                              padding-bottom: 30px; 
-                              text-align: center;
-                            }
-                            .logo { 
-                              font-size: 32px; 
-                              font-weight: bold; 
-                              color: #2563eb; 
-                              margin-bottom: 8px; 
-                            }
-                            .company { 
-                              font-size: 16px; 
-                              color: #666; 
-                              margin-bottom: 20px; 
-                            }
-                            .title { 
-                              font-size: 28px; 
-                              font-weight: bold; 
-                              margin-bottom: 20px;
-                              color: #1e40af;
-                            }
-                            .subtitle {
-                              font-size: 20px;
-                              color: #666;
-                              margin-bottom: 10px;
-                            }
-                            .section { 
-                              margin: 30px 0; 
-                              padding: 20px;
-                              border: 1px solid #e5e7eb;
-                              border-radius: 8px;
-                            }
-                            .section-title { 
-                              font-size: 22px; 
-                              font-weight: bold; 
-                              margin-bottom: 15px;
-                              color: #1e40af;
-                              border-bottom: 2px solid #e5e7eb;
-                              padding-bottom: 8px;
-                            }
-                            .metric-grid {
-                              display: grid;
-                              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                              gap: 20px;
-                              margin: 20px 0;
-                            }
-                            .metric-card {
-                              padding: 15px;
-                              background: #f8fafc;
-                              border-radius: 6px;
-                              text-align: center;
-                            }
-                            .metric-value {
-                              font-size: 24px;
-                              font-weight: bold;
-                              color: #2563eb;
-                            }
-                            .metric-label {
-                              font-size: 14px;
-                              color: #666;
-                              margin-top: 5px;
-                            }
-                            table { 
-                              width: 100%; 
-                              border-collapse: collapse; 
-                              margin: 15px 0; 
-                            }
-                            th, td { 
-                              border: 1px solid #d1d5db; 
-                              padding: 12px; 
-                              text-align: left; 
-                            }
-                            th { 
-                              background-color: #f3f4f6; 
-                              font-weight: bold;
-                              color: #374151;
-                            }
-                            tr:nth-child(even) { 
-                              background-color: #f9fafb; 
-                            }
-                            .audit-info { 
-                              margin-bottom: 30px; 
-                              padding: 20px;
-                              background: #f0f9ff;
-                              border-radius: 8px;
-                            }
-                            .audit-info p { 
-                              margin: 8px 0; 
-                            }
-                            .footer {
-                              margin-top: 40px;
-                              padding-top: 20px;
-                              border-top: 1px solid #e5e7eb;
-                              font-size: 12px;
-                              color: #666;
-                              text-align: center;
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="header">
-                            <div class="logo">PMW</div>
-                            <div class="company">Professional Marketing & Web Design</div>
-                            <div class="title">SEO Audit Report</div>
-                            <div class="subtitle">${domain}</div>
-                          </div>
-                          
-                          <div class="audit-info">
-                            <p><strong>Website:</strong> ${audit.url}</p>
-                            <p><strong>Audit Date:</strong> ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}</p>
-                            <p><strong>Report Generated:</strong> ${currentDate.toLocaleString()}</p>
-                            <p><strong>Sections Analyzed:</strong> ${audit.sections.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</p>
-                          </div>
-                          
-                          ${audit.results && audit.sections ? audit.sections.map(section => {
-                            const sectionData = audit.results[section];
-                            if (!sectionData) return '';
+          {/* Right side - Action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const sitemapUrl = `/sitemap?domain=${encodeURIComponent(audit.url)}`;
+                window.open(sitemapUrl, '_blank');
+              }}
+              className="btn-pmw-secondary text-xs px-3 py-2"
+            >
+              <Globe className="w-4 h-4" />
+              <span>View Sitemap</span>
+            </button>
+            
+            {audit.status === "completed" && (
+              <>
+                <button 
+                  onClick={() => {
+                    try {
+                      console.log('Main PDF export clicked - exporting full audit');
+                      
+                      const targetUrl = new URL(audit.url);
+                      const domain = targetUrl.hostname;
+                      const currentDate = new Date();
+                      
+                      const printContent = `
+                        <html>
+                          <head>
+                            <title>SEO Audit Report - ${domain}</title>
+                            <style>
+                              @media print {
+                                body { margin: 0; }
+                                .no-print { display: none; }
+                                .page-break { page-break-before: always; }
+                              }
+                              body { 
+                                font-family: Arial, sans-serif; 
+                                margin: 20px; 
+                                line-height: 1.4;
+                                color: #333;
+                                font-size: 12px;
+                              }
+                              .header { 
+                                text-align: center; 
+                                margin-bottom: 30px; 
+                                border-bottom: 2px solid #333;
+                                padding-bottom: 20px;
+                              }
+                              .title { 
+                                font-size: 24px; 
+                                font-weight: bold; 
+                                color: #2563eb;
+                                margin: 0;
+                              }
+                              .subtitle { 
+                                font-size: 16px; 
+                                color: #666; 
+                                margin: 5px 0 0 0;
+                              }
+                              .audit-info {
+                                background: #f8f9fa;
+                                padding: 15px;
+                                border-radius: 5px;
+                                margin: 20px 0;
+                                border-left: 4px solid #2563eb;
+                              }
+                              .section {
+                                margin: 25px 0;
+                                padding: 15px 0;
+                                border-bottom: 1px solid #eee;
+                              }
+                              .section-title {
+                                font-size: 18px;
+                                font-weight: bold;
+                                color: #333;
+                                margin-bottom: 15px;
+                                border-bottom: 2px solid #e5e7eb;
+                                padding-bottom: 5px;
+                              }
+                              .metric-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                                gap: 15px;
+                                margin: 15px 0;
+                              }
+                              .metric-card {
+                                background: white;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 5px;
+                                padding: 15px;
+                                text-align: center;
+                              }
+                              .metric-value {
+                                font-size: 24px;
+                                font-weight: bold;
+                                color: #2563eb;
+                                margin-bottom: 5px;
+                              }
+                              .metric-label {
+                                font-size: 12px;
+                                color: #666;
+                                text-transform: uppercase;
+                                font-weight: 500;
+                              }
+                              table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin: 15px 0;
+                                font-size: 11px;
+                              }
+                              th, td {
+                                border: 1px solid #ddd;
+                                padding: 8px;
+                                text-align: left;
+                              }
+                              th {
+                                background-color: #f8f9fa;
+                                font-weight: bold;
+                                color: #333;
+                              }
+                              .keyword-row {
+                                background: #f9f9f9;
+                              }
+                              .tech-badge {
+                                display: inline-block;
+                                background: #e5e7eb;
+                                color: #374151;
+                                padding: 2px 8px;
+                                border-radius: 12px;
+                                font-size: 10px;
+                                margin: 2px;
+                              }
+                              .footer {
+                                margin-top: 40px;
+                                text-align: center;
+                                font-size: 10px;
+                                color: #666;
+                                border-top: 1px solid #eee;
+                                padding-top: 20px;
+                              }
+                              .watermark {
+                                position: fixed;
+                                bottom: 20px;
+                                right: 20px;
+                                font-size: 10px;
+                                color: #999;
+                                transform: rotate(-45deg);
+                                opacity: 0.3;
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="watermark">Web Audit Pro</div>
+                            <div class="header">
+                              <div class="title">SEO Audit Report</div>
+                              <div class="subtitle">${domain}</div>
+                            </div>
                             
-                            let sectionName = section.charAt(0).toUpperCase() + section.slice(1);
-                            if (section === 'traffic') sectionName = 'Traffic Insights';
-                            if (section === 'keywords') sectionName = 'Keywords Analysis';
-                            if (section === 'performance') sectionName = 'Performance & Technical Audit';
-                            if (section === 'backlinks') sectionName = 'Authority & Backlinks';
-                            if (section === 'technical') sectionName = 'Performance & Technical Audit';
-                            if (section === 'technology') sectionName = 'Technology Stack';
+                            <div class="audit-info">
+                              <p><strong>Website:</strong> ${audit.url}</p>
+                              <p><strong>Audit Date:</strong> ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}</p>
+                              <p><strong>Report Generated:</strong> ${currentDate.toLocaleString()}</p>
+                              <p><strong>Sections Analyzed:</strong> ${audit.sections.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</p>
+                            </div>
                             
-                            let sectionContent = '';
-                            
-                            if (section === 'traffic' && typeof sectionData === 'object') {
-                              sectionContent = `
-                                <div class="metric-grid">
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.monthlyOrganicTraffic || 0}</div>
-                                    <div class="metric-label">Monthly Organic Traffic</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.monthlyPaidTraffic || 0}</div>
-                                    <div class="metric-label">Monthly Paid Traffic</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.brandedTraffic || 0}</div>
-                                    <div class="metric-label">Branded Traffic</div>
-                                  </div>
-                                </div>
-                                ${sectionData.topCountries && Array.isArray(sectionData.topCountries) ? `
-                                  <h4>Top Countries</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Country</th><th>Traffic</th><th>Percentage</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${sectionData.topCountries.map(country => 
-                                        `<tr><td>${country.country}</td><td>${country.traffic}</td><td>${country.percentage}%</td></tr>`
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-                              `;
-                            } else if (section === 'keywords' && typeof sectionData === 'object') {
-                              sectionContent = `
-                                <div class="metric-grid">
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.totalKeywords || 0}</div>
-                                    <div class="metric-label">Total Keywords</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.brandedKeywords || 0}</div>
-                                    <div class="metric-label">Branded Keywords</div>
-                                  </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.aboveFoldKeywords || 0}</div>
-                                    <div class="metric-label">Top 3 Rankings</div>
-                                  </div>
-                                </div>
-                                ${sectionData.aboveFoldKeywordsList && Array.isArray(sectionData.aboveFoldKeywordsList) && sectionData.aboveFoldKeywordsList.length > 0 ? `
-                                  <h4>Above Fold Keywords (All Results)</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Type</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${sectionData.aboveFoldKeywordsList.map(keyword => 
-                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position}</td><td>${keyword.volume || 'N/A'}</td><td>${keyword.type || 'N/A'}</td></tr>`
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-                                ${sectionData.brandedKeywordsList && Array.isArray(sectionData.brandedKeywordsList) && sectionData.brandedKeywordsList.length > 0 ? `
-                                  <h4>Branded keywords on Search engines</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Mentions</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${sectionData.brandedKeywordsList.map(keyword => 
-                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position ? `#${keyword.position}` : 'Not ranking'}</td><td>${(keyword.volume || 0).toLocaleString()}/mo</td><td>${keyword.mentions || 1}</td></tr>`
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-                                ${sectionData.nonBrandedKeywordsList && Array.isArray(sectionData.nonBrandedKeywordsList) && sectionData.nonBrandedKeywordsList.length > 0 ? `
-                                  <h4>All Non-Branded Keywords</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Keyword</th><th>Position</th><th>Search Volume</th><th>Difficulty</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${sectionData.nonBrandedKeywordsList.map(keyword => 
-                                        `<tr><td>${keyword.keyword}</td><td>${keyword.position ? `#${keyword.position}` : 'Not ranking'}</td><td>${(keyword.volume || 0).toLocaleString()}/mo</td><td>${keyword.difficulty || 'N/A'}</td></tr>`
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-                              `;
-                            } else if ((section === 'performance' || section === 'technical') && typeof sectionData === 'object') {
-                              // For combined Performance & Technical section, get both datasets
-                              const performanceData = audit.results?.performance || {};
-                              const technicalData = audit.results?.technical || {};
-                              const dataToUse = section === 'performance' ? { ...performanceData, ...technicalData } : { ...technicalData, ...performanceData };
+                            ${audit.results ? Object.entries(audit.results).map(([section, data]) => {
+                              if (!data || section === 'completedSections') return '';
                               
-                              sectionContent = `
-
-                                ${dataToUse.pages && Array.isArray(dataToUse.pages) && dataToUse.pages.some(p => p.performance) ? `
-                                  <h4>Page Performance Metrics (Core Web Vitals)</h4>
-                                  <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Complete analysis of Core Web Vitals for all pages, sorted by mobile performance (worst first)</p>
-                                  <table style="font-size: 12px;">
-                                    <thead>
-                                      <tr>
-                                        <th>Page</th>
-                                        <th>Desktop Score</th>
-                                        <th>Desktop LCP (s)</th>
-                                        <th>Desktop CLS</th>
-                                        <th>Desktop INP (ms)</th>
-                                        <th>Mobile Score</th>
-                                        <th>Mobile LCP (s)</th>
-                                        <th>Mobile CLS</th>
-                                        <th>Mobile INP (ms)</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      ${dataToUse.pages
-                                        .filter(page => page.performance)
-                                        .sort((a, b) => (a.performance?.mobile?.score || 0) - (b.performance?.mobile?.score || 0))
-                                        .map(page => {
-                                          const { desktop, mobile } = page.performance;
-                                          const getRelativePath = (url) => {
-                                            try {
-                                              const urlObj = new URL(url);
-                                              return urlObj.pathname === '/' ? '/' : urlObj.pathname;
-                                            } catch {
-                                              return url.replace(/^https?:\/\/[^\/]+/, '') || '/';
-                                            }
-                                          };
-                                          return `<tr>
-                                            <td style="font-family: monospace; font-size: 11px;">${getRelativePath(page.url)}</td>
-                                            <td style="text-align: center; font-weight: bold; color: ${desktop.score >= 90 ? '#059669' : desktop.score >= 50 ? '#d97706' : '#dc2626'}">${desktop.score}</td>
-                                            <td style="text-align: center; color: ${desktop.lcp < 2500 ? '#059669' : desktop.lcp < 4000 ? '#d97706' : '#dc2626'}">${(desktop.lcp / 1000).toFixed(1)}</td>
-                                            <td style="text-align: center; color: ${desktop.cls < 0.1 ? '#059669' : desktop.cls < 0.25 ? '#d97706' : '#dc2626'}">${desktop.cls.toFixed(3)}</td>
-                                            <td style="text-align: center; color: ${desktop.inp < 200 ? '#059669' : desktop.inp < 500 ? '#d97706' : '#dc2626'}">${desktop.inp}</td>
-                                            <td style="text-align: center; font-weight: bold; color: ${mobile.score >= 90 ? '#059669' : mobile.score >= 50 ? '#d97706' : '#dc2626'}">${mobile.score}</td>
-                                            <td style="text-align: center; color: ${mobile.lcp < 2500 ? '#059669' : mobile.lcp < 4000 ? '#d97706' : '#dc2626'}">${(mobile.lcp / 1000).toFixed(1)}</td>
-                                            <td style="text-align: center; color: ${mobile.cls < 0.1 ? '#059669' : mobile.cls < 0.25 ? '#d97706' : '#dc2626'}">${mobile.cls.toFixed(3)}</td>
-                                            <td style="text-align: center; color: ${mobile.inp < 200 ? '#059669' : mobile.inp < 500 ? '#d97706' : '#dc2626'}">${mobile.inp}</td>
-                                          </tr>`;
-                                        }).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-
-                                ${dataToUse.viewportAnalysis ? `
-                                  <div class="page-break"></div>
-                                  <h4>Viewport Responsiveness Analysis</h4>
+                              let sectionContent = '';
+                              const sectionTitle = section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1');
+                              
+                              // Handle different section types
+                              if (section === 'keywords' && typeof data === 'object') {
+                                const keywordData = data as any;
+                                sectionContent = `
                                   <div class="metric-grid">
                                     <div class="metric-card">
-                                      <div class="metric-value">${dataToUse.viewportAnalysis.overallScore}/100</div>
-                                      <div class="metric-label">Overall Responsive Score</div>
+                                      <div class="metric-value">${keywordData.domainAuthority || 'N/A'}</div>
+                                      <div class="metric-label">Domain Authority</div>
                                     </div>
                                     <div class="metric-card">
-                                      <div class="metric-value">${dataToUse.viewportAnalysis.responsiveScore}/100</div>
-                                      <div class="metric-label">Mobile Score</div>
+                                      <div class="metric-value">${keywordData.brandedKeywords || 0}</div>
+                                      <div class="metric-label">Branded Keywords</div>
                                     </div>
                                     <div class="metric-card">
-                                      <div class="metric-value">${dataToUse.viewportAnalysis.cssAnalysis?.isElementorSite ? 'Yes' : 'No'}</div>
-                                      <div class="metric-label">Elementor Site</div>
-                                    </div>
-                                    <div class="metric-card">
-                                      <div class="metric-value">${dataToUse.viewportAnalysis.cssAnalysis?.hasViewportMeta ? 'Yes' : 'No'}</div>
-                                      <div class="metric-label">Viewport Meta Tag</div>
+                                      <div class="metric-value">${keywordData.nonBrandedKeywords || 0}</div>
+                                      <div class="metric-label">Non-Branded Keywords</div>
                                     </div>
                                   </div>
-
-                                  ${dataToUse.viewportAnalysis.viewportAnalyses && Array.isArray(dataToUse.viewportAnalysis.viewportAnalyses) ? `
-                                    <h5>Viewport Analysis Results</h5>
+                                  
+                                  ${keywordData.topKeywords && keywordData.topKeywords.length > 0 ? `
+                                    <h4>Top Keywords Found</h4>
                                     <table>
                                       <thead>
-                                        <tr><th>Device Type</th><th>Viewport</th><th>Score</th><th>Issues Found</th><th>Load Time (ms)</th></tr>
+                                        <tr>
+                                          <th>Keyword</th>
+                                          <th>Volume</th>
+                                          <th>Position</th>
+                                          <th>Type</th>
+                                        </tr>
                                       </thead>
                                       <tbody>
-                                        ${dataToUse.viewportAnalysis.viewportAnalyses.map(analysis => `
+                                        ${keywordData.topKeywords.slice(0, 20).map((kw: any) => `
                                           <tr>
-                                            <td>${analysis.viewport.deviceType.charAt(0).toUpperCase() + analysis.viewport.deviceType.slice(1)}</td>
-                                            <td>${analysis.viewport.width}×${analysis.viewport.height}</td>
-                                            <td style="color: ${analysis.score >= 70 ? '#059669' : analysis.score >= 40 ? '#d97706' : '#dc2626'}; font-weight: bold;">${analysis.score}/100</td>
-                                            <td>${analysis.issues.length}</td>
-                                            <td>${analysis.loadTime}</td>
+                                            <td>${kw.keyword || 'N/A'}</td>
+                                            <td>${kw.volume || 'N/A'}</td>
+                                            <td>${kw.position || 'N/A'}</td>
+                                            <td>${kw.type || 'N/A'}</td>
                                           </tr>
                                         `).join('')}
                                       </tbody>
                                     </table>
                                   ` : ''}
-
-                                  ${dataToUse.viewportAnalysis.globalIssues && Array.isArray(dataToUse.viewportAnalysis.globalIssues) && dataToUse.viewportAnalysis.globalIssues.length > 0 ? `
-                                    <h5>Global Responsive Issues</h5>
-                                    <ul>
-                                      ${dataToUse.viewportAnalysis.globalIssues.map(issue => 
-                                        `<li><strong>${issue.severity.toUpperCase()}:</strong> ${issue.description} - ${issue.recommendation}</li>`
-                                      ).join('')}
-                                    </ul>
-                                  ` : ''}
-
-                                  ${dataToUse.viewportAnalysis.recommendations && Array.isArray(dataToUse.viewportAnalysis.recommendations) && dataToUse.viewportAnalysis.recommendations.length > 0 ? `
-                                    <h5>Responsive Design Recommendations</h5>
-                                    <ul>
-                                      ${dataToUse.viewportAnalysis.recommendations.map(rec => '<li>' + rec + '</li>').join('')}
-                                    </ul>
-                                  ` : ''}
-
-                                  ${dataToUse.viewportAnalysis.cssAnalysis?.breakpoints && Array.isArray(dataToUse.viewportAnalysis.cssAnalysis.breakpoints) && dataToUse.viewportAnalysis.cssAnalysis.breakpoints.length > 0 ? `
-                                    <h5>Detected CSS Breakpoints</h5>
-                                    <p>${dataToUse.viewportAnalysis.cssAnalysis.breakpoints.join('px, ')}px</p>
-                                  ` : ''}
-                                ` : ''}
-
-                                <h4>Technical Issues Summary</h4>
-                                <table>
-                                  <thead>
-                                    <tr><th>Issue Type</th><th>Count</th></tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr><td>Missing Meta Titles</td><td>${dataToUse.issues?.missingMetaTitles || 0}</td></tr>
-                                    <tr><td>Missing Meta Descriptions</td><td>${dataToUse.issues?.missingMetaDescriptions || 0}</td></tr>
-                                    <tr><td>Missing H1 Tags</td><td>${dataToUse.issues?.missingH1Tags || 0}</td></tr>
-                                    <tr><td>404 Errors</td><td>${dataToUse.notFoundErrors?.length || 0}</td></tr>
-                                  </tbody>
-                                </table>
-
-                                ${dataToUse.largeImageDetails && Array.isArray(dataToUse.largeImageDetails) && dataToUse.largeImageDetails.length > 0 ? `
-                                  <h4>Large Images Requiring Optimization</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Image</th><th>Size (KB)</th><th>Page</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${dataToUse.largeImageDetails.map(img => 
-                                        '<tr><td style="font-family: monospace; font-size: 11px;">' + (img.imageUrl.split('/').pop() || img.imageUrl).substring(0, 40) + (img.imageUrl.length > 40 ? '...' : '') + '</td><td>' + img.sizeKB + '</td><td style="font-family: monospace; font-size: 11px;">' + img.pageUrl.replace(/^https?:\/\/[^\/]+/, '').substring(0, 30) + '...</td></tr>'
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-
-                                ${dataToUse.notFoundErrors && Array.isArray(dataToUse.notFoundErrors) && dataToUse.notFoundErrors.length > 0 ? `
-                                  <h4>404 Errors Found</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Broken URL</th><th>Found On Page</th><th>Link Type</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${dataToUse.notFoundErrors.map(error => 
-                                        '<tr><td style="font-family: monospace; font-size: 11px;">' + error.brokenUrl.substring(0, 50) + (error.brokenUrl.length > 50 ? '...' : '') + '</td><td style="font-family: monospace; font-size: 11px;">' + error.sourceUrl.replace(/^https?:\/\/[^\/]+/, '').substring(0, 30) + '...</td><td>' + error.linkType + '</td></tr>'
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
-                              `;
-                            } else if (section === 'backlinks' && typeof sectionData === 'object') {
-                              sectionContent = `
-                                <div class="metric-grid">
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.domainAuthority || 'N/A'}</div>
-                                    <div class="metric-label">Domain Authority</div>
+                                `;
+                              } else if (section === 'backlinks' && typeof data === 'object') {
+                                sectionContent = `
+                                  <div class="metric-grid">
+                                    <div class="metric-card">
+                                      <div class="metric-value">${data.domainAuthority || 'N/A'}</div>
+                                      <div class="metric-label">Domain Authority</div>
+                                    </div>
+                                    <div class="metric-card">
+                                      <div class="metric-value">${data.totalBacklinks || 'N/A'}</div>
+                                      <div class="metric-label">Total Backlinks</div>
+                                    </div>
+                                    <div class="metric-card">
+                                      <div class="metric-value">${data.referringDomains || 'N/A'}</div>
+                                      <div class="metric-label">Referring Domains</div>
+                                    </div>
                                   </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.totalBacklinks || 'N/A'}</div>
-                                    <div class="metric-label">Total Backlinks</div>
+                                `;
+                              } else if (section === 'technology' && typeof data === 'object') {
+                                const techData = data as any;
+                                sectionContent = `
+                                  <div>
+                                    <h4>Detected Technologies</h4>
+                                    <div>
+                                      ${techData.cms ? `<span class="tech-badge">CMS: ${techData.cms}</span>` : ''}
+                                      ${techData.framework ? `<span class="tech-badge">Framework: ${techData.framework}</span>` : ''}
+                                      ${techData.hosting ? `<span class="tech-badge">Hosting: ${techData.hosting}</span>` : ''}
+                                      ${techData.analytics && techData.analytics.length > 0 ? 
+                                        techData.analytics.map((a: string) => `<span class="tech-badge">Analytics: ${a}</span>`).join('') : ''
+                                      }
+                                    </div>
                                   </div>
-                                  <div class="metric-card">
-                                    <div class="metric-value">${sectionData.referringDomains || 'N/A'}</div>
-                                    <div class="metric-label">Referring Domains</div>
+                                `;
+                              } else if (typeof data === 'object' && data !== null) {
+                                // Generic object handling
+                                sectionContent = `
+                                  <div class="metric-grid">
+                                    ${Object.entries(data).slice(0, 6).map(([key, value]) => `
+                                      <div class="metric-card">
+                                        <div class="metric-value">${typeof value === 'number' ? value.toLocaleString() : (value || 'N/A')}</div>
+                                        <div class="metric-label">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}</div>
+                                      </div>
+                                    `).join('')}
                                   </div>
+                                `;
+                              } else {
+                                sectionContent = `<p>${data || 'No data available'}</p>`;
+                              }
+                              
+                              return `
+                                <div class="section">
+                                  <div class="section-title">${sectionTitle}</div>
+                                  ${sectionContent}
                                 </div>
-                                ${sectionData.topBacklinks && Array.isArray(sectionData.topBacklinks) && sectionData.topBacklinks.length > 0 ? `
-                                  <h4>All Top Authority Backlinks</h4>
-                                  <table>
-                                    <thead>
-                                      <tr><th>Domain</th><th>Authority</th><th>Anchor Text</th><th>Type</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      ${sectionData.topBacklinks.map(link => 
-                                        `<tr><td>${link.domain}</td><td>${link.authority}</td><td>${link.anchor}</td><td>${link.type}</td></tr>`
-                                      ).join('')}
-                                    </tbody>
-                                  </table>
-                                ` : ''}
                               `;
-                            } else if (section === 'technology' && typeof sectionData === 'object') {
-                              sectionContent = `
-                                <h4>Technology Stack</h4>
-                                <table>
-                                  <thead>
-                                    <tr><th>Component</th><th>Technology</th></tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr><td>CMS</td><td>${sectionData.cms || 'Not detected'}</td></tr>
-                                    <tr><td>Framework</td><td>${sectionData.framework || 'Not detected'}</td></tr>
-                                    <tr><td>Analytics</td><td>${sectionData.analytics || 'Not detected'}</td></tr>
-                                    <tr><td>Hosting</td><td>${sectionData.hosting || 'Not detected'}</td></tr>
-                                    ${sectionData.cdn ? `<tr><td>CDN</td><td>${sectionData.cdn}</td></tr>` : ''}
-                                  </tbody>
-                                </table>
-                                ${sectionData.plugins && Array.isArray(sectionData.plugins) && sectionData.plugins.length > 0 ? `
-                                  <h4>WordPress Plugins Detected</h4>
-                                  <p>${sectionData.plugins.join(', ')}</p>
-                                ` : ''}
-                              `;
-                            } else {
-                              sectionContent = '<p>No detailed data available for this section.</p>';
-                            }
+                            }).join('') : '<p>No audit data available</p>'}
                             
-                            return `
-                              <div class="section">
-                                <div class="section-title">${sectionName}</div>
-                                ${sectionContent}
-                              </div>
-                            `;
-                          }).join('') : ''}
-                          
-                          <div class="footer">
-                            <p>This report was generated by Web Audit Pro - PMW Professional Marketing & Web Design</p>
-                            <p>Generated on ${currentDate.toLocaleString()}</p>
-                          </div>
-                          
-                          <div class="no-print">
-                            <p style="margin-top: 30px; color: #666; font-size: 14px; text-align: center;">
-                              Tip: Use your browser's "Save as PDF" option to save this report as a PDF file.
-                            </p>
-                          </div>
-                        </body>
-                      </html>
-                    `;
-                    
-                    console.log('Opening audit report print window...');
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(printContent);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => printWindow.print(), 500);
-                      console.log('Audit report print dialog opened successfully');
-                    } else {
-                      console.error('Could not open print window - check pop-up blocker');
-                      alert('Could not open print dialog. Please check if pop-ups are blocked.');
+                            <div class="footer">
+                              <p>Generated by Web Audit Pro - ${currentDate.toLocaleString()}</p>
+                              <p>This report contains comprehensive SEO analysis data for ${domain}</p>
+                            </div>
+                          </body>
+                        </html>
+                      `;
+
+                      // Create and open print window
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(printContent);
+                        printWindow.document.close();
+                        
+                        // Wait for content to load then trigger print
+                        printWindow.onload = () => {
+                          setTimeout(() => {
+                            printWindow.focus();
+                            printWindow.print();
+                          }, 500);
+                        };
+                        
+                        console.log('Audit report print dialog opened successfully');
+                      } else {
+                        console.error('Could not open print window - check pop-up blocker');
+                        alert('Could not open print dialog. Please check if pop-ups are blocked.');
+                      }
+                      
+                    } catch (error) {
+                      console.error('Error generating audit PDF:', error);
+                      alert('Error generating PDF report: ' + error.message);
                     }
-                    
-                  } catch (error) {
-                    console.error('Error generating audit PDF:', error);
-                    alert('Error generating PDF report: ' + error.message);
-                  }
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Export PDF
-              </button>
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                Export Excel
-              </button>
-            </div>
-          )}
+                  }}
+                  className="bg-[#42499c] hover:bg-[#42499c]/80 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors"
+                >
+                  Export PDF
+                </button>
+                <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors">
+                  Export Excel
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -835,6 +627,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       {/* Only show results when audit is complete */}
       {showResults ? (
         <>
+
           {/* Keywords Section - Full Width */}
           {audit?.sections?.includes('keywords') && (
         <div className="card-pmw mb-6">
@@ -864,6 +657,41 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
                 {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)}
+                
+                {/* Competition Analysis */}
+                {(() => {
+                  const hasKeywords = !!audit.results.keywords;
+                  const hasTopKeywords = !!audit.results.keywords?.topKeywords;
+                  const topKeywordsLength = audit.results.keywords?.topKeywords?.length || 0;
+                  const hasBrandedOrNonBranded = (audit.results.keywords?.brandedKeywordsList?.length || 0) + (audit.results.keywords?.nonBrandedKeywordsList?.length || 0) > 0;
+                  
+                  console.log('🔍 Competition Analysis Debug:', {
+                    hasKeywords,
+                    hasTopKeywords,
+                    topKeywordsLength,
+                    hasBrandedOrNonBranded,
+                    brandedLength: audit.results.keywords?.brandedKeywordsList?.length || 0,
+                    nonBrandedLength: audit.results.keywords?.nonBrandedKeywordsList?.length || 0,
+                    topKeywordsSample: audit.results.keywords?.topKeywords?.slice(0, 3)
+                  });
+                  
+                  // Try using brandedKeywordsList + nonBrandedKeywordsList if topKeywords is empty
+                  const keywordsToUse = (audit.results.keywords?.topKeywords?.length > 0) 
+                    ? audit.results.keywords.topKeywords
+                    : [...(audit.results.keywords?.brandedKeywordsList || []), ...(audit.results.keywords?.nonBrandedKeywordsList || [])];
+                  
+                  return keywordsToUse.length > 0 ? (
+                    <CompetitionAnalysis 
+                      targetDomain={audit.url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]}
+                      keywords={keywordsToUse}
+                    />
+                  ) : null;
+                })()}
+                
+                {/* Claude AI Keyword Analysis Conclusion */}
+                {audit.results.keywords.claudeAnalysis && (
+                  <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />
+                )}
               </div>
             ) : (
               <LoadingMessages section="keywords" />
@@ -941,6 +769,12 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
               )}
             </div>
+            {/* AI-Enhanced Technology Conclusion */}
+            {audit.status === "completed" && audit?.results?.technology && (
+              <TechnologyStackConclusion 
+                data={audit?.results?.technology} 
+              />
+            )}
           </div>
         </div>
       )}
@@ -994,6 +828,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 )
               )}
             </div>
+            {/* AI-Enhanced Conclusion */}
+            {audit.status === "completed" && (audit?.results?.performance || audit?.results?.technical) && (
+              <PerformanceTechnicalConclusion 
+                data={{
+                  ...audit?.results?.performance,
+                  ...audit?.results?.technical
+                }} 
+              />
+            )}
           </div>
         </div>
       )}
@@ -1307,7 +1150,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                         alert('Error generating PDF report: ' + error.message);
                       }
                     }}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+                    className="bg-[#42499c] text-white px-4 py-2 rounded hover:bg-[#42499c]/80 text-sm"
                   >
                     Export PDF
                   </button>
@@ -2018,6 +1861,9 @@ function renderSectionResults(
               </div>
             )}
           </div>
+          
+          {/* Traffic Insights Conclusion */}
+          <TrafficInsightsConclusion data={results} />
         </div>
       );
 
@@ -2225,26 +2071,6 @@ function renderSectionResults(
               </div>
             </div>
             
-            {/* Domain Authority */}
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{results.domainAuthority || 'N/A'}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Domain Authority
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Domain Authority Score</p>
-                      <p className="mb-2"><strong>Range:</strong> 1-100 (higher is better)</p>
-                      <p className="mb-2"><strong>Source:</strong> SEMrush Authority Score</p>
-                      <p className="mb-2"><strong>Scoring:</strong> 1-20 (Low), 20-40 (Fair), 40-60 (Good), 60+ (Excellent)</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
-            </div>
           </div>
 
           {/* Keyword Intent Distribution */}
@@ -2317,6 +2143,18 @@ function renderSectionResults(
               title="Recommended target keywords"
               description="Business-relevant keywords we recommend you target to improve your search visibility"
               auditType={auditType === 'page' ? 'page' : 'website'}
+            />
+            </div>
+          )}
+
+          {/* Paid Advertising Opportunities */}
+          {results.nonBrandedKeywordsList && (
+            <div id="paid-advertising-section">
+            <PaidAdvertisingOpportunities 
+              keywords={results.nonBrandedKeywordsList}
+              targetDomainAuthority={results.domainAuthority || 35}
+              title="Paid Advertising Opportunities"
+              description="High-value keywords with strong competition - better suited for paid advertising than organic SEO"
             />
             </div>
           )}
