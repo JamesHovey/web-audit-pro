@@ -298,41 +298,44 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                   </span>
                 </div>
                 <div className="space-y-1">
-                  {plugins.slice(0, 3).map((plugin, index) => {
-                    const pluginInfo = getPluginInfo(plugin.name);
-                    return (
-                    <div key={index} className="text-xs text-gray-600">
-                      <div className="flex items-center justify-between">
-                        {pluginInfo.url ? (
-                          <a 
-                            href={pluginInfo.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {plugin.name}
-                          </a>
-                        ) : (
-                          <span className="font-medium">{plugin.name}</span>
-                        )}
-                        <span className={`px-1 py-0.5 rounded text-xs ${
-                          plugin.confidence === 'high' ? 'bg-[#27ae60]/10 text-[#27ae60]' :
-                          plugin.confidence === 'medium' ? 'bg-[#e67e22]/10 text-[#e67e22]' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {plugin.confidence}
-                        </span>
+                  <>
+                    {plugins.slice(0, 3).map((plugin, index) => {
+                      const pluginInfo = getPluginInfo(plugin.name);
+                      return (
+                        <div key={index} className="text-xs text-gray-600">
+                          <div className="flex items-center justify-between">
+                            {pluginInfo.url ? (
+                              <a 
+                                href={pluginInfo.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {plugin.name}
+                              </a>
+                            ) : (
+                              <span className="font-medium">{plugin.name}</span>
+                            )}
+                            <span className={`px-1 py-0.5 rounded text-xs ${
+                              plugin.confidence === 'high' ? 'bg-[#27ae60]/10 text-[#27ae60]' :
+                              plugin.confidence === 'medium' ? 'bg-[#e67e22]/10 text-[#e67e22]' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {plugin.confidence}
+                            </span>
+                          </div>
+                          {plugin.version && plugin.version !== '[Unable to detect]' && (
+                            <div className="text-xs text-gray-500">v{plugin.version}</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {plugins.length > 3 && (
+                      <div className="text-xs text-gray-500">
+                        +{plugins.length - 3} more
                       </div>
-                      {plugin.version && plugin.version !== '[Unable to detect]' && (
-                        <div className="text-xs text-gray-500">v{plugin.version}</div>
-                      )}
-                    </div>
-                  )}
-                  {plugins.length > 3 && (
-                    <div className="text-xs text-gray-500">
-                      +{plugins.length - 3} more
-                    </div>
-                  )}
+                    )}
+                  </>
                 </div>
               </div>
             ))}
