@@ -650,9 +650,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   }
                   position="top"
                 >
-                  <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
-                    <HelpCircle className="h-4 w-4 text-black cursor-help" />
-                  </div>
+                  <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
                 </Tooltip>
               </h3>
               {audit.results?.keywords?.dataSource && (
@@ -741,9 +739,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 }
                 position="top"
               >
-                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
-                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
-                </div>
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
               </Tooltip>
             </h3>
             <div className="mt-4">
@@ -779,9 +775,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   </div>
                 }
               >
-                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
-                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
-                </div>
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
               </Tooltip>
             </h3>
             <div className="mt-4">
@@ -822,9 +816,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   </div>
                 }
               >
-                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
-                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
-                </div>
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
               </Tooltip>
             </h3>
             <div className="mt-4">
@@ -874,9 +866,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 }
                 position="top"
               >
-                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
-                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
-                </div>
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
               </Tooltip>
             </h3>
             <div className="mt-4">
@@ -2230,7 +2220,26 @@ function renderSectionResults(
             return (
               <div className="bg-white rounded-lg border p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-semibold text-lg">Core Web Vitals Summary</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-lg">Core Web Vitals Summary</h4>
+                    <Tooltip 
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">Core Web Vitals Summary</p>
+                          <p className="mb-2">Overview of how your pages perform on Google's Core Web Vitals metrics.</p>
+                          <div className="text-xs space-y-1">
+                            <p><strong>Pass Criteria:</strong> All 3 metrics must pass (LCP &lt; 2.5s, CLS &lt; 0.1, INP &lt; 200ms)</p>
+                            <p><strong>Desktop vs Mobile:</strong> Separate scores for different device types</p>
+                            <p><strong>Pass Rate:</strong> Percentage of pages meeting all Core Web Vitals thresholds</p>
+                            <p><strong>Google Impact:</strong> Poor Core Web Vitals can hurt your search rankings</p>
+                          </div>
+                        </div>
+                      }
+                      position="top"
+                    >
+                      <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                    </Tooltip>
+                  </div>
                   <span className="text-sm text-gray-600">{totalPages} pages analyzed</span>
                 </div>
                 
@@ -2323,7 +2332,27 @@ function renderSectionResults(
           {results.pages && results.pages.some((page: any) => page.performance) && (
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <h4 className="font-semibold text-lg">Page Performance Metrics</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-lg">Page Performance Metrics</h4>
+                  <Tooltip 
+                    content={
+                      <div>
+                        <p className="font-semibold mb-2">Page Performance Metrics</p>
+                        <p className="mb-2">Detailed Core Web Vitals scores for each page on your website.</p>
+                        <div className="text-xs space-y-1">
+                          <p><strong>LCP (Largest Contentful Paint):</strong> How quickly main content loads (&lt; 2.5s = Good)</p>
+                          <p><strong>CLS (Cumulative Layout Shift):</strong> Visual stability of page (&lt; 0.1 = Good)</p>
+                          <p><strong>INP (Interaction to Next Paint):</strong> Page responsiveness (&lt; 200ms = Good)</p>
+                          <p><strong>Page-by-Page:</strong> Each page is scored independently by Google</p>
+                          <p><strong>Worst First:</strong> Pages with poorest performance shown at top</p>
+                        </div>
+                      </div>
+                    }
+                    position="top"
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </div>
                 <button 
                   onClick={() => setShowCoreWebVitalsGuide?.(true)}
                   className="flex items-center gap-1 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full text-sm font-medium transition-colors"
@@ -2622,7 +2651,27 @@ function renderSectionResults(
 
           {/* Technical Audit Section */}
           <div>
-            <h4 className="font-semibold mb-3 text-lg">Technical Health</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <h4 className="font-semibold text-lg">Technical Health</h4>
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Technical Health</p>
+                    <p className="mb-2">Core technical metrics that affect your website's performance and search ranking.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Security Status:</strong> HTTPS, mixed content, and certificate health</p>
+                      <p><strong>Mobile Friendly:</strong> How well your site works on mobile devices</p>
+                      <p><strong>Performance Issues:</strong> Technical problems affecting site speed</p>
+                      <p><strong>SEO Impact:</strong> Technical factors that influence search rankings</p>
+                      <p><strong>User Experience:</strong> Technical elements affecting visitor satisfaction</p>
+                    </div>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </div>
             
             {/* Technical Overview */}
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -3046,7 +3095,7 @@ function renderSectionResults(
                   <div className="font-semibold text-cyan-600">{results.cdn}</div>
                 </div>
               )}
-              {results.organization && results.hosting?.toLowerCase() !== 'cloudflare' && (
+              {results.organization && !results.hosting?.toLowerCase().includes('cloudflare') && (
                 <div>
                   <span className="text-gray-600 text-sm">Organization:</span>
                   <div className="font-semibold text-indigo-600">{results.organization}</div>

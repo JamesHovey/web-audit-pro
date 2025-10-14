@@ -22,9 +22,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Ensure the audit data is properly serializable
+    let safeResults = null;
+    try {
+      // If results is a string, try to parse it; if it's already an object, use it directly
+      if (audit.results) {
+        if (typeof audit.results === 'string') {
+          safeResults = JSON.parse(audit.results);
+        } else {
+          safeResults = audit.results;
+        }
+      }
+    } catch (parseError) {
+      console.error("Error parsing audit results JSON:", parseError);
+      // If parsing fails, set results to null and continue
+      safeResults = null;
+    }
+
     const safeAudit = {
       ...audit,
-      results: audit.results || null,
+      results: safeResults,
       createdAt: audit.createdAt.toISOString(),
       updatedAt: audit.updatedAt.toISOString(),
       completedAt: audit.completedAt?.toISOString() || null

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { HelpCircle } from 'lucide-react'
 import { ClaudeConclusionService, type AuditData, type ConclusionResult } from '../lib/claudeConclusionService'
+import Tooltip from './Tooltip'
 
 interface OverallAuditConclusionProps {
   results: {
@@ -265,7 +267,27 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
             className="w-16 h-16 opacity-80"
           />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">📊 Overall Audit Conclusion</h2>
+            <div className="flex items-center gap-3 justify-center mb-2">
+              <h2 className="text-2xl font-bold text-gray-900">📊 Overall Audit Conclusion</h2>
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Overall Audit Conclusion</p>
+                    <p className="mb-2">AI-powered comprehensive analysis combining all audit data into actionable insights.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Overall Score:</strong> Weighted combination of all audit sections</p>
+                      <p><strong>Priority Actions:</strong> Most important tasks ranked by impact</p>
+                      <p><strong>Timeline:</strong> Suggested implementation order (Quick wins → Long-term)</p>
+                      <p><strong>Business Impact:</strong> Expected results from implementing recommendations</p>
+                      <p><strong>AI Analysis:</strong> Claude processes all data to identify patterns and opportunities</p>
+                    </div>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </div>
             <p className="text-gray-600">Complete analysis summary with prioritized action plan</p>
           </div>
         </div>

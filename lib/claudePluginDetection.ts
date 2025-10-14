@@ -204,7 +204,15 @@ IMPORTANT: Only detect plugins/extensions you're confident about based on clear 
         jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
       
-      const analysis = JSON.parse(jsonText);
+      let analysis;
+      try {
+        analysis = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.error('Failed to parse Claude plugin response:', parseError);
+        console.error('Raw JSON text:', jsonText);
+        console.log('🔄 Using fallback plugin analysis due to JSON parsing error');
+        return getFallbackPluginAnalysis(platform);
+      }
       
       // Process the analysis into our expected format
       const processedAnalysis: PlatformAnalysis = {

@@ -16,9 +16,11 @@ import {
   BarChart3,
   Rocket,
   ArrowRight,
-  Info
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { getPluginInfo } from '@/lib/pluginUrlService';
+import Tooltip from './Tooltip';
 
 interface TechnologyStackConclusionProps {
   data: any;
@@ -40,7 +42,10 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
   
   // Plugin analysis data
   const pluginAnalysis = data.pluginAnalysis;
-  const hasPluginAnalysis = pluginAnalysis && pluginAnalysis.totalPluginsDetected > 0;
+  const hasPluginAnalysis = pluginAnalysis && 
+    typeof pluginAnalysis.totalPluginsDetected === 'number' && 
+    pluginAnalysis.totalPluginsDetected > 0 &&
+    pluginAnalysis.pluginsByCategory;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-[#27ae60]'; // PMW complementary green
@@ -90,6 +95,24 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <Zap className="w-5 h-5 text-[#42499c]" />
         Technology Intelligence
+        <Tooltip 
+          content={
+            <div>
+              <p className="font-semibold mb-2">Technology Intelligence</p>
+              <p className="mb-2">AI-powered analysis of your website's technology stack and security posture.</p>
+              <div className="text-xs space-y-1">
+                <p><strong>Stack Health:</strong> Overall technology score and recommendations</p>
+                <p><strong>Performance Impact:</strong> How your tech choices affect site speed</p>
+                <p><strong>Security Assessment:</strong> Potential vulnerabilities and risks</p>
+                <p><strong>Plugin Analysis:</strong> Detailed breakdown of detected plugins</p>
+                <p><strong>Optimization Tips:</strong> Actionable improvements for better performance</p>
+              </div>
+            </div>
+          }
+          position="top"
+        >
+          <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+        </Tooltip>
       </h3>
 
       {/* Overall Technology Health */}
@@ -173,6 +196,23 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
         <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
           <Settings className="w-4 h-4 text-gray-600" />
           Technology Stack Analysis
+          <Tooltip 
+            content={
+              <div>
+                <p className="font-semibold mb-2">Technology Stack Analysis</p>
+                <p className="mb-2">Detailed breakdown of your website's technical architecture and compatibility.</p>
+                <div className="text-xs space-y-1">
+                  <p><strong>Architecture Type:</strong> Classification of your technical setup (WordPress, React, etc.)</p>
+                  <p><strong>Suitability Rating:</strong> How well your current stack fits your business needs</p>
+                  <p><strong>Strengths:</strong> What your technology does well</p>
+                  <p><strong>Weaknesses:</strong> Areas needing improvement or modernization</p>
+                </div>
+              </div>
+            }
+            position="top"
+          >
+            <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+          </Tooltip>
         </h4>
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-start gap-2">
@@ -223,6 +263,23 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Rocket className="w-4 h-4 text-[#27ae60]" />
             Quick Technology Wins
+            <Tooltip 
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Quick Technology Wins</p>
+                  <p className="mb-2">Easy-to-implement technology improvements with immediate impact.</p>
+                  <div className="text-xs space-y-1">
+                    <p><strong>Quick Implementation:</strong> Changes that can be done in minutes to hours</p>
+                    <p><strong>High Impact:</strong> Improvements that provide significant benefits</p>
+                    <p><strong>Time to Implement:</strong> Estimated effort required</p>
+                    <p><strong>Estimated Impact:</strong> Expected improvement level</p>
+                  </div>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+            </Tooltip>
           </h4>
           <div className="space-y-3">
             {intelligence.quickWins.slice(0, 3).map((win, index) => (
@@ -238,6 +295,22 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 </div>
               </div>
             ))}
+            
+            {/* Performance Audit Recommendation */}
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h5 className="font-medium text-blue-900 mb-2">Want More Optimization Ideas?</h5>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Run a <strong>Performance &amp; Technical Audit</strong> to get detailed, step-by-step optimization recommendations with specific plugin instructions.
+                  </p>
+                  <div className="text-xs text-blue-600 bg-blue-100 px-3 py-2 rounded">
+                    💡 <strong>Tip:</strong> The Performance audit provides plugin-specific instructions for WP Rocket, Autoptimize, W3 Total Cache, and page builders like Elementor.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -248,6 +321,23 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-500" />
             Critical Issues to Address
+            <Tooltip 
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Critical Issues to Address</p>
+                  <p className="mb-2">High-priority technical problems that need immediate attention.</p>
+                  <div className="text-xs space-y-1">
+                    <p><strong>Performance Issues:</strong> Technical problems slowing down your website</p>
+                    <p><strong>Security Concerns:</strong> Vulnerabilities that could compromise your site</p>
+                    <p><strong>Business Impact:</strong> How these issues affect your visitors and conversions</p>
+                    <p><strong>Urgency:</strong> Problems that should be fixed as soon as possible</p>
+                  </div>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+            </Tooltip>
           </h4>
           <div className="space-y-3">
             {performanceImpact.criticalIssues?.slice(0, 2).map((issue, index) => (
@@ -283,23 +373,41 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Settings className="w-4 h-4 text-[#675c9b]" />
             Plugin Analysis ({pluginAnalysis.totalPluginsDetected} detected)
+            <Tooltip 
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Plugin Analysis</p>
+                  <p className="mb-2">Comprehensive breakdown of all detected plugins and extensions on your website.</p>
+                  <div className="text-xs space-y-1">
+                    <p><strong>Plugin Categories:</strong> Grouped by functionality (Security, Performance, SEO, etc.)</p>
+                    <p><strong>Security Risk:</strong> Assessment of potential vulnerabilities</p>
+                    <p><strong>Performance Impact:</strong> How plugins affect your site speed</p>
+                    <p><strong>Business Insights:</strong> What your plugin choices reveal about your business</p>
+                    <p><strong>Conflicts:</strong> Redundant or potentially conflicting plugins</p>
+                  </div>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+            </Tooltip>
           </h4>
           
           {/* Plugin Categories */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            {Object.entries(pluginAnalysis.pluginsByCategory).map(([category, plugins]) => (
+            {pluginAnalysis.pluginsByCategory && Object.entries(pluginAnalysis.pluginsByCategory).map(([category, plugins]) => (
               <div key={category} className="bg-gray-50 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700 capitalize">
                     {category.replace('-', ' ')}
                   </span>
                   <span className="text-xs bg-[#42499c]/10 text-[#42499c] px-2 py-1 rounded-full">
-                    {plugins.length}
+                    {Array.isArray(plugins) ? plugins.length : 0}
                   </span>
                 </div>
                 <div className="space-y-1">
                   <>
-                    {plugins.slice(0, 3).map((plugin, index) => {
+                    {Array.isArray(plugins) && plugins.slice(0, 3).map((plugin, index) => {
                       const pluginInfo = getPluginInfo(plugin.name);
                       return (
                         <div key={index} className="text-xs text-gray-600">
@@ -330,7 +438,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                         </div>
                       );
                     })}
-                    {plugins.length > 3 && (
+                    {Array.isArray(plugins) && plugins.length > 3 && (
                       <div className="text-xs text-gray-500">
                         +{plugins.length - 3} more
                       </div>
@@ -352,7 +460,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                   {(pluginAnalysis.securityAssessment?.overallRisk || 'low').toUpperCase()}
                 </span>
               </div>
-              {pluginAnalysis.securityAssessment?.vulnerablePlugins?.length > 0 ? (
+              {Array.isArray(pluginAnalysis.securityAssessment?.vulnerablePlugins) && pluginAnalysis.securityAssessment.vulnerablePlugins.length > 0 ? (
                 <div className="text-xs text-[#c42e3b]">
                   <p className="mb-1">Vulnerable plugins detected:</p>
                   <ul className="space-y-1">
@@ -389,7 +497,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <TrendingUp className="w-4 h-4 text-[#42499c]" />
                 <span className="text-sm font-medium text-[#42499c]">Performance Impact</span>
               </div>
-              {pluginAnalysis.performanceAnalysis?.heavyPlugins?.length > 0 ? (
+              {Array.isArray(pluginAnalysis.performanceAnalysis?.heavyPlugins) && pluginAnalysis.performanceAnalysis.heavyPlugins.length > 0 ? (
                 <div className="text-xs text-[#42499c]">
                   <p className="mb-1">Heavy plugins:</p>
                   <ul className="space-y-1">
@@ -449,14 +557,15 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           )}
 
           {/* Plugin Conflicts */}
-          {(pluginAnalysis.conflicts?.redundantPlugins?.length > 0 || pluginAnalysis.conflicts?.potentialConflicts?.length > 0) && (
+          {((Array.isArray(pluginAnalysis.conflicts?.redundantPlugins) && pluginAnalysis.conflicts.redundantPlugins.length > 0) || 
+            (Array.isArray(pluginAnalysis.conflicts?.potentialConflicts) && pluginAnalysis.conflicts.potentialConflicts.length > 0)) && (
             <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-600" />
                 <span className="text-sm font-medium text-yellow-900">Plugin Conflicts</span>
               </div>
               <div className="text-xs text-yellow-700 space-y-2">
-                {pluginAnalysis.conflicts.redundantPlugins?.length > 0 && (
+                {Array.isArray(pluginAnalysis.conflicts?.redundantPlugins) && pluginAnalysis.conflicts.redundantPlugins.length > 0 && (
                   <div>
                     <p className="font-medium">Redundant Functionality:</p>
                     <ul className="ml-2">
@@ -466,7 +575,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                     </ul>
                   </div>
                 )}
-                {pluginAnalysis.conflicts.potentialConflicts?.length > 0 && (
+                {Array.isArray(pluginAnalysis.conflicts?.potentialConflicts) && pluginAnalysis.conflicts.potentialConflicts.length > 0 && (
                   <div>
                     <p className="font-medium">Potential Conflicts:</p>
                     <ul className="ml-2">
@@ -488,6 +597,23 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Award className="w-4 h-4 text-purple-600" />
             Industry Comparison
+            <Tooltip 
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Industry Comparison</p>
+                  <p className="mb-2">How your technology stack compares to industry standards and competitors.</p>
+                  <div className="text-xs space-y-1">
+                    <p><strong>Market Position:</strong> Where you stand relative to similar businesses</p>
+                    <p><strong>Modernization Rank:</strong> How current your technology is</p>
+                    <p><strong>Competitive Analysis:</strong> Comparison with industry leaders</p>
+                    <p><strong>Recommended Upgrades:</strong> Technologies that could give you an edge</p>
+                  </div>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+            </Tooltip>
           </h4>
           <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
             <div className="flex items-start gap-2">

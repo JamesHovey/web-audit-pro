@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { AlertTriangle, Clock, Zap, Image, Code, Server, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Clock, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 interface Recommendation {
@@ -300,7 +300,26 @@ export default function EnhancedRecommendations({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-semibold text-lg">🎯 Key Recommendations</h4>
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-lg">🎯 Key Recommendations</h4>
+          <Tooltip 
+            content={
+              <div>
+                <p className="font-semibold mb-2">Key Recommendations</p>
+                <p className="mb-2">Performance improvements ranked by impact and implementation difficulty.</p>
+                <div className="text-xs space-y-1">
+                  <p><strong>Impact Levels:</strong> High (major speed improvement) | Medium (noticeable improvement) | Low (minor improvement)</p>
+                  <p><strong>Effort Levels:</strong> Easy (quick fixes) | Medium (moderate work) | Hard (complex changes)</p>
+                  <p><strong>Plugin-Specific:</strong> Tailored instructions for your detected WordPress plugins</p>
+                  <p><strong>How-To Guides:</strong> Step-by-step implementation instructions</p>
+                </div>
+              </div>
+            }
+            position="top"
+          >
+            <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+          </Tooltip>
+        </div>
         <div className="text-xs text-gray-500">
           Based on PageSpeed Insights data
         </div>

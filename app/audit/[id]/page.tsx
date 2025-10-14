@@ -100,9 +100,19 @@ export default function AuditPage() {
           
           {/* Main content row */}
           <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-lg px-6 py-3">
-            {/* URL */}
-            <div className="text-lg font-medium text-gray-800">
-              {audit.url}
+            {/* URL with Domain Authority */}
+            <div className="flex items-center gap-3">
+              <div className="text-lg font-medium text-gray-800">
+                {audit.url}
+              </div>
+              {audit.results?.authority?.domainAuthority && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
+                  <span className="text-xs font-medium text-blue-600">DA:</span>
+                  <span className="text-sm font-bold text-blue-700">
+                    {audit.results.authority.domainAuthority}/100
+                  </span>
+                </div>
+              )}
             </div>
             
             {/* Status */}
