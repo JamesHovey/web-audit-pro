@@ -84,7 +84,7 @@ export default function AuditSummary({ auditId, isAuditComplete }: AuditSummaryP
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-600" />
-          AI-Powered Audit Summary
+          Audit Summary
         </h2>
         {summary && (
           <button

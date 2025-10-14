@@ -365,7 +365,7 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
           <h3 className="text-xl font-semibold text-gray-900">🎯 Prioritized Action Plan</h3>
           {claudeConclusions && (
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-              🧠 AI-Powered Analysis
+              Analysis
             </span>
           )}
         </div>
@@ -525,7 +525,7 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
         {claudeConclusions && claudeConclusions.nextSteps.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-white rounded-lg border">
-              <h4 className="font-semibold text-purple-600 mb-2">🧠 AI-Powered Next Steps</h4>
+              <h4 className="font-semibold text-purple-600 mb-2">Next Steps</h4>
               <ul className="text-sm text-gray-700 space-y-1">
                 {claudeConclusions.nextSteps.map((step, index) => (
                   <li key={index}>• {step}</li>

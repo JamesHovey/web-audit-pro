@@ -57,8 +57,12 @@ export class ClaudeApiService {
   /**
    * Analyze business website using Claude's intelligence
    */
-  async analyzeBusinessWebsite(domain: string, htmlContent: string): Promise<BusinessAnalysisResult> {
+  async analyzeBusinessWebsite(domain: string, htmlContent: string, locationContext?: { locality?: string; region?: string; country?: string }): Promise<BusinessAnalysisResult> {
     console.log(`🧠 Analyzing business with Claude API: ${domain}`);
+    
+    if (locationContext?.locality) {
+      console.log(`📍 Using location context: ${locationContext.locality}, ${locationContext.region || locationContext.country || 'UK'}`);
+    }
     
     const startTime = Date.now();
     
@@ -68,8 +72,8 @@ export class ClaudeApiService {
     }
 
     try {
-      const prompt = this.buildAnalysisPrompt(domain, htmlContent);
-      const response = await this.callClaudeApi(prompt);
+      const prompt = this.buildAnalysisPrompt(domain, htmlContent, locationContext);
+      const response = await this.callClaudeApiWithRetry(prompt);
       
       const analysisResult = this.parseClaudeResponse(response);
       const processingTime = Date.now() - startTime;
@@ -80,7 +84,7 @@ export class ClaudeApiService {
       return analysisResult;
 
     } catch (error) {
-      console.error('❌ Claude API analysis failed:', error);
+      console.error('❌ Claude API analysis failed after retries:', error);
       console.log('🔄 Falling back to mock analysis');
       return this.getMockAnalysis(domain, htmlContent);
     }
@@ -89,13 +93,18 @@ export class ClaudeApiService {
   /**
    * Build comprehensive analysis prompt for Claude
    */
-  private buildAnalysisPrompt(domain: string, htmlContent: string): string {
+  private buildAnalysisPrompt(domain: string, htmlContent: string, locationContext?: { locality?: string; region?: string; country?: string }): string {
     // Clean and truncate HTML to stay within token limits
     const cleanHtml = this.cleanHtmlForAnalysis(htmlContent);
     
+    // Add location context if available
+    const locationInfo = locationContext 
+      ? `\nBusiness Location: ${locationContext.locality || ''} ${locationContext.region || ''} ${locationContext.country || 'UK'}`.trim()
+      : '';
+    
     return `You are an expert business analyst and SEO strategist. Analyze the following website and provide a comprehensive business analysis for keyword research and SEO strategy.
 
-Website Domain: ${domain}
+Website Domain: ${domain}${locationInfo ? '\n' + locationInfo : ''}
 Website Content: ${cleanHtml}
 
 Please analyze this business and provide a detailed response in the following JSON format:
@@ -131,16 +140,46 @@ Guidelines:
 2. Generate keywords that real customers would search for
 3. Consider both B2B and B2C angles where appropriate
 4. Include industry-specific terminology
-5. Suggest local keywords if it's a location-based business
+5. ${locationContext ? `IMPORTANT: Focus on local keywords for ${locationContext.locality || locationContext.region || 'the UK'} area` : 'Suggest local keywords if it\'s a location-based business'}
 6. Think about the customer journey from awareness to purchase
 7. Consider seasonal or urgent needs where relevant
 8. Ensure keywords are commercially viable and have search potential
+9. ${locationContext ? 'Prioritize UK-specific terms and avoid non-UK locations' : ''}
 
 Provide only the JSON response, no additional text.`;
   }
 
   /**
-   * Call Claude API with prompt
+   * Call Claude API with retry logic for 529 errors
+   */
+  private async callClaudeApiWithRetry(prompt: string, maxRetries = 3): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Add progressive delay between retries
+        if (attempt > 1) {
+          const delay = Math.pow(2, attempt - 1) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ Retry attempt ${attempt}/${maxRetries}, waiting ${delay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        return await this.callClaudeApi(prompt);
+        
+      } catch (error) {
+        const isOverloadError = error.message.includes('529') || error.message.includes('overloaded');
+        
+        if (isOverloadError && attempt < maxRetries) {
+          console.log(`🔄 Attempt ${attempt}/${maxRetries} failed with overload error, retrying...`);
+          continue;
+        }
+        
+        // If not an overload error, or we've exhausted retries, throw
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Call Claude API with prompt (single attempt)
    */
   private async callClaudeApi(prompt: string): Promise<any> {
     const requestBody = {
@@ -240,31 +279,117 @@ Provide only the JSON response, no additional text.`;
       timestamp: new Date()
     };
 
+    // Actually analyze the content to detect business type
+    const businessAnalysis = this.detectBusinessTypeFromContent(htmlContent, domain);
+
     return {
       businessType: {
-        category: 'Business Services',
-        subcategory: 'Professional Services',
+        category: businessAnalysis.category,
+        subcategory: businessAnalysis.subcategory,
         confidence: 'medium',
-        description: 'Mock analysis - API key not configured. This business appears to provide professional services.'
+        description: `Mock analysis - API key not configured. Detected as ${businessAnalysis.category}.`
       },
       targetAudience: {
         primary: ['Business professionals', 'Corporate clients'],
         secondary: ['Small businesses', 'Entrepreneurs'],
         businessModel: 'B2B'
       },
-      services: ['Professional consulting', 'Business services', 'Advisory services'],
-      keywordCategories: {
-        primary: ['professional services', 'business consulting', 'corporate advisory'],
-        secondary: ['business solutions', 'professional advice', 'consulting services'],
-        longTail: ['professional business consulting services', 'corporate advisory solutions'],
-        local: ['professional services near me', 'local business consultant'],
-        commercial: ['hire business consultant', 'professional services cost'],
-        informational: ['what is business consulting', 'professional services guide'],
-        urgency: ['urgent business advice', 'immediate professional help']
-      },
+      services: this.getServicesForBusinessType(businessAnalysis.category),
+      keywordCategories: this.getKeywordCategoriesForBusinessType(businessAnalysis.category),
       competitiveKeywords: ['business consulting', 'professional advisory', 'corporate services'],
       contentOpportunities: ['Business consulting guide', 'Professional services overview'],
       usageMetrics: mockUsage
+    };
+  }
+
+  /**
+   * Detect business type from content analysis (fallback method)
+   */
+  private detectBusinessTypeFromContent(htmlContent: string, domain: string): {category: string, subcategory: string} {
+    const content = htmlContent.toLowerCase();
+    
+    // Marketing & Digital Agency Detection
+    const marketingIndicators = ['marketing', 'digital marketing', 'seo', 'ppc', 'social media', 'branding', 'advertising', 'web design', 'campaign', 'digital agency', 'marketing agency'];
+    const marketingScore = marketingIndicators.filter(indicator => content.includes(indicator)).length;
+    
+    // Architecture Detection  
+    const architectureIndicators = ['architect', 'architectural', 'design', 'planning permission', 'building', 'construction', 'residential', 'commercial'];
+    const architectureScore = architectureIndicators.filter(indicator => content.includes(indicator)).length;
+    
+    // Legal Services Detection
+    const legalIndicators = ['solicitor', 'lawyer', 'legal', 'law', 'barrister', 'litigation', 'conveyancing'];
+    const legalScore = legalIndicators.filter(indicator => content.includes(indicator)).length;
+    
+    // Financial Services Detection
+    const financialIndicators = ['investment', 'trading', 'portfolio', 'financial advisor', 'wealth management', 'fund'];
+    const financialScore = financialIndicators.filter(indicator => content.includes(indicator)).length;
+    
+    // Determine business type based on highest score
+    const scores = [
+      { type: 'Marketing & Digital', subcategory: 'Digital Marketing Agency', score: marketingScore },
+      { type: 'Architecture & Design', subcategory: 'Residential Architecture', score: architectureScore },
+      { type: 'Legal Services', subcategory: 'General Practice', score: legalScore },
+      { type: 'Financial Services', subcategory: 'Investment Management', score: financialScore }
+    ];
+    
+    const highestScore = scores.reduce((max, current) => current.score > max.score ? current : max);
+    
+    // If no clear match, default to professional services
+    if (highestScore.score === 0) {
+      return { category: 'Business Services', subcategory: 'Professional Services' };
+    }
+    
+    console.log(`🎯 Mock analysis detected: ${highestScore.type} (score: ${highestScore.score})`);
+    return { category: highestScore.type, subcategory: highestScore.subcategory };
+  }
+
+  /**
+   * Get services based on business type
+   */
+  private getServicesForBusinessType(businessType: string): string[] {
+    const serviceMap: Record<string, string[]> = {
+      'Marketing & Digital': ['Digital Marketing', 'SEO Services', 'PPC Management', 'Social Media Marketing', 'Web Design', 'Branding'],
+      'Architecture & Design': ['Architectural Design', 'Planning Permission', 'Building Design', 'Interior Design'],
+      'Legal Services': ['Legal Advice', 'Conveyancing', 'Family Law', 'Commercial Law'],
+      'Financial Services': ['Investment Management', 'Financial Planning', 'Wealth Management', 'Tax Advisory']
+    };
+    
+    return serviceMap[businessType] || ['Professional consulting', 'Business services', 'Advisory services'];
+  }
+
+  /**
+   * Get keyword categories based on business type
+   */
+  private getKeywordCategoriesForBusinessType(businessType: string): any {
+    const keywordMap: Record<string, any> = {
+      'Marketing & Digital': {
+        primary: ['digital marketing', 'marketing agency', 'seo services', 'web design'],
+        secondary: ['social media marketing', 'ppc management', 'branding services'],
+        longTail: ['digital marketing agency sussex', 'professional web design services'],
+        local: ['marketing agency near me', 'local digital marketing'],
+        commercial: ['hire marketing agency', 'digital marketing cost'],
+        informational: ['what is digital marketing', 'marketing agency guide'],
+        urgency: ['urgent marketing help', 'immediate seo services']
+      },
+      'Architecture & Design': {
+        primary: ['architect', 'architectural design', 'building design'],
+        secondary: ['planning permission', 'interior design', 'residential architect'],
+        longTail: ['chartered architect sussex', 'planning permission services'],
+        local: ['architect near me', 'local architectural services'],
+        commercial: ['hire architect', 'architectural design cost'],
+        informational: ['what does architect do', 'planning permission guide'],
+        urgency: ['urgent architect needed', 'emergency building design']
+      }
+    };
+
+    return keywordMap[businessType] || {
+      primary: ['professional services', 'business consulting', 'corporate advisory'],
+      secondary: ['business solutions', 'professional advice', 'consulting services'],
+      longTail: ['professional business consulting services', 'corporate advisory solutions'],
+      local: ['professional services near me', 'local business consultant'],
+      commercial: ['hire business consultant', 'professional services cost'],
+      informational: ['what is business consulting', 'professional services guide'],
+      urgency: ['urgent business advice', 'immediate professional help']
     };
   }
 

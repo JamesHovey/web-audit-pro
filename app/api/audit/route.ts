@@ -155,6 +155,16 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for performance analysis:', error);
             }
             
+            // Detect WordPress plugins for performance recommendations
+            const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
+            const pluginDetection = detectWordPressPlugins(htmlContent)
+            console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
+            
+            // Add plugin data to technical results for recommendations
+            results.technical.plugins = pluginDetection.plugins
+            results.technical.cms = pluginDetection.cms
+            results.technical.pageBuilder = pluginDetection.pageBuilder
+
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)

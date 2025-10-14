@@ -5,6 +5,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from "@/components/Tooltip"
+import { PageDiscoveryModal } from "@/components/PageDiscoveryModal"
 import { ukDetectionService, UKDetectionResult } from "@/lib/ukDetectionService"
 
 const AUDIT_SECTIONS = [
@@ -108,6 +109,7 @@ export function AuditForm() {
   const [ukDetection, setUkDetection] = useState<UKDetectionResult | null>(null)
   const [discoveredPages, setDiscoveredPages] = useState<PageOption[]>([])
   const [isDiscoveringPages, setIsDiscoveringPages] = useState(false)
+  const [showDiscoveryModal, setShowDiscoveryModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showErrorTooltip, setShowErrorTooltip] = useState(false)
@@ -118,7 +120,49 @@ export function AuditForm() {
       // Add protocol if missing
       const urlToValidate = urlString.startsWith('http') ? urlString : `https://${urlString}`
       const url = new URL(urlToValidate)
-      return url.protocol === 'http:' || url.protocol === 'https:'
+      
+      // Check if protocol is valid
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return false
+      }
+      
+      // Check if hostname has at least one dot and a valid TLD
+      const hostname = url.hostname
+      if (!hostname || hostname === 'localhost') {
+        return false
+      }
+      
+      // Must contain at least one dot
+      if (!hostname.includes('.')) {
+        return false
+      }
+      
+      // Get the TLD (last part after the last dot)
+      const parts = hostname.split('.')
+      const tld = parts[parts.length - 1].toLowerCase()
+      
+      // Check for valid TLD (minimum 2 characters, only letters)
+      if (tld.length < 2 || !/^[a-z]+$/.test(tld)) {
+        return false
+      }
+      
+      // Common TLD validation - ensure it's a real TLD
+      const validTlds = [
+        'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'co', 'uk', 'ca', 'au', 'de', 'fr', 'it', 'es', 'nl', 'jp', 'br', 'mx', 'ar', 'cl', 'pe', 'kr', 'sg', 'my', 'th', 'id', 'ph', 'vn', 'za', 'ng', 'eg', 'be', 'ie', 'se', 'no', 'dk', 'fi', 'at', 'ch', 'pt', 'pl', 'cz', 'hu', 'ro', 'gr', 'tr', 'il', 'ae', 'sa', 'nz', 'ru', 'ua', 'cn', 'hk', 'tw', 'in', 'io', 'me', 'tv', 'biz', 'info', 'name', 'pro', 'mobi', 'tel', 'travel', 'museum', 'aero', 'coop', 'jobs', 'cat', 'asia', 'xxx', 'app', 'dev', 'tech', 'online', 'site', 'website', 'store', 'shop', 'blog', 'news'
+      ]
+      
+      // For compound TLDs like co.uk, check if the combination is valid
+      if (parts.length >= 2) {
+        const secondLevelTld = parts[parts.length - 2].toLowerCase()
+        const compoundTld = `${secondLevelTld}.${tld}`
+        const validCompoundTlds = ['co.uk', 'org.uk', 'ac.uk', 'com.au', 'org.au', 'net.au', 'edu.au', 'com.br', 'org.br', 'net.br', 'com.mx', 'org.mx', 'net.mx']
+        
+        if (validCompoundTlds.includes(compoundTld)) {
+          return true
+        }
+      }
+      
+      return validTlds.includes(tld)
     } catch {
       return false
     }
@@ -167,6 +211,7 @@ export function AuditForm() {
     if (!isValidUrl) return
     
     setIsDiscoveringPages(true)
+    setShowDiscoveryModal(true)
     setError("")
     
     try {
@@ -198,6 +243,7 @@ export function AuditForm() {
       setDiscoveredPages([])
     } finally {
       setIsDiscoveringPages(false)
+      setShowDiscoveryModal(false)
     }
   }
 
@@ -304,9 +350,31 @@ export function AuditForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* URL Input */}
         <div>
-          <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
-            Website URL
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="url" className="text-sm font-medium text-gray-700">
+              Website URL
+            </label>
+            {isValidUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  const sitemapUrl = `/sitemap?domain=${encodeURIComponent(url.startsWith('http') ? url : `https://${url}`)}`;
+                  window.open(sitemapUrl, '_blank');
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-[#42499c] transition-colors"
+              >
+                <svg className="w-8 h-8" fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13.5 9.75H10.5C10.0367 9.74738 9.59309 9.56216 9.26546 9.23454C8.93784 8.90691 8.75263 8.46332 8.75 8V5C8.75263 4.53668 8.93784 4.09309 9.26546 3.76546C9.59309 3.43784 10.0367 3.25263 10.5 3.25H13.5C13.9633 3.25263 14.4069 3.43784 14.7345 3.76546C15.0622 4.09309 15.2474 4.53668 15.25 5V8C15.2474 8.46332 15.0622 8.90691 14.7345 9.23454C14.4069 9.56216 13.9633 9.74738 13.5 9.75ZM10.5 4.75C10.4337 4.75 10.3701 4.77634 10.3232 4.82322C10.2763 4.87011 10.25 4.9337 10.25 5V8C10.25 8.0663 10.2763 8.12989 10.3232 8.17678C10.3701 8.22366 10.4337 8.25 10.5 8.25H13.5C13.5663 8.25 13.6299 8.22366 13.6768 8.17678C13.7237 8.12989 13.75 8.0663 13.75 8V5C13.75 4.9337 13.7237 4.87011 13.6768 4.82322C13.6299 4.77634 13.5663 4.75 13.5 4.75H10.5Z" />
+                  <path d="M6 19.75H4C3.53668 19.7474 3.09309 19.5622 2.76546 19.2345C2.43784 18.9069 2.25263 18.4633 2.25 18V16C2.25263 15.5367 2.43784 15.0931 2.76546 14.7655C3.09309 14.4378 3.53668 14.2526 4 14.25H6C6.46332 14.2526 6.90691 14.4378 7.23454 14.7655C7.56216 15.0931 7.74738 15.5367 7.75 16V18C7.74738 18.4633 7.56216 18.9069 7.23454 19.2345C6.90691 19.5622 6.46332 19.7474 6 19.75ZM4 15.75C3.9337 15.75 3.87011 15.7763 3.82322 15.8232C3.77634 15.8701 3.75 15.9337 3.75 16V18C3.75 18.0663 3.77634 18.1299 3.82322 18.1768C3.87011 18.2237 3.9337 18.25 4 18.25H6C6.0663 18.25 6.12989 18.2237 6.17678 18.1768C6.22366 18.1299 6.25 18.0663 6.25 18V16C6.25 15.9337 6.22366 15.8701 6.17678 15.8232C6.12989 15.7763 6.0663 15.75 6 15.75H4Z" />
+                  <path d="M13 19.75H11C10.5367 19.7474 10.0931 19.5622 9.76546 19.2345C9.43784 18.9069 9.25263 18.4633 9.25 18V16C9.25263 15.5367 9.43784 15.0931 9.76546 14.7655C10.0931 14.4378 10.5367 14.2526 11 14.25H13C13.4633 14.2526 13.9069 14.4378 14.2345 14.7655C14.5622 15.0931 14.7474 15.5367 14.75 16V18C14.7474 18.4633 14.5622 18.9069 14.2345 19.2345C13.9069 19.5622 13.4633 19.7474 13 19.75ZM11 15.75C10.9337 15.75 10.8701 15.7763 10.8232 15.8232C10.7763 15.8701 10.75 15.9337 10.75 16V18C10.75 18.0663 10.7763 18.1299 10.8232 18.1768C10.8701 18.2237 10.9337 18.25 11 18.25H13C13.0663 18.25 13.1299 18.2237 13.1768 18.1768C13.2237 18.1299 13.25 18.0663 13.25 18V16C13.25 15.9337 13.2237 15.8701 13.1768 15.8232C13.1299 15.7763 13.0663 15.75 13 15.75H11Z" />
+                  <path d="M20 19.75H18C17.5367 19.7474 17.0931 19.5622 16.7655 19.2345C16.4378 18.9069 16.2526 18.4633 16.25 18V16C16.2526 15.5367 16.4378 15.0931 16.7655 14.7655C17.0931 14.4378 17.5367 14.2526 18 14.25H20C20.4633 14.2526 20.9069 14.4378 21.2345 14.7655C21.5622 15.0931 21.7474 15.5367 21.75 16V18C21.7474 18.4633 21.5622 18.9069 21.2345 19.2345C20.9069 19.5622 20.4633 19.7474 20 19.75ZM18 15.75C17.9337 15.75 17.8701 15.7763 17.8232 15.8232C17.7763 15.8701 17.75 15.9337 17.75 16V18C17.75 18.0663 17.7763 18.1299 17.8232 18.1768C17.8701 18.2237 17.9337 18.25 18 18.25H20C20.0663 18.25 20.1299 18.2237 20.1768 18.1768C20.2237 18.1299 20.25 18.0663 20.25 18V16C20.25 15.9337 20.2237 15.8701 20.1768 15.8232C20.1299 15.7763 20.0663 15.75 20 15.75H18Z" />
+                  <path d="M19 15.75C18.8019 15.7474 18.6126 15.6676 18.4725 15.5275C18.3324 15.3874 18.2526 15.1981 18.25 15V13C18.25 12.9337 18.2237 12.8701 18.1768 12.8232C18.1299 12.7763 18.0663 12.75 18 12.75H6C5.9337 12.75 5.87011 12.7763 5.82322 12.8232C5.77634 12.8701 5.75 12.9337 5.75 13V15C5.75 15.1989 5.67098 15.3897 5.53033 15.5303C5.38968 15.671 5.19891 15.75 5 15.75C4.80109 15.75 4.61032 15.671 4.46967 15.5303C4.32902 15.3897 4.25 15.1989 4.25 15V13C4.25263 12.5367 4.43784 12.0931 4.76546 11.7655C5.09309 11.4378 5.53668 11.2526 6 11.25H18C18.4633 11.2526 18.9069 11.4378 19.2345 11.7655C19.5622 12.0931 19.7474 12.5367 19.75 13V15C19.7474 15.1981 19.6676 15.3874 19.5275 15.5275C19.3874 15.6676 19.1981 15.7474 19 15.75Z" />
+                  <path d="M12 15.75C11.8019 15.7474 11.6126 15.6676 11.4725 15.5275C11.3324 15.3874 11.2526 15.1981 11.25 15V9C11.25 8.80109 11.329 8.61032 11.4697 8.46967C11.6103 8.32902 11.8011 8.25 12 8.25C12.1989 8.25 12.3897 8.32902 12.5303 8.46967C12.671 8.61032 12.75 8.80109 12.75 9V15C12.7474 15.1981 12.6676 15.3874 12.5275 15.5275C12.3874 15.6676 12.1981 15.7474 12 15.75Z" />
+                </svg>
+                View Sitemap
+              </button>
+            )}
+          </div>
           <div className="relative">
             <input
               type="text"
@@ -332,21 +400,6 @@ export function AuditForm() {
           )}
           
           {/* Sitemap Button */}
-          {isValidUrl && (
-            <div className="flex justify-end mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const sitemapUrl = `/sitemap?domain=${encodeURIComponent(url.startsWith('http') ? url : `https://${url}`)}`;
-                  window.open(sitemapUrl, '_blank');
-                }}
-                className="btn-pmw-secondary text-sm px-4 py-2"
-              >
-                <Globe className="w-4 h-4" />
-                <span>View Sitemap</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Audit Scope Selection */}
@@ -355,34 +408,61 @@ export function AuditForm() {
             <label className="block text-sm font-medium text-gray-700 mb-4">
               Audit Scope
             </label>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id="single-page"
-                  name="auditScope"
-                  value="single"
-                  checked={auditScope === 'single'}
-                  onChange={() => handleAuditScopeChange('single')}
-                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <label htmlFor="single-page" className="flex-1 cursor-pointer">
-                  <div className="font-medium text-gray-900">Single Page</div>
-                  <div className="text-sm text-gray-600">Audit only the homepage/specified URL</div>
+            <div className="space-y-4">
+              <div className="py-2">
+                <label htmlFor="single-page" className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    id="single-page"
+                    name="auditScope"
+                    value="single"
+                    checked={auditScope === 'single'}
+                    onChange={() => handleAuditScopeChange('single')}
+                    className="h-4 w-4 text-[#42499c] border-black focus:ring-[#42499c]"
+                    style={{ accentColor: '#42499c' }}
+                  />
+                  <div className="font-medium text-gray-900 flex items-center gap-2">
+                    Single Page
+                    <Tooltip 
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Single Page Analysis</p>
+                          <p>This option audits only the specific URL you entered:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>Homepage or specified URL only</li>
+                            <li>Fastest audit option</li>
+                            <li>Perfect for testing specific pages</li>
+                          </ul>
+                          <div className="mt-3 p-2 bg-blue-900 rounded text-white">
+                            <p className="font-medium">✓ Quick and focused analysis</p>
+                            <p className="text-sm">Ideal for testing changes to specific pages.</p>
+                          </div>
+                        </div>
+                      }
+                      position="right"
+                    >
+                      <svg className="w-5 h-5 text-black hover:text-[#42499c] cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                        <circle cx="12" cy="12" r="9.5" />
+                        <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Tooltip>
+                  </div>
                 </label>
+                <div className="text-sm text-gray-600 ml-7">Audit only the homepage/specified URL</div>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id="all-pages"
-                  name="auditScope"
-                  value="all"
-                  checked={auditScope === 'all'}
-                  onChange={() => handleAuditScopeChange('all')}
-                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <label htmlFor="all-pages" className="flex-1 cursor-pointer">
+              <div className="py-2">
+                <label htmlFor="all-pages" className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    id="all-pages"
+                    name="auditScope"
+                    value="all"
+                    checked={auditScope === 'all'}
+                    onChange={() => handleAuditScopeChange('all')}
+                    className="h-4 w-4 text-[#42499c] border-black focus:ring-[#42499c]"
+                    style={{ accentColor: '#42499c' }}
+                  />
                   <div className="font-medium text-gray-900 flex items-center gap-2">
                     All Discoverable Pages
                     <Tooltip 
@@ -403,40 +483,75 @@ export function AuditForm() {
                       }
                       position="right"
                     >
-                      <svg className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      <svg className="w-5 h-5 text-black hover:text-[#42499c] cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                        <circle cx="12" cy="12" r="9.5" />
+                        <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </Tooltip>
                   </div>
-                  <div className="text-sm text-gray-600">Scan sitemap and internal links to audit all pages</div>
                 </label>
+                <div className="text-sm text-gray-600 ml-7">Scan sitemap and internal links to audit all pages</div>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id="custom-pages"
-                  name="auditScope"
-                  value="custom"
-                  checked={auditScope === 'custom'}
-                  onChange={() => handleAuditScopeChange('custom')}
-                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <label htmlFor="custom-pages" className="flex-1 cursor-pointer">
-                  <div className="font-medium text-gray-900">Select Specific Pages</div>
-                  <div className="text-sm text-gray-600">Choose which pages to include in the audit</div>
+              <div className="py-2">
+                <label htmlFor="custom-pages" className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    id="custom-pages"
+                    name="auditScope"
+                    value="custom"
+                    checked={auditScope === 'custom'}
+                    onChange={() => handleAuditScopeChange('custom')}
+                    className="h-4 w-4 text-[#42499c] border-black focus:ring-[#42499c]"
+                    style={{ accentColor: '#42499c' }}
+                  />
+                  <div className="font-medium text-gray-900 flex items-center gap-2">
+                    Select Specific Pages
+                    <Tooltip 
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Custom Page Selection</p>
+                          <p>This option lets you choose exactly which pages to audit:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>Click "Discover Pages" to find available pages</li>
+                            <li>Select/deselect individual pages</li>
+                            <li>Perfect for targeted analysis</li>
+                          </ul>
+                          <div className="mt-3 p-2 bg-blue-900 rounded text-white">
+                            <p className="font-medium">✓ Full control over audit scope</p>
+                            <p className="text-sm">Ideal for focusing on specific sections or page types.</p>
+                          </div>
+                        </div>
+                      }
+                      position="right"
+                    >
+                      <svg className="w-5 h-5 text-black hover:text-[#42499c] cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                        <circle cx="12" cy="12" r="9.5" />
+                        <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Tooltip>
+                  </div>
                 </label>
-                {auditScope === 'custom' && discoveredPages.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={discoverPages}
-                    disabled={isDiscoveringPages}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 flex items-center space-x-1"
-                  >
-                    {isDiscoveringPages ? <LoadingSpinner size="sm" /> : null}
-                    <span>Discover Pages</span>
-                  </button>
-                )}
+                <div className="flex items-center justify-between text-sm text-gray-600 ml-7">
+                  <span>Choose which pages to include in the audit</span>
+                  {auditScope === 'custom' && discoveredPages.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={discoverPages}
+                      disabled={isDiscoveringPages}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#42499c] text-white rounded-md text-sm font-medium hover:bg-[#ef86ce] hover:text-[#42499c] disabled:bg-gray-400 disabled:text-white transition-colors ml-4"
+                    >
+                      {isDiscoveringPages ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z" />
+                        </svg>
+                      )}
+                      <span>Discover Pages</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -647,6 +762,13 @@ export function AuditForm() {
           </div>
         </div>
       )}
+
+      {/* Page Discovery Modal */}
+      <PageDiscoveryModal
+        isOpen={showDiscoveryModal}
+        onClose={() => setShowDiscoveryModal(false)}
+        websiteUrl={url.startsWith('http') ? url : `https://${url}`}
+      />
 
     </div>
   )

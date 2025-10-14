@@ -47,10 +47,12 @@ export default function PaidAdvertisingOpportunities({
       const hasRelevance = (k.businessRelevance || 0) >= 0.6;
       const hasHighVolume = k.volume !== null && k.volume !== undefined && k.volume >= 100; // High volume threshold
       const isNotBranded = k.type === 'non-branded';
-      const hasHighCompetition = (k.averageCompetitorDA || 0) > (targetDomainAuthority + 20); // Competitors significantly stronger
+      const hasHighCompetition = (k.averageCompetitorDA || 0) > (targetDomainAuthority + 10); // More reasonable gap
+      const hasCommercialIntent = k.intent === 'commercial' || k.intent === 'transactional';
       
-      // Include if: highly relevant + high volume + high competition (not achievable organically)
-      const includeKeyword = isNotBranded && hasRelevance && hasHighVolume && hasHighCompetition;
+      // Include if: highly relevant + high volume + (high competition OR commercial intent OR difficulty > 60)
+      const isGoodForPPC = hasHighCompetition || hasCommercialIntent || (k.difficulty || 0) >= 60;
+      const includeKeyword = isNotBranded && hasRelevance && hasHighVolume && isGoodForPPC;
       
       console.log(`Keyword: "${k.keyword}", volume: ${k.volume}, avgCompetitorDA: ${k.averageCompetitorDA}, targetDA: ${targetDomainAuthority}, included: ${includeKeyword}`);
       

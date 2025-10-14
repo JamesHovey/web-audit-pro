@@ -14,6 +14,8 @@ export interface BusinessIntelligence {
   localContext: {
     country: string;
     region: string;
+    locality?: string; // Add specific city/town
+    postalCode?: string; // Add postcode
     localTerms: string[];
   };
   semanticConcepts: string[];
@@ -94,6 +96,15 @@ export class SophisticatedBusinessContextService {
           intelligence.confidence = Math.max(intelligence.confidence, 0.9); // High confidence from official data
           intelligence.sources.push('Government Registry');
           
+          // Add location data if available
+          if (registryData.location) {
+            intelligence.localContext.locality = registryData.location.locality;
+            intelligence.localContext.postalCode = registryData.location.postalCode;
+            intelligence.localContext.region = registryData.location.region || registryData.location.locality;
+            intelligence.localContext.country = 'UK';
+            console.log(`📍 Location from Companies House: ${registryData.location.locality}, ${registryData.location.postalCode}`);
+          }
+          
           console.log(`✅ Registry lookup: SIC codes ${registryData.sicCodes.join(', ')}`);
         }
       } catch (error) {
@@ -101,11 +112,32 @@ export class SophisticatedBusinessContextService {
       }
     }
 
-    // 3. Enhanced Content Analysis
+    // 3. Enhanced Content Analysis with Location Detection
     const contentAnalysis = await this.analyzeContentSemantically(html, domain);
     intelligence.industryKeywords.push(...contentAnalysis.keywords);
     intelligence.localContext = contentAnalysis.localContext;
     intelligence.sources.push('Semantic Content Analysis');
+    
+    // 3.5. Website Location Detection (prioritize over Companies House)
+    const websiteLocation = this.extractWebsiteLocation(html);
+    
+    if (websiteLocation.confidence > 0.5) {
+      // Website location has good confidence - use it
+      if (websiteLocation.locality) intelligence.localContext.locality = websiteLocation.locality;
+      if (websiteLocation.region) intelligence.localContext.region = websiteLocation.region;
+      intelligence.localContext.country = websiteLocation.country || intelligence.localContext.country;
+      intelligence.sources.push('Website Location Detection');
+      
+      console.log(`🎯 Using website location (${websiteLocation.confidence.toFixed(2)} confidence): ${websiteLocation.locality || websiteLocation.region}`);
+      
+      // If we found Sussex but Companies House said Bristol, log the override
+      if (intelligence.sicCodes.length > 0 && websiteLocation.region?.includes('Sussex')) {
+        console.log(`🔄 Location override: Website shows Sussex operations, using website location over registered address`);
+      }
+    } else if (intelligence.localContext.locality) {
+      // Fall back to Companies House location if website detection failed
+      console.log(`📋 Using Companies House location (website detection confidence too low: ${websiteLocation.confidence.toFixed(2)})`);
+    }
 
     // 4. Wikipedia/Industry Knowledge Base
     try {
@@ -311,6 +343,11 @@ export class SophisticatedBusinessContextService {
     sicCodes: string[];
     naicsCode: string;
     category: string;
+    location?: {
+      locality?: string;
+      postalCode?: string;
+      region?: string;
+    };
   } | null> {
     
     // Use explicit UK flag if provided, otherwise auto-detect
@@ -346,6 +383,11 @@ export class SophisticatedBusinessContextService {
     sicCodes: string[];
     naicsCode: string;
     category: string;
+    location?: {
+      locality?: string;
+      postalCode?: string;
+      region?: string;
+    };
   } | null> {
     if (!this.companiesHouseKey) {
       console.log('⚠️ Companies House API key not configured');
@@ -372,10 +414,21 @@ export class SophisticatedBusinessContextService {
         const company = data.items[0];
         const sicCodes = company.sic_codes || [];
         
+        // Extract location data from registered address
+        const address = company.address || {};
+        const location = {
+          locality: address.locality || address.postal_town,
+          postalCode: address.postal_code,
+          region: address.region || address.locality
+        };
+        
+        console.log(`🇬🇧 Enhanced business context from Companies House: ${location.locality || 'No location'}`);
+        
         return {
           sicCodes,
           naicsCode: this.sicToNaics(sicCodes[0]), // Convert SIC to NAICS
-          category: this.sicToCategory(sicCodes[0])
+          category: this.sicToCategory(sicCodes[0]),
+          location: location.locality ? location : undefined
         };
       }
 
@@ -428,6 +481,133 @@ export class SophisticatedBusinessContextService {
       console.error('OpenCorporates lookup error:', error);
       return null;
     }
+  }
+
+  /**
+   * Extract location from website content (prioritize over Companies House)
+   */
+  private extractWebsiteLocation(html: string): {
+    locality?: string;
+    region?: string;
+    country?: string;
+    confidence: number;
+    sources: string[];
+  } {
+    const content = html.toLowerCase();
+    const sources: string[] = [];
+    
+    // UK locations to detect (ordered by specificity)
+    const ukLocations = {
+      // Sussex areas (specific to general)
+      sussex: ['west sussex', 'east sussex', 'sussex', 'billingshurst', 'brighton', 'worthing', 'chichester', 'crawley', 'horsham'],
+      london: ['london', 'central london', 'greater london', 'city of london'],
+      other: ['bristol', 'manchester', 'birmingham', 'leeds', 'liverpool', 'sheffield', 'edinburgh', 'glasgow', 'cardiff', 'belfast']
+    };
+    
+    const foundLocations: Array<{location: string; type: 'locality' | 'region'; confidence: number; source: string}> = [];
+    
+    // Look for locations in contact/address sections (highest confidence)
+    const addressPatterns = [
+      /(?:address|office|located|based|headquarters?)[^.]{0,100}([a-z\s,]+(?:sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g,
+      /(?:contact|visit|find us)[^.]{0,100}([a-z\s,]+(?:sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g
+    ];
+    
+    addressPatterns.forEach((pattern, i) => {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        const locationText = match[1].trim();
+        // Extract specific locations from the match
+        Object.values(ukLocations).flat().forEach(loc => {
+          if (locationText.includes(loc)) {
+            foundLocations.push({
+              location: loc,
+              type: loc.includes('sussex') || loc === 'london' ? 'region' : 'locality',
+              confidence: 0.9,
+              source: `address-section-${i + 1}`
+            });
+          }
+        });
+      }
+    });
+    
+    // Look for locations in meta descriptions/titles (medium confidence)
+    const metaMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
+    if (metaMatch) {
+      const metaContent = metaMatch[1].toLowerCase();
+      Object.values(ukLocations).flat().forEach(loc => {
+        if (metaContent.includes(loc)) {
+          foundLocations.push({
+            location: loc,
+            type: loc.includes('sussex') || loc === 'london' ? 'region' : 'locality',
+            confidence: 0.7,
+            source: 'meta-description'
+          });
+        }
+      });
+    }
+    
+    // Look for locations in general content (lower confidence)
+    Object.values(ukLocations).flat().forEach(loc => {
+      const regex = new RegExp(`\\b${loc}\\b`, 'gi');
+      const matches = content.match(regex);
+      if (matches && matches.length >= 2) { // Must appear at least twice
+        foundLocations.push({
+          location: loc,
+          type: loc.includes('sussex') || loc === 'london' ? 'region' : 'locality',
+          confidence: Math.min(0.5 + (matches.length * 0.1), 0.8), // More mentions = higher confidence
+          source: `content-mentions-${matches.length}`
+        });
+      }
+    });
+    
+    if (foundLocations.length === 0) {
+      return { confidence: 0, sources: [] };
+    }
+    
+    // Sort by confidence and specificity (Sussex areas first)
+    foundLocations.sort((a, b) => {
+      // Prioritize Sussex locations
+      const aIsSussex = a.location.includes('sussex') || a.location === 'billingshurst';
+      const bIsSussex = b.location.includes('sussex') || b.location === 'billingshurst';
+      
+      if (aIsSussex && !bIsSussex) return -1;
+      if (!aIsSussex && bIsSussex) return 1;
+      
+      // Then by confidence
+      return b.confidence - a.confidence;
+    });
+    
+    const bestLocation = foundLocations[0];
+    const allSources = [...new Set(foundLocations.map(f => f.source))];
+    
+    // Determine locality vs region
+    let locality: string | undefined;
+    let region: string | undefined;
+    
+    if (bestLocation.location.includes('sussex')) {
+      region = bestLocation.location.includes('west') ? 'West Sussex' : 
+             bestLocation.location.includes('east') ? 'East Sussex' : 'Sussex';
+      
+      // Look for more specific town within Sussex
+      const sussexTowns = foundLocations.filter(f => 
+        ['billingshurst', 'brighton', 'worthing', 'chichester', 'crawley', 'horsham'].includes(f.location)
+      );
+      if (sussexTowns.length > 0) {
+        locality = sussexTowns[0].location.charAt(0).toUpperCase() + sussexTowns[0].location.slice(1);
+      }
+    } else {
+      locality = bestLocation.location.charAt(0).toUpperCase() + bestLocation.location.slice(1);
+    }
+    
+    console.log(`📍 Website location detected: ${locality || region || bestLocation.location} (confidence: ${bestLocation.confidence.toFixed(2)}, sources: ${allSources.join(', ')})`);
+    
+    return {
+      locality,
+      region,
+      country: 'UK',
+      confidence: bestLocation.confidence,
+      sources: allSources
+    };
   }
 
   /**

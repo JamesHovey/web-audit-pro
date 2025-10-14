@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Info
 } from 'lucide-react';
+import { getPluginInfo } from '@/lib/pluginUrlService';
 
 interface TechnologyStackConclusionProps {
   data: any;
@@ -88,10 +89,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <Zap className="w-5 h-5 text-[#42499c]" />
-        AI-Powered Technology Intelligence
-        <span className="text-xs bg-[#42499c]/10 text-[#42499c] px-2 py-1 rounded-full font-medium">
-          Enhanced with Claude AI
-        </span>
+        Technology Intelligence
       </h3>
 
       {/* Overall Technology Health */}
@@ -278,52 +276,6 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
         </div>
       )}
 
-      {/* Modernization Roadmap */}
-      {intelligence.modernizationRoadmap && intelligence.modernizationRoadmap.length > 0 && (
-        <div className="mb-6">
-          <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-            <Target className="w-4 h-4 text-[#42499c]" />
-            Modernization Roadmap
-          </h4>
-          <div className="space-y-3">
-            {intelligence.modernizationRoadmap.slice(0, 3).map((phase, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="bg-[#42499c] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  {phase.phase}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <h5 className="font-medium text-gray-900">{phase.title}</h5>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        phase.priority === 'critical' ? 'bg-[#c42e3b]/10 text-[#c42e3b]' :
-                        phase.priority === 'high' ? 'bg-[#e67e22]/10 text-[#e67e22]' :
-                        phase.priority === 'medium' ? 'bg-[#42499c]/10 text-[#42499c]' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {phase.priority.toUpperCase()}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        phase.difficulty === 'Easy' ? 'bg-[#27ae60]/10 text-[#27ae60]' :
-                        phase.difficulty === 'Medium' ? 'bg-[#e67e22]/10 text-[#e67e22]' :
-                        'bg-[#c42e3b]/10 text-[#c42e3b]'
-                      }`}>
-                        {phase.difficulty}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{phase.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span><Clock className="w-3 h-3 inline mr-1" />{phase.timeframe}</span>
-                    <span><DollarSign className="w-3 h-3 inline mr-1" />{phase.estimatedCost}</span>
-                    <span><TrendingUp className="w-3 h-3 inline mr-1" />{phase.impact}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Plugin Analysis */}
       {hasPluginAnalysis && (
@@ -346,10 +298,23 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                   </span>
                 </div>
                 <div className="space-y-1">
-                  {plugins.slice(0, 3).map((plugin, index) => (
+                  {plugins.slice(0, 3).map((plugin, index) => {
+                    const pluginInfo = getPluginInfo(plugin.name);
+                    return (
                     <div key={index} className="text-xs text-gray-600">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{plugin.name}</span>
+                        {pluginInfo.url ? (
+                          <a 
+                            href={pluginInfo.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {plugin.name}
+                          </a>
+                        ) : (
+                          <span className="font-medium">{plugin.name}</span>
+                        )}
                         <span className={`px-1 py-0.5 rounded text-xs ${
                           plugin.confidence === 'high' ? 'bg-[#27ae60]/10 text-[#27ae60]' :
                           plugin.confidence === 'medium' ? 'bg-[#e67e22]/10 text-[#e67e22]' :
@@ -358,11 +323,11 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                           {plugin.confidence}
                         </span>
                       </div>
-                      {plugin.version && (
+                      {plugin.version && plugin.version !== '[Unable to detect]' && (
                         <div className="text-xs text-gray-500">v{plugin.version}</div>
                       )}
                     </div>
-                  ))}
+                  )}
                   {plugins.length > 3 && (
                     <div className="text-xs text-gray-500">
                       +{plugins.length - 3} more
@@ -388,12 +353,26 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div className="text-xs text-[#c42e3b]">
                   <p className="mb-1">Vulnerable plugins detected:</p>
                   <ul className="space-y-1">
-                    {pluginAnalysis.securityAssessment.vulnerablePlugins.slice(0, 2).map((plugin, index) => (
+                    {pluginAnalysis.securityAssessment.vulnerablePlugins.slice(0, 2).map((plugin, index) => {
+                      const pluginInfo = getPluginInfo(plugin.name);
+                      return (
                       <li key={index} className="flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
-                        {plugin.name} ({plugin.riskLevel} risk)
+                        {pluginInfo.url ? (
+                          <a 
+                            href={pluginInfo.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {plugin.name}
+                          </a>
+                        ) : (
+                          <span>{plugin.name}</span>
+                        )} ({plugin.riskLevel} risk)
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (
@@ -411,12 +390,26 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div className="text-xs text-[#42499c]">
                   <p className="mb-1">Heavy plugins:</p>
                   <ul className="space-y-1">
-                    {pluginAnalysis.performanceAnalysis.heavyPlugins.slice(0, 2).map((plugin, index) => (
+                    {pluginAnalysis.performanceAnalysis.heavyPlugins.slice(0, 2).map((plugin, index) => {
+                      const pluginInfo = getPluginInfo(plugin.name);
+                      return (
                       <li key={index} className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {plugin.name} ({plugin.performanceImpact} impact)
+                        {pluginInfo.url ? (
+                          <a 
+                            href={pluginInfo.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {plugin.name}
+                          </a>
+                        ) : (
+                          <span>{plugin.name}</span>
+                        )} ({plugin.performanceImpact} impact)
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (

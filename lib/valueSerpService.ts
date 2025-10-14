@@ -141,8 +141,9 @@ export class ValueSerpService {
         throw new Error('ValueSERP API request failed');
       }
 
-      this.creditsUsed += data.request_info.credits_used || 1;
-      console.log(`✅ ValueSERP: Used ${data.request_info.credits_used} credits`);
+      const creditsUsed = data.request_info.credits_used || data.request_info.credits_used_this_request || 1;
+      this.creditsUsed += creditsUsed;
+      console.log(`✅ ValueSERP: Used ${creditsUsed} credits`);
 
       // Find domain's ranking position
       return this.parseRankingData(keyword, domain, data);
@@ -322,7 +323,8 @@ export class ValueSerpService {
         throw new Error('ValueSERP API request failed');
       }
 
-      this.creditsUsed += data.request_info.credits_used || 1;
+      const creditsUsed = data.request_info.credits_used || data.request_info.credits_used_this_request || 1;
+      this.creditsUsed += creditsUsed;
 
       // Extract competitors from organic results
       const results = (data.organic_results || []).map((result, index) => ({

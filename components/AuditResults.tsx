@@ -15,13 +15,12 @@ import RecommendedKeywordTable from './RecommendedKeywordTable'
 import PaidAdvertisingOpportunities from './PaidAdvertisingOpportunities'
 import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
-import ViewportAnalysis from './ViewportAnalysis'
 import OverallAuditConclusion from './OverallAuditConclusion'
-import TrafficInsightsConclusion from './TrafficInsightsConclusion'
 import PerformanceTechnicalConclusion from './PerformanceTechnicalConclusion'
 import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import CompetitionAnalysis from './CompetitionAnalysis'
+import EnhancedRecommendations from './EnhancedRecommendations'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -263,8 +262,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Compact Header with all controls inline */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+      {/* Compact Header with all controls inline - HIDDEN: Using main page header */}
+      <div className="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* Left side - Navigation and Status */}
           <div className="flex items-center gap-6">
@@ -635,6 +634,26 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 {SECTION_LABELS['keywords']}
+                <Tooltip 
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Keyword Analysis</p>
+                      <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>Branded Keywords:</strong> Searches including your company name</p>
+                        <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
+                        <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
+                        <p><strong>Search Volume:</strong> How many people search this term monthly</p>
+                        <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+                      </div>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
+                    <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                  </div>
+                </Tooltip>
               </h3>
               {audit.results?.keywords?.dataSource && (
                 <div className="mt-2">
@@ -656,7 +675,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <LoadingMessages section="keywords" />
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)}
+                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
                 
                 {/* Competition Analysis */}
                 {(() => {
@@ -700,7 +719,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       )}
 
-      {/* Traffic Insights - Full Width */}
+      {/* Premium Traffic Insights - Full Width */}
       {audit?.sections?.includes('traffic') && (
         <div className="card-pmw">
           <div className="p-6">
@@ -708,28 +727,31 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {SECTION_LABELS.traffic}
               <Tooltip 
                 content={
-                  <div className="max-w-sm">
-                    <p className="font-semibold mb-2">How Traffic Insights Works</p>
-                    <p className="mb-2">We analyze your website using publicly available data to estimate monthly organic traffic.</p>
-                    <p className="mb-2"><strong>What we measure:</strong></p>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Number of pages on your site</li>
-                      <li>Content quality and structure</li>
-                      <li>SEO indicators and rankings</li>
-                      <li>Industry benchmarks</li>
-                    </ul>
-                    <p className="mt-2 text-sm">The data shows your 12-month average to account for seasonal variations.</p>
+                  <div>
+                    <p className="font-semibold mb-2">Traffic Insights</p>
+                    <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Organic:</strong> Visitors from Google search results</p>
+                      <p><strong>Direct:</strong> People typing your URL directly</p>
+                      <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
+                      <p><strong>Social:</strong> Visitors from social media platforms</p>
+                      <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
+                    </div>
                   </div>
                 }
+                position="top"
               >
-                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
+                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                </div>
               </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="traffic" />
               ) : (
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
+                // Use original traffic rendering
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
               )}
             </div>
           </div>
@@ -744,29 +766,29 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {SECTION_LABELS.technology}
               <Tooltip 
                 content={
-                  <div className="max-w-sm">
-                    <p className="font-semibold mb-2">Technology Stack Analysis</p>
-                    <p className="mb-2">We detect and analyze the technologies powering your website.</p>
-                    <p className="mb-2"><strong>What we identify:</strong></p>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Content Management Systems (CMS)</li>
-                      <li>E-commerce platforms</li>
-                      <li>Analytics & tracking tools</li>
-                      <li>Frameworks & libraries</li>
-                      <li>Security & performance tools</li>
-                    </ul>
-                    <p className="mt-2 text-sm">Understanding your tech stack helps identify optimization opportunities.</p>
+                  <div>
+                    <p className="font-semibold mb-2">Technology Stack</p>
+                    <p className="mb-2">Shows what technologies and tools power your website.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
+                      <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
+                      <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
+                      <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
+                      <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+                    </div>
                   </div>
                 }
               >
-                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
+                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                </div>
               </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="technology" />
               ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
               )}
             </div>
             {/* AI-Enhanced Technology Conclusion */}
@@ -787,27 +809,22 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               Performance & Technical Audit
               <Tooltip 
                 content={
-                  <div className="max-w-sm">
+                  <div>
                     <p className="font-semibold mb-2">Performance & Technical Audit</p>
-                    <p className="mb-2">Comprehensive analysis of site performance and technical SEO health.</p>
-                    <p className="mb-2"><strong>Performance Metrics:</strong></p>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Core Web Vitals (LCP, CLS, INP)</li>
-                      <li>Desktop & Mobile performance scores</li>
-                      <li>Page load speed optimization</li>
-                    </ul>
-                    <p className="mb-2 mt-2"><strong>Technical SEO:</strong></p>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Meta tags and H1 structure</li>
-                      <li>Image optimization analysis</li>
-                      <li>404 errors and broken links</li>
-                      <li>Site health (HTTPS, sitemap, robots.txt)</li>
-                    </ul>
-                    <p className="mt-2 text-sm">Critical factors for both user experience and search rankings.</p>
+                    <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
+                      <p><strong>Page Speed:</strong> How fast your pages load</p>
+                      <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
+                      <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
+                      <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
+                    </div>
                   </div>
                 }
               >
-                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
+                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                </div>
               </Tooltip>
             </h3>
             <div className="mt-4">
@@ -824,19 +841,12 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   performancePagination,
                   setPerformancePagination,
                   setShowCoreWebVitalsGuide,
-                  audit?.auditType
+                  audit?.auditType,
+                  audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
+                  audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
                 )
               )}
             </div>
-            {/* AI-Enhanced Conclusion */}
-            {audit.status === "completed" && (audit?.results?.performance || audit?.results?.technical) && (
-              <PerformanceTechnicalConclusion 
-                data={{
-                  ...audit?.results?.performance,
-                  ...audit?.results?.technical
-                }} 
-              />
-            )}
           </div>
         </div>
       )}
@@ -850,29 +860,30 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               {SECTION_LABELS.backlinks}
               <Tooltip 
                 content={
-                  <div className="max-w-sm">
-                    <p className="font-semibold mb-2">Authority & Backlinks Analysis</p>
-                    <p className="mb-2">We analyze your website's authority and backlink profile.</p>
-                    <p className="mb-2"><strong>What we check:</strong></p>
-                    <ul className="list-disc list-inside mb-2 text-xs">
-                      <li>Domain Authority score</li>
-                      <li>Total backlinks pointing to your site</li>
-                      <li>Number of referring domains</li>
-                      <li>Quality and authority of linking sites</li>
-                    </ul>
-                    <p><strong>Why important:</strong> High-quality backlinks signal trust and authority to search engines, directly impacting your search rankings.</p>
+                  <div>
+                    <p className="font-semibold mb-2">Authority & Backlinks</p>
+                    <p className="mb-2">Shows how authoritative your website is and which sites link to you.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Domain Authority:</strong> Overall strength of your website (0-100)</p>
+                      <p><strong>Backlinks:</strong> Other websites linking to your pages</p>
+                      <p><strong>Referring Domains:</strong> Number of unique websites linking to you</p>
+                      <p><strong>Link Quality:</strong> Authority and relevance of sites linking to you</p>
+                      <p><strong>Anchor Text:</strong> The clickable text in links pointing to your site</p>
+                    </div>
                   </div>
                 }
                 position="top"
               >
-                <HelpCircle className="h-5 w-5 text-gray-400 cursor-help" />
+                <div className="p-1 border border-black rounded-full bg-white hover:bg-gray-50 transition-colors">
+                  <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                </div>
               </Tooltip>
             </h3>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
               )}
             </div>
           </div>
@@ -915,7 +926,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1610,7 +1621,9 @@ function renderSectionResults(
   performancePagination?: { currentPage: number; itemsPerPage: number },
   setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void,
   setShowCoreWebVitalsGuide?: (show: boolean) => void,
-  auditType?: string
+  auditType?: string,
+  detectedPlugins?: string[],
+  pageBuilder?: string
 ) {
   switch (sectionId) {
     case "traffic":
@@ -1862,8 +1875,6 @@ function renderSectionResults(
             )}
           </div>
           
-          {/* Traffic Insights Conclusion */}
-          <TrafficInsightsConclusion data={results} />
         </div>
       );
 
@@ -2608,52 +2619,6 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* Viewport Responsiveness Analysis */}
-          {results.viewportAnalysis && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <h4 className="font-semibold text-lg">Viewport Responsiveness Analysis</h4>
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">How Viewport Analysis Works</p>
-                      <p className="mb-2">This tool automatically tests your website across 4 critical device viewports:</p>
-                      <ul className="list-disc list-inside text-sm space-y-1 mb-2">
-                        <li><strong>Desktop (1920x1080):</strong> Standard desktop resolution</li>
-                        <li><strong>Laptop (1440x900):</strong> Standard laptop screen size</li>
-                        <li><strong>Tablet (768x1024):</strong> iPad portrait orientation</li>
-                        <li><strong>Mobile (375x667):</strong> iPhone standard size</li>
-                      </ul>
-                      <p className="mb-2"><strong>What We Check:</strong></p>
-                      <ul className="list-disc list-inside text-sm space-y-1 mb-2">
-                        <li>Content visibility and readability at each viewport</li>
-                        <li>Layout integrity (no overlapping elements)</li>
-                        <li>Navigation accessibility on all devices</li>
-                        <li>Image and media scaling appropriateness</li>
-                        <li>Touch target sizes on mobile devices</li>
-                        <li>Horizontal scrolling issues</li>
-                      </ul>
-                      <p className="mb-2"><strong>Scoring System:</strong></p>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>90-100: Excellent - Fully responsive</li>
-                        <li>70-89: Good - Minor issues only</li>
-                        <li>50-69: Fair - Some responsive problems</li>
-                        <li>Below 50: Poor - Significant issues</li>
-                      </ul>
-                      <p className="mt-2 text-xs">Each viewport is weighted equally in the overall score.</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Analysis of how your website displays across different device types and screen sizes, including Elementor-specific optimizations.
-              </p>
-              <ViewportAnalysis results={results.viewportAnalysis} />
-            </div>
-          )}
 
           {/* Technical Audit Section */}
           <div>
@@ -2761,18 +2726,17 @@ function renderSectionResults(
             </div>
           </div>
 
-          {/* Recommendations */}
-          <div>
-            <h4 className="font-semibold mb-3">Key Recommendations</h4>
-            <ul className="space-y-1 text-sm text-gray-700">
-              {results.recommendations?.slice(0, 5).map((rec: string, index: number) => (
-                <li key={index} className="flex items-center">
-                  <span className="text-blue-500 mr-2">•</span>
-                  {rec}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Enhanced Recommendations */}
+          <EnhancedRecommendations 
+            recommendations={results.recommendations || []}
+            desktopScore={results.desktop?.score}
+            mobileScore={results.mobile?.score}
+            lcpScore={results.desktop?.lcp || results.mobile?.lcp}
+            clsScore={results.desktop?.cls || results.mobile?.cls}
+            inpScore={results.desktop?.inp || results.mobile?.inp}
+            detectedPlugins={detectedPlugins || []}
+            pageBuilder={pageBuilder}
+          />
 
           {/* Large Images Table */}
           {(results.largeImagesList || results.largeImageDetails) && (results.largeImagesList || results.largeImageDetails).length > 0 && (
@@ -3082,7 +3046,7 @@ function renderSectionResults(
                   <div className="font-semibold text-cyan-600">{results.cdn}</div>
                 </div>
               )}
-              {results.organization && (
+              {results.organization && results.hosting?.toLowerCase() !== 'cloudflare' && (
                 <div>
                   <span className="text-gray-600 text-sm">Organization:</span>
                   <div className="font-semibold text-indigo-600">{results.organization}</div>

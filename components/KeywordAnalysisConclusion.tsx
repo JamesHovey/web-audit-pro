@@ -54,10 +54,7 @@ export default function KeywordAnalysisConclusion({ analysis }: KeywordAnalysisC
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <Brain className="w-5 h-5 text-[#42499c]" />
-        AI-Powered Keyword Intelligence
-        <span className="text-xs bg-[#42499c]/10 text-[#42499c] px-2 py-1 rounded-full font-medium">
-          Enhanced with Claude AI
-        </span>
+        Keyword Intelligence
       </h3>
 
       {/* Business Intelligence Summary */}

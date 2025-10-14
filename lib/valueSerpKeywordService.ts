@@ -65,11 +65,11 @@ export class ValueSerpKeywordService {
     
     // Extract brand name and generate keyword list
     const brandName = this.extractBrandName(cleanDomain, html);
-    const businessType = await this.detectBusinessType(html, cleanDomain);
+    const businessType = 'General Business'; // Removed pattern-based detection
     const keywordsToCheck = this.generateKeywordList(brandName, businessType, html);
     
     console.log(`🔍 Checking ${keywordsToCheck.length} keywords for ${cleanDomain}`);
-    console.log(`💼 Business Type: ${businessType}`);
+    console.log(`💼 Business Type: ${businessType} (using generic - Claude API handles business detection)`);
     console.log(`🏷️ Brand: ${brandName}`);
     
     // Check rankings for each keyword
@@ -313,32 +313,6 @@ export class ValueSerpKeywordService {
     return domainParts[0];
   }
   
-  /**
-   * Detect business type from content
-   */
-  private async detectBusinessType(html: string, domain: string): Promise<string> {
-    try {
-      const { EnhancedBusinessDetector } = await import('./enhancedBusinessDetection');
-      const detector = new EnhancedBusinessDetector();
-      const result = await detector.detectBusinessType(domain, html);
-      return result.primaryType.category;
-    } catch (error) {
-      // Fallback to simple detection
-      const lowerHtml = html.toLowerCase();
-      
-      if (lowerHtml.includes('architect') || lowerHtml.includes('architecture')) {
-        return 'Architecture & Design';
-      }
-      if (lowerHtml.includes('marketing') || lowerHtml.includes('digital')) {
-        return 'Marketing & Digital';
-      }
-      if (lowerHtml.includes('solicitor') || lowerHtml.includes('legal')) {
-        return 'Legal Services';
-      }
-      
-      return 'Business Services';
-    }
-  }
   
   /**
    * Extract location from content

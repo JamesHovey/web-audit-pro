@@ -3,7 +3,7 @@
  * Combines multiple data sources for comprehensive keyword research
  */
 
-import { SemanticKeywordExpansion, SemanticKeyword, detectBusinessCategory } from './semanticKeywordExpansion';
+import { SemanticKeywordExpansion, SemanticKeyword } from './semanticKeywordExpansion';
 import { generateKeywordVariations, BUSINESS_KEYWORD_COLLECTIONS } from './keywordCollections';
 import { KeywordsEverywhereService } from './keywordsEverywhereService';
 import { ValueSerpService } from './valueSerpService';
@@ -723,16 +723,16 @@ export class KeywordDiscoveryService {
     html: string,
     extractedKeywords: string[],
     brandName: string,
+    businessCategory: string,
     location?: string
   ): Promise<KeywordDiscoveryResult> {
     console.log('🔍 Starting comprehensive keyword discovery...');
     
-    // Detect business category and size
-    const businessCategory = detectBusinessCategory(html, domain);
+    // Use provided business category from Claude API
     const businessSize = this.detectBusinessSize(html, domain);
     const volumeThresholds = this.getVolumeThresholds(businessSize);
     
-    console.log(`📊 Detected business category: ${businessCategory}`);
+    console.log(`📊 Using Claude detected business category: ${businessCategory}`);
     console.log(`🏢 Detected business size: ${businessSize} (volume range: ${volumeThresholds.min}-${volumeThresholds.max})`);
     
     const discoveryMethods: string[] = [];
@@ -837,16 +837,22 @@ export class KeywordDiscoveryService {
     
     try {
       // Step 1: Enhanced seed terms based on business category
+      // Add UK-specific location modifiers
+      const ukLocations = ['uk', 'london', 'sussex', 'brighton', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh'];
+      
       const enhancedSeeds = [
         ...seedKeywords,
         `${businessCategory}`,
         `${businessCategory} services`,
         `${businessCategory} near me`,
-        `${businessCategory} cost`,
-        `${businessCategory} pricing`,
-        `${businessCategory} agency`,
-        `${businessCategory} consultant`,
-        `best ${businessCategory}`,
+        `${businessCategory} uk`,
+        `${businessCategory} sussex`,
+        `${businessCategory} services uk`,
+        `${businessCategory} cost uk`,
+        `${businessCategory} pricing uk`,
+        `${businessCategory} agency uk`,
+        `${businessCategory} consultant uk`,
+        `best ${businessCategory} uk`,
         `professional ${businessCategory}`,
         `${businessCategory} company`
       ];
@@ -876,11 +882,20 @@ export class KeywordDiscoveryService {
             
             suggestionList.forEach((suggestion: string) => {
               if (suggestion && suggestion.length > seed.length) {
+                // Filter out non-UK location keywords
+                const nonUKLocations = ['mumbai', 'delhi', 'bangalore', 'pune', 'chennai', 'kolkata', 'hyderabad', 'ahmedabad', 'dubai', 'singapore', 'new york', 'los angeles', 'chicago', 'toronto', 'sydney', 'melbourne'];
+                const lowerSuggestion = suggestion.toLowerCase();
+                
+                // Skip if contains non-UK city names
+                if (nonUKLocations.some(city => lowerSuggestion.includes(city))) {
+                  return;
+                }
+                
                 // Filter for business relevance
                 const isBusinessRelevant = this.isBusinessRelevantSuggestion(suggestion, businessCategory);
                 
-                if (isBusinessRelevant && !discoveredKeywords.includes(suggestion.toLowerCase())) {
-                  discoveredKeywords.push(suggestion.toLowerCase());
+                if (isBusinessRelevant && !discoveredKeywords.includes(lowerSuggestion)) {
+                  discoveredKeywords.push(lowerSuggestion);
                 }
               }
             });
@@ -1005,6 +1020,14 @@ export class KeywordDiscoveryService {
     
     const keywordLower = keyword.toLowerCase();
     const categoryLower = businessCategory.toLowerCase();
+    
+    // UK location boost - prioritize UK-specific keywords
+    const ukTerms = ['uk', 'sussex', 'brighton', 'london', 'british', 'england'];
+    if (ukTerms.some(term => keywordLower.includes(term))) score += 0.25;
+    
+    // Penalize non-UK locations
+    const nonUKTerms = ['mumbai', 'delhi', 'dubai', 'singapore', 'usa', 'america', 'canada', 'australia'];
+    if (nonUKTerms.some(term => keywordLower.includes(term))) score -= 0.5;
     
     // Category relevance
     if (keywordLower.includes(categoryLower)) score += 0.3;

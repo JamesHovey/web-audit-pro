@@ -280,25 +280,3 @@ export class SemanticKeywordExpansion {
 /**
  * Business category detection from content
  */
-export function detectBusinessCategory(html: string, domain: string): string {
-  const content = html.toLowerCase();
-  
-  // Check for category indicators
-  const categoryIndicators = [
-    { category: 'financial-services', terms: ['investment', 'trading', 'finance', 'capital', 'wealth', 'fund'] },
-    { category: 'legal-services', terms: ['solicitor', 'lawyer', 'legal', 'law', 'barrister'] },
-    { category: 'healthcare', terms: ['medical', 'health', 'doctor', 'clinic', 'treatment'] },
-    { category: 'architecture-construction', terms: ['architect', 'design', 'building', 'construction', 'planning'] },
-    { category: 'digital-marketing', terms: ['marketing', 'digital', 'SEO', 'web design', 'advertising'] },
-    { category: 'manufacturing', terms: ['manufacturing', 'machinery', 'equipment', 'industrial'] }
-  ];
-  
-  for (const indicator of categoryIndicators) {
-    const matchCount = indicator.terms.filter(term => content.includes(term)).length;
-    if (matchCount >= 2) {
-      return indicator.category;
-    }
-  }
-  
-  return 'general-business';
-}

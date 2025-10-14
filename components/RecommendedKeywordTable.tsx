@@ -36,35 +36,107 @@ export default function RecommendedKeywordTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const itemsPerPage = 10
   
-  // Filter for recommended keywords: exclude top 3 rankings, include achievable opportunities
+  // Filter for recommended keywords: focus on business-relevant opportunities
   const recommendedKeywords = useMemo(() => {
     console.log('🎯 Filtering recommended keywords from', keywords?.length || 0, 'total keywords');
     
+    // Helper function to check for geographic mismatch
+    const hasGeographicMismatch = (keyword: string) => {
+      const wrongGeoTerms = ['mumbai', 'india', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'kolkata', 
+                           'sydney', 'melbourne', 'toronto', 'vancouver', 'new york', 'los angeles', 
+                           'chicago', 'dubai', 'singapore', '.in', '.au', '.ca'];
+      return wrongGeoTerms.some(term => keyword.toLowerCase().includes(term.toLowerCase()));
+    };
+    
+    // Helper function to check for overly generic terms
+    const isOverlyGeneric = (keyword: string) => {
+      const genericTerms = ['logo', 'jobs', 'sdn bhd', 'pty ltd', 'llc', 'inc', 'company products',
+                          'full form', 'meaning', 'reviews', 'photos', 'hours', 'contact information'];
+      return genericTerms.some(term => keyword.toLowerCase().includes(term.toLowerCase()));
+    };
+    
+    // Helper function to check business relevance for UK marketing agency
+    const isBusinessRelevant = (keyword: string, relevanceScore: number) => {
+      const ukTerms = ['uk', 'london', 'sussex', 'billingshurst', 'brighton', 'england', 'britain', 'british'];
+      const serviceTerms = ['marketing', 'communications', 'digital', 'advertising', 'branding', 'strategy', 
+                          'campaign', 'content', 'social media', 'seo', 'ppc', 'pr', 'design', 'agency', 'services'];
+      const businessTerms = ['business', 'company', 'professional', 'expert', 'consultant', 'firm', 'corporate'];
+      
+      const hasUKContext = ukTerms.some(term => keyword.toLowerCase().includes(term));
+      const hasServiceContext = serviceTerms.some(term => keyword.toLowerCase().includes(term));
+      const hasBusinessContext = businessTerms.some(term => keyword.toLowerCase().includes(term));
+      
+      // More flexible relevance: decent relevance score OR service context OR UK+business context
+      return relevanceScore >= 0.4 || hasServiceContext || (hasUKContext && hasBusinessContext);
+    };
+    
     const filtered = (keywords || []).filter(k => {
-      const hasRelevance = (k.businessRelevance || 0) >= 0.6;
-      const hasReasonableVolume = k.volume !== null && k.volume !== undefined && k.volume >= 0;
+      // Check for geographic and generic mismatches first
+      if (hasGeographicMismatch(k.keyword) || isOverlyGeneric(k.keyword)) {
+        console.log(`❌ Excluded "${k.keyword}": geographic mismatch or overly generic`);
+        return false;
+      }
+      
+      // Calculate relevance score with more sophisticated logic
+      const baseRelevanceScore = k.businessRelevance !== undefined ? k.businessRelevance : 
+                                (k.category && k.category !== 'generic') ? 0.5 : 0.3;
+      
+      // Check if this keyword is actually business relevant for PMW
+      const isRelevant = isBusinessRelevant(k.keyword, baseRelevanceScore);
+      
+      // Volume filtering - more flexible for better coverage
+      const hasReasonableVolume = k.volume === null || k.volume === undefined || k.volume >= 20; // More flexible volume
       const isNotBranded = k.type === 'non-branded';
       
-      // Position-based filtering logic
-      const position = k.position;
-      const isAlreadyTopRanking = position >= 1 && position <= 3; // Exclude positions 1-3
-      const hasImprovementPotential = position >= 4 && position <= 10; // Include positions 4-10
-      const isUnranked = position === 0 || position > 10; // Include unranked or ranking beyond page 1
+      // Position-based filtering
+      const position = k.position || 0;
+      const isAlreadyTopRanking = position >= 1 && position <= 3;
+      const needsImprovement = position === 0 || position > 3;
       
-      // Achievability check: if we have competitor DA data, filter out highly competitive keywords
+      // Achievability check
       const averageCompetitorDA = (k as any).averageCompetitorDA || 0;
-      const targetDA = 35; // Estimated target DA - could be passed as prop
-      const isAchievable = averageCompetitorDA === 0 || averageCompetitorDA <= (targetDA + 20); // Achievable if competitors aren't vastly superior
+      const isAchievable = averageCompetitorDA === 0 || averageCompetitorDA <= 50; // More realistic threshold
       
-      // Include if: not already top ranking AND (has improvement potential OR unranked) AND meets other criteria AND is achievable
-      const includeKeyword = !isAlreadyTopRanking && (hasImprovementPotential || isUnranked) && isNotBranded && hasRelevance && hasReasonableVolume && isAchievable;
+      // Final decision
+      const includeKeyword = !isAlreadyTopRanking && needsImprovement && isNotBranded && 
+                            isRelevant && hasReasonableVolume && isAchievable;
       
-      console.log(`Keyword: "${k.keyword}", position: ${position}, avgCompetitorDA: ${averageCompetitorDA}, achievable: ${isAchievable}, included: ${includeKeyword}`);
+      if (includeKeyword) {
+        console.log(`✅ Included "${k.keyword}": relevance=${baseRelevanceScore.toFixed(2)}, volume=${k.volume}, position=${position}`);
+      } else if (k.volume && k.volume > 0) {
+        console.log(`❌ Excluded "${k.keyword}": relevance=${baseRelevanceScore.toFixed(2)}, volume=${k.volume}, isRelevant=${isRelevant}, hasVolume=${hasReasonableVolume}`);
+      }
       
       return includeKeyword;
     });
     
-    console.log(`✅ Found ${filtered.length} achievable recommended keywords`);
+    // Progressive fallback system - try increasingly relaxed criteria
+    if (filtered.length === 0) {
+      console.log('⚠️ No recommended keywords found, trying fallback approaches...');
+      
+      // Fallback 1: Relax volume requirements but keep relevance
+      let fallback = (keywords || [])
+        .filter(k => k.type === 'non-branded' && !hasGeographicMismatch(k.keyword) && !isOverlyGeneric(k.keyword))
+        .filter(k => isBusinessRelevant(k.keyword, k.businessRelevance || 0))
+        .filter(k => (k.position || 0) === 0 || (k.position || 0) > 3) // Not already ranking well
+        .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+        .slice(0, 8);
+      
+      // Fallback 2: If still empty, show any non-branded with volume, excluding obvious mismatches
+      if (fallback.length === 0) {
+        console.log('🔄 Using broader fallback...');
+        fallback = (keywords || [])
+          .filter(k => k.type === 'non-branded' && k.volume && k.volume >= 10)
+          .filter(k => !hasGeographicMismatch(k.keyword) && !isOverlyGeneric(k.keyword))
+          .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+          .slice(0, 6);
+      }
+      
+      console.log(`🔄 Fallback: showing ${fallback.length} keywords`);
+      return fallback;
+    }
+    
+    console.log(`✅ Found ${filtered.length} recommended keywords`);
     return filtered;
   }, [keywords])
   
@@ -114,10 +186,11 @@ export default function RecommendedKeywordTable({
                 <p className="mb-2">Business-relevant keywords we recommend you target to improve your search visibility on this {contextWord}</p>
                 <p className="text-xs"><strong>What makes a keyword recommended:</strong></p>
                 <ul className="list-disc list-inside text-xs mt-1 space-y-1">
-                  <li>High business relevance (70%+ match)</li>
-                  <li>Reasonable search volume (10+ monthly searches)</li>
-                  <li>Achievable ranking opportunity</li>
-                  <li>Aligned with your business goals</li>
+                  <li>Business-relevant keywords you're not ranking highly for (position 4+)</li>
+                  <li>Keywords with search volume (10+ monthly searches)</li>
+                  <li>Realistic ranking opportunities based on competition</li>
+                  <li>Mix of short and long-tail keyword opportunities</li>
+                  <li>Excludes keywords where you already rank in top 3 positions</li>
                 </ul>
               </div>
             }
@@ -127,8 +200,8 @@ export default function RecommendedKeywordTable({
           </Tooltip>
         </div>
         <div className="border rounded-lg p-8 text-center text-gray-500">
-          <p className="text-sm">No highly relevant keyword opportunities found for this {contextWord}.</p>
-          <p className="text-xs text-gray-400 mt-2">Try expanding your content or targeting broader industry terms.</p>
+          <p className="text-sm">No keyword opportunities found - this is actually good news!</p>
+          <p className="text-xs text-gray-400 mt-2">This could mean you're already ranking well for most relevant keywords, or your current strategy is focused on the right terms.</p>
         </div>
       </div>
     );

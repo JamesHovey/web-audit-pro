@@ -170,7 +170,7 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
       recommendations.push({
         icon: <Lightbulb className="w-4 h-4" />,
         priority: 'high',
-        title: 'AI-Powered Opportunity',
+        title: 'Opportunity',
         description: data.competitivePosition.trafficOpportunities[0],
         impact: 'High',
         timeframe: 'Varies'

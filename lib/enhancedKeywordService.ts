@@ -3,7 +3,7 @@
  * Integrates enhanced business detection with dynamic keyword generation
  */
 
-import { EnhancedBusinessDetector, type BusinessDetectionResult } from './enhancedBusinessDetection';
+import { ClaudeBusinessDetector, type BusinessDetectionResult } from './claudeBusinessDetection';
 import { 
   DynamicKeywordGenerator, 
   generateBusinessKeywords,
@@ -75,11 +75,11 @@ export interface EnhancedKeywordAnalysis {
 }
 
 export class EnhancedKeywordService {
-  private businessDetector: EnhancedBusinessDetector;
+  private businessDetector: ClaudeBusinessDetector;
   private keywordDiscoveryService: KeywordDiscoveryService;
   
   constructor() {
-    this.businessDetector = new EnhancedBusinessDetector();
+    this.businessDetector = new ClaudeBusinessDetector();
     this.keywordDiscoveryService = new KeywordDiscoveryService();
   }
 
@@ -155,17 +155,44 @@ export class EnhancedKeywordService {
       console.log(`\n=== ENHANCED KEYWORD ANALYSIS FOR ${cleanDomain} ===`);
       console.log(`🌍 Country parameter received: "${country}"`);
       
-      // Step 1: Enhanced business type detection
-      console.log('🔍 Step 1: Enhanced Business Detection...');
-      const businessDetection = await this.businessDetector.detectBusinessType(cleanDomain, html);
+      // Step 0: Enhanced Location Detection (prioritize website over Companies House)
+      console.log('📍 Step 0: Smart Location Detection...');
+      const { SophisticatedBusinessContextService } = await import('./sophisticatedBusinessContext');
+      const businessContextService = new SophisticatedBusinessContextService();
       
-      console.log(`✅ Detected: ${businessDetection.primaryType.category} - ${businessDetection.primaryType.subcategory}`);
-      console.log(`📊 Confidence: ${businessDetection.primaryType.confidence}`);
-      console.log(`🛠️ Methods: ${businessDetection.detectionSources.join(', ')}`);
+      // Extract company name for Companies House lookup
+      const companyNameMatch = html.match(/<title>([^<]+)<\/title>/i) || 
+                              html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+      const companyName = companyNameMatch?.[1]?.trim().split(/[-|,]/)[0].trim();
       
-      // Step 2: Extract location context
+      // Get enhanced business intelligence with location prioritization
+      const businessIntelligence = await businessContextService.analyzeBusinessIntelligence(
+        cleanDomain, 
+        html, 
+        companyName, 
+        true // isUKCompany
+      );
+      
+      // Extract the best location for Claude API
+      const enhancedLocation = businessIntelligence.localContext.locality || businessIntelligence.localContext.region
+        ? {
+            locality: businessIntelligence.localContext.locality,
+            region: businessIntelligence.localContext.region,
+            country: businessIntelligence.localContext.country || 'UK'
+          }
+        : undefined;
+      
+      // Step 1: Claude API business type detection with location context
+      console.log('🤖 Step 1: Claude API Business Detection...');
+      const businessDetection = await this.businessDetector.detectBusinessType(cleanDomain, html, enhancedLocation);
+      
+      console.log(`✅ Claude detected: ${businessDetection.businessType}${businessDetection.subcategory ? ` - ${businessDetection.subcategory}` : ''}`);
+      console.log(`📊 Confidence: ${businessDetection.confidence}`);
+      console.log(`🛠️ Method: ${businessDetection.detectionMethod}`);
+      
+      // Step 2: Extract location context (now enhanced with website priority)
       console.log('📍 Step 2: Location Context Analysis...');
-      const locationContext = this.extractLocationContext(html, cleanDomain, businessDetection);
+      const locationContext = this.extractLocationContext(html, cleanDomain, businessDetection, businessIntelligence.localContext);
       
       // Step 3: Build business context
       console.log('🏢 Step 3: Business Context Building...');
@@ -181,12 +208,13 @@ export class EnhancedKeywordService {
       const brandName = businessContext.businessName;
       const location = locationContext.primaryLocation;
       
-      // Use the new keyword discovery service
+      // Use the new keyword discovery service with Claude's business detection result
       const discoveryResult = await this.keywordDiscoveryService.discoverKeywords(
         cleanDomain,
         html,
         extractedKeywords,
         brandName,
+        businessDetection.businessType, // Pass Claude's detection result
         location
       );
       
@@ -425,9 +453,9 @@ export class EnhancedKeywordService {
   }
 
   /**
-   * Extract location context from content
+   * Extract location context from content (enhanced with business intelligence)
    */
-  private extractLocationContext(html: string, domain: string, businessDetection: BusinessDetectionResult): LocationContext {
+  private extractLocationContext(html: string, domain: string, businessDetection: BusinessDetectionResult, enhancedLocation?: any): LocationContext {
     const content = html.toLowerCase();
     
     // Detect if it's a local business
@@ -435,8 +463,7 @@ export class EnhancedKeywordService {
       'near me', 'local', 'area', 'serving', 'coverage', 'postcode', 
       'address', 'location', 'visit us', 'find us', 'directions'
     ];
-    const isLocalBusiness = businessDetection.localBusiness || 
-                          localIndicators.some(indicator => content.includes(indicator));
+    const isLocalBusiness = localIndicators.some(indicator => content.includes(indicator));
     
     // Extract mentioned locations
     const ukCities = [
@@ -445,17 +472,32 @@ export class EnhancedKeywordService {
     ];
     const mentionedCities = ukCities.filter(city => content.includes(city));
     
-    // Detect location from domain or content
+    // Use enhanced location if available (prioritizes website over Companies House)
     let detectedLocation: string | undefined;
-    for (const city of ukCities) {
-      if (domain.includes(city) || content.includes(`${city} `)) {
-        detectedLocation = city.charAt(0).toUpperCase() + city.slice(1);
-        break;
+    let primaryLocation: string | undefined;
+    
+    if (enhancedLocation?.locality) {
+      detectedLocation = enhancedLocation.locality;
+      primaryLocation = enhancedLocation.locality;
+      console.log(`🎯 Using enhanced location: ${detectedLocation} (from smart detection)`);
+    } else if (enhancedLocation?.region) {
+      detectedLocation = enhancedLocation.region;
+      primaryLocation = enhancedLocation.region;
+      console.log(`🎯 Using enhanced region: ${detectedLocation} (from smart detection)`);
+    } else {
+      // Fallback to original method
+      for (const city of ukCities) {
+        if (domain.includes(city) || content.includes(`${city} `)) {
+          detectedLocation = city.charAt(0).toUpperCase() + city.slice(1);
+          primaryLocation = detectedLocation;
+          break;
+        }
       }
     }
     
     return {
       detectedLocation,
+      primaryLocation: primaryLocation || detectedLocation,
       isLocalBusiness,
       serviceArea: mentionedCities.length > 0 ? mentionedCities : undefined,
       targetCities: mentionedCities.slice(0, 5)
@@ -470,15 +512,14 @@ export class EnhancedKeywordService {
     
     console.log(`🏢 Business context brand name: "${brandName}" (extracted from domain: ${domain})`);
     
-    const services = this.extractServices(html, businessDetection.primaryType.category);
+    const services = this.extractServices(html, businessDetection.businessType);
     
     const businessContext = {
-      primaryType: businessDetection.primaryType.category,
-      subcategory: businessDetection.primaryType.subcategory,
+      primaryType: businessDetection.businessType,
+      subcategory: businessDetection.subcategory || 'General',
       businessName: brandName,
       services,
-      isUkBusiness: businessDetection.ukSpecific,
-      companySize: businessDetection.companySize
+      isUkBusiness: true // Default to true for UK focus
     };
     
     console.log(`🏢 Final business context: businessName="${businessContext.businessName}"`);
@@ -984,7 +1025,7 @@ export class EnhancedKeywordService {
         html, 
         country, 
         undefined, 
-        businessDetection.primaryType.category
+        businessDetection.businessType
       );
     } catch (error) {
       console.error('Above fold analysis failed:', error);
@@ -1204,14 +1245,14 @@ export class EnhancedKeywordService {
     const nonBrandedKeywordsList = allKeywords
       .filter(k => {
         const isNotBranded = !this.isBrandedKeyword(k.keyword, businessContext);
-        const hasBusinessRelevance = k.businessRelevance >= 0.2; // More relaxed: accept lower relevance keywords  
+        const hasBasicRelevance = k.businessRelevance >= 0.4; // More permissive for website content keywords
         const hasValidVolume = k.volume === null || (k.volume >= 10 && k.volume <= 50000); // Accept lower volume keywords
         const isNotGeneric = this.isBusinessSpecificKeyword(k.keyword, businessContext);
         
-        console.log(`🔍 Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
+        console.log(`🔍 Website Keywords Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
         
-        // More relaxed filtering: allow keywords that are either business-relevant OR business-specific
-        return isNotBranded && hasValidVolume && (hasBusinessRelevance || isNotGeneric);
+        // More permissive filtering for website content keywords: basic relevance OR business-specific
+        return isNotBranded && hasValidVolume && (hasBasicRelevance || isNotGeneric);
       })
       .sort((a, b) => b.businessRelevance - a.businessRelevance) // Sort by business relevance
       .slice(0, 30) // Limit to top 30 most relevant

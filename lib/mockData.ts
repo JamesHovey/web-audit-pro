@@ -33,12 +33,12 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
     try {
       // Use realistic traffic estimation instead of random generation
       console.log(`🚀 Attempting to use realistic traffic estimation for: ${url}`);
-      const { getCostEffectiveTrafficData } = await import('./costEffectiveTrafficService');
-      console.log(`✅ Successfully imported getCostEffectiveTrafficData`);
+      const { premiumTrafficAnalysisService } = await import('./premiumTrafficAnalysis');
+      console.log(`✅ Successfully imported premiumTrafficAnalysisService`);
       
       try {
-        console.log(`🚀 Calling getCostEffectiveTrafficData for: ${url}`);
-        const trafficData = await getCostEffectiveTrafficData(url);
+        console.log(`🚀 Calling premiumTrafficAnalysisService for: ${url}`);
+        const trafficData = await premiumTrafficAnalysisService.analyzePremiumTraffic(url);
         console.log(`✅ Realistic traffic data received:`, trafficData);
         
         mockResults.traffic = {

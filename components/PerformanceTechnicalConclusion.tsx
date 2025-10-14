@@ -74,10 +74,7 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <Zap className="w-5 h-5 text-blue-600" />
-        AI-Powered Performance & Technical Analysis
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-          Enhanced with Claude AI
-        </span>
+        Performance & Technical Analysis
       </h3>
 
       {/* Overall Health Score */}
