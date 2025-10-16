@@ -5,6 +5,7 @@ import { AuditResults } from "@/components/AuditResults"
 import { notFound } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { exportAuditToPDF } from "@/lib/pdfExportService"
 
 interface Audit {
   id: string
@@ -159,12 +160,13 @@ export default function AuditPage() {
               
               {audit.status === 'completed' && (
                 <>
-                  <button 
+                  <button
+                    onClick={() => exportAuditToPDF(audit)}
                     className="px-4 py-2 bg-[#42499c] text-white rounded-md text-sm font-medium hover:bg-[#42499c]/80 transition-colors w-32"
                   >
                     Export PDF
                   </button>
-                  <button 
+                  <button
                     className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors w-32"
                   >
                     Export Excel

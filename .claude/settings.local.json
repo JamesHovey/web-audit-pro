@@ -50,7 +50,8 @@
       "WebFetch(domain:developer.company-information.service.gov.uk)",
       "Bash(npm run:*)",
       "WebFetch(domain:www.ardonagh.com)",
-      "WebFetch(domain:adaptive-instruments.com)"
+      "WebFetch(domain:adaptive-instruments.com)",
+      "Read(//Users/jameshovey/Desktop/**)"
     ],
     "deny": [],
     "ask": [],

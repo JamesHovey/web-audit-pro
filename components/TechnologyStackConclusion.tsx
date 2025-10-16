@@ -229,7 +229,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div className="mb-3">
                   <p className="text-xs font-medium text-blue-900 mb-1">Strengths:</p>
                   <ul className="text-xs text-blue-700 space-y-1">
-                    {stackAnalysis.strengths.slice(0, 3).map((strength, index) => (
+                    {Array.isArray(stackAnalysis.strengths) && stackAnalysis.strengths.slice(0, 3).map((strength, index) => (
                       <li key={index} className="flex items-start gap-1">
                         <CheckCircle className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
                         {strength}
@@ -243,7 +243,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div>
                   <p className="text-xs font-medium text-blue-900 mb-1">Areas for Improvement:</p>
                   <ul className="text-xs text-blue-700 space-y-1">
-                    {stackAnalysis.weaknesses.slice(0, 2).map((weakness, index) => (
+                    {Array.isArray(stackAnalysis.weaknesses) && stackAnalysis.weaknesses.slice(0, 2).map((weakness, index) => (
                       <li key={index} className="flex items-start gap-1">
                         <AlertTriangle className="w-3 h-3 text-yellow-600 mt-0.5 flex-shrink-0" />
                         {weakness}
@@ -282,7 +282,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
             </Tooltip>
           </h4>
           <div className="space-y-3">
-            {intelligence.quickWins.slice(0, 3).map((win, index) => (
+            {Array.isArray(intelligence.quickWins) && intelligence.quickWins.slice(0, 3).map((win, index) => (
               <div key={index} className="flex items-start gap-3 p-3 bg-[#27ae60]/5 rounded-lg border border-[#27ae60]/20">
                 <CheckCircle className="w-5 h-5 text-[#27ae60] mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
@@ -340,7 +340,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
             </Tooltip>
           </h4>
           <div className="space-y-3">
-            {performanceImpact.criticalIssues?.slice(0, 2).map((issue, index) => (
+            {Array.isArray(performanceImpact.criticalIssues) && performanceImpact.criticalIssues.slice(0, 2).map((issue, index) => (
               <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
@@ -351,7 +351,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 </div>
               </div>
             ))}
-            {securityAssessment.vulnerabilities?.slice(0, 2).map((vulnerability, index) => (
+            {Array.isArray(securityAssessment.vulnerabilities) && securityAssessment.vulnerabilities.slice(0, 2).map((vulnerability, index) => (
               <div key={`sec-${index}`} className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <div className="flex items-start gap-2">
                   <Shield className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
@@ -464,7 +464,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div className="text-xs text-[#c42e3b]">
                   <p className="mb-1">Vulnerable plugins detected:</p>
                   <ul className="space-y-1">
-                    {pluginAnalysis.securityAssessment.vulnerablePlugins.slice(0, 2).map((plugin, index) => {
+                    {Array.isArray(pluginAnalysis.securityAssessment.vulnerablePlugins) && pluginAnalysis.securityAssessment.vulnerablePlugins.slice(0, 2).map((plugin, index) => {
                       const pluginInfo = getPluginInfo(plugin.name);
                       return (
                       <li key={index} className="flex items-center gap-1">
@@ -501,7 +501,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                 <div className="text-xs text-[#42499c]">
                   <p className="mb-1">Heavy plugins:</p>
                   <ul className="space-y-1">
-                    {pluginAnalysis.performanceAnalysis.heavyPlugins.slice(0, 2).map((plugin, index) => {
+                    {Array.isArray(pluginAnalysis.performanceAnalysis.heavyPlugins) && pluginAnalysis.performanceAnalysis.heavyPlugins.slice(0, 2).map((plugin, index) => {
                       const pluginInfo = getPluginInfo(plugin.name);
                       return (
                       <li key={index} className="flex items-center gap-1">
@@ -543,7 +543,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                   <div>
                     <p className="font-medium">Missing Essentials:</p>
                     <ul className="ml-2 space-y-1">
-                      {pluginAnalysis.businessInsights.missingEssentials.slice(0, 3).map((missing, index) => (
+                      {Array.isArray(pluginAnalysis.businessInsights.missingEssentials) && pluginAnalysis.businessInsights.missingEssentials.slice(0, 3).map((missing, index) => (
                         <li key={index} className="flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3 text-[#e67e22]" />
                           {missing}
@@ -629,7 +629,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
                   <div>
                     <p className="text-xs font-medium text-purple-900 mb-1">Competitive Improvements:</p>
                     <ul className="text-xs text-purple-700 space-y-1">
-                      {intelligence.industryBenchmark.recommendedUpgrades.slice(0, 2).map((upgrade, index) => (
+                      {Array.isArray(intelligence.industryBenchmark.recommendedUpgrades) && intelligence.industryBenchmark.recommendedUpgrades.slice(0, 2).map((upgrade, index) => (
                         <li key={index} className="flex items-center gap-1">
                           <ArrowRight className="w-3 h-3" />
                           {upgrade}

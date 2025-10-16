@@ -529,10 +529,10 @@ function analyzeTechStackFromScraping(siteData: { html: string; headers: Record<
   if (isWordPress) {
     result.cms = 'WordPress';
     
-    // WordPress Page Builder Detection
+    // WordPress Page Builder Detection - Using more specific patterns
     if (lowerHtml.includes('elementor')) {
       result.pageBuilder = 'Elementor';
-    } else if (lowerHtml.includes('divi')) {
+    } else if (lowerHtml.includes('divi-theme') || lowerHtml.includes('et_pb_') || lowerHtml.includes('et-divi')) {
       result.pageBuilder = 'Divi';
     } else if (lowerHtml.includes('beaver-builder') || lowerHtml.includes('fl-builder')) {
       result.pageBuilder = 'Beaver Builder';

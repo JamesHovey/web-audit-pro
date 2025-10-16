@@ -21,6 +21,8 @@ import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import CompetitionAnalysis from './CompetitionAnalysis'
 import EnhancedRecommendations from './EnhancedRecommendations'
+import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
+import { exportAuditToPDF } from '@/lib/pdfExportService'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -312,297 +314,67 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <Globe className="w-4 h-4" />
               <span>View Sitemap</span>
             </button>
-            
+
+            <button
+              onClick={async () => {
+                if (confirm('Start a new audit with the same settings?')) {
+                  try {
+                    // Create a new audit with the same parameters
+                    const response = await fetch('/api/audit', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        url: audit.url,
+                        sections: audit.sections,
+                        scope: audit.results?.scope || 'single',
+                        country: audit.results?.country || 'gb',
+                        pages: audit.results?.pages || [audit.url]
+                      })
+                    })
+
+                    if (response.ok) {
+                      const data = await response.json()
+                      // Navigate to the new audit
+                      window.location.href = `/audit/${data.id}`
+                    } else {
+                      throw new Error('Failed to start audit')
+                    }
+                  } catch (error) {
+                    alert('Error starting new audit: ' + error.message)
+                  }
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors"
+            >
+              Re-run Audit
+            </button>
+
             {audit.status === "completed" && (
               <>
-                <button 
-                  onClick={() => {
-                    try {
-                      console.log('Main PDF export clicked - exporting full audit');
-                      
-                      const targetUrl = new URL(audit.url);
-                      const domain = targetUrl.hostname;
-                      const currentDate = new Date();
-                      
-                      const printContent = `
-                        <html>
-                          <head>
-                            <title>SEO Audit Report - ${domain}</title>
-                            <style>
-                              @media print {
-                                body { margin: 0; }
-                                .no-print { display: none; }
-                                .page-break { page-break-before: always; }
-                              }
-                              body { 
-                                font-family: Arial, sans-serif; 
-                                margin: 20px; 
-                                line-height: 1.4;
-                                color: #333;
-                                font-size: 12px;
-                              }
-                              .header { 
-                                text-align: center; 
-                                margin-bottom: 30px; 
-                                border-bottom: 2px solid #333;
-                                padding-bottom: 20px;
-                              }
-                              .title { 
-                                font-size: 24px; 
-                                font-weight: bold; 
-                                color: #2563eb;
-                                margin: 0;
-                              }
-                              .subtitle { 
-                                font-size: 16px; 
-                                color: #666; 
-                                margin: 5px 0 0 0;
-                              }
-                              .audit-info {
-                                background: #f8f9fa;
-                                padding: 15px;
-                                border-radius: 5px;
-                                margin: 20px 0;
-                                border-left: 4px solid #2563eb;
-                              }
-                              .section {
-                                margin: 25px 0;
-                                padding: 15px 0;
-                                border-bottom: 1px solid #eee;
-                              }
-                              .section-title {
-                                font-size: 18px;
-                                font-weight: bold;
-                                color: #333;
-                                margin-bottom: 15px;
-                                border-bottom: 2px solid #e5e7eb;
-                                padding-bottom: 5px;
-                              }
-                              .metric-grid {
-                                display: grid;
-                                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                                gap: 15px;
-                                margin: 15px 0;
-                              }
-                              .metric-card {
-                                background: white;
-                                border: 1px solid #e5e7eb;
-                                border-radius: 5px;
-                                padding: 15px;
-                                text-align: center;
-                              }
-                              .metric-value {
-                                font-size: 24px;
-                                font-weight: bold;
-                                color: #2563eb;
-                                margin-bottom: 5px;
-                              }
-                              .metric-label {
-                                font-size: 12px;
-                                color: #666;
-                                text-transform: uppercase;
-                                font-weight: 500;
-                              }
-                              table {
-                                width: 100%;
-                                border-collapse: collapse;
-                                margin: 15px 0;
-                                font-size: 11px;
-                              }
-                              th, td {
-                                border: 1px solid #ddd;
-                                padding: 8px;
-                                text-align: left;
-                              }
-                              th {
-                                background-color: #f8f9fa;
-                                font-weight: bold;
-                                color: #333;
-                              }
-                              .keyword-row {
-                                background: #f9f9f9;
-                              }
-                              .tech-badge {
-                                display: inline-block;
-                                background: #e5e7eb;
-                                color: #374151;
-                                padding: 2px 8px;
-                                border-radius: 12px;
-                                font-size: 10px;
-                                margin: 2px;
-                              }
-                              .footer {
-                                margin-top: 40px;
-                                text-align: center;
-                                font-size: 10px;
-                                color: #666;
-                                border-top: 1px solid #eee;
-                                padding-top: 20px;
-                              }
-                              .watermark {
-                                position: fixed;
-                                bottom: 20px;
-                                right: 20px;
-                                font-size: 10px;
-                                color: #999;
-                                transform: rotate(-45deg);
-                                opacity: 0.3;
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            <div class="watermark">Web Audit Pro</div>
-                            <div class="header">
-                              <div class="title">SEO Audit Report</div>
-                              <div class="subtitle">${domain}</div>
-                            </div>
-                            
-                            <div class="audit-info">
-                              <p><strong>Website:</strong> ${audit.url}</p>
-                              <p><strong>Audit Date:</strong> ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}</p>
-                              <p><strong>Report Generated:</strong> ${currentDate.toLocaleString()}</p>
-                              <p><strong>Sections Analyzed:</strong> ${audit.sections.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</p>
-                            </div>
-                            
-                            ${audit.results ? Object.entries(audit.results).map(([section, data]) => {
-                              if (!data || section === 'completedSections') return '';
-                              
-                              let sectionContent = '';
-                              const sectionTitle = section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1');
-                              
-                              // Handle different section types
-                              if (section === 'keywords' && typeof data === 'object') {
-                                const keywordData = data as any;
-                                sectionContent = `
-                                  <div class="metric-grid">
-                                    <div class="metric-card">
-                                      <div class="metric-value">${keywordData.domainAuthority || 'N/A'}</div>
-                                      <div class="metric-label">Domain Authority</div>
-                                    </div>
-                                    <div class="metric-card">
-                                      <div class="metric-value">${keywordData.brandedKeywords || 0}</div>
-                                      <div class="metric-label">Branded Keywords</div>
-                                    </div>
-                                    <div class="metric-card">
-                                      <div class="metric-value">${keywordData.nonBrandedKeywords || 0}</div>
-                                      <div class="metric-label">Non-Branded Keywords</div>
-                                    </div>
-                                  </div>
-                                  
-                                  ${keywordData.topKeywords && keywordData.topKeywords.length > 0 ? `
-                                    <h4>Top Keywords Found</h4>
-                                    <table>
-                                      <thead>
-                                        <tr>
-                                          <th>Keyword</th>
-                                          <th>Volume</th>
-                                          <th>Position</th>
-                                          <th>Type</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        ${keywordData.topKeywords.slice(0, 20).map((kw: any) => `
-                                          <tr>
-                                            <td>${kw.keyword || 'N/A'}</td>
-                                            <td>${kw.volume || 'N/A'}</td>
-                                            <td>${kw.position || 'N/A'}</td>
-                                            <td>${kw.type || 'N/A'}</td>
-                                          </tr>
-                                        `).join('')}
-                                      </tbody>
-                                    </table>
-                                  ` : ''}
-                                `;
-                              } else if (section === 'backlinks' && typeof data === 'object') {
-                                sectionContent = `
-                                  <div class="metric-grid">
-                                    <div class="metric-card">
-                                      <div class="metric-value">${data.domainAuthority || 'N/A'}</div>
-                                      <div class="metric-label">Domain Authority</div>
-                                    </div>
-                                    <div class="metric-card">
-                                      <div class="metric-value">${data.totalBacklinks || 'N/A'}</div>
-                                      <div class="metric-label">Total Backlinks</div>
-                                    </div>
-                                    <div class="metric-card">
-                                      <div class="metric-value">${data.referringDomains || 'N/A'}</div>
-                                      <div class="metric-label">Referring Domains</div>
-                                    </div>
-                                  </div>
-                                `;
-                              } else if (section === 'technology' && typeof data === 'object') {
-                                const techData = data as any;
-                                sectionContent = `
-                                  <div>
-                                    <h4>Detected Technologies</h4>
-                                    <div>
-                                      ${techData.cms ? `<span class="tech-badge">CMS: ${techData.cms}</span>` : ''}
-                                      ${techData.framework ? `<span class="tech-badge">Framework: ${techData.framework}</span>` : ''}
-                                      ${techData.hosting ? `<span class="tech-badge">Hosting: ${techData.hosting}</span>` : ''}
-                                      ${techData.analytics && techData.analytics.length > 0 ? 
-                                        techData.analytics.map((a: string) => `<span class="tech-badge">Analytics: ${a}</span>`).join('') : ''
-                                      }
-                                    </div>
-                                  </div>
-                                `;
-                              } else if (typeof data === 'object' && data !== null) {
-                                // Generic object handling
-                                sectionContent = `
-                                  <div class="metric-grid">
-                                    ${Object.entries(data).slice(0, 6).map(([key, value]) => `
-                                      <div class="metric-card">
-                                        <div class="metric-value">${typeof value === 'number' ? value.toLocaleString() : (value || 'N/A')}</div>
-                                        <div class="metric-label">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}</div>
-                                      </div>
-                                    `).join('')}
-                                  </div>
-                                `;
-                              } else {
-                                sectionContent = `<p>${data || 'No data available'}</p>`;
-                              }
-                              
-                              return `
-                                <div class="section">
-                                  <div class="section-title">${sectionTitle}</div>
-                                  ${sectionContent}
-                                </div>
-                              `;
-                            }).join('') : '<p>No audit data available</p>'}
-                            
-                            <div class="footer">
-                              <p>Generated by Web Audit Pro - ${currentDate.toLocaleString()}</p>
-                              <p>This report contains comprehensive SEO analysis data for ${domain}</p>
-                            </div>
-                          </body>
-                        </html>
-                      `;
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('=== EXPORT PDF CLICKED ===');
+                    alert('Button clicked!');
 
-                      // Create and open print window
-                      const printWindow = window.open('', '_blank');
-                      if (printWindow) {
-                        printWindow.document.write(printContent);
-                        printWindow.document.close();
-                        
-                        // Wait for content to load then trigger print
-                        printWindow.onload = () => {
-                          setTimeout(() => {
-                            printWindow.focus();
-                            printWindow.print();
-                          }, 500);
-                        };
-                        
-                        console.log('Audit report print dialog opened successfully');
-                      } else {
-                        console.error('Could not open print window - check pop-up blocker');
-                        alert('Could not open print dialog. Please check if pop-ups are blocked.');
+                    (async () => {
+                      try {
+                        console.log('Starting PDF export...');
+                        console.log('Audit data:', audit);
+                        await exportAuditToPDF(audit);
+                        console.log('PDF export completed successfully');
+                        alert('PDF exported successfully!');
+                      } catch (error: any) {
+                        console.error('Error generating audit PDF:', error);
+                        console.error('Error stack:', error.stack);
+                        alert('Error generating PDF report: ' + (error.message || 'Unknown error'));
                       }
-                      
-                    } catch (error) {
-                      console.error('Error generating audit PDF:', error);
-                      alert('Error generating PDF report: ' + error.message);
-                    }
+                    })();
                   }}
-                  className="bg-[#42499c] hover:bg-[#42499c]/80 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors"
+                  className="bg-[#42499c] hover:bg-[#42499c]/80 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors relative z-50"
+                  style={{ pointerEvents: 'auto' }}
                 >
                   Export PDF
                 </button>
@@ -843,6 +615,17 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         </div>
       )}
 
+      {/* Viewport Responsiveness Analysis - Full Width */}
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <ViewportResponsiveAnalysis
+              url={audit.url}
+              data={audit?.results?.viewport as any}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Authority & Backlinks - Full Width */}
       {audit?.sections?.includes('backlinks') && (
@@ -2647,7 +2430,6 @@ function renderSectionResults(
               </div>
             </div>
           )}
-
 
           {/* Technical Audit Section */}
           <div>

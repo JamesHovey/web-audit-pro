@@ -129,15 +129,35 @@ export async function POST(request: NextRequest) {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             results.technical = await performTechnicalAudit(url)
 
+            // Run viewport responsiveness analysis (if not already done)
+            if (!results.viewport) {
+              console.log('📱 Running viewport responsiveness analysis...')
+              const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+              }).catch(async () => {
+                // If fetch fails, simulate the viewport analysis locally
+                return null
+              })
+
+              if (viewportResponse && viewportResponse.ok) {
+                results.viewport = await viewportResponse.json()
+                console.log('✅ Viewport analysis completed')
+              } else {
+                console.log('⚠️ Viewport analysis skipped')
+              }
+            }
+
           } else if (section === 'performance') {
             // Enhanced performance analysis with Claude AI
             const { analyzePageSpeedWithClaude } = await import('@/lib/pageSpeedService')
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
-            
+
             // First run technical audit to get comprehensive data
             console.log('🔧 Running technical audit...')
             results.technical = await performTechnicalAudit(url)
-            
+
             // Fetch HTML content for Claude analysis
             let htmlContent = '';
             try {
@@ -154,12 +174,12 @@ export async function POST(request: NextRequest) {
             } catch (error) {
               console.log('Could not fetch HTML content for performance analysis:', error);
             }
-            
+
             // Detect WordPress plugins for performance recommendations
             const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
             const pluginDetection = detectWordPressPlugins(htmlContent)
             console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
-            
+
             // Add plugin data to technical results for recommendations
             results.technical.plugins = pluginDetection.plugins
             results.technical.cms = pluginDetection.cms
@@ -168,6 +188,26 @@ export async function POST(request: NextRequest) {
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
+
+            // Run viewport responsiveness analysis (if not already done)
+            if (!results.viewport) {
+              console.log('📱 Running viewport responsiveness analysis...')
+              const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+              }).catch(async () => {
+                // If fetch fails, simulate the viewport analysis locally
+                return null
+              })
+
+              if (viewportResponse && viewportResponse.ok) {
+                results.viewport = await viewportResponse.json()
+                console.log('✅ Viewport analysis completed')
+              } else {
+                console.log('⚠️ Viewport analysis skipped')
+              }
+            }
 
           } else if (section === 'backlinks') {
             const { analyzeBacklinks } = await import('@/lib/backlinkService')
