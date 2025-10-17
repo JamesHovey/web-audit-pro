@@ -119,7 +119,7 @@ async function analyzeViewportWithScreenshot(
     })
 
     // Wait a bit for animations/lazy loading
-    await page.waitForTimeout(1000)
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
     // Get page content
     const html = await page.content()

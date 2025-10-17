@@ -67,9 +67,13 @@ interface TechnicalAuditResult {
   viewportAnalysis?: any; // ViewportAuditResult from viewportAnalysisService
 }
 
-export async function performTechnicalAudit(url: string): Promise<TechnicalAuditResult> {
-  console.log(`🔧 Starting technical audit for ${url}`);
-  
+export async function performTechnicalAudit(
+  url: string,
+  scope: 'single' | 'all' | 'custom' = 'single',
+  specifiedPages: string[] = [url]
+): Promise<TechnicalAuditResult> {
+  console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
+
   // Normalize URL
   const baseUrl = new URL(url);
   const domain = baseUrl.hostname;
@@ -113,6 +117,9 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     
     // 2. Analyze page structure
     const pageAnalysis = analyzePageStructure(html);
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const pageTitle = titleMatch ? titleMatch[1].trim() : 'No title';
+
     if (!pageAnalysis.hasTitle) result.issues.missingMetaTitles++;
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
@@ -133,10 +140,88 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     // 6. Check for robots.txt
     result.robotsTxtStatus = await checkRobotsTxt(baseUrl);
     
-    // 7. Discover real pages using sitemap and intelligent crawling
-    console.log('🔍 Discovering all website pages...');
-    const pageDiscovery = await discoverRealPages(url);
-    
+    // 7. Discover pages based on scope
+    let pageDiscovery;
+
+    if (scope === 'single') {
+      console.log('🔍 Single page audit - analyzing main URL only');
+      // For single page, only analyze the main URL
+      pageDiscovery = {
+        totalPages: 1,
+        pages: [{
+          url: url,
+          title: pageTitle,
+          statusCode: mainPageResponse.status,
+          hasTitle: pageAnalysis.hasTitle,
+          hasDescription: pageAnalysis.hasDescription,
+          hasH1: pageAnalysis.hasH1,
+          imageCount: (html.match(/<img[^>]+>/gi) || []).length,
+          linkCount: findAllLinks(html, url).length,
+          source: 'navigation' as const
+        }],
+        sitemapStatus: 'missing' as const,
+        discoveryMethod: 'single_page',
+        crawlDepth: 0
+      };
+    } else if (scope === 'custom') {
+      console.log(`🔍 Custom page audit - analyzing ${specifiedPages.length} specified pages`);
+      // For custom scope, analyze only the specified pages
+      const customPages = await Promise.all(
+        specifiedPages.map(async (pageUrl) => {
+          try {
+            const response = await fetch(pageUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              redirect: 'follow',
+              signal: AbortSignal.timeout(10000)
+            });
+
+            if (response.ok) {
+              const pageHtml = await response.text();
+              const titleMatch = pageHtml.match(/<title[^>]*>(.*?)<\/title>/i);
+
+              return {
+                url: pageUrl,
+                title: titleMatch ? titleMatch[1].trim() : 'No title',
+                statusCode: response.status,
+                hasTitle: /<title[^>]*>.*<\/title>/is.test(pageHtml),
+                hasDescription: hasMetaDescription(pageHtml),
+                hasH1: hasH1Tag(pageHtml),
+                imageCount: (pageHtml.match(/<img[^>]+>/gi) || []).length,
+                linkCount: findAllLinks(pageHtml, pageUrl).length,
+                source: 'navigation' as const
+              };
+            }
+          } catch (error) {
+            console.log(`Could not fetch ${pageUrl}:`, error);
+          }
+
+          return {
+            url: pageUrl,
+            title: 'Error loading page',
+            statusCode: 0,
+            hasTitle: false,
+            hasDescription: false,
+            hasH1: false,
+            imageCount: 0,
+            linkCount: 0,
+            source: 'navigation' as const
+          };
+        })
+      );
+
+      pageDiscovery = {
+        totalPages: customPages.length,
+        pages: customPages,
+        sitemapStatus: 'missing' as const,
+        discoveryMethod: 'custom_selection',
+        crawlDepth: 0
+      };
+    } else {
+      // scope === 'all' - discover all pages
+      console.log('🔍 Discovering all website pages...');
+      pageDiscovery = await discoverRealPages(url);
+    }
+
     result.totalPages = pageDiscovery.totalPages;
     
     // Add performance metrics to ALL pages (limit detailed analysis but provide metrics for all)
@@ -274,8 +359,9 @@ export async function performTechnicalAudit(url: string): Promise<TechnicalAudit
     
     // 8. Analyze images from discovered pages (check up to 10 pages for performance)
     console.log('🖼️ Analyzing images across discovered pages...');
-    const pagesToCheck = pageDiscovery.pages.slice(0, 10); // Limit to avoid timeout
-    
+    // For single page, don't analyze additional pages (already analyzed main page)
+    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, 10);
+
     for (const page of pagesToCheck) {
       if (page.url === url) continue; // Skip main page (already analyzed)
       
@@ -383,33 +469,38 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
-  
+
   let match;
   const checkedUrls = new Set<string>();
-  
+
   while ((match = imageRegex.exec(html)) !== null) {
     const imgSrc = match[1];
     if (!imgSrc || checkedUrls.has(imgSrc)) continue;
     checkedUrls.add(imgSrc);
-    
+
     // Convert relative URLs to absolute
     let imageUrl = imgSrc;
     try {
-      if (!imgSrc.startsWith('http')) {
+      // Skip data URLs and SVGs early
+      if (imgSrc.startsWith('data:') || imgSrc.endsWith('.svg')) continue;
+
+      // Always use URL constructor for proper normalization
+      if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
+        // Valid absolute URL - use directly but validate
+        imageUrl = new URL(imgSrc).href;
+      } else {
+        // Relative URL or malformed URL - resolve against base
         const base = new URL(pageUrl);
         imageUrl = new URL(imgSrc, base).href;
       }
-      
-      // Skip data URLs and SVGs
-      if (imageUrl.startsWith('data:') || imageUrl.endsWith('.svg')) continue;
-      
+
       // Try to get image size via HEAD request
       const sizeKB = await getImageSize(imageUrl);
-      
+
       if (sizeKB > 0) {
         const imageData = { imageUrl, pageUrl, sizeKB };
         images.push(imageData);
-        
+
         // Track images over 100KB
         if (sizeKB > 100) {
           largeImages.push(imageData);
@@ -419,10 +510,10 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
       console.log(`Could not check image ${imgSrc}:`, error);
     }
   }
-  
+
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
-  
+
   return { images, largeImages };
 }
 
@@ -463,26 +554,32 @@ function findAllLinks(html: string, pageUrl: string): string[] {
   const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
   const links: string[] = [];
   const baseUrl = new URL(pageUrl);
-  
+
   let match;
   while ((match = linkRegex.exec(html)) !== null) {
     const href = match[1];
     if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
       continue;
     }
-    
+
     try {
-      // Convert relative URLs to absolute
-      const linkUrl = href.startsWith('http') 
-        ? href 
-        : new URL(href, baseUrl).href;
-      
+      // Always use URL constructor for proper normalization
+      // This handles both absolute and relative URLs correctly
+      let linkUrl: string;
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        // Valid absolute URL - use directly but validate
+        linkUrl = new URL(href).href;
+      } else {
+        // Relative URL or malformed URL - resolve against base
+        linkUrl = new URL(href, baseUrl).href;
+      }
+
       links.push(linkUrl);
     } catch (error) {
       console.log(`Invalid link found: ${href}`);
     }
   }
-  
+
   return [...new Set(links)]; // Remove duplicates
 }
 

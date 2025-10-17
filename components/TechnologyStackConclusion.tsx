@@ -257,63 +257,79 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
         </div>
       </div>
 
-      {/* Quick Wins */}
-      {intelligence.quickWins && intelligence.quickWins.length > 0 && (
-        <div className="mb-6">
-          <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-            <Rocket className="w-4 h-4 text-[#27ae60]" />
-            Quick Technology Wins
-            <Tooltip 
-              content={
-                <div>
-                  <p className="font-semibold mb-2">Quick Technology Wins</p>
-                  <p className="mb-2">Easy-to-implement technology improvements with immediate impact.</p>
-                  <div className="text-xs space-y-1">
-                    <p><strong>Quick Implementation:</strong> Changes that can be done in minutes to hours</p>
-                    <p><strong>High Impact:</strong> Improvements that provide significant benefits</p>
-                    <p><strong>Time to Implement:</strong> Estimated effort required</p>
-                    <p><strong>Estimated Impact:</strong> Expected improvement level</p>
+      {/* Quick Wins - Only show if there are actual issues to address */}
+      {(() => {
+        // Only show Quick Wins if there are actual issues identified
+        const hasRealIssues = (
+          stackAnalysis.overallScore < 80 || // Stack needs improvement
+          securityAssessment.securityScore < 70 || // Security concerns
+          performanceImpact.performanceScore < 70 || // Performance issues
+          (performanceImpact.criticalIssues && performanceImpact.criticalIssues.length > 0) || // Critical issues exist
+          (securityAssessment.vulnerabilities && securityAssessment.vulnerabilities.length > 0) // Vulnerabilities exist
+        );
+
+        const hasQuickWins = intelligence.quickWins && intelligence.quickWins.length > 0;
+
+        // Only show the section if we have both issues AND quick wins
+        if (!hasRealIssues || !hasQuickWins) {
+          return null;
+        }
+
+        return (
+          <div className="mb-6">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Rocket className="w-4 h-4 text-[#27ae60]" />
+              Quick Technology Wins
+              <Tooltip
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Quick Technology Wins</p>
+                    <p className="mb-2">High-impact improvements identified for your website based on the technology audit.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Contextual:</strong> Specific to your technology stack and issues found</p>
+                      <p><strong>High Impact:</strong> Changes that provide significant benefits</p>
+                      <p><strong>Actionable:</strong> Clear recommendations you can implement</p>
+                    </div>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h4>
+            <div className="space-y-3">
+              {Array.isArray(intelligence.quickWins) && intelligence.quickWins.slice(0, 3).map((win, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-[#27ae60]/5 rounded-lg border border-[#27ae60]/20">
+                  <CheckCircle className="w-5 h-5 text-[#27ae60] mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="font-medium text-[#27ae60] mb-1">{win.title}</h5>
+                    <p className="text-sm text-[#27ae60] mb-2">{win.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-[#27ae60]">
+                      <span><TrendingUp className="w-3 h-3 inline mr-1" />Impact: {win.estimatedImpact}</span>
+                    </div>
                   </div>
                 </div>
-              }
-              position="top"
-            >
-              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-            </Tooltip>
-          </h4>
-          <div className="space-y-3">
-            {Array.isArray(intelligence.quickWins) && intelligence.quickWins.slice(0, 3).map((win, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-[#27ae60]/5 rounded-lg border border-[#27ae60]/20">
-                <CheckCircle className="w-5 h-5 text-[#27ae60] mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h5 className="font-medium text-[#27ae60] mb-1">{win.title}</h5>
-                  <p className="text-sm text-[#27ae60] mb-2">{win.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-[#27ae60]">
-                    <span><Clock className="w-3 h-3 inline mr-1" />{win.timeToImplement}</span>
-                    <span><TrendingUp className="w-3 h-3 inline mr-1" />{win.estimatedImpact}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {/* Performance Audit Recommendation */}
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h5 className="font-medium text-blue-900 mb-2">Want More Optimization Ideas?</h5>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Run a <strong>Performance &amp; Technical Audit</strong> to get detailed, step-by-step optimization recommendations with specific plugin instructions.
-                  </p>
-                  <div className="text-xs text-blue-600 bg-blue-100 px-3 py-2 rounded">
-                    💡 <strong>Tip:</strong> The Performance audit provides plugin-specific instructions for WP Rocket, Autoptimize, W3 Total Cache, and page builders like Elementor.
+              ))}
+
+              {/* Performance Audit Recommendation */}
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="font-medium text-blue-900 mb-2">Want More Optimization Ideas?</h5>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Run a <strong>Performance &amp; Technical Audit</strong> to get detailed, step-by-step optimization recommendations with specific plugin instructions.
+                    </p>
+                    <div className="text-xs text-blue-600 bg-blue-100 px-3 py-2 rounded">
+                      💡 <strong>Tip:</strong> The Performance audit provides plugin-specific instructions for WP Rocket, Autoptimize, W3 Total Cache, and page builders like Elementor.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Critical Issues */}
       {(performanceImpact.criticalIssues?.length > 0 || securityAssessment.vulnerabilities?.length > 0) && (

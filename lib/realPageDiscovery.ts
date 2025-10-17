@@ -199,11 +199,30 @@ export class RealPageDiscovery {
 
     while ((match = urlPattern.exec(xml)) !== null && pages.length < this.maxPages) {
       const urlBlock = match[1];
-      
+
       const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
       if (!locMatch) continue;
 
-      const pageUrl = locMatch[1].trim();
+      let pageUrl = locMatch[1].trim();
+
+      // Normalize and validate the URL from sitemap
+      try {
+        // Fix malformed URLs like "http:/example.com" (missing one slash)
+        // by validating through URL constructor
+        const urlObj = new URL(pageUrl);
+
+        // Additional validation: ensure URL has a valid hostname
+        if (!urlObj.hostname || urlObj.hostname.length === 0) {
+          console.log(`Invalid URL in sitemap (no hostname): ${pageUrl}`);
+          continue; // Skip URLs without hostnames
+        }
+
+        pageUrl = urlObj.href; // Use normalized version
+      } catch {
+        console.log(`Invalid URL in sitemap: ${pageUrl}`);
+        continue; // Skip invalid URLs
+      }
+
       if (this.visitedUrls.has(pageUrl)) continue;
       this.visitedUrls.add(pageUrl);
 
@@ -353,9 +372,19 @@ export class RealPageDiscovery {
         }
 
         try {
-          const linkUrl = href.startsWith('http') ? href : new URL(href, baseUrl).href;
+          // Always use URL constructor for proper normalization
+          // This handles both absolute and relative URLs correctly
+          let linkUrl: string;
+          if (href.startsWith('http://') || href.startsWith('https://')) {
+            // Valid absolute URL - use directly but validate
+            linkUrl = new URL(href).href;
+          } else {
+            // Relative URL or malformed URL - resolve against base
+            linkUrl = new URL(href, baseUrl).href;
+          }
+
           const linkDomain = new URL(linkUrl).hostname;
-          
+
           if (linkDomain === baseUrl.hostname) {
             internalLinks.push(linkUrl);
           }

@@ -193,23 +193,38 @@ IMPORTANT: Only detect plugins/extensions you're confident about based on clear 
     }
 
     try {
-      // Handle Claude responses that might have text before/after JSON
+      // Enhanced JSON extraction with multiple strategies
       let jsonText = content.text.trim();
-      
-      // Find the JSON content by looking for the first { and last }
+
+      // Strategy 1: Find JSON between first { and last }
       const firstBrace = jsonText.indexOf('{');
       const lastBrace = jsonText.lastIndexOf('}');
-      
+
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
-      
+
+      // Strategy 2: Remove markdown code blocks if present
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+      // Strategy 3: Fix common JSON issues
+      // Remove control characters that break JSON parsing
+      jsonText = jsonText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+
+      // Strategy 4: Handle escaped newlines in strings
+      jsonText = jsonText.replace(/\\n/g, ' ').replace(/\n/g, ' ');
+
+      // Strategy 5: Fix trailing commas (common Claude mistake)
+      jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+
       let analysis;
       try {
         analysis = JSON.parse(jsonText);
       } catch (parseError) {
         console.error('Failed to parse Claude plugin response:', parseError);
-        console.error('Raw JSON text:', jsonText);
+        console.error('📄 Raw response length:', content.text.length, 'chars');
+        console.error('📄 First 500 chars:', content.text.substring(0, 500));
+        console.error('📄 Last 200 chars:', content.text.substring(content.text.length - 200));
         console.log('🔄 Using fallback plugin analysis due to JSON parsing error');
         return getFallbackPluginAnalysis(platform);
       }

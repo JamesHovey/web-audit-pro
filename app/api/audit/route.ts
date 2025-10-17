@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, sections, scope = 'single', country = 'gb', isUKCompany = false, pages = [url] } = body
+    const { url, sections, scope = 'single', country = 'gb', isUKCompany = false, pages = [url], pageLimit = 50, excludedPaths = [] } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -93,41 +93,119 @@ export async function POST(request: NextRequest) {
 
           if (section === 'traffic') {
             const { getCostEffectiveTrafficData } = await import('@/lib/costEffectiveTrafficService')
-            
+
             // Always use getCostEffectiveTrafficData for consistent traffic numbers
-            results.traffic = await getCostEffectiveTrafficData(url)
-            
+            results.traffic = await getCostEffectiveTrafficData(url, scope, pages)
+
             results.traffic.scope = scope
             results.traffic.totalPages = pages.length
 
           } else if (section === 'keywords') {
             const { analyzeKeywordsEnhanced } = await import('@/lib/enhancedKeywordService')
-            // Use the main domain page for analysis with HTML content
-            const mainPage = pages[0] || url
-            
-            // Fetch HTML content for more accurate analysis
-            let htmlContent = '';
-            try {
-              // Normalize URL to ensure it has a protocol
-              const normalizedUrl = mainPage.startsWith('http') ? mainPage : `https://${mainPage}`;
-              const response = await fetch(normalizedUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-                redirect: 'follow',
-                signal: AbortSignal.timeout(10000)
-              });
-              if (response.ok) {
-                htmlContent = await response.text();
+
+            // For 'all' scope, discover and analyze all pages
+            let pagesToAnalyze = [url];
+            let pageHtmlMap = new Map<string, string>();
+
+            if (scope === 'all') {
+              console.log('🔍 Discovering pages for keyword analysis...');
+              const { discoverRealPages } = await import('@/lib/realPageDiscovery');
+              const pageDiscovery = await discoverRealPages(url);
+
+              // Filter out excluded paths
+              let filteredPages = pageDiscovery.pages;
+              if (excludedPaths.length > 0) {
+                const initialCount = filteredPages.length;
+                filteredPages = filteredPages.filter(page => {
+                  const pageUrl = new URL(page.url);
+                  const pathname = pageUrl.pathname;
+                  // Check if the pathname starts with any excluded path
+                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                });
+                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
               }
-            } catch (error) {
-              console.log('Could not fetch HTML content for keyword analysis:', error);
+
+              // Apply page limit (null = unlimited, otherwise use the specified limit)
+              const effectiveLimit = pageLimit === null ? filteredPages.length : pageLimit;
+              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages${pageLimit === null ? ' (unlimited)' : ` (limited to ${pageLimit})`}`);
+
+              // Fetch HTML for each page
+              for (const pageUrl of pagesToAnalyze) {
+                try {
+                  const normalizedUrl = pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`;
+                  const response = await fetch(normalizedUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(10000)
+                  });
+                  if (response.ok) {
+                    const html = await response.text();
+                    pageHtmlMap.set(pageUrl, html);
+                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                  }
+                } catch (error) {
+                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, error.message);
+                }
+              }
+            } else if (scope === 'custom') {
+              // For custom scope, use the specified pages
+              pagesToAnalyze = pages;
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages`);
+
+              // Fetch HTML for each specified page
+              for (const pageUrl of pagesToAnalyze) {
+                try {
+                  const normalizedUrl = pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`;
+                  const response = await fetch(normalizedUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(10000)
+                  });
+                  if (response.ok) {
+                    const html = await response.text();
+                    pageHtmlMap.set(pageUrl, html);
+                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                  }
+                } catch (error) {
+                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, error.message);
+                }
+              }
+            } else {
+              // Single page - fetch main page HTML only
+              const mainPage = pages[0] || url;
+              try {
+                const normalizedUrl = mainPage.startsWith('http') ? mainPage : `https://${mainPage}`;
+                const response = await fetch(normalizedUrl, {
+                  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                  redirect: 'follow',
+                  signal: AbortSignal.timeout(10000)
+                });
+                if (response.ok) {
+                  const html = await response.text();
+                  pageHtmlMap.set(mainPage, html);
+                }
+              } catch (error) {
+                console.log('Could not fetch HTML content for keyword analysis:', error);
+              }
             }
-            
+
+            // Use the main page HTML for business detection (first page with content)
+            const mainPageHtml = pageHtmlMap.get(pagesToAnalyze[0]) || '';
+
             console.log('🚀 Using enhanced keyword analysis with real API data only');
-            results.keywords = await analyzeKeywordsEnhanced(url, htmlContent, country)
+            results.keywords = await analyzeKeywordsEnhanced(
+              url,
+              mainPageHtml,
+              country,
+              scope,
+              pagesToAnalyze,
+              pageHtmlMap
+            )
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
-            results.technical = await performTechnicalAudit(url)
+            results.technical = await performTechnicalAudit(url, scope, pages)
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
@@ -156,7 +234,7 @@ export async function POST(request: NextRequest) {
 
             // First run technical audit to get comprehensive data
             console.log('🔧 Running technical audit...')
-            results.technical = await performTechnicalAudit(url)
+            results.technical = await performTechnicalAudit(url, scope, pages)
 
             // Fetch HTML content for Claude analysis
             let htmlContent = '';
@@ -208,10 +286,6 @@ export async function POST(request: NextRequest) {
                 console.log('⚠️ Viewport analysis skipped')
               }
             }
-
-          } else if (section === 'backlinks') {
-            const { analyzeBacklinks } = await import('@/lib/backlinkService')
-            results.backlinks = await analyzeBacklinks(url)
 
           } else {
             // Handle remaining sections (technology) with mock data for now

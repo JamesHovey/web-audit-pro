@@ -21,12 +21,17 @@ interface TrafficData {
 }
 
 // Cost-effective traffic estimation using MCP and web scraping
-export async function getCostEffectiveTrafficData(domain: string): Promise<TrafficData> {
+export async function getCostEffectiveTrafficData(
+  domain: string,
+  scope: 'single' | 'all' | 'custom' = 'all',
+  pages: string[] = [domain]
+): Promise<TrafficData> {
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-  
-  console.log(`\n=== ANALYZING ${cleanDomain} ===`);
+
+  console.log(`\n=== ANALYZING ${cleanDomain} (scope: ${scope}) ===`);
   console.log(`Original domain: ${domain}`);
   console.log(`Cleaned domain: ${cleanDomain}`);
+  console.log(`Pages to analyze: ${pages.length}`);
 
   try {
     // Step 1: Scrape the website for analysis
@@ -143,8 +148,12 @@ async function analyzeSiteWithMCP(siteData: { html: string; headers: Record<stri
   if (professionalTechStack.hosting) techStackArray.push(professionalTechStack.hosting);
   if (professionalTechStack.cdn) techStackArray.push(professionalTechStack.cdn);
   if (professionalTechStack.analytics) techStackArray.push(professionalTechStack.analytics);
-  techStackArray.push(...professionalTechStack.plugins);
-  techStackArray.push(...professionalTechStack.other);
+  if (professionalTechStack.plugins && Array.isArray(professionalTechStack.plugins)) {
+    techStackArray.push(...professionalTechStack.plugins);
+  }
+  if (professionalTechStack.other && Array.isArray(professionalTechStack.other)) {
+    techStackArray.push(...professionalTechStack.other);
+  }
   
   const analysis = {
     siteQuality: analyzeSiteQuality(siteData),

@@ -142,13 +142,38 @@ export class EnhancedKeywordService {
   }
 
   /**
+   * Check which pages contain a specific keyword
+   */
+  private checkKeywordOnPages(keyword: string, pageHtmlMap: Map<string, string>): string[] {
+    const pagesWithKeyword: string[] = [];
+    const keywordLower = keyword.toLowerCase();
+
+    for (const [pageUrl, html] of pageHtmlMap.entries()) {
+      // Remove HTML tags and convert to lowercase for case-insensitive search
+      const pageText = html.replace(/<[^>]+>/g, ' ').toLowerCase();
+
+      // Check if keyword appears in page text (whole word match)
+      const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (keywordRegex.test(pageText)) {
+        pagesWithKeyword.push(pageUrl);
+      }
+    }
+
+    return pagesWithKeyword;
+  }
+
+  /**
    * Main enhanced keyword analysis function
    */
   async analyzeKeywordsEnhanced(
-    domain: string, 
-    html: string, 
-    country: string = 'gb'
+    domain: string,
+    html: string,
+    country: string = 'gb',
+    scope: 'single' | 'all' | 'custom' = 'all',
+    pages: string[] = [domain],
+    pageHtmlMap?: Map<string, string>
   ): Promise<EnhancedKeywordAnalysis> {
+    console.log(`\n🔍 Keyword analysis scope: ${scope}, analyzing ${pages.length} page(s)`);
     try {
       const cleanDomain = domain?.replace(/^https?:\/\//, '')?.replace(/^www\./, '')?.split('/')[0] || 'example.com';
       
@@ -250,7 +275,7 @@ export class EnhancedKeywordService {
       const competitionAnalysis = await this.getCompetitionAnalysis(keywordsForCompetition, cleanDomain);
       
       // Use enhanced discovery results directly (no legacy conversion needed)
-      const enhancedFormat = this.convertDiscoveryToFormat(discoveryResult, businessContext, apiAvailable);
+      const enhancedFormat = this.convertDiscoveryToFormat(discoveryResult, businessContext, apiAvailable, pageHtmlMap);
       
       // Step 9: SERP Position Analysis for both branded and non-branded keywords
       console.log('🔍 Step 9: SERP Position Analysis...');
@@ -1121,15 +1146,20 @@ export class EnhancedKeywordService {
   /**
    * Convert discovery results directly to expected format (bypassing legacy system)
    */
-  private convertDiscoveryToFormat(discoveryResult: KeywordDiscoveryResult, businessContext: BusinessContext, apiAvailable: boolean = true) {
+  private convertDiscoveryToFormat(
+    discoveryResult: KeywordDiscoveryResult,
+    businessContext: BusinessContext,
+    apiAvailable: boolean = true,
+    pageHtmlMap?: Map<string, string>
+  ) {
     console.log(`🎯 Converting discovery results: ${discoveryResult.brandedKeywords.length} branded, ${discoveryResult.suggestedKeywords.length} suggested`);
-    
+
     // Get business size and volume thresholds
     const businessSize = discoveryResult.businessSize;
     const volumeThresholds = this.getVolumeThresholds(businessSize);
-    
+
     console.log(`🏢 Business size: ${businessSize} (volume filter: ${volumeThresholds.min}-${volumeThresholds.max})`);
-    
+
     // Convert branded keywords with volume filtering
     const brandedKeywordsList = discoveryResult.brandedKeywords
       .filter(k => {
@@ -1142,13 +1172,22 @@ export class EnhancedKeywordService {
       })
       .sort((a, b) => (b.searchVolume || 0) - (a.searchVolume || 0))
       .slice(0, 20)
-      .map(k => ({
-        keyword: k.keyword,
-        position: 0,
-        volume: k.searchVolume || null,
-        difficulty: this.mapDifficulty(k.competition),
-        type: 'branded' as const
-      }));
+      .map(k => {
+        const keywordObj: any = {
+          keyword: k.keyword,
+          position: 0,
+          volume: k.searchVolume || null,
+          difficulty: this.mapDifficulty(k.competition),
+          type: 'branded' as const
+        };
+
+        // Add page URLs if analyzing multiple pages
+        if (pageHtmlMap && pageHtmlMap.size > 1) {
+          keywordObj.pages = this.checkKeywordOnPages(k.keyword, pageHtmlMap);
+        }
+
+        return keywordObj;
+      });
     
     // Convert non-branded keywords
     const nonBrandedKeywordsList = discoveryResult.suggestedKeywords
@@ -1186,7 +1225,7 @@ export class EnhancedKeywordService {
 
         console.log(`📊 Keyword "${k.keyword}": original relevance=${k.relevanceScore}, final relevance=${businessRelevance.toFixed(2)}`);
 
-        return {
+        const keywordObj: any = {
           keyword: k.keyword,
           position: 0,
           volume: k.searchVolume || null,
@@ -1197,6 +1236,13 @@ export class EnhancedKeywordService {
           category: k.longtail ? 'long-tail' : 'primary',
           averageCompetitorDA: this.mapDifficulty(k.competition) * 0.7 // Rough estimate
         };
+
+        // Add page URLs if analyzing multiple pages
+        if (pageHtmlMap && pageHtmlMap.size > 1) {
+          keywordObj.pages = this.checkKeywordOnPages(k.keyword, pageHtmlMap);
+        }
+
+        return keywordObj;
       });
     
     // Combine for top keywords
@@ -1882,10 +1928,13 @@ export class EnhancedKeywordService {
  * Main export function that replaces the original analyzeKeywords
  */
 export async function analyzeKeywordsEnhanced(
-  domain: string, 
-  html: string, 
-  country: string = 'gb'
+  domain: string,
+  html: string,
+  country: string = 'gb',
+  scope: 'single' | 'all' | 'custom' = 'all',
+  pages: string[] = [domain],
+  pageHtmlMap?: Map<string, string>
 ): Promise<EnhancedKeywordAnalysis> {
   const service = new EnhancedKeywordService();
-  return await service.analyzeKeywordsEnhanced(domain, html, country);
+  return await service.analyzeKeywordsEnhanced(domain, html, country, scope, pages, pageHtmlMap);
 }

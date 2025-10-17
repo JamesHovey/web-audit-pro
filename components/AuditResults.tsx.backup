@@ -399,144 +399,6 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
         <>
 
           {/* Keywords Section - Full Width */}
-      {audit?.sections?.includes('traffic') && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.traffic}
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Traffic Insights</p>
-                    <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Organic:</strong> Visitors from Google search results</p>
-                      <p><strong>Direct:</strong> People typing your URL directly</p>
-                      <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
-                      <p><strong>Social:</strong> Visitors from social media platforms</p>
-                      <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
-                    </div>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="traffic" />
-              ) : (
-                // Use original traffic rendering
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Technology Stack - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              Performance & Technical Audit
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Performance & Technical Audit</p>
-                    <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
-                      <p><strong>Page Speed:</strong> How fast your pages load</p>
-                      <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
-                      <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
-                      <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
-                    </div>
-                  </div>
-                }
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="performance" />
-              ) : (
-                renderSectionResults(
-                  audit?.sections?.includes('technical') ? "technical" : "performance", 
-                  {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})}, 
-                  undefined, 
-                  showMethodologyExpanded, 
-                  toggleMethodology, 
-                  setPageModalState,
-                  performancePagination,
-                  setPerformancePagination,
-                  setShowCoreWebVitalsGuide,
-                  audit?.auditType,
-                  audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
-                  audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Viewport Responsiveness Analysis - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <ViewportResponsiveAnalysis
-              url={audit.url}
-              data={audit?.results?.viewport as any}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Authority & Backlinks - Full Width */}
-      {audit?.sections?.includes('technology') && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.technology}
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Technology Stack</p>
-                    <p className="mb-2">Shows what technologies and tools power your website.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
-                      <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
-                      <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
-                      <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
-                      <p><strong>Security Tools:</strong> SSL certificates and security services</p>
-                    </div>
-                  </div>
-                }
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="technology" />
-              ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
-              )}
-            </div>
-            {/* AI-Enhanced Technology Conclusion */}
-            {audit.status === "completed" && audit?.results?.technology && (
-              <TechnologyStackConclusion 
-                data={audit?.results?.technology} 
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Performance & Technical Audit - Full Width */}
           {audit?.sections?.includes('keywords') && (
         <div className="card-pmw mb-6">
           <div className="p-6">
@@ -597,6 +459,144 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       )}
 
       {/* Premium Traffic Insights - Full Width */}
+      {audit?.sections?.includes('traffic') && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              {SECTION_LABELS.traffic}
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Traffic Insights</p>
+                    <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Organic:</strong> Visitors from Google search results</p>
+                      <p><strong>Direct:</strong> People typing your URL directly</p>
+                      <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
+                      <p><strong>Social:</strong> Visitors from social media platforms</p>
+                      <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
+                    </div>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="traffic" />
+              ) : (
+                // Use original traffic rendering
+                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Technology Stack - Full Width */}
+      {audit?.sections?.includes('technology') && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              {SECTION_LABELS.technology}
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Technology Stack</p>
+                    <p className="mb-2">Shows what technologies and tools power your website.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
+                      <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
+                      <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
+                      <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
+                      <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+                    </div>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="technology" />
+              ) : (
+                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+              )}
+            </div>
+            {/* AI-Enhanced Technology Conclusion */}
+            {audit.status === "completed" && audit?.results?.technology && (
+              <TechnologyStackConclusion 
+                data={audit?.results?.technology} 
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Performance & Technical Audit - Full Width */}
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              Performance & Technical Audit
+              <Tooltip 
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Performance & Technical Audit</p>
+                    <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
+                      <p><strong>Page Speed:</strong> How fast your pages load</p>
+                      <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
+                      <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
+                      <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
+                    </div>
+                  </div>
+                }
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="performance" />
+              ) : (
+                renderSectionResults(
+                  audit?.sections?.includes('technical') ? "technical" : "performance", 
+                  {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})}, 
+                  undefined, 
+                  showMethodologyExpanded, 
+                  toggleMethodology, 
+                  setPageModalState,
+                  performancePagination,
+                  setPerformancePagination,
+                  setShowCoreWebVitalsGuide,
+                  audit?.auditType,
+                  audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
+                  audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Viewport Responsiveness Analysis - Full Width */}
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <ViewportResponsiveAnalysis
+              url={audit.url}
+              data={audit?.results?.viewport as any}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Authority & Backlinks - Full Width */}
       {audit?.sections?.includes('backlinks') && (
         <div className="card-pmw">
           <div className="p-6">
@@ -1569,41 +1569,41 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">📊 Traffic Estimation Method</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  Our traffic estimates combine real keyword data from Keywords Everywhere API with comprehensive
-                  website analysis. We scrape your site's content, analyze business size indicators (navigation links,
-                  content volume), and use real search volume data to calculate branded and organic traffic.
+                  Our traffic estimates are calculated using a combination of website analysis, SEO metrics, 
+                  and machine learning algorithms. We analyze your site's content quality, page count, 
+                  search engine visibility, and industry benchmarks to provide realistic traffic estimates.
                 </p>
               </div>
-
+              
               <div>
                 <h5 className="font-medium mb-2">🎯 What We Analyze</h5>
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                  <li><strong>Branded Traffic:</strong> Real search volumes from Keywords Everywhere API for brand keywords</li>
-                  <li><strong>Content Analysis:</strong> Business type detection (enterprise/business/blog) from content patterns</li>
-                  <li><strong>Site Quality:</strong> Navigation complexity, content depth, and professional indicators</li>
-                  <li><strong>Geographic Analysis:</strong> Domain extension (.co.uk), content language, and location markers</li>
-                  <li><strong>Technology Stack:</strong> CMS, plugins, and hosting detected from HTML analysis</li>
+                  <li><strong>Content Volume:</strong> Number of pages, blog posts, and content depth</li>
+                  <li><strong>SEO Indicators:</strong> Meta tags, headings, and search optimization quality</li>
+                  <li><strong>Domain Authority:</strong> Website credibility and link authority scores</li>
+                  <li><strong>Geographic Targeting:</strong> Country-specific traffic distribution analysis</li>
+                  <li><strong>Industry Benchmarks:</strong> Comparison with similar businesses in your sector</li>
                 </ul>
               </div>
 
               <div>
                 <h5 className="font-medium mb-2">🌍 Geographic Analysis</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  Geographic distribution is calculated by analyzing domain extensions (.co.uk → UK), content language,
-                  location markers in HTML (addresses, phone numbers, country names), and currency symbols. The system
-                  assigns confidence levels (high/medium/low) based on evidence strength. Primary market gets 50-70% of
-                  traffic, with remainder distributed to related English-speaking countries (Ireland, US, Canada, Australia).
+                  Geographic traffic distribution is determined by analyzing your domain extension (.co.uk), 
+                  content language patterns, business location indicators (addresses, phone numbers), 
+                  and regional search behavior. This provides more accurate country-specific estimates 
+                  than generic global averages.
                 </p>
               </div>
 
+
               <div>
-                <h5 className="font-medium mb-2">📈 Calculation Formula</h5>
+                <h5 className="font-medium mb-2">📈 Data Accuracy</h5>
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                  <li><strong>Base Traffic:</strong> Calculated from site quality (high/medium/low) + business size (large/medium/small)</li>
-                  <li><strong>Branded Traffic:</strong> Real search volumes from Keywords Everywhere API × ranking positions × CTR</li>
-                  <li><strong>Organic Traffic:</strong> Base estimate adjusted by content volume and SEO quality indicators</li>
-                  <li><strong>Direct/Referral/Social:</strong> Industry-standard percentages based on business type</li>
-                  <li><strong>Geographic Split:</strong> Applied after total calculation based on domain/content analysis</li>
+                  <li>Estimates are calibrated against real Google Analytics data from similar businesses</li>
+                  <li>12-month averages account for seasonal variations and provide stable baselines</li>
+                  <li>Confidence levels reflect the strength of available indicators for your website</li>
+                  <li>Results are conservative estimates - actual traffic may vary based on marketing efforts</li>
                 </ul>
               </div>
 
@@ -2674,32 +2674,30 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">⚡ Performance & Technical Analysis Method</h5>
                   <p className="text-blue-700 leading-relaxed">
-                    We use Google's official PageSpeed Insights API to test your site in real Chrome browsers (desktop and mobile).
-                    This captures actual Core Web Vitals from real devices. Claude AI then analyzes the results to provide
-                    plain-English explanations and prioritized recommendations. We also use Puppeteer to test responsive design
-                    across 4 viewport sizes with real screenshots.
+                    Our comprehensive analysis combines performance testing with technical SEO auditing. We simulate 
+                    your website loading on both desktop and mobile devices using Core Web Vitals metrics, while also 
+                    crawling your site to analyze HTML structure, meta tags, images, and server responses.
                   </p>
                 </div>
-
+                
                 <div>
                   <h5 className="font-medium mb-2">📊 What We Measure</h5>
                   <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                    <li><strong>Real Core Web Vitals:</strong> Google PageSpeed API measures LCP, CLS, INP on real Chrome browsers</li>
-                    <li><strong>Sitemap Discovery:</strong> Automatically find all pages via sitemap.xml or RSS feeds</li>
-                    <li><strong>Page-by-Page Analysis:</strong> Meta titles, descriptions, H1 tags across all discovered pages</li>
-                    <li><strong>Image Optimization:</strong> File sizes, formats, and alt text with Claude AI recommendations</li>
-                    <li><strong>Viewport Testing:</strong> Puppeteer screenshots at Mobile (360px), Tablet (768px), Desktop (1366px), Wide (1920px)</li>
-                    <li><strong>Claude AI Insights:</strong> Plain-English explanations, business impact analysis, and prioritized fixes</li>
+                    <li><strong>Core Web Vitals:</strong> LCP, CLS, INP for both desktop and mobile experiences</li>
+                    <li><strong>Page Structure:</strong> Meta titles, descriptions, H1 tags, and content hierarchy</li>
+                    <li><strong>Image Optimization:</strong> File sizes, alt text, and format efficiency</li>
+                    <li><strong>Site Health:</strong> 404 errors, broken links, and server response issues</li>
+                    <li><strong>Technical SEO:</strong> URL structure, redirects, and crawlability factors</li>
                   </ul>
                 </div>
-
+                
                 <div>
                   <h5 className="font-medium mb-2">🔧 Data Sources & Accuracy</h5>
                   <p className="text-blue-700 leading-relaxed">
-                    Performance data comes directly from Google's PageSpeed Insights API - the same data Google uses for
-                    search rankings. Viewport tests use real Chromium browsers via Puppeteer with actual screenshots.
-                    Technical SEO data is gathered by crawling your public sitemap and analyzing each page's HTML structure.
-                    Claude AI provides the analysis layer, translating technical metrics into actionable business recommendations.
+                    Results are based on simulated testing and automated crawling. Performance metrics may vary from 
+                    real user experiences depending on device and network conditions. Technical audit results may not 
+                    capture issues requiring user interaction or authentication. For comprehensive analysis, combine 
+                    these results with manual testing and real user monitoring data.
                   </p>
                 </div>
               </div>
@@ -2952,32 +2950,29 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">🔍 Detection Method</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  We combine traditional pattern matching with Claude AI-powered analysis. The system examines HTML source code,
-                  HTTP headers, JavaScript files, and CSS classes. Claude AI then analyzes this data to detect plugins,
-                  extensions, and technologies across WordPress, Shopify, Drupal, and 100+ other platforms. This provides
-                  business-focused insights beyond basic detection.
+                  Our technology detection system analyzes your website by examining the HTML source code, 
+                  HTTP response headers, file paths, and other technical indicators. This is done completely 
+                  automatically and safely - we don't make any changes to your website.
                 </p>
               </div>
-
+              
               <div>
-                <h5 className="font-medium mb-2">🎯 What We Detect</h5>
+                <h5 className="font-medium mb-2">🎯 What We Look For</h5>
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
-                  <li><strong>CMS & Platform:</strong> WordPress, Shopify, Webflow, Squarespace, Wix, and 100+ others</li>
-                  <li><strong>Claude AI Plugin Detection:</strong> Identifies plugins by category (security, performance, SEO, etc.)</li>
-                  <li><strong>Technology Intelligence:</strong> Claude AI provides business impact analysis and recommendations</li>
-                  <li><strong>Analytics & Marketing:</strong> Google Analytics, Tag Manager, Facebook Pixel, and tracking scripts</li>
-                  <li><strong>Hosting & CDN:</strong> WHOIS data, IP geolocation, and Cloudflare bypass attempts</li>
-                  <li><strong>Page Builders:</strong> Elementor, WPBakery, Divi, and other visual builders</li>
+                  <li><strong>CMS Detection:</strong> Meta tags, file paths like /wp-content/, and unique code signatures</li>
+                  <li><strong>Framework Identification:</strong> JavaScript libraries, build artifacts, and framework-specific patterns</li>
+                  <li><strong>Analytics Tracking:</strong> Google Analytics, Tag Manager, and other tracking code</li>
+                  <li><strong>Hosting & CDN:</strong> Server headers, IP geolocation, and network infrastructure analysis</li>
+                  <li><strong>Page Builders:</strong> CSS classes, JavaScript files, and plugin signatures</li>
                 </ul>
               </div>
 
               <div>
-                <h5 className="font-medium mb-2">🌐 Advanced Features</h5>
+                <h5 className="font-medium mb-2">🌐 Hosting Detection</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  For WordPress sites, Claude AI performs universal plugin detection by analyzing script sources, CSS patterns,
-                  and meta tags. It categorizes plugins by function (security, performance, ecommerce) and assesses business
-                  impact. For hosting, we use WHOIS APIs and attempt Cloudflare bypass to identify the real origin server
-                  behind CDN protection.
+                  For hosting providers, we use IP geolocation APIs and network analysis to identify the actual 
+                  hosting company. When a CDN like Cloudflare is detected, we attempt to identify the origin 
+                  server behind it, though this isn't always possible due to security configurations.
                 </p>
               </div>
 

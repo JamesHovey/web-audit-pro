@@ -25,11 +25,6 @@ const AUDIT_SECTIONS = [
     description: "Core Web Vitals, technical SEO health, image optimization, and site structure analysis"
   },
   {
-    id: "backlinks",
-    label: "Authority & Backlinks",
-    description: "Domain authority assessment and comprehensive backlink analysis"
-  },
-  {
     id: "technology",
     label: "Technology Stack",
     description: "Technologies, frameworks, and platforms used in website construction"
@@ -114,6 +109,31 @@ export function AuditForm() {
   const [error, setError] = useState("")
   const [showErrorTooltip, setShowErrorTooltip] = useState(false)
   const [isValidUrl, setIsValidUrl] = useState(false)
+  const [pageLimit, setPageLimit] = useState<number | null>(50) // 50 by default, null for unlimited
+  const [showPageLimitControls, setShowPageLimitControls] = useState(false)
+  const [allPagesCount, setAllPagesCount] = useState<number | null>(null) // Count of discovered pages
+  const [allDiscoveredPagesList, setAllDiscoveredPagesList] = useState<{url: string}[]>([]) // Full list of discovered pages
+  const [isCountingPages, setIsCountingPages] = useState(false)
+  const [excludedPaths, setExcludedPaths] = useState<string[]>([]) // Paths to exclude (e.g., /blog)
+  const [excludeInput, setExcludeInput] = useState('')
+
+  // Recalculate page count when excluded paths change
+  useEffect(() => {
+    if (allDiscoveredPagesList.length > 0) {
+      // Filter pages based on excluded paths
+      const filteredPages = allDiscoveredPagesList.filter(page => {
+        try {
+          const pageUrl = new URL(page.url)
+          const pathname = pageUrl.pathname
+          // Check if the pathname starts with any excluded path
+          return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath))
+        } catch {
+          return true // Keep pages with invalid URLs
+        }
+      })
+      setAllPagesCount(filteredPages.length)
+    }
+  }, [allDiscoveredPagesList, excludedPaths])
 
   const validateUrl = (urlString: string) => {
     try {
@@ -177,9 +197,11 @@ export function AuditForm() {
     // Reset discovered pages when URL changes
     setDiscoveredPages([])
     setAuditScope('single')
+    setAllPagesCount(null) // Reset page count
+    setAllDiscoveredPagesList([]) // Reset discovered pages list
     // Reset UK detection when URL changes
     setUkDetection(null)
-    
+
     // Auto-detect UK if URL is valid
     if (validateUrl(value)) {
       detectUKCompany(value)
@@ -257,10 +279,48 @@ export function AuditForm() {
     )
   }
 
+  const discoverPagesCount = async () => {
+    if (!isValidUrl) return
+
+    setIsCountingPages(true)
+
+    try {
+      const urlToDiscover = url.startsWith('http') ? url : `https://${url}`
+
+      const response = await fetch('/api/discover-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: urlToDiscover }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to discover pages')
+      }
+
+      const data = await response.json()
+      // Store full list of pages for filtering
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pagesList = (data.pages || []).map((page: any) => ({ url: page.url }))
+      setAllDiscoveredPagesList(pagesList)
+      setAllPagesCount(data.totalFound || 0)
+    } catch (err) {
+      console.error('Failed to count pages:', err)
+      setAllDiscoveredPagesList([])
+      setAllPagesCount(0)
+    } finally {
+      setIsCountingPages(false)
+    }
+  }
+
   const handleAuditScopeChange = (scope: AuditScope) => {
     setAuditScope(scope)
-    // Remove automatic page discovery for 'all' scope
-    // Page discovery will happen during the audit process instead
+
+    // Discover pages when "All Discoverable Pages" is selected
+    if (scope === 'all' && isValidUrl && allPagesCount === null) {
+      discoverPagesCount()
+    }
   }
 
   const handleSectionToggle = (sectionId: string) => {
@@ -322,7 +382,9 @@ export function AuditForm() {
           scope: auditScope,
           country: country, // Include selected country
           isUKCompany: isUKCompany, // Include UK company flag
-          pages: auditScope === 'custom' 
+          pageLimit: auditScope === 'all' ? pageLimit : undefined, // Only send page limit for 'all' scope
+          excludedPaths: auditScope === 'all' && excludedPaths.length > 0 ? excludedPaths : undefined, // Only send excluded paths for 'all' scope
+          pages: auditScope === 'custom'
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
             : [urlToAudit] // For both 'single' and 'all' scopes, just send the main URL
         }),
@@ -398,8 +460,6 @@ export function AuditForm() {
           {url && !isValidUrl && (
             <p className="text-red-600 text-sm mt-1">Please enter a valid URL</p>
           )}
-          
-          {/* Sitemap Button */}
         </div>
 
         {/* Audit Scope Selection */}
@@ -491,8 +551,194 @@ export function AuditForm() {
                   </div>
                 </label>
                 <div className="text-sm text-gray-600 ml-7">Scan sitemap and internal links to audit all pages</div>
+
+                {/* Show all page discovery info when "All Discoverable Pages" is selected */}
+                {auditScope === 'all' && (
+                  <div className="ml-7 mt-3 space-y-3">
+                    {/* Page Count Badge */}
+                    <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                      {isCountingPages ? (
+                        <>
+                          <LoadingSpinner size="sm" />
+                          <span className="text-blue-700">Counting pages...</span>
+                        </>
+                      ) : allPagesCount !== null ? (
+                        <>
+                          <span className="font-semibold text-blue-900">{allPagesCount}</span>
+                          <span className="text-blue-700">pages discovered</span>
+                        </>
+                      ) : null}
+                    </div>
+
+                    {/* Page Limit Notice */}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium text-amber-900">
+                          {pageLimit === null ? 'No page limit' : `Analysis limited to ${pageLimit} pages`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 mb-2">
+                        {pageLimit === null
+                          ? 'All discoverable pages will be analyzed. This may take longer and incur higher costs.'
+                          : 'Limiting page analysis helps control processing time and API costs.'
+                        }
+                      </p>
+
+                      {/* Page Limit Controls Toggle */}
+                      {!showPageLimitControls && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPageLimitControls(true)}
+                          className="text-xs text-amber-800 hover:text-amber-900 font-medium underline"
+                        >
+                          Change page limit settings
+                        </button>
+                      )}
+
+                      {/* Page Limit Controls Expanded */}
+                      {showPageLimitControls && (
+                        <div className="space-y-3 mt-2">
+                          {/* Remove Limit Option */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={pageLimit === null}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setPageLimit(null)
+                                } else {
+                                  setPageLimit(50)
+                                }
+                              }}
+                              className="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                            />
+                            <span className="text-sm text-amber-900">Remove page limit (analyze all pages)</span>
+                          </label>
+
+                          {/* Custom Page Limit */}
+                          {pageLimit !== null && (
+                            <div className="flex items-center gap-3">
+                              <label htmlFor="pageLimit" className="text-sm text-amber-900 whitespace-nowrap">
+                                Custom limit:
+                              </label>
+                              <input
+                                type="number"
+                                id="pageLimit"
+                                min="1"
+                                max="500"
+                                value={pageLimit}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value)
+                                  if (!isNaN(value) && value > 0) {
+                                    setPageLimit(value)
+                                  }
+                                }}
+                                className="w-24 px-3 py-1.5 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                              />
+                              <span className="text-sm text-amber-700">pages</span>
+                            </div>
+                          )}
+
+                          {/* Path Exclusion */}
+                          <div className="space-y-2 pt-3 border-t border-amber-300">
+                            <label className="text-sm font-medium text-amber-900">Exclude Paths</label>
+                            <p className="text-xs text-amber-700">
+                              Exclude specific paths from analysis (e.g., /blog, /admin)
+                            </p>
+
+                            {/* Excluded paths chips */}
+                            {excludedPaths.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {excludedPaths.map((path, index) => (
+                                  <div
+                                    key={index}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-amber-200 border border-amber-400 rounded text-xs text-amber-900"
+                                  >
+                                    <span>{path}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setExcludedPaths(prev => prev.filter((_, i) => i !== index))}
+                                      className="hover:text-red-700 font-bold"
+                                      aria-label="Remove path"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Add path input */}
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={excludeInput}
+                                onChange={(e) => setExcludeInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    const path = excludeInput.trim()
+                                    if (path && !excludedPaths.includes(path)) {
+                                      const normalizedPath = path.startsWith('/') ? path : `/${path}`
+                                      setExcludedPaths(prev => [...prev, normalizedPath])
+                                      setExcludeInput('')
+                                    }
+                                  }
+                                }}
+                                placeholder="/blog"
+                                className="flex-1 px-2 py-1.5 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const path = excludeInput.trim()
+                                  if (path && !excludedPaths.includes(path)) {
+                                    const normalizedPath = path.startsWith('/') ? path : `/${path}`
+                                    setExcludedPaths(prev => [...prev, normalizedPath])
+                                    setExcludeInput('')
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Cost Estimate */}
+                          <div className="p-2 bg-amber-100 rounded border border-amber-300">
+                            <p className="text-xs font-medium text-amber-900 mb-1">💰 Estimated Cost Impact</p>
+                            <p className="text-xs text-amber-800">
+                              {pageLimit === null
+                                ? 'Unlimited analysis may result in higher API costs (Keywords Everywhere & ValueSERP)'
+                                : pageLimit <= 25
+                                  ? 'Low cost - minimal API usage'
+                                  : pageLimit <= 50
+                                    ? 'Moderate cost - balanced analysis'
+                                    : pageLimit <= 100
+                                      ? 'Higher cost - comprehensive analysis'
+                                      : 'Very high cost - extensive API usage'
+                              }
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowPageLimitControls(false)}
+                            className="text-xs text-amber-800 hover:text-amber-900 font-medium underline"
+                          >
+                            Hide settings
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              
+
               <div className="py-2">
                 <label htmlFor="custom-pages" className="flex items-center gap-3 cursor-pointer">
                   <input

@@ -202,117 +202,332 @@ Consider the website's apparent industry, size, and purpose when making recommen
     }
 
     try {
-      // Handle Claude responses that might have text before/after JSON
+      // Enhanced JSON extraction with multiple strategies
       let jsonText = content.text.trim();
-      
-      // Find the JSON content by looking for the first { and last }
+
+      // Strategy 1: Find JSON between first { and last }
       const firstBrace = jsonText.indexOf('{');
       const lastBrace = jsonText.lastIndexOf('}');
-      
+
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
-      
+
+      // Strategy 2: Remove markdown code blocks if present
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+      // Strategy 3: Fix common JSON issues
+      // Remove control characters that break JSON parsing
+      jsonText = jsonText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+
+      // Strategy 4: Handle escaped newlines in strings
+      jsonText = jsonText.replace(/\\n/g, ' ').replace(/\n/g, ' ');
+
+      // Strategy 5: Fix trailing commas (common Claude mistake)
+      jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+
       const analysis = JSON.parse(jsonText);
       console.log(`✅ Claude technology analysis complete for ${domain}`);
       return analysis;
     } catch (parseError) {
-      console.error('Failed to parse Claude technology response:', parseError);
-      console.log('Raw response:', content.text);
-      
-      // Return fallback analysis
-      return getFallbackTechnologyAnalysis(technologyData);
+      console.error('❌ Failed to parse Claude technology response:', parseError);
+      console.log('📄 Raw response length:', content.text.length, 'chars');
+      console.log('📄 First 500 chars:', content.text.substring(0, 500));
+      console.log('📄 Last 200 chars:', content.text.substring(content.text.length - 200));
+
+      // Return contextual fallback analysis
+      console.log('🔄 Using enhanced contextual fallback analysis');
+      return getFallbackTechnologyAnalysis(technologyData, domain);
     }
 
   } catch (error) {
-    console.error('Claude technology analysis failed:', error);
-    return getFallbackTechnologyAnalysis(technologyData);
+    console.error('❌ Claude technology analysis failed:', error);
+    console.log('🔄 Using enhanced contextual fallback analysis');
+    return getFallbackTechnologyAnalysis(technologyData, domain);
   }
 }
 
-function getFallbackTechnologyAnalysis(technologyData: any): TechnologyIntelligence {
+function getFallbackTechnologyAnalysis(technologyData: any, domain: string = 'website'): TechnologyIntelligence {
+  console.log(`🔧 Generating contextual fallback analysis for ${domain}`);
+
+  // Extract all technology information
   const cms = technologyData.cms || 'Not detected';
-  const hasModernTech = technologyData.framework && technologyData.framework !== 'Not detected';
-  const hasCDN = technologyData.cdn && technologyData.cdn !== 'None detected';
-  
-  // Calculate basic scores based on detected technologies
+  const framework = technologyData.framework || 'Not detected';
+  const hosting = technologyData.hosting || 'Not detected';
+  const analytics = technologyData.analytics || 'Not detected';
+  const cdn = technologyData.cdn || 'None detected';
+  const pageBuilder = technologyData.pageBuilder || 'Not detected';
+  const plugins = Array.isArray(technologyData.plugins) ? technologyData.plugins : [];
+  const pluginsByCategory = !Array.isArray(technologyData.plugins) ? technologyData.plugins : {};
+
+  const hasModernTech = framework !== 'Not detected';
+  const hasCDN = cdn !== 'None detected';
+  const isWordPress = cms.toLowerCase().includes('wordpress');
+  const hasPageBuilder = pageBuilder !== 'Not detected';
+  const totalPlugins = plugins.length || Object.values(pluginsByCategory).flat().length || 0;
+
+  // Calculate contextual score
   let overallScore = 60; // Base score
   if (cms !== 'Not detected') overallScore += 10;
   if (hasModernTech) overallScore += 15;
   if (hasCDN) overallScore += 10;
   if (technologyData.confidence === 'high') overallScore += 5;
-  
-  const maturityLevel = overallScore >= 85 ? 'modern' : 
-                       overallScore >= 70 ? 'stable' : 
+  if (isWordPress && totalPlugins > 0) overallScore += 5; // WordPress with plugins is good
+
+  const maturityLevel = overallScore >= 85 ? 'modern' :
+                       overallScore >= 70 ? 'stable' :
                        overallScore >= 50 ? 'outdated' : 'legacy';
+
+  // Generate contextual strengths
+  const strengths: string[] = [];
+  if (cms !== 'Not detected') strengths.push(`Uses ${cms} CMS for easy content management`);
+  if (hasCDN) strengths.push(`${cdn} CDN improves global loading speeds`);
+  if (hasModernTech) strengths.push(`Modern ${framework} framework for better performance`);
+  if (hasPageBuilder) strengths.push(`${pageBuilder} page builder for flexible design`);
+  if (hosting !== 'Not detected') strengths.push(`Hosted on ${hosting}`);
+  if (analytics !== 'Not detected') strengths.push(`${analytics} tracking for visitor insights`);
+  if (strengths.length === 0) strengths.push('Standard web hosting configuration');
+
+  // Generate contextual weaknesses
+  const weaknesses: string[] = [];
+  if (!hasCDN) weaknesses.push('No CDN detected - could improve global performance');
+  if (!hasModernTech && isWordPress) weaknesses.push('Could benefit from modern JavaScript framework for enhanced interactivity');
+  if (analytics === 'Not detected') weaknesses.push('No analytics detected - unable to track visitor behavior');
+  if (isWordPress && totalPlugins === 0) weaknesses.push('No WordPress plugins detected - may be missing essential functionality');
+  if (isWordPress && totalPlugins > 20) weaknesses.push(`High plugin count (${totalPlugins}) may impact performance`);
+
+  // Generate contextual quick wins based on detected stack
+  const quickWins: Array<{title: string; description: string; benefit: string; timeToImplement: string; estimatedImpact: string}> = [];
+
+  // WordPress-specific quick wins
+  if (isWordPress) {
+    // Check for caching plugins
+    const hasCachingPlugin = plugins.some((p: string) =>
+      p.toLowerCase().includes('cache') ||
+      p.toLowerCase().includes('wp rocket') ||
+      p.toLowerCase().includes('w3 total')
+    );
+
+    if (!hasCachingPlugin) {
+      quickWins.push({
+        title: 'Install WordPress Caching Plugin',
+        description: `Install WP Rocket, W3 Total Cache, or WP Super Cache on your ${cms} site`,
+        benefit: 'Dramatically reduces page load times for repeat visitors',
+        timeToImplement: '30 minutes',
+        estimatedImpact: '40-60% faster page loads'
+      });
+    }
+
+    // Check for image optimization
+    const hasImageOptimization = plugins.some((p: string) =>
+      p.toLowerCase().includes('image') ||
+      p.toLowerCase().includes('smush') ||
+      p.toLowerCase().includes('imagify')
+    );
+
+    if (!hasImageOptimization) {
+      quickWins.push({
+        title: 'Add Image Optimization Plugin',
+        description: 'Install Smush, Imagify, or ShortPixel to automatically compress images',
+        benefit: 'Reduces bandwidth usage and improves page speed',
+        timeToImplement: '20 minutes',
+        estimatedImpact: '25-35% reduction in page size'
+      });
+    }
+
+    // Check for security plugin
+    const hasSecurityPlugin = plugins.some((p: string) =>
+      p.toLowerCase().includes('security') ||
+      p.toLowerCase().includes('wordfence') ||
+      p.toLowerCase().includes('sucuri')
+    );
+
+    if (!hasSecurityPlugin) {
+      quickWins.push({
+        title: 'Install WordPress Security Plugin',
+        description: 'Add Wordfence or iThemes Security to protect against attacks',
+        benefit: 'Protects site from hacking attempts and malware',
+        timeToImplement: '45 minutes',
+        estimatedImpact: 'Significant reduction in security vulnerabilities'
+      });
+    }
+  }
+
+  // CDN recommendation if not present
+  if (!hasCDN) {
+    quickWins.push({
+      title: 'Implement Content Delivery Network',
+      description: isWordPress ?
+        'Enable Cloudflare (free tier) through your hosting panel or WordPress plugin' :
+        'Set up Cloudflare CDN to serve content from global edge servers',
+      benefit: 'Faster loading for visitors worldwide, reduced server load',
+      timeToImplement: '1-2 hours',
+      estimatedImpact: '30-50% faster international load times'
+    });
+  }
+
+  // Analytics if not present
+  if (analytics === 'Not detected') {
+    quickWins.push({
+      title: 'Add Website Analytics',
+      description: 'Install Google Analytics 4 or a privacy-friendly alternative like Plausible',
+      benefit: 'Understand visitor behavior and improve marketing effectiveness',
+      timeToImplement: '30 minutes',
+      estimatedImpact: 'Data-driven decision making for website improvements'
+    });
+  }
+
+  // Generic performance win if we don't have many specific ones
+  if (quickWins.length < 2) {
+    quickWins.push({
+      title: 'Optimize Image Formats',
+      description: 'Convert images to WebP format for better compression without quality loss',
+      benefit: 'Significantly reduces page size while maintaining visual quality',
+      timeToImplement: '2-3 hours',
+      estimatedImpact: '30-45% reduction in image file sizes'
+    });
+  }
+
+  // Ensure we have at least one quick win
+  if (quickWins.length === 0) {
+    quickWins.push({
+      title: 'Enable Browser Caching',
+      description: 'Configure server to tell browsers to cache static assets locally',
+      benefit: 'Faster repeat visits as browsers reuse cached files',
+      timeToImplement: '30 minutes',
+      estimatedImpact: '40-50% faster repeat page loads'
+    });
+  }
+
+  // Contextual optimization opportunities
+  const optimizationOpportunities: string[] = [];
+  if (isWordPress) {
+    optimizationOpportunities.push('Review and remove unused WordPress plugins to reduce overhead');
+    optimizationOpportunities.push('Keep WordPress core and all plugins updated to latest versions');
+  }
+  if (!hasCDN) optimizationOpportunities.push('Implement CDN for global performance improvement');
+  optimizationOpportunities.push('Compress and optimize all images (aim for <200KB per image)');
+  optimizationOpportunities.push('Minify CSS, JavaScript, and HTML files');
+  if (isWordPress) optimizationOpportunities.push('Use lazy loading for images below the fold');
+
+  // Contextual security recommendations
+  const updateRecommendations: string[] = [];
+  if (isWordPress) {
+    updateRecommendations.push('Keep WordPress core updated (currently released updates should be applied monthly)');
+    updateRecommendations.push('Update all plugins to their latest versions to patch security vulnerabilities');
+    updateRecommendations.push('Implement strong admin passwords and two-factor authentication');
+  }
+  updateRecommendations.push('Configure security headers (Content-Security-Policy, X-Frame-Options)');
+  updateRecommendations.push('Enable HTTPS and install SSL certificate if not already done');
+  if (isWordPress) updateRecommendations.push('Disable XML-RPC if not needed to prevent brute force attacks');
+
+  const vulnerabilities: string[] = [];
+  if (isWordPress && totalPlugins > 15) {
+    vulnerabilities.push(`High plugin count (${totalPlugins}) increases attack surface - audit and remove unused plugins`);
+  }
+  if (!hasCDN && hosting !== 'Not detected') {
+    vulnerabilities.push('Without CDN, site more vulnerable to DDoS attacks');
+  }
 
   return {
     stackAnalysis: {
       overallScore: Math.min(100, overallScore),
       maturityLevel,
-      architectureType: cms !== 'Not detected' ? `${cms}-based website architecture` : 'Standard web architecture',
-      strengths: [
-        cms !== 'Not detected' ? `Uses ${cms} for content management` : 'Basic web structure',
-        hasCDN ? 'Content delivery network for faster loading' : 'Standard hosting setup'
-      ].filter(Boolean),
-      weaknesses: [
-        !hasModernTech ? 'No modern JavaScript framework detected' : '',
-        !hasCDN ? 'No CDN detected for global performance' : '',
-        technologyData.confidence === 'low' ? 'Limited technology detection confidence' : ''
-      ].filter(Boolean),
-      suitabilityRating: 'Technology stack appears suitable for basic website needs'
+      architectureType: cms !== 'Not detected' ?
+        `${cms}${hasPageBuilder ? ` with ${pageBuilder}` : ''} website architecture` :
+        'Standard web architecture',
+      strengths,
+      weaknesses: weaknesses.length > 0 ? weaknesses : ['No significant weaknesses detected'],
+      suitabilityRating: cms !== 'Not detected' ?
+        `${cms} is a solid choice for content management, ${hosting !== 'Not detected' ? `hosted on ${hosting}` : 'with standard hosting'}` :
+        'Technology stack appears suitable for basic website needs'
     },
     performanceImpact: {
-      loadTimeContribution: 'Technology stack has moderate impact on loading speed',
+      loadTimeContribution: isWordPress && totalPlugins > 15 ?
+        `WordPress with ${totalPlugins} plugins may add 1-3 seconds to load time` :
+        isWordPress ?
+        'WordPress with optimized plugins typically loads in 2-3 seconds' :
+        'Technology stack has moderate impact on loading speed',
       performanceScore: overallScore,
-      optimizationOpportunities: [
-        'Implement caching strategies',
-        'Optimize images and assets',
-        'Consider CDN implementation'
-      ],
-      criticalIssues: overallScore < 50 ? ['Outdated technology stack may impact performance'] : [],
-      estimatedSpeedGain: '10-30% improvement possible with optimizations'
+      optimizationOpportunities,
+      criticalIssues: overallScore < 50 ?
+        ['Outdated technology stack may severely impact performance', 'Consider platform modernization'] :
+        [],
+      estimatedSpeedGain: hasCDN && isWordPress ?
+        '15-25% with caching optimization' :
+        !hasCDN ?
+        '40-60% with CDN and caching implementation' :
+        '20-35% with performance optimizations'
     },
     securityAssessment: {
-      riskLevel: overallScore >= 70 ? 'low' : overallScore >= 50 ? 'medium' : 'high',
-      securityScore: overallScore,
-      vulnerabilities: overallScore < 60 ? ['Potentially outdated software components'] : [],
-      updateRecommendations: ['Keep all software components up to date', 'Implement security headers'],
-      complianceNotes: ['Ensure GDPR compliance for EU visitors', 'Consider accessibility standards']
+      riskLevel: (overallScore >= 70 && (isWordPress ? totalPlugins < 20 : true)) ? 'low' :
+                 overallScore >= 50 ? 'medium' : 'high',
+      securityScore: Math.max(0, overallScore - (isWordPress && totalPlugins > 20 ? 10 : 0)),
+      vulnerabilities,
+      updateRecommendations,
+      complianceNotes: [
+        'Ensure GDPR compliance for EU visitors (cookie consent, privacy policy)',
+        'Consider WCAG 2.1 accessibility standards for inclusive design',
+        isWordPress ? 'Regular WordPress security audits recommended (monthly)' : 'Regular security audits recommended'
+      ]
     },
     businessImpact: {
-      maintenanceCost: overallScore >= 70 ? 'medium' : 'high',
-      scalabilityRating: overallScore,
-      futureProofScore: overallScore,
-      competitiveAdvantage: 'Technology stack provides standard competitive positioning',
-      businessRisks: overallScore < 60 ? ['Potential security vulnerabilities', 'Performance limitations'] : []
+      maintenanceCost: isWordPress && totalPlugins > 15 ? 'medium' :
+                       isWordPress ? 'low' :
+                       overallScore >= 70 ? 'low' : 'medium',
+      scalabilityRating: hasModernTech ? 80 : hasCDN ? 70 : 60,
+      futureProofScore: hasModernTech ? 85 :
+                       isWordPress ? 75 :
+                       overallScore,
+      competitiveAdvantage: cms !== 'Not detected' ?
+        `${cms} provides ${hasCDN ? 'strong' : 'good'} foundation with ${hasModernTech ? 'modern' : 'standard'} capabilities` :
+        'Technology stack provides standard competitive positioning',
+      businessRisks: [
+        ...(overallScore < 60 ? ['Potential security vulnerabilities from outdated components'] : []),
+        ...(isWordPress && totalPlugins > 20 ? ['High plugin count may lead to conflicts and maintenance burden'] : []),
+        ...(!hasCDN ? ['Limited global reach without CDN'] : [])
+      ]
     },
     modernizationRoadmap: [
       {
         phase: 1,
-        title: 'Assess Current Performance',
-        description: 'Evaluate current technology performance and identify immediate improvements',
-        impact: 'Better understanding of optimization opportunities',
+        title: isWordPress ? 'WordPress Performance Audit' : 'Performance Assessment',
+        description: isWordPress ?
+          'Review all WordPress plugins, remove unused ones, and optimize database' :
+          'Evaluate current technology performance and identify immediate improvements',
+        impact: isWordPress ?
+          'Cleaner, faster WordPress installation with reduced security risk' :
+          'Better understanding of optimization opportunities',
         timeframe: '1-2 weeks',
         difficulty: 'Easy',
         estimatedCost: 'Low',
         priority: 'high'
-      }
+      },
+      ...(!hasCDN ? [{
+        phase: 2,
+        title: 'Implement CDN',
+        description: 'Set up Cloudflare or similar CDN to distribute content globally',
+        impact: 'Dramatically faster load times for international visitors',
+        timeframe: '2-3 days',
+        difficulty: 'Easy',
+        estimatedCost: 'Free (Cloudflare free tier)',
+        priority: 'high' as const
+      }] : [])
     ],
-    quickWins: [
-      {
-        title: 'Enable Caching',
-        description: 'Implement browser and server-side caching',
-        benefit: 'Faster page loading for returning visitors',
-        timeToImplement: '1-2 hours',
-        estimatedImpact: '20-40% faster repeat visits'
-      }
-    ],
+    quickWins: quickWins.slice(0, 3), // Limit to top 3 most relevant
     industryBenchmark: {
-      comparison: 'Technology stack meets basic industry standards',
-      modernityRank: maturityLevel === 'modern' ? 'Above average' : 
-                    maturityLevel === 'stable' ? 'Average' : 'Below average',
-      recommendedUpgrades: ['Consider modern performance optimizations', 'Evaluate security enhancements']
+      comparison: cms !== 'Not detected' ?
+        `${cms} is used by ${isWordPress ? '43%' : 'millions'} of websites worldwide and ${hasCDN ? 'with CDN ' : ''}meets ${hasModernTech ? 'modern' : 'standard'} industry practices` :
+        'Technology stack meets basic industry standards',
+      modernityRank: maturityLevel === 'modern' ? 'Above average' :
+                    maturityLevel === 'stable' ? 'Average' :
+                    'Below average',
+      recommendedUpgrades: [
+        ...(isWordPress && !hasCDN ? ['Cloudflare CDN integration for WordPress'] : []),
+        ...(isWordPress ? ['Premium caching solution (WP Rocket)'] : []),
+        ...(!hasModernTech ? ['Consider modern frontend framework for enhanced user experience'] : []),
+        ...(analytics === 'Not detected' ? ['Website analytics implementation'] : [])
+      ].slice(0, 3)
     }
   };
 }

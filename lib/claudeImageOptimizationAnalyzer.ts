@@ -192,13 +192,39 @@ Consider the website's apparent business type and target audience when making re
     }
 
     try {
-      const analysis = JSON.parse(content.text);
+      // Enhanced JSON extraction with multiple strategies
+      let jsonText = content.text.trim();
+
+      // Strategy 1: Find JSON between first { and last }
+      const firstBrace = jsonText.indexOf('{');
+      const lastBrace = jsonText.lastIndexOf('}');
+
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+      }
+
+      // Strategy 2: Remove markdown code blocks if present
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+      // Strategy 3: Fix common JSON issues
+      // Remove control characters that break JSON parsing
+      jsonText = jsonText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+
+      // Strategy 4: Handle escaped newlines in strings
+      jsonText = jsonText.replace(/\\n/g, ' ').replace(/\n/g, ' ');
+
+      // Strategy 5: Fix trailing commas (common Claude mistake)
+      jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+
+      const analysis = JSON.parse(jsonText);
       console.log(`✅ Claude image optimization analysis complete for ${domain}`);
       return analysis;
     } catch (parseError) {
       console.error('Failed to parse Claude image optimization response:', parseError);
-      console.log('Raw response:', content.text);
-      
+      console.log('📄 Raw response length:', content.text.length, 'chars');
+      console.log('📄 First 500 chars:', content.text.substring(0, 500));
+      console.log('📄 Last 200 chars:', content.text.substring(content.text.length - 200));
+
       // Return fallback analysis
       return getFallbackImageOptimizationAnalysis(largeImageDetails, totalImages);
     }
