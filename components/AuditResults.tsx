@@ -19,7 +19,6 @@ import OverallAuditConclusion from './OverallAuditConclusion'
 import PerformanceTechnicalConclusion from './PerformanceTechnicalConclusion'
 import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
-import CompetitionAnalysis from './CompetitionAnalysis'
 import EnhancedRecommendations from './EnhancedRecommendations'
 import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
@@ -446,37 +445,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             ) : audit.results?.keywords ? (
               <div className="space-y-4">
                 {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
-                
-                {/* Competition Analysis */}
-                {(() => {
-                  const hasKeywords = !!audit.results.keywords;
-                  const hasTopKeywords = !!audit.results.keywords?.topKeywords;
-                  const topKeywordsLength = audit.results.keywords?.topKeywords?.length || 0;
-                  const hasBrandedOrNonBranded = (audit.results.keywords?.brandedKeywordsList?.length || 0) + (audit.results.keywords?.nonBrandedKeywordsList?.length || 0) > 0;
-                  
-                  console.log('🔍 Competition Analysis Debug:', {
-                    hasKeywords,
-                    hasTopKeywords,
-                    topKeywordsLength,
-                    hasBrandedOrNonBranded,
-                    brandedLength: audit.results.keywords?.brandedKeywordsList?.length || 0,
-                    nonBrandedLength: audit.results.keywords?.nonBrandedKeywordsList?.length || 0,
-                    topKeywordsSample: audit.results.keywords?.topKeywords?.slice(0, 3)
-                  });
-                  
-                  // Try using brandedKeywordsList + nonBrandedKeywordsList if topKeywords is empty
-                  const keywordsToUse = (audit.results.keywords?.topKeywords?.length > 0) 
-                    ? audit.results.keywords.topKeywords
-                    : [...(audit.results.keywords?.brandedKeywordsList || []), ...(audit.results.keywords?.nonBrandedKeywordsList || [])];
-                  
-                  return keywordsToUse.length > 0 ? (
-                    <CompetitionAnalysis 
-                      targetDomain={audit.url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]}
-                      keywords={keywordsToUse}
-                    />
-                  ) : null;
-                })()}
-                
+
                 {/* Claude AI Keyword Analysis Conclusion */}
                 {audit.results.keywords.claudeAnalysis && (
                   <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />

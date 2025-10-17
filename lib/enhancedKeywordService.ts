@@ -1155,13 +1155,49 @@ export class EnhancedKeywordService {
       .filter(k => k.searchVolume && k.searchVolume >= 10)
       .sort((a, b) => (b.searchVolume || 0) - (a.searchVolume || 0))
       .slice(0, 30)
-      .map(k => ({
-        keyword: k.keyword,
-        position: 0,
-        volume: k.searchVolume || null,
-        difficulty: this.mapDifficulty(k.competition),
-        type: 'non-branded' as const
-      }));
+      .map(k => {
+        // Calculate a meaningful business relevance score
+        // Use the relevanceScore from discovery, but ensure it's meaningful
+        let businessRelevance = k.relevanceScore || 0;
+
+        // If relevance is 0 or very low, calculate based on keyword characteristics
+        if (businessRelevance < 0.3) {
+          // Base relevance on keyword quality signals
+          let calculatedRelevance = 0.5; // Start with medium relevance
+
+          // Boost for commercial/transactional intent
+          if (k.intent === 'commercial' || k.intent === 'transactional') {
+            calculatedRelevance += 0.2;
+          }
+
+          // Boost for longtail keywords (more specific = more relevant)
+          if (k.longtail) {
+            calculatedRelevance += 0.1;
+          }
+
+          // Boost for reasonable competition (not too low, not too high)
+          const competition = k.competition || 0;
+          if (competition >= 0.3 && competition <= 0.7) {
+            calculatedRelevance += 0.1;
+          }
+
+          businessRelevance = Math.min(0.95, calculatedRelevance); // Cap at 95%
+        }
+
+        console.log(`📊 Keyword "${k.keyword}": original relevance=${k.relevanceScore}, final relevance=${businessRelevance.toFixed(2)}`);
+
+        return {
+          keyword: k.keyword,
+          position: 0,
+          volume: k.searchVolume || null,
+          difficulty: this.mapDifficulty(k.competition),
+          type: 'non-branded' as const,
+          businessRelevance: businessRelevance,
+          intent: k.intent || 'commercial',
+          category: k.longtail ? 'long-tail' : 'primary',
+          averageCompetitorDA: this.mapDifficulty(k.competition) * 0.7 // Rough estimate
+        };
+      });
     
     // Combine for top keywords
     const topKeywords = [
@@ -1248,21 +1284,53 @@ export class EnhancedKeywordService {
         const hasBasicRelevance = k.businessRelevance >= 0.4; // More permissive for website content keywords
         const hasValidVolume = k.volume === null || (k.volume >= 10 && k.volume <= 50000); // Accept lower volume keywords
         const isNotGeneric = this.isBusinessSpecificKeyword(k.keyword, businessContext);
-        
+
         console.log(`🔍 Website Keywords Filtering "${k.keyword}": branded=${!isNotBranded}, relevance=${k.businessRelevance}, volume=${k.volume}, specific=${isNotGeneric}`);
-        
+
         // More permissive filtering for website content keywords: basic relevance OR business-specific
         return isNotBranded && hasValidVolume && (hasBasicRelevance || isNotGeneric);
       })
-      .sort((a, b) => b.businessRelevance - a.businessRelevance) // Sort by business relevance
+      .sort((a, b) => (b.businessRelevance || 0) - (a.businessRelevance || 0)) // Sort by business relevance
       .slice(0, 30) // Limit to top 30 most relevant
-      .map(k => ({
-        keyword: k.keyword,
-        position: 0, // Will be updated with real SERP data if available
-        volume: apiAvailable ? (k.volume || null) : null,
-        difficulty: this.mapDifficulty(k.difficulty),
-        type: 'non-branded' as const
-      }));
+      .map(k => {
+        // Ensure businessRelevance is meaningful
+        let businessRelevance = k.businessRelevance || 0;
+
+        // If relevance is 0 or very low, calculate based on keyword characteristics
+        if (businessRelevance < 0.3) {
+          let calculatedRelevance = 0.5; // Start with medium relevance
+
+          // Boost for commercial/transactional intent
+          if (k.intent === 'commercial' || k.intent === 'transactional') {
+            calculatedRelevance += 0.2;
+          }
+
+          // Boost for longtail keywords
+          if (k.category && (k.category === 'long-tail' || k.category === 'longTail')) {
+            calculatedRelevance += 0.1;
+          }
+
+          // Boost for medium difficulty (achievable but not too easy)
+          const difficulty = this.mapDifficulty(k.difficulty);
+          if (difficulty >= 30 && difficulty <= 60) {
+            calculatedRelevance += 0.1;
+          }
+
+          businessRelevance = Math.min(0.95, calculatedRelevance);
+        }
+
+        return {
+          keyword: k.keyword,
+          position: 0, // Will be updated with real SERP data if available
+          volume: apiAvailable ? (k.volume || null) : null,
+          difficulty: this.mapDifficulty(k.difficulty),
+          type: 'non-branded' as const,
+          businessRelevance: businessRelevance,
+          intent: k.intent,
+          category: k.category,
+          averageCompetitorDA: this.mapDifficulty(k.difficulty) * 0.7 // Rough estimate: 70% of difficulty score
+        };
+      });
     
     // Top keywords (highest relevance)
     const topKeywords = allKeywords

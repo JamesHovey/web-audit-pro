@@ -33,27 +33,36 @@ export default function AboveFoldCompetitorTable({
 }: AboveFoldCompetitorTableProps) {
   // Removed pagination - showing top 10 results only
   const maxResults = 10
-  
-  const { 
-    competitors: rawCompetitors = [], 
-    competitionIntensity = 'low', 
-    averageOverlap = 0, 
-    keywordClusters = {} 
+  const minResults = 5 // Ensure at least 5 competitors are shown
+
+  const {
+    competitors: rawCompetitors = [],
+    competitionIntensity = 'low',
+    averageOverlap = 0,
+    keywordClusters = {}
   } = analysis || {};
-  
-  // Filter competitors: only show those with overlap >= 40% and competitionLevel != 'low'
-  // Also exclude sortlist.co.uk from results
-  const competitors = rawCompetitors.filter((competitor: CompetitorData) => {
+
+  // First, exclude sortlist.co.uk from all results
+  const filteredRaw = rawCompetitors.filter((competitor: CompetitorData) => {
+    const domain = (competitor?.domain || '').toLowerCase();
+    return domain !== 'sortlist.co.uk';
+  });
+
+  // Try filtering for high-quality competitors (overlap >= 40% and competition != 'low')
+  let competitors = filteredRaw.filter((competitor: CompetitorData) => {
     const overlapPercent = competitor?.overlap || 0;
     const competition = competitor?.competitionLevel || '';
-    const domain = (competitor?.domain || '').toLowerCase();
-    
-    // Filter out sortlist.co.uk, competitors with overlap < 40%, or competition = 'low'
-    return domain !== 'sortlist.co.uk' && 
-           overlapPercent >= 40 && 
-           competition.toLowerCase() !== 'low';
+    return overlapPercent >= 40 && competition.toLowerCase() !== 'low';
   });
-  
+
+  // If we have fewer than 5 competitors, relax the filter to show at least 5
+  if (competitors.length < minResults && filteredRaw.length >= minResults) {
+    competitors = filteredRaw.slice(0, minResults);
+  } else if (competitors.length < minResults) {
+    // If even the raw list has fewer than 5, just use what we have
+    competitors = filteredRaw;
+  }
+
   // Limit to top 10 competitors
   const displayedCompetitors = competitors.slice(0, maxResults)
   
