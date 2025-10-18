@@ -2425,25 +2425,28 @@ function renderSectionResults(
             </div>
             
             {/* Technical Overview */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div 
-                className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
-                onClick={() => setPageModalState({
-                  isOpen: true,
-                  title: 'All Discovered Pages',
-                  pages: results.pages || [],
-                  filterCondition: undefined
-                })}
-              >
-                <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
-                <div className="text-sm text-gray-600">Total Pages (Click to view)</div>
-                {results.discoveryMethod && (
-                  <div className="text-xs text-blue-500 mt-1">Via {results.discoveryMethod}</div>
-                )}
-              </div>
+            <div className={`grid ${results.scope === 'single' || results.totalPages === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-4 mb-6`}>
+              {/* Only show Total Pages for multi-page audits */}
+              {!(results.scope === 'single' || results.totalPages === 1) && (
+                <div
+                  className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                  onClick={() => setPageModalState({
+                    isOpen: true,
+                    title: 'All Discovered Pages',
+                    pages: results.pages || [],
+                    filterCondition: undefined
+                  })}
+                >
+                  <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
+                  <div className="text-sm text-gray-600">Total Pages (Click to view)</div>
+                  {results.discoveryMethod && (
+                    <div className="text-xs text-blue-500 mt-1">Via {results.discoveryMethod}</div>
+                  )}
+                </div>
+              )}
               <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div 
-                  className="text-2xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors" 
+                <div
+                  className="text-2xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors"
                   onClick={() => {
                     const element = document.getElementById('large-images-table');
                     if (element) {
@@ -2462,63 +2465,92 @@ function renderSectionResults(
             <div className="mb-6">
               <h5 className="font-semibold mb-3">Issues Found</h5>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div 
-                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
-                  onClick={() => setPageModalState({
+                {/* Missing Meta Titles */}
+                <div
+                  className={`flex justify-between p-2 rounded ${
+                    (results.issues?.missingMetaTitles || 0) > 0
+                      ? 'cursor-pointer hover:bg-gray-50'
+                      : ''
+                  }`}
+                  onClick={(results.issues?.missingMetaTitles || 0) > 0 ? () => setPageModalState({
                     isOpen: true,
-                    title: 'Pages Missing Meta Titles',
+                    title: (results.scope === 'single' || results.totalPages === 1)
+                      ? 'Page Missing Meta Title'
+                      : 'Pages Missing Meta Titles',
                     pages: results.pages || [],
                     filterCondition: (page) => !page.hasTitle
-                  })}
+                  }) : undefined}
+                  title={(results.issues?.missingMetaTitles || 0) > 0 ? 'Click to view details' : ''}
                 >
                   <span className="text-gray-600">Missing Meta Titles:</span>
-                  <span className={results.issues?.missingMetaTitles > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                  <span className={(results.issues?.missingMetaTitles || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
                     {results.issues?.missingMetaTitles || 0}
+                    {(results.issues?.missingMetaTitles || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
                   </span>
                 </div>
-                <div 
-                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
-                  onClick={() => setPageModalState({
+
+                {/* Missing Meta Descriptions */}
+                <div
+                  className={`flex justify-between p-2 rounded ${
+                    (results.issues?.missingMetaDescriptions || 0) > 0
+                      ? 'cursor-pointer hover:bg-gray-50'
+                      : ''
+                  }`}
+                  onClick={(results.issues?.missingMetaDescriptions || 0) > 0 ? () => setPageModalState({
                     isOpen: true,
-                    title: 'Pages Missing Meta Descriptions',
+                    title: (results.scope === 'single' || results.totalPages === 1)
+                      ? 'Page Missing Meta Description'
+                      : 'Pages Missing Meta Descriptions',
                     pages: results.pages || [],
                     filterCondition: (page) => !page.hasDescription
-                  })}
+                  }) : undefined}
+                  title={(results.issues?.missingMetaDescriptions || 0) > 0 ? 'Click to view details' : ''}
                 >
                   <span className="text-gray-600">Missing Meta Descriptions:</span>
-                  <span className={results.issues?.missingMetaDescriptions > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                  <span className={(results.issues?.missingMetaDescriptions || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
                     {results.issues?.missingMetaDescriptions || 0}
+                    {(results.issues?.missingMetaDescriptions || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
                   </span>
                 </div>
-                <div 
-                  className="flex justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
-                  onClick={() => setPageModalState({
+
+                {/* Missing H1 Tags */}
+                <div
+                  className={`flex justify-between p-2 rounded ${
+                    (results.issues?.missingH1Tags || 0) > 0
+                      ? 'cursor-pointer hover:bg-gray-50'
+                      : ''
+                  }`}
+                  onClick={(results.issues?.missingH1Tags || 0) > 0 ? () => setPageModalState({
                     isOpen: true,
-                    title: 'Pages Missing H1 Tags',
+                    title: (results.scope === 'single' || results.totalPages === 1)
+                      ? 'Page Missing H1 Tag'
+                      : 'Pages Missing H1 Tags',
                     pages: results.pages || [],
                     filterCondition: (page) => !page.hasH1
-                  })}
+                  }) : undefined}
+                  title={(results.issues?.missingH1Tags || 0) > 0 ? 'Click to view details' : ''}
                 >
                   <span className="text-gray-600">Missing H1 Tags:</span>
-                  <span className={results.issues?.missingH1Tags > 0 ? 'text-red-600 underline' : 'text-green-600'}>
+                  <span className={(results.issues?.missingH1Tags || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
                     {results.issues?.missingH1Tags || 0}
+                    {(results.issues?.missingH1Tags || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Large Images (&gt;100KB):</span>
-                  <span className={results.issues?.largeImages > 0 ? 'text-red-600' : 'text-green-600'}>
-                    {results.issues?.largeImages || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">404 Errors:</span>
-                  <span className={results.issues?.notFoundErrors > 0 ? 'text-red-600' : 'text-green-600'}>
-                    {results.issues?.notFoundErrors || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between">
+
+                {/* 404 Errors - Only show for multi-page audits */}
+                {!(results.scope === 'single' || results.totalPages === 1) && (
+                  <div className="flex justify-between p-2 rounded">
+                    <span className="text-gray-600">404 Errors:</span>
+                    <span className={(results.issues?.notFoundErrors || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                      {results.issues?.notFoundErrors || 0}
+                    </span>
+                  </div>
+                )}
+
+                {/* Broken Internal Links */}
+                <div className="flex justify-between p-2 rounded">
                   <span className="text-gray-600">Broken Internal Links:</span>
-                  <span className={results.issues?.brokenInternalLinks > 0 ? 'text-red-600' : 'text-green-600'}>
+                  <span className={(results.issues?.brokenInternalLinks || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                     {results.issues?.brokenInternalLinks || 0}
                   </span>
                 </div>
@@ -2527,7 +2559,7 @@ function renderSectionResults(
           </div>
 
           {/* Enhanced Recommendations */}
-          <EnhancedRecommendations 
+          <EnhancedRecommendations
             recommendations={results.recommendations || []}
             desktopScore={results.desktop?.score}
             mobileScore={results.mobile?.score}
@@ -2536,6 +2568,14 @@ function renderSectionResults(
             inpScore={results.desktop?.inp || results.mobile?.inp}
             detectedPlugins={detectedPlugins || []}
             pageBuilder={pageBuilder}
+            cms={results.cms}
+            technicalIssues={{
+              missingH1Tags: results.issues?.missingH1Tags,
+              missingMetaTitles: results.issues?.missingMetaTitles,
+              missingMetaDescriptions: results.issues?.missingMetaDescriptions,
+              largeImages: results.largeImages || results.issues?.largeImages,
+              http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
+            }}
           />
 
           {/* Large Images Table */}

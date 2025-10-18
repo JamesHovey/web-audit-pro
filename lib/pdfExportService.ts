@@ -755,14 +755,16 @@ export async function exportAuditToPDF(audit: AuditData) {
         yPosition = (doc as any).lastAutoTable.finalY + 10
       }
 
-      // Technical Health Issues - Pages Missing Meta Titles
+      // Technical Health Issues - Pages Missing Meta Titles (or Page Missing Meta Title for single page audits)
       if (audit.results?.pages && audit.results.pages.length > 0) {
         const pagesWithoutTitles = audit.results.pages.filter((p: any) => !p.hasTitle && p.url)
         if (pagesWithoutTitles.length > 0) {
           checkNewPage(40)
           doc.setFontSize(12)
           doc.setTextColor(255, 0, 0)
-          doc.text(`Pages Missing Meta Titles (${pagesWithoutTitles.length})`, 20, yPosition)
+          const isSinglePage = audit.results.scope === 'single' || audit.results.totalPages === 1
+          const titleText = isSinglePage ? 'Page Missing Meta Title' : `Pages Missing Meta Titles (${pagesWithoutTitles.length})`
+          doc.text(titleText, 20, yPosition)
           doc.setTextColor(0, 0, 0)
           yPosition += 8
 
@@ -786,13 +788,15 @@ export async function exportAuditToPDF(audit: AuditData) {
           }
         }
 
-        // Pages Missing Meta Descriptions
+        // Pages Missing Meta Descriptions (or Page Missing Meta Description for single page audits)
         const pagesWithoutDescriptions = audit.results.pages.filter((p: any) => !p.hasDescription && p.url)
         if (pagesWithoutDescriptions.length > 0) {
           checkNewPage(40)
           doc.setFontSize(12)
           doc.setTextColor(255, 0, 0)
-          doc.text(`Pages Missing Meta Descriptions (${pagesWithoutDescriptions.length})`, 20, yPosition)
+          const isSinglePage = audit.results.scope === 'single' || audit.results.totalPages === 1
+          const descText = isSinglePage ? 'Page Missing Meta Description' : `Pages Missing Meta Descriptions (${pagesWithoutDescriptions.length})`
+          doc.text(descText, 20, yPosition)
           doc.setTextColor(0, 0, 0)
           yPosition += 8
 
@@ -815,13 +819,15 @@ export async function exportAuditToPDF(audit: AuditData) {
           }
         }
 
-        // Pages Missing H1 Tags
+        // Pages Missing H1 Tags (or Page Missing H1 Tag for single page audits)
         const pagesWithoutH1 = audit.results.pages.filter((p: any) => !p.hasH1 && p.url)
         if (pagesWithoutH1.length > 0) {
           checkNewPage(40)
           doc.setFontSize(12)
           doc.setTextColor(255, 0, 0)
-          doc.text(`Pages Missing H1 Tags (${pagesWithoutH1.length})`, 20, yPosition)
+          const isSinglePage = audit.results.scope === 'single' || audit.results.totalPages === 1
+          const h1Title = isSinglePage ? 'Page Missing H1 Tag' : `Pages Missing H1 Tags (${pagesWithoutH1.length})`
+          doc.text(h1Title, 20, yPosition)
           doc.setTextColor(0, 0, 0)
           yPosition += 8
 

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Monitor, Smartphone, Tablet, AlertTriangle, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react'
+import { Monitor, Smartphone, Tablet, AlertTriangle, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, HelpCircle, Code } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 interface ViewportIssue {
@@ -328,29 +328,212 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
       {analysisData.recommendations.length > 0 && analysisData.recommendations.some(r => r.priority === 'high' || r.priority === 'medium') && (
         <div className="bg-white rounded-lg border p-6">
           <h5 className="font-semibold text-gray-900 mb-4">Priority Improvements</h5>
-          
-          <div className="space-y-3">
+          <p className="text-sm text-gray-600 mb-4">
+            Step-by-step implementation guides for fixing responsive design issues. Each recommendation includes code examples and platform-specific instructions.
+          </p>
+
+          <div className="space-y-6">
             {analysisData.recommendations
               .filter(rec => rec.priority === 'high' || rec.priority === 'medium')
               .map((rec, idx) => (
-                <div key={idx} className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">{rec.title}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      rec.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {rec.priority}
-                    </span>
+                <details key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <summary className="cursor-pointer bg-gray-50 p-4 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        rec.priority === 'high'
+                          ? 'bg-red-100 text-red-700 border border-red-200'
+                          : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                      }`}>
+                        {rec.priority} priority
+                      </span>
+                      <span className="font-medium text-gray-900">{rec.title}</span>
+                    </div>
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  </summary>
+                  <div className="p-4 bg-white">
+                    {/* Issues Found */}
+                    <div className="mb-4">
+                      <h6 className="font-medium text-sm text-gray-700 mb-2">Issues Found:</h6>
+                      <ul className="space-y-1.5">
+                        {rec.items.map((item: string, itemIdx: number) => (
+                          <li key={itemIdx} className="text-sm text-gray-600 flex items-start">
+                            <AlertTriangle className="w-4 h-4 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Implementation Guide */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                      <h6 className="font-medium text-sm text-blue-900 mb-3 flex items-center gap-2">
+                        <Code className="w-4 h-4" />
+                        How to Fix This
+                      </h6>
+
+                      {/* WordPress / CMS Instructions */}
+                      {rec.title.toLowerCase().includes('viewport') || rec.title.toLowerCase().includes('meta') ? (
+                        <div className="space-y-3">
+                          <div className="bg-white rounded p-3 border-l-4 border-blue-400">
+                            <p className="font-medium text-sm text-gray-900 mb-2">For WordPress Users:</p>
+                            <ol className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-blue-600">1.</span>
+                                <span>
+                                  <strong>Check your theme:</strong> Most modern WordPress themes already include the viewport meta tag. Go to Appearance → Customize to verify.
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-blue-600">2.</span>
+                                <span>
+                                  <strong>If missing:</strong> Install a plugin like "Insert Headers and Footers" or "Head, Footer and Post Injections"
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-blue-600">3.</span>
+                                <span>
+                                  <strong>Add this code</strong> in the header section:
+                                  <code className="block mt-1 bg-gray-900 text-green-400 p-2 rounded text-xs font-mono">
+                                    {'<meta name="viewport" content="width=device-width, initial-scale=1.0">'}
+                                  </code>
+                                </span>
+                              </li>
+                            </ol>
+                          </div>
+
+                          <div className="bg-white rounded p-3 border-l-4 border-green-400">
+                            <p className="font-medium text-sm text-gray-900 mb-2">For Custom HTML/Developers:</p>
+                            <ol className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-green-600">1.</span>
+                                <span>
+                                  <strong>Open your HTML file</strong> or theme's header.php file
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-green-600">2.</span>
+                                <span>
+                                  <strong>Add this in the {'<head>'} section:</strong>
+                                  <code className="block mt-1 bg-gray-900 text-green-400 p-2 rounded text-xs font-mono whitespace-pre">
+{`<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">`}
+                                  </code>
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-green-600">3.</span>
+                                <span>
+                                  <strong>Test on mobile devices</strong> using browser DevTools (F12 → Toggle Device Toolbar)
+                                </span>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      ) : rec.title.toLowerCase().includes('horizontal scroll') ? (
+                        <div className="space-y-3">
+                          <div className="bg-white rounded p-3 border-l-4 border-red-400">
+                            <p className="font-medium text-sm text-gray-900 mb-2">Quick CSS Fix:</p>
+                            <ol className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-red-600">1.</span>
+                                <span>
+                                  <strong>Add this CSS</strong> to prevent horizontal scrolling:
+                                  <code className="block mt-1 bg-gray-900 text-green-400 p-3 rounded text-xs font-mono whitespace-pre">
+{`/* Prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Make images responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent content overflow */
+* {
+  box-sizing: border-box;
+}`}
+                                  </code>
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-red-600">2.</span>
+                                <span>
+                                  <strong>For WordPress:</strong> Add this CSS in Appearance → Customize → Additional CSS
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-red-600">3.</span>
+                                <span>
+                                  <strong>For custom sites:</strong> Add to your main CSS file (usually style.css or main.css)
+                                </span>
+                              </li>
+                            </ol>
+                          </div>
+
+                          <div className="bg-white rounded p-3 border-l-4 border-orange-400">
+                            <p className="font-medium text-sm text-gray-900 mb-2">Finding the Culprit:</p>
+                            <ol className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-orange-600">1.</span>
+                                <span>
+                                  <strong>Open browser DevTools</strong> (F12) and toggle device mode
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-orange-600">2.</span>
+                                <span>
+                                  <strong>Run this in Console</strong> to find wide elements:
+                                  <code className="block mt-1 bg-gray-900 text-green-400 p-2 rounded text-xs font-mono whitespace-pre">
+{`document.querySelectorAll('*').forEach(el => {
+  if (el.scrollWidth > document.body.clientWidth) {
+    console.log('Wide element:', el);
+  }
+});`}
+                                  </code>
+                                </span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="font-semibold mr-2 text-orange-600">3.</span>
+                                <span>
+                                  <strong>Fix the identified elements</strong> by setting max-width: 100% or adjusting their width
+                                </span>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded p-3 border-l-4 border-gray-400">
+                          <ol className="space-y-2 text-sm text-gray-700">
+                            <li className="flex items-start">
+                              <span className="font-semibold mr-2 text-gray-600">1.</span>
+                              <span>Review the issues listed above and identify the affected elements</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-semibold mr-2 text-gray-600">2.</span>
+                              <span>Use browser DevTools (F12) to inspect and test responsive behavior</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-semibold mr-2 text-gray-600">3.</span>
+                              <span>Apply CSS media queries or use responsive design frameworks</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-semibold mr-2 text-gray-600">4.</span>
+                              <span>Test on real devices or using browser device emulation</span>
+                            </li>
+                          </ol>
+                        </div>
+                      )}
+
+                      {/* Additional Tips */}
+                      <div className="mt-3 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                        <strong>💡 Pro Tip:</strong> After making changes, test your site on multiple devices and screen sizes. Use Chrome DevTools (F12 → Toggle Device Toolbar) to quickly test different viewport sizes.
+                      </div>
+                    </div>
                   </div>
-                  <ul className="space-y-1">
-                    {rec.items.slice(0, 3).map((item: string, itemIdx: number) => (
-                      <li key={itemIdx} className="text-sm text-gray-600 flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                </details>
               ))}
           </div>
         </div>

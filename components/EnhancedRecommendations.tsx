@@ -1,8 +1,10 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { AlertTriangle, Clock, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
 import Tooltip from './Tooltip'
+import PluginRecommendationTable from './PluginRecommendationTable'
+import { getPluginsByUseCase, isPluginInstalled } from '@/lib/pluginRecommendations'
 
 interface Recommendation {
   title: string
@@ -12,6 +14,7 @@ interface Recommendation {
   icon: React.ReactNode
   details: string
   howTo: string[]
+  useCase?: string  // Added to map to plugin recommendations
 }
 
 interface EnhancedRecommendationsProps {
@@ -23,19 +26,159 @@ interface EnhancedRecommendationsProps {
   inpScore?: string
   detectedPlugins?: string[]
   pageBuilder?: string
+  cms?: string
+  technicalIssues?: {
+    missingH1Tags?: number
+    missingMetaTitles?: number
+    missingMetaDescriptions?: number
+    largeImages?: number
+    http404Errors?: number
+  }
 }
 
-export default function EnhancedRecommendations({ 
-  recommendations, 
-  desktopScore, 
+export default function EnhancedRecommendations({
+  recommendations,
+  desktopScore,
   mobileScore,
   lcpScore,
   clsScore,
   inpScore,
   detectedPlugins = [],
-  pageBuilder
+  pageBuilder,
+  cms,
+  technicalIssues
 }: EnhancedRecommendationsProps) {
   
+  // Helper function to generate recommendations for technical SEO issues
+  const getTechnicalSEORecommendations = (): Recommendation[] => {
+    const techRecs: Recommendation[] = []
+
+    // Missing H1 Tags
+    if (technicalIssues?.missingH1Tags && technicalIssues.missingH1Tags > 0) {
+      techRecs.push({
+        title: 'Add Missing H1 Tags',
+        description: `${technicalIssues.missingH1Tags} page(s) are missing H1 tags, which are critical for SEO`,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'H1 tags help search engines understand the main topic of your pages and improve accessibility',
+        useCase: 'h1-tags',
+        howTo: cms === 'WordPress' ? [
+          'Edit each page in WordPress editor',
+          'Add a clear, descriptive heading at the top of the page content',
+          'Ensure it uses the H1 heading format (usually "Heading 1" in the editor)',
+          'Make the H1 unique and descriptive of the page content',
+          'Include your primary keyword if relevant',
+          'WordPress: Most themes automatically make the page title an H1. Check Theme → Customize → Typography settings',
+          'Yoast SEO plugin: Will warn you if H1 is missing in the SEO analysis',
+          'Rank Math plugin: Provides H1 tag analysis in the content editor'
+        ] : [
+          'Add a clear, descriptive <h1> tag at the top of each page',
+          'Ensure each page has exactly one H1 tag',
+          'Make the H1 unique and descriptive of the page content',
+          'Include your primary keyword if relevant',
+          'HTML: <h1>Your Main Page Heading</h1>',
+          'For CMS platforms, usually the page title becomes the H1 automatically'
+        ]
+      })
+    }
+
+    // Missing Meta Titles
+    if (technicalIssues?.missingMetaTitles && technicalIssues.missingMetaTitles > 0) {
+      techRecs.push({
+        title: 'Add Missing Meta Titles',
+        description: `${technicalIssues.missingMetaTitles} page(s) lack meta titles, hurting search visibility`,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Meta titles appear in search results and browser tabs, and are one of the most important SEO elements',
+        useCase: 'meta-titles',
+        howTo: cms === 'WordPress' ? [
+          'Install an SEO plugin: Yoast SEO, Rank Math, or All in One SEO',
+          'Edit each page/post and find the SEO section below the editor',
+          'Add a compelling title (50-60 characters recommended)',
+          'Include your primary keyword near the beginning',
+          'Make each title unique and descriptive',
+          'Yoast SEO: Edit the "SEO title" field in the Yoast meta box',
+          'Rank Math: Use the "SEO Title" field in Rank Math meta box',
+          'Preview how it will look in search results using the plugin preview'
+        ] : [
+          'Add <title> tag in the <head> section of each page',
+          'Keep titles between 50-60 characters',
+          'Include primary keyword near the beginning',
+          'Make each title unique and compelling',
+          'HTML: <title>Your Page Title - Brand Name</title>',
+          'For e-commerce: Include product name, category, and brand'
+        ]
+      })
+    }
+
+    // Missing Meta Descriptions
+    if (technicalIssues?.missingMetaDescriptions && technicalIssues.missingMetaDescriptions > 0) {
+      techRecs.push({
+        title: 'Add Missing Meta Descriptions',
+        description: `${technicalIssues.missingMetaDescriptions} page(s) need meta descriptions for better search previews`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Meta descriptions appear in search results and influence click-through rates',
+        useCase: 'meta-descriptions',
+        howTo: cms === 'WordPress' ? [
+          'Use your SEO plugin to add meta descriptions',
+          'Write compelling descriptions (150-160 characters)',
+          'Include relevant keywords naturally',
+          'Make each description unique and actionable',
+          'Add a call-to-action if appropriate',
+          'Yoast SEO: Edit the "Meta description" field',
+          'Rank Math: Use the "Description" field in the meta box',
+          'All in One SEO: Fill in the "Meta Description" field'
+        ] : [
+          'Add <meta name="description"> tag in the <head> section',
+          'Keep descriptions between 150-160 characters',
+          'Include relevant keywords naturally',
+          'Write compelling, actionable copy',
+          'HTML: <meta name="description" content="Your page description here">',
+          'Each page should have a unique description'
+        ]
+      })
+    }
+
+    // Large Images
+    if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
+      techRecs.push({
+        title: 'Optimize Large Images',
+        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site`,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Image className="w-4 h-4" />,
+        details: 'Large images significantly impact page load time and user experience',
+        useCase: 'large-images',
+        howTo: cms === 'WordPress' ? [
+          'Install an image optimization plugin:',
+          'Recommended: Imagify, ShortPixel, or EWWW Image Optimizer (all have free tiers)',
+          'These plugins automatically compress images on upload',
+          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimize images"',
+          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimize on upload"',
+          'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
+          'For existing images: Use the bulk optimizer in the plugin',
+          'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
+          'Target: Keep images under 200KB, preferably under 100KB'
+        ] : [
+          'Compress images before uploading to your site',
+          'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
+          'Convert to modern formats: WebP or AVIF',
+          'Set appropriate dimensions - don\'t upload larger than needed',
+          'Use responsive images with srcset attribute',
+          'For e-commerce: Shopify has built-in image optimization',
+          'For Wix/Squarespace: Use their built-in image optimization tools',
+          'Target: Keep images under 200KB, preferably under 100KB'
+        ]
+      })
+    }
+
+    return techRecs
+  }
+
   // Helper function to get plugin-specific instructions
   const getPluginSpecificInstructions = (baseInstructions: string[], recommendationType: string): string[] => {
     const pluginInstructions: string[] = [...baseInstructions]
@@ -277,8 +420,23 @@ export default function EnhancedRecommendations({
     }
   }
 
-  const enhancedRecs = recommendations.slice(0, 6).map(enhanceRecommendation)
-  
+  // Get technical SEO recommendations
+  const technicalRecs = getTechnicalSEORecommendations()
+
+  // Get performance recommendations
+  const performanceRecs = recommendations.slice(0, 6).map(enhanceRecommendation)
+
+  // Combine and prioritize: Technical SEO issues first (High impact), then performance recommendations
+  const allRecs = [...technicalRecs, ...performanceRecs]
+
+  // Sort by impact (High > Medium > Low) and limit to top 10
+  const sortedRecs = allRecs.sort((a, b) => {
+    const impactOrder = { 'High': 0, 'Medium': 1, 'Low': 2 }
+    return impactOrder[a.impact] - impactOrder[b.impact]
+  })
+
+  const enhancedRecs = sortedRecs.slice(0, 10)
+
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case 'High': return 'bg-red-100 text-red-700 border-red-200'
@@ -371,24 +529,114 @@ export default function EnhancedRecommendations({
                       </span>
                     </div>
                   </div>
-                  
+
                   <p className="text-sm text-gray-600 mb-3">{rec.description}</p>
-                  
-                  <details className="text-sm">
+
+                  <details open className="text-sm">
                     <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
                       How to fix this →
                     </summary>
                     <div className="mt-2 p-3 bg-gray-50 rounded">
-                      <p className="text-gray-700 mb-2">{rec.details}</p>
-                      <div className="space-y-1">
-                        <div className="font-medium text-gray-800">Steps to take:</div>
-                        {rec.howTo.map((step, stepIndex) => (
-                          <div key={stepIndex} className="flex items-start gap-2">
-                            <span className="text-blue-500 text-xs mt-1">•</span>
-                            <span className="text-gray-700">{step}</span>
-                          </div>
-                        ))}
+                      <p className="text-gray-700 mb-3">{rec.details}</p>
+
+                      {/* Regular Steps */}
+                      <div className="space-y-2 mb-4">
+                        <div className="font-medium text-gray-800">Steps:</div>
+                        {rec.howTo
+                          .filter(step => !step.includes('plugin') && !step.includes('Plugin') && !step.toLowerCase().includes('yoast') && !step.toLowerCase().includes('rank math') && !step.toLowerCase().includes('imagify') && !step.toLowerCase().includes('shortpixel') && !step.toLowerCase().includes('ewww') && !step.toLowerCase().includes('wp rocket') && !step.toLowerCase().includes('autoptimize'))
+                          .map((step, stepIndex) => (
+                            <div key={stepIndex} className="flex items-start gap-2">
+                              <span className="text-blue-500 text-xs mt-1">•</span>
+                              <span className="text-gray-700">{step}</span>
+                            </div>
+                          ))}
                       </div>
+
+                      {/* Recommended Plugins */}
+                      {(() => {
+                        const pluginSteps = rec.howTo.filter(step =>
+                          step.toLowerCase().includes('plugin') ||
+                          step.toLowerCase().includes('yoast') ||
+                          step.toLowerCase().includes('rank math') ||
+                          step.toLowerCase().includes('all in one seo') ||
+                          step.toLowerCase().includes('imagify') ||
+                          step.toLowerCase().includes('shortpixel') ||
+                          step.toLowerCase().includes('ewww') ||
+                          step.toLowerCase().includes('wp rocket') ||
+                          step.toLowerCase().includes('autoptimize') ||
+                          step.toLowerCase().includes('w3 total cache') ||
+                          step.toLowerCase().includes('tinypng') ||
+                          step.toLowerCase().includes('squoosh')
+                        )
+
+                        const getPluginLink = (text: string): string | null => {
+                          const lower = text.toLowerCase()
+                          if (lower.includes('yoast')) return 'https://wordpress.org/plugins/wordpress-seo/'
+                          if (lower.includes('rank math')) return 'https://wordpress.org/plugins/seo-by-rank-math/'
+                          if (lower.includes('all in one seo')) return 'https://wordpress.org/plugins/all-in-one-seo-pack/'
+                          if (lower.includes('imagify')) return 'https://wordpress.org/plugins/imagify/'
+                          if (lower.includes('shortpixel')) return 'https://wordpress.org/plugins/shortpixel-image-optimiser/'
+                          if (lower.includes('ewww')) return 'https://wordpress.org/plugins/ewww-image-optimizer/'
+                          if (lower.includes('wp rocket')) return 'https://wp-rocket.me/'
+                          if (lower.includes('autoptimize')) return 'https://wordpress.org/plugins/autoptimize/'
+                          if (lower.includes('w3 total cache')) return 'https://wordpress.org/plugins/w3-total-cache/'
+                          if (lower.includes('tinypng')) return 'https://tinypng.com/'
+                          if (lower.includes('squoosh')) return 'https://squoosh.app/'
+                          return null
+                        }
+
+                        if (pluginSteps.length === 0) return null
+
+                        return (
+                          <div className="space-y-2 pt-3 border-t border-gray-300">
+                            <div className="font-medium text-gray-800 flex items-center gap-2">
+                              <span>Recommended Plugins & Tools:</span>
+                            </div>
+                            {pluginSteps.map((step, stepIndex) => {
+                              const link = getPluginLink(step)
+                              return (
+                                <div key={stepIndex} className="flex items-start gap-2">
+                                  <span className="text-green-500 text-xs mt-1">🔧</span>
+                                  <span className="text-gray-700">
+                                    {step}
+                                    {link && (
+                                      <a
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-2 text-blue-600 hover:text-blue-800 underline text-xs"
+                                      >
+                                        Visit plugin →
+                                      </a>
+                                    )}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
+
+                      {/* Plugin Recommendation Tables */}
+                      {rec.useCase && cms === 'WordPress' && (
+                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-6">
+                          {/* Currently Installed Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="installed"
+                          />
+
+                          {/* Recommended Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="recommended"
+                          />
+                        </div>
+                      )}
                     </div>
                   </details>
                 </div>
