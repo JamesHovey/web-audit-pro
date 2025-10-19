@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
             // For 'all' scope, discover and analyze all pages
             let pagesToAnalyze = [url];
-            let pageHtmlMap = new Map<string, string>();
+            const pageHtmlMap = new Map<string, string>();
 
             if (scope === 'all') {
               console.log('🔍 Discovering pages for keyword analysis...');
@@ -286,6 +286,44 @@ export async function POST(request: NextRequest) {
                 console.log('⚠️ Viewport analysis skipped')
               }
             }
+
+          } else if (section === 'accessibility') {
+            // Website Accessibility Audit
+            const { performAccessibilityAudit } = await import('@/lib/accessibilityAuditService')
+
+            console.log('♿ Running accessibility audit...')
+
+            // For 'all' scope, discover and analyze pages (limit for performance)
+            let pagesToAnalyze = [url];
+
+            if (scope === 'all') {
+              console.log('🔍 Discovering pages for accessibility analysis...');
+              const { discoverRealPages } = await import('@/lib/realPageDiscovery');
+              const pageDiscovery = await discoverRealPages(url);
+
+              // Filter out excluded paths
+              let filteredPages = pageDiscovery.pages;
+              if (excludedPaths.length > 0) {
+                const initialCount = filteredPages.length;
+                filteredPages = filteredPages.filter(page => {
+                  const pageUrl = new URL(page.url);
+                  const pathname = pageUrl.pathname;
+                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                });
+                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths`);
+              }
+
+              // Limit to 10 pages for accessibility testing (can be resource-intensive)
+              const effectiveLimit = Math.min(pageLimit === null ? 10 : pageLimit, 10);
+              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} pages (max 10 for performance)`);
+            } else if (scope === 'custom') {
+              pagesToAnalyze = pages.slice(0, 10); // Limit custom pages too
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} custom pages`);
+            }
+
+            results.accessibility = await performAccessibilityAudit(url, scope, pagesToAnalyze)
+            console.log('✅ Accessibility audit completed')
 
           } else {
             // Handle remaining sections (technology) with mock data for now

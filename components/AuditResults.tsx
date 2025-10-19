@@ -19,6 +19,8 @@ import OverallAuditConclusion from './OverallAuditConclusion'
 import PerformanceTechnicalConclusion from './PerformanceTechnicalConclusion'
 import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
+import AccessibilityConclusion from './AccessibilityConclusion'
+import AccessibilityResults from './AccessibilityResults'
 import EnhancedRecommendations from './EnhancedRecommendations'
 import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
@@ -102,10 +104,11 @@ const BACKGROUND_THEMES = [
 const SECTION_LABELS = {
   traffic: "Traffic Insights",
   keywords: "Keywords",
-  performance: "Performance & Technical Audit", 
+  performance: "Performance & Technical Audit",
   backlinks: "Authority & Backlinks",
   technical: "Performance & Technical Audit",
-  technology: "Technology Stack"
+  technology: "Technology Stack",
+  accessibility: "Accessibility"
 }
 
 export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
@@ -531,6 +534,48 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               <TechnologyStackConclusion 
                 data={audit?.results?.technology} 
               />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Accessibility - Full Width */}
+      {audit?.sections?.includes('accessibility') && (
+        <div className="card-pmw">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              {SECTION_LABELS.accessibility}
+              <Tooltip
+                content={
+                  <div>
+                    <p className="font-semibold mb-2">Accessibility</p>
+                    <p className="mb-2">Tests WCAG 2.2 Level AA compliance for UK/EAA legal requirements.</p>
+                    <div className="text-xs space-y-1">
+                      <p><strong>Automated Testing:</strong> axe-core & Pa11y scan for accessibility issues</p>
+                      <p><strong>WCAG Principles:</strong> Perceivable, Operable, Understandable, Robust</p>
+                      <p><strong>Severity Levels:</strong> Critical, Serious, Moderate, Minor</p>
+                      <p><strong>Legal Compliance:</strong> UK Equality Act & European Accessibility Act</p>
+                      <p><strong>Fix Recommendations:</strong> Specific code examples to resolve issues</p>
+                    </div>
+                  </div>
+                }
+                position="top"
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+              </Tooltip>
+            </h3>
+            <div className="mt-4">
+              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                <LoadingMessages section="accessibility" />
+              ) : (
+                <AccessibilityResults data={audit.results?.accessibility || {}} />
+              )}
+            </div>
+            {/* Accessibility Conclusion */}
+            {audit.status === "completed" && audit?.results?.accessibility && (
+              <div className="mt-6">
+                <AccessibilityConclusion data={audit?.results?.accessibility} />
+              </div>
             )}
           </div>
         </div>

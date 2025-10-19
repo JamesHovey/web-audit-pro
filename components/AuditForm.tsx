@@ -28,6 +28,11 @@ const AUDIT_SECTIONS = [
     id: "technology",
     label: "Technology Stack",
     description: "Technologies, frameworks, and platforms used in website construction"
+  },
+  {
+    id: "accessibility",
+    label: "Accessibility",
+    description: "WCAG 2.2 Level AA compliance testing for UK/EAA requirements with actionable fixes"
   }
 ]
 

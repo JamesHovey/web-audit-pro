@@ -93,6 +93,18 @@ const SECTION_CONFIG = {
       { name: "Security assessment", time: 10 }
     ],
     color: "#1F2937"
+  },
+  accessibility: {
+    name: "Accessibility",
+    icon: CheckCircle,
+    estimatedTime: 60,
+    steps: [
+      { name: "Running axe-core WCAG tests", time: 20 },
+      { name: "Running Pa11y compliance scan", time: 20 },
+      { name: "Analyzing accessibility issues", time: 15 },
+      { name: "Generating fix recommendations", time: 5 }
+    ],
+    color: "#7C3AED"
   }
 }
 
