@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, sections, scope = 'single', country = 'gb', isUKCompany = false, pages = [url], pageLimit = 50, excludedPaths = [] } = body
+    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', isUKCompany = false, pages = [url], pageLimit = 50, excludedPaths = [] } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         // Store additional audit metadata
         results: {
           scope,
+          auditView, // Store the selected audit view
           pages,
           totalPages: pages.length
         }

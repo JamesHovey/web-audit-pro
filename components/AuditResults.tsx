@@ -21,6 +21,7 @@ import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import AccessibilityConclusion from './AccessibilityConclusion'
 import AccessibilityResults from './AccessibilityResults'
+import AuditSummary from './AuditSummary'
 import EnhancedRecommendations from './EnhancedRecommendations'
 import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
@@ -121,6 +122,17 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
   const [showTrafficExplanation, setShowTrafficExplanation] = useState(false)
   const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
+  const [currentView, setCurrentView] = useState<'executive' | 'manager' | 'developer'>(
+    (audit.results?.auditView as 'executive' | 'manager' | 'developer') || 'executive'
+  )
+  const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
+    traffic: true,
+    performance: true,
+    technology: true,
+    accessibility: true,
+    keywords: true,
+    viewport: true
+  })
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
   const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
   const [showMethodologyExpanded, setShowMethodologyExpanded] = useState<{[key: string]: boolean}>({
@@ -152,9 +164,115 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     links: []
   })
 
+  // Section ordering and drag state
+  const [sectionOrder, setSectionOrder] = useState<string[]>([
+    'traffic',
+    'performance',
+    'viewport',
+    'technology',
+    'accessibility',
+    'keywords'
+  ])
+  const [draggedSection, setDraggedSection] = useState<string | null>(null)
+
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Update collapsed sections when view changes
+  useEffect(() => {
+    if (currentView === 'executive') {
+      // Collapse all sections except summary
+      setCollapsedSections({
+        traffic: true,
+        performance: true,
+        technology: true,
+        accessibility: true,
+        keywords: true,
+        viewport: true
+      })
+    } else if (currentView === 'manager') {
+      // Expand key sections, collapse detailed sections
+      setCollapsedSections({
+        traffic: false,
+        performance: false,
+        technology: true,
+        accessibility: false,
+        keywords: false,
+        viewport: true
+      })
+    } else if (currentView === 'developer') {
+      // Expand everything
+      setCollapsedSections({
+        traffic: false,
+        performance: false,
+        technology: false,
+        accessibility: false,
+        keywords: false,
+        viewport: false
+      })
+    }
+  }, [currentView])
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const closeAllSections = () => {
+    setCollapsedSections({
+      traffic: true,
+      performance: true,
+      technology: true,
+      accessibility: true,
+      keywords: true,
+      viewport: true
+    })
+  }
+
+  // Check if all sections are closed
+  const allSectionsClosed = Object.values(collapsedSections).every(val => val === true)
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, sectionId: string) => {
+    // Only allow dragging if section is collapsed
+    if (!collapsedSections[sectionId]) {
+      e.preventDefault()
+      return
+    }
+    setDraggedSection(sectionId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, targetSectionId: string) => {
+    e.preventDefault()
+
+    if (!draggedSection || draggedSection === targetSectionId) {
+      return
+    }
+
+    const newOrder = [...sectionOrder]
+    const draggedIndex = newOrder.indexOf(draggedSection)
+    const targetIndex = newOrder.indexOf(targetSectionId)
+
+    // Remove dragged item and insert at target position
+    newOrder.splice(draggedIndex, 1)
+    newOrder.splice(targetIndex, 0, draggedSection)
+
+    setSectionOrder(newOrder)
+    setDraggedSection(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedSection(null)
+  }
 
   const toggleMethodology = (section: string) => {
     setShowMethodologyExpanded(prev => ({
@@ -390,150 +508,390 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       </div>
 
       {/* AI Summary - DISABLED: Claude API temporarily disabled */}
-      {/* {audit.status === "completed" && (
-        <AuditSummary 
-          auditId={audit.id} 
-          isAuditComplete={audit.status === "completed"} 
-        />
-      )} */}
-
       {/* Only show results when audit is complete */}
       {showResults ? (
         <>
-
-          {/* Keywords Section - Full Width */}
-      {audit?.sections?.includes('traffic') && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.traffic}
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Traffic Insights</p>
-                    <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Organic:</strong> Visitors from Google search results</p>
-                      <p><strong>Direct:</strong> People typing your URL directly</p>
-                      <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
-                      <p><strong>Social:</strong> Visitors from social media platforms</p>
-                      <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
-                    </div>
+          {/* View Switcher */}
+          <div className="card-pmw mb-6">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Audit View</h3>
+                  <p className="text-sm text-gray-600">Choose your preferred level of detail</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Executive View */}
+                <button
+                  onClick={() => setCurrentView('executive')}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    currentView === 'executive'
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h4 className="font-semibold text-gray-900">Executive View</h4>
+                    {currentView === 'executive' && (
+                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="traffic" />
-              ) : (
-                // Use original traffic rendering
-                renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
-              )}
+                  <p className="text-xs text-gray-600">Summary only - perfect for presentations</p>
+                </button>
+
+                {/* Manager View */}
+                <button
+                  onClick={() => setCurrentView('manager')}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    currentView === 'manager'
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <h4 className="font-semibold text-gray-900">Manager View</h4>
+                    {currentView === 'manager' && (
+                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">Key insights + priority issues</p>
+                </button>
+
+                {/* Developer View */}
+                <button
+                  onClick={() => setCurrentView('developer')}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    currentView === 'developer'
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <h4 className="font-semibold text-gray-900">Developer View</h4>
+                    {currentView === 'developer' && (
+                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">Full technical details</p>
+                </button>
+              </div>
+
+              {/* Section Management Controls */}
+              <div className="mt-6 flex items-center justify-between gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <Tooltip
+                    content={
+                      <div className="max-w-xs">
+                        <p className="font-semibold mb-2">Reorder Sections</p>
+                        <p className="text-sm">To move sections around:</p>
+                        <ol className="list-decimal list-inside text-sm mt-2 space-y-1">
+                          <li>Close all sections using the button</li>
+                          <li>Click and hold on a closed section header</li>
+                          <li>Drag it above or below other sections</li>
+                          <li>Release to drop it in the new position</li>
+                        </ol>
+                        <p className="text-xs mt-2 text-gray-400">💡 Sections can only be moved when closed</p>
+                      </div>
+                    }
+                    position="top"
+                  >
+                    <span className="text-sm text-gray-700 cursor-help">How to reorder sections</span>
+                  </Tooltip>
+                </div>
+                <button
+                  onClick={closeAllSections}
+                  disabled={allSectionsClosed}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    allSectionsClosed
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Close All Sections
+                  </div>
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Audit Summary - FIRST SECTION */}
+          {audit.results && (
+            <AuditSummary auditResults={audit.results} />
+          )}
+
+          {/* Traffic Section - Full Width */}
+          {audit?.sections?.includes('traffic') && (
+            <div
+              className={`card-pmw transition-all ${
+                collapsedSections.traffic ? 'cursor-move hover:shadow-lg' : ''
+              } ${draggedSection === 'traffic' ? 'opacity-50 scale-95' : ''}`}
+              data-section="traffic"
+              draggable={collapsedSections.traffic}
+              onDragStart={(e) => handleDragStart(e, 'traffic')}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, 'traffic')}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="p-6">
+                <div
+                  className="flex items-center justify-between cursor-pointer mb-4"
+                  onClick={() => toggleSection('traffic')}
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    {SECTION_LABELS.traffic}
+                    <Tooltip
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">Traffic Insights</p>
+                          <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
+                          <div className="text-xs space-y-1">
+                            <p><strong>Organic:</strong> Visitors from Google search results</p>
+                            <p><strong>Direct:</strong> People typing your URL directly</p>
+                            <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
+                            <p><strong>Social:</strong> Visitors from social media platforms</p>
+                            <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
+                          </div>
+                        </div>
+                      }
+                      position="top"
+                    >
+                      <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </Tooltip>
+                  </h3>
+                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                    <svg
+                      className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.traffic ? '' : 'rotate-180'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+                {!collapsedSections.traffic && (
+                  <div className="mt-4">
+                    {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                      <LoadingMessages section="traffic" />
+                    ) : (
+                      renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Technology Stack - Full Width */}
+          {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+            <div
+              className={`card-pmw transition-all ${
+                collapsedSections.performance ? 'cursor-move hover:shadow-lg' : ''
+              } ${draggedSection === 'performance' ? 'opacity-50 scale-95' : ''}`}
+              data-section="performance"
+              draggable={collapsedSections.performance}
+              onDragStart={(e) => handleDragStart(e, 'performance')}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, 'performance')}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="p-6">
+                <div
+                  className="flex items-center justify-between cursor-pointer mb-4"
+                  onClick={() => toggleSection('performance')}
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    Performance & Technical Audit
+                    <Tooltip
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">Performance & Technical Audit</p>
+                          <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
+                          <div className="text-xs space-y-1">
+                            <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
+                            <p><strong>Page Speed:</strong> How fast your pages load</p>
+                            <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
+                            <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
+                            <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </Tooltip>
+                  </h3>
+                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                    <svg
+                      className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.performance ? '' : 'rotate-180'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+                {!collapsedSections.performance && (
+                  <div className="mt-4">
+                    {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                      <LoadingMessages section="performance" />
+                    ) : (
+                      renderSectionResults(
+                        audit?.sections?.includes('technical') ? "technical" : "performance",
+                        {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})},
+                        undefined,
+                        showMethodologyExpanded,
+                        toggleMethodology,
+                        setPageModalState,
+                        performancePagination,
+                        setPerformancePagination,
+                        setShowCoreWebVitalsGuide,
+                        audit?.auditType,
+                        audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
+                        audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+      {/* Viewport Responsiveness Analysis - Full Width */}
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+        <div
+          className={`card-pmw transition-all ${
+            collapsedSections.viewport ? 'cursor-move hover:shadow-lg' : ''
+          } ${draggedSection === 'viewport' ? 'opacity-50 scale-95' : ''}`}
+          data-section="viewport"
+          draggable={collapsedSections.viewport}
+          onDragStart={(e) => handleDragStart(e, 'viewport')}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 'viewport')}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="p-6">
+            <div
+              className="flex items-center justify-between cursor-pointer mb-4"
+              onClick={() => toggleSection('viewport')}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                Viewport Responsiveness
+              </h3>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.viewport ? '' : 'rotate-180'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+            {!collapsedSections.viewport && (
+              <div className="mt-4">
+                <ViewportResponsiveAnalysis
+                  url={audit.url}
+                  data={audit?.results?.viewport as any}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Technology Stack - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              Performance & Technical Audit
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Performance & Technical Audit</p>
-                    <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
-                      <p><strong>Page Speed:</strong> How fast your pages load</p>
-                      <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
-                      <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
-                      <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
-                    </div>
-                  </div>
-                }
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="performance" />
-              ) : (
-                renderSectionResults(
-                  audit?.sections?.includes('technical') ? "technical" : "performance", 
-                  {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})}, 
-                  undefined, 
-                  showMethodologyExpanded, 
-                  toggleMethodology, 
-                  setPageModalState,
-                  performancePagination,
-                  setPerformancePagination,
-                  setShowCoreWebVitalsGuide,
-                  audit?.auditType,
-                  audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
-                  audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Viewport Responsiveness Analysis - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
-        <div className="card-pmw">
-          <div className="p-6">
-            <ViewportResponsiveAnalysis
-              url={audit.url}
-              data={audit?.results?.viewport as any}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Authority & Backlinks - Full Width */}
       {audit?.sections?.includes('technology') && (
-        <div className="card-pmw">
+        <div
+          className={`card-pmw transition-all ${
+            collapsedSections.technology ? 'cursor-move hover:shadow-lg' : ''
+          } ${draggedSection === 'technology' ? 'opacity-50 scale-95' : ''}`}
+          data-section="technology"
+          draggable={collapsedSections.technology}
+          onDragStart={(e) => handleDragStart(e, 'technology')}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 'technology')}
+          onDragEnd={handleDragEnd}
+        >
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.technology}
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Technology Stack</p>
-                    <p className="mb-2">Shows what technologies and tools power your website.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
-                      <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
-                      <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
-                      <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
-                      <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+            <div
+              className="flex items-center justify-between cursor-pointer mb-4"
+              onClick={() => toggleSection('technology')}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                {SECTION_LABELS.technology}
+                <Tooltip
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Technology Stack</p>
+                      <p className="mb-2">Shows what technologies and tools power your website.</p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
+                        <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
+                        <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
+                        <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
+                        <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+                      </div>
                     </div>
-                  </div>
-                }
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="technology" />
-              ) : (
-                renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
-              )}
+                  }
+                >
+                  <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </h3>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.technology ? '' : 'rotate-180'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
-            {/* AI-Enhanced Technology Conclusion */}
-            {audit.status === "completed" && audit?.results?.technology && (
-              <TechnologyStackConclusion 
-                data={audit?.results?.technology} 
-              />
+            {!collapsedSections.technology && (
+              <div className="mt-4">
+                {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                  <LoadingMessages section="technology" />
+                ) : (
+                  renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+                )}
+                {/* AI-Enhanced Technology Conclusion */}
+                {audit.status === "completed" && audit?.results?.technology && (
+                  <TechnologyStackConclusion
+                    data={audit?.results?.technology}
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -541,101 +899,157 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
 
       {/* Accessibility - Full Width */}
       {audit?.sections?.includes('accessibility') && (
-        <div className="card-pmw">
+        <div
+          className={`card-pmw transition-all ${
+            collapsedSections.accessibility ? 'cursor-move hover:shadow-lg' : ''
+          } ${draggedSection === 'accessibility' ? 'opacity-50 scale-95' : ''}`}
+          data-section="accessibility"
+          draggable={collapsedSections.accessibility}
+          onDragStart={(e) => handleDragStart(e, 'accessibility')}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 'accessibility')}
+          onDragEnd={handleDragEnd}
+        >
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.accessibility}
-              <Tooltip
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Accessibility</p>
-                    <p className="mb-2">Tests WCAG 2.2 Level AA compliance for UK/EAA legal requirements.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Automated Testing:</strong> axe-core & Pa11y scan for accessibility issues</p>
-                      <p><strong>WCAG Principles:</strong> Perceivable, Operable, Understandable, Robust</p>
-                      <p><strong>Severity Levels:</strong> Critical, Serious, Moderate, Minor</p>
-                      <p><strong>Legal Compliance:</strong> UK Equality Act & European Accessibility Act</p>
-                      <p><strong>Fix Recommendations:</strong> Specific code examples to resolve issues</p>
+            <div
+              className="flex items-center justify-between cursor-pointer mb-4"
+              onClick={() => toggleSection('accessibility')}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                {SECTION_LABELS.accessibility}
+                <Tooltip
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Accessibility</p>
+                      <p className="mb-2">Tests WCAG 2.2 Level AA compliance for UK/EAA legal requirements.</p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>Automated Testing:</strong> axe-core & Pa11y scan for accessibility issues</p>
+                        <p><strong>WCAG Principles:</strong> Perceivable, Operable, Understandable, Robust</p>
+                        <p><strong>Severity Levels:</strong> Critical, Serious, Moderate, Minor</p>
+                        <p><strong>Legal Compliance:</strong> UK Equality Act & European Accessibility Act</p>
+                        <p><strong>Fix Recommendations:</strong> Specific code examples to resolve issues</p>
+                      </div>
                     </div>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
-            <div className="mt-4">
-              {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="accessibility" />
-              ) : (
-                <AccessibilityResults data={audit.results?.accessibility || {}} />
-              )}
+                  }
+                  position="top"
+                >
+                  <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </h3>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.accessibility ? '' : 'rotate-180'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
-            {/* Accessibility Conclusion */}
-            {audit.status === "completed" && audit?.results?.accessibility && (
-              <div className="mt-6">
-                <AccessibilityConclusion data={audit?.results?.accessibility} />
+            {!collapsedSections.accessibility && (
+              <div className="mt-4">
+                {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                  <LoadingMessages section="accessibility" />
+                ) : (
+                  <AccessibilityResults data={audit.results?.accessibility || {}} />
+                )}
+                {/* Accessibility Conclusion */}
+                {audit.status === "completed" && audit?.results?.accessibility && (
+                  <div className="mt-6">
+                    <AccessibilityConclusion data={audit?.results?.accessibility} />
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Performance & Technical Audit - Full Width */}
+      {/* Keywords - Full Width */}
           {audit?.sections?.includes('keywords') && (
-        <div className="card-pmw mb-6">
+        <div
+          className={`card-pmw mb-6 transition-all ${
+            collapsedSections.keywords ? 'cursor-move hover:shadow-lg' : ''
+          } ${draggedSection === 'keywords' ? 'opacity-50 scale-95' : ''}`}
+          data-section="keywords"
+          draggable={collapsedSections.keywords}
+          onDragStart={(e) => handleDragStart(e, 'keywords')}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 'keywords')}
+          onDragEnd={handleDragEnd}
+        >
           <div className="p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                {SECTION_LABELS['keywords']}
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Keyword Analysis</p>
-                      <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
-                      <div className="text-xs space-y-1">
-                        <p><strong>Branded Keywords:</strong> Searches including your company name</p>
-                        <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
-                        <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
-                        <p><strong>Search Volume:</strong> How many people search this term monthly</p>
-                        <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+            <div
+              className="flex items-center justify-between cursor-pointer mb-4"
+              onClick={() => toggleSection('keywords')}
+            >
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  {SECTION_LABELS['keywords']}
+                  <Tooltip
+                    content={
+                      <div>
+                        <p className="font-semibold mb-2">Keyword Analysis</p>
+                        <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
+                        <div className="text-xs space-y-1">
+                          <p><strong>Branded Keywords:</strong> Searches including your company name</p>
+                          <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
+                          <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
+                          <p><strong>Search Volume:</strong> How many people search this term monthly</p>
+                          <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+                        </div>
                       </div>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </h3>
-              {audit.results?.keywords?.dataSource && (
-                <div className="mt-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    audit.results.keywords.dataSource === 'valueserp' || audit.results.keywords.dataSource === 'mixed'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {audit.results.keywords.dataSource === 'valueserp' && '✓ Real Google Ranking Data'}
-                    {audit.results.keywords.dataSource === 'mixed' && '✓ Mixed Real & Estimated Data'}
-                    {audit.results.keywords.dataSource === 'estimation' && '⚠ Estimated Data Only'}
-                    {audit.results.keywords.searchesUsed && ` (${audit.results.keywords.searchesUsed} searches)`}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-              <LoadingMessages section="keywords" />
-            ) : audit.results?.keywords ? (
-              <div className="space-y-4">
-                {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
-
-                {/* Claude AI Keyword Analysis Conclusion */}
-                {audit.results.keywords.claudeAnalysis && (
-                  <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />
+                    }
+                    position="top"
+                  >
+                    <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </h3>
+                {audit.results?.keywords?.dataSource && (
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      audit.results.keywords.dataSource === 'valueserp' || audit.results.keywords.dataSource === 'mixed'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {audit.results.keywords.dataSource === 'valueserp' && '✓ Real Google Ranking Data'}
+                      {audit.results.keywords.dataSource === 'mixed' && '✓ Mixed Real & Estimated Data'}
+                      {audit.results.keywords.dataSource === 'estimation' && '⚠ Estimated Data Only'}
+                      {audit.results.keywords.searchesUsed && ` (${audit.results.keywords.searchesUsed} searches)`}
+                    </span>
+                  </div>
                 )}
               </div>
-            ) : (
-              <LoadingMessages section="keywords" />
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4">
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.keywords ? '' : 'rotate-180'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+
+            {!collapsedSections.keywords && (
+              <div className="mt-4">
+                {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
+                  <LoadingMessages section="keywords" />
+                ) : audit.results?.keywords ? (
+                  <div className="space-y-4">
+                    {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+
+                    {/* Claude AI Keyword Analysis Conclusion */}
+                    {audit.results.keywords.claudeAnalysis && (
+                      <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />
+                    )}
+                  </div>
+                ) : (
+                  <LoadingMessages section="keywords" />
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -3089,11 +3503,6 @@ function renderSectionResults(
       )
 
     default:
-      return (
-        <div className="text-gray-600">
-          <p>Analysis completed successfully</p>
-          <p className="text-sm mt-1">Detailed results are now available</p>
-        </div>
-      )
+      return null
   }
 }
