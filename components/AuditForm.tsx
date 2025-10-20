@@ -122,6 +122,85 @@ export function AuditForm() {
   const [isCountingPages, setIsCountingPages] = useState(false)
   const [excludedPaths, setExcludedPaths] = useState<string[]>([]) // Paths to exclude (e.g., /blog)
   const [excludeInput, setExcludeInput] = useState('')
+  const [estimatedCost, setEstimatedCost] = useState({
+    keywordsEverywhere: 0,
+    serper: 0,
+    claude: 0,
+    total: 0
+  })
+
+  // Format cost with smart pence/pounds display
+  const formatCost = (amount: number) => {
+    if (amount < 1) {
+      const pence = Math.round(amount * 100)
+      return `${pence}p`
+    }
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+  }
+
+  // Calculate estimated audit cost
+  const calculateEstimatedCost = () => {
+    const hasKeywords = selectedSections.includes('keywords')
+    let pageCount = 1
+
+    // Determine page count based on scope
+    if (auditScope === 'single') {
+      pageCount = 1
+    } else if (auditScope === 'selected' && discoveredPages.length > 0) {
+      pageCount = discoveredPages.filter(p => p.selected).length || 1
+    } else if (auditScope === 'all') {
+      // Use actual count if available, otherwise estimate 50
+      pageCount = allPagesCount || pageLimit || 50
+    }
+
+    // Cost calculations in USD - using actual usage from API implementation
+    let keCreditsUsed = 0
+    let vsSearchesUsed = 0
+
+    if (hasKeywords) {
+      if (pageCount === 1) {
+        // Single page audit
+        keCreditsUsed = 116
+        vsSearchesUsed = 75
+      } else {
+        // Multi-page audit: first page costs more, additional pages cost less
+        const homePage = 1
+        const additionalPages = pageCount - 1
+        keCreditsUsed = (homePage * 116) + (additionalPages * 25)
+        vsSearchesUsed = (homePage * 75) + (additionalPages * 15)
+      }
+    }
+
+    const keCostUSD = keCreditsUsed * 0.00024 // $0.24 per 1000 credits
+    const serperCostUSD = vsSearchesUsed * 0.0006 // $0.60 per 1000 searches (2 credits per search)
+    const claudeKeywordsCostUSD = hasKeywords ? 0.038 : 0 // Claude for keywords/business detection
+    const claudePerformanceCostUSD = 0.050 // Claude for performance analysis (fixed per audit)
+    const totalClaudeCostUSD = claudeKeywordsCostUSD + claudePerformanceCostUSD
+
+    const totalCostUSD = keCostUSD + serperCostUSD + totalClaudeCostUSD
+
+    // Convert to GBP (using approximate rate of 0.79)
+    const usdToGbp = 0.79
+
+    setEstimatedCost({
+      keywordsEverywhere: keCostUSD * usdToGbp,
+      serper: serperCostUSD * usdToGbp,
+      claude: totalClaudeCostUSD * usdToGbp,
+      total: totalCostUSD * usdToGbp
+    })
+  }
+
+  // Recalculate cost when selections change
+  useEffect(() => {
+    if (isValidUrl) {
+      calculateEstimatedCost()
+    }
+  }, [selectedSections, auditScope, discoveredPages, allPagesCount, pageLimit, isValidUrl])
 
   // Recalculate page count when excluded paths change
   useEffect(() => {
@@ -469,6 +548,7 @@ export function AuditForm() {
           )}
         </div>
 
+
         {/* Audit Scope Selection */}
         {isValidUrl && (
           <div>
@@ -562,37 +642,54 @@ export function AuditForm() {
                 {/* Show all page discovery info when "All Discoverable Pages" is selected */}
                 {auditScope === 'all' && (
                   <div className="ml-7 mt-3 space-y-3">
-                    {/* Page Count Badge */}
-                    <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                      {isCountingPages ? (
-                        <>
-                          <LoadingSpinner size="sm" />
-                          <span className="text-blue-700">Counting pages...</span>
-                        </>
-                      ) : allPagesCount !== null ? (
-                        <>
-                          <span className="font-semibold text-blue-900">{allPagesCount}</span>
-                          <span className="text-blue-700">pages discovered</span>
-                        </>
-                      ) : null}
-                    </div>
+                    {/* Page Discovery Status */}
+                    {isCountingPages ? (
+                      <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                        <LoadingSpinner size="sm" />
+                        <span className="text-blue-700">Discovering all pages...</span>
+                      </div>
+                    ) : allPagesCount !== null ? (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm font-semibold text-blue-900">
+                            {allPagesCount === 1
+                              ? '1 page discovered'
+                              : `${allPagesCount.toLocaleString()} pages discovered`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-blue-700">
+                          {pageLimit !== null && allPagesCount > pageLimit
+                            ? `This website has ${allPagesCount.toLocaleString()} pages, but audit is limited to ${pageLimit} pages.`
+                            : pageLimit !== null
+                              ? `Audit will analyze all ${allPagesCount.toLocaleString()} pages (within ${pageLimit} page limit).`
+                              : `All ${allPagesCount.toLocaleString()} pages will be analyzed.`
+                          }
+                        </p>
+                      </div>
+                    ) : null}
 
                     {/* Page Limit Notice */}
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-medium text-amber-900">
-                          {pageLimit === null ? 'No page limit' : `Analysis limited to ${pageLimit} pages`}
-                        </span>
-                      </div>
-                      <p className="text-xs text-amber-700 mb-2">
-                        {pageLimit === null
-                          ? 'All discoverable pages will be analyzed. This may take longer and incur higher costs.'
-                          : 'Limiting page analysis helps control processing time and API costs.'
-                        }
-                      </p>
+                    {allPagesCount !== null && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-medium text-amber-900">
+                            {pageLimit === null
+                              ? 'No page limit set'
+                              : `Auditing ${Math.min(pageLimit, allPagesCount)} of ${allPagesCount.toLocaleString()} pages`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-700 mb-2">
+                          {pageLimit === null
+                            ? 'All discoverable pages will be analyzed. This may take longer and incur higher costs.'
+                            : `Limiting to ${pageLimit} pages helps control processing time and API costs.`
+                          }
+                        </p>
 
                       {/* Page Limit Controls Toggle */}
                       {!showPageLimitControls && (
@@ -720,7 +817,7 @@ export function AuditForm() {
                             <p className="text-xs font-medium text-amber-900 mb-1">💰 Estimated Cost Impact</p>
                             <p className="text-xs text-amber-800">
                               {pageLimit === null
-                                ? 'Unlimited analysis may result in higher API costs (Keywords Everywhere & ValueSERP)'
+                                ? 'Unlimited analysis may result in higher API costs (Keywords Everywhere & Serper)'
                                 : pageLimit <= 25
                                   ? 'Low cost - minimal API usage'
                                   : pageLimit <= 50
@@ -742,6 +839,7 @@ export function AuditForm() {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1094,6 +1192,56 @@ export function AuditForm() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Estimated Cost Section */}
+        {isValidUrl && estimatedCost.total > 0 && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900">Estimated Audit Cost</h3>
+            </div>
+
+            <div className="space-y-3">
+              {/* Cost Breakdown */}
+              <div className="space-y-2">
+                {selectedSections.includes('keywords') && (
+                  <>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">Keywords Everywhere API</span>
+                      <span className="font-semibold text-gray-900">{formatCost(estimatedCost.keywordsEverywhere)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">Serper API</span>
+                      <span className="font-semibold text-gray-900">{formatCost(estimatedCost.serper)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-700">Claude AI Analysis</span>
+                  <span className="font-semibold text-gray-900">{formatCost(estimatedCost.claude)}</span>
+                </div>
+
+                <div className="border-t border-blue-300 pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 text-base">Total Estimated Cost</span>
+                    <span className="font-bold text-2xl text-blue-600">{formatCost(estimatedCost.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info message */}
+              <div className="mt-4 p-3 bg-blue-100 rounded border border-blue-200">
+                <p className="text-xs text-blue-800">
+                  <strong>Note:</strong> {selectedSections.includes('keywords')
+                    ? 'Costs vary based on selected sections and page count. Keywords section uses paid APIs.'
+                    : 'Without keywords section, costs are significantly lower and based primarily on AI analysis.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

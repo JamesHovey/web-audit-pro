@@ -10,7 +10,7 @@ export interface ApiCosts {
     planType: string
     lastUpdated: string
   }
-  valueSERP: {
+  serper: {
     searchesRemaining: number
     searchesUsed: number
     costPer1000: number
@@ -59,8 +59,8 @@ export class CostingService {
       // Fetch Keywords Everywhere balance
       const keBalance = await this.getKeywordsEverywhereBalance()
       
-      // Fetch ValueSERP balance  
-      const vsBalance = await this.getValueSerpBalance()
+      // Fetch Serper balance
+      const vsBalance = await this.getSerperBalance()
 
       // Fetch Claude API usage
       const claudeUsage = await this.getClaudeApiUsage()
@@ -73,10 +73,10 @@ export class CostingService {
           planType: keBalance.planType,
           lastUpdated: new Date().toISOString()
         },
-        valueSERP: {
+        serper: {
           searchesRemaining: vsBalance.remaining,
           searchesUsed: vsBalance.used,
-          costPer1000: 1.60, // $1.60 per 1000 searches
+          costPer1000: 0.60, // $0.60 per 1000 searches
           planType: vsBalance.planType,
           lastUpdated: new Date().toISOString()
         },
@@ -130,23 +130,23 @@ export class CostingService {
   }
 
   /**
-   * Get ValueSERP balance
+   * Get Serper balance
    */
-  private async getValueSerpBalance(): Promise<{remaining: number, used: number, planType: string}> {
+  private async getSerperBalance(): Promise<{remaining: number, used: number, planType: string}> {
     try {
-      // ValueSERP doesn't typically provide balance info in responses
+      // Serper doesn't typically provide balance info in responses
       // This would need to be tracked separately or estimated
       return {
         remaining: 22350,
         used: 2650,
-        planType: '25K Searches/month ($50/month)'
+        planType: '25K Searches/month ($30/month)'
       }
     } catch (error) {
-      console.warn('Could not fetch ValueSERP balance:', error)
+      console.warn('Could not fetch Serper balance:', error)
       return {
         remaining: 22350,
         used: 2650,
-        planType: '25K Searches/month ($50/month)'
+        planType: '25K Searches/month ($30/month)'
       }
     }
   }
@@ -262,7 +262,7 @@ export class CostingService {
    */
   getAuditCostBreakdown(keCredits: number, vsSearches: number, claudeCost?: number): {
     keywordsEverywhere: number,
-    valueSERP: number, 
+    serper: number,
     claude: number,
     total: number,
     details: {
@@ -273,20 +273,20 @@ export class CostingService {
     }
   } {
     const keCost = keCredits * 0.00024;
-    const vsCost = vsSearches * 0.0016;
+    const serperCost = vsSearches * 0.0006;
     const actualClaudeCost = claudeCost || 0.038;
-    const total = keCost + vsCost + actualClaudeCost;
+    const total = keCost + serperCost + actualClaudeCost;
 
     return {
       keywordsEverywhere: keCost,
-      valueSERP: vsCost,
+      serper: serperCost,
       claude: actualClaudeCost,
       total: Math.round(total * 1000) / 1000,
       details: {
         keCreditsUsed: keCredits,
         vsSearchesUsed: vsSearches,
         keCostPer1000: 0.24,
-        vsCostPer1000: 1.60
+        vsCostPer1000: 0.60
       }
     };
   }
@@ -296,12 +296,12 @@ export class CostingService {
    */
   calculateRemainingAudits(costs: ApiCosts): {ke: number, vs: number, limiting: number} {
     // Updated based on actual audit usage we observed:
-    // PMW audit used ~553 Keywords Everywhere credits + ~150 ValueSERP searches
+    // PMW audit used ~553 Keywords Everywhere credits + ~150 Serper searches
     const avgKeCreditsPerAudit = 550 // Real data from enhanced keyword analysis
     const avgVsSearchesPerAudit = 150 // Real data from above fold + competition analysis
 
     const keAudits = Math.floor(costs.keywordsEverywhere.creditsRemaining / avgKeCreditsPerAudit)
-    const vsAudits = Math.floor(costs.valueSERP.searchesRemaining / avgVsSearchesPerAudit)
+    const vsAudits = Math.floor(costs.serper.searchesRemaining / avgVsSearchesPerAudit)
 
     return {
       ke: keAudits,
@@ -315,7 +315,7 @@ export class CostingService {
    */
   getEstimatedCostPerAudit(): {
     keywordsEverywhere: number,
-    valueSERP: number,
+    serper: number,
     claude: number,
     total: number
   } {
@@ -324,12 +324,12 @@ export class CostingService {
     const claudeCost = 0.038;
 
     const keCost = avgKeCredits * 0.00024;
-    const vsCost = avgVsSearches * 0.0016;
-    const total = keCost + vsCost + claudeCost;
+    const serperCost = avgVsSearches * 0.0006;
+    const total = keCost + serperCost + claudeCost;
 
     return {
       keywordsEverywhere: keCost,
-      valueSERP: vsCost,
+      serper: serperCost,
       claude: claudeCost,
       total: Math.round(total * 1000) / 1000
     };
@@ -347,11 +347,11 @@ export class CostingService {
         planType: 'Bronze Package (100K/year)',
         lastUpdated: new Date().toISOString()
       },
-      valueSERP: {
+      serper: {
         searchesRemaining: 22350,
         searchesUsed: 2650,
-        costPer1000: 1.60,
-        planType: '25K Searches/month ($50/month)',
+        costPer1000: 0.60,
+        planType: '25K Searches/month ($30/month)',
         lastUpdated: new Date().toISOString()
       },
       claudeApi: {

@@ -172,3 +172,74 @@ Build a comprehensive website audit tool with 6 key sections:
 - Test each component thoroughly before moving to next phase
 - Prioritize user experience and performance
 - Maintain clean, professional interface suitable for business use
+
+---
+
+## Current Task: Audit Results Page Improvements
+
+### Overview
+Improve the Audit Results page to make the Audit View section accessible via icon and ensure all Performance & Technical issues appear in the Audit Summary.
+
+### Tasks
+
+#### 1. Move Audit View Section to Icon Button
+- [ ] Create an icon button (e.g., eye/visibility icon) to the left of the "Sitemap" button
+- [ ] Move the Audit View section content into a modal/dropdown that opens when the icon is clicked
+- [ ] Make the Audit View section closed/hidden by default
+- [ ] Ensure state management for opening/closing the view selector
+
+#### 2. Enhance Audit Summary with Performance Issues
+Currently capturing:
+- ✅ Core Web Vitals (LCP, CLS, INP) failures
+- ✅ Large images
+- ✅ Missing meta descriptions
+- ✅ Missing H1 tags
+- ✅ Broken links
+
+Need to verify and add any missing from Performance & Technical section:
+- [ ] Review what other performance metrics are shown in Performance & Technical Audit
+- [ ] Add any missing issues to auditSummaryService.ts
+- [ ] Ensure single-page audit issues are properly extracted
+
+#### 3. Issue Prioritization Recommendations
+
+**Current Priority Score Calculation:**
+- Severity (30%): Critical = 100, High = 70, Medium = 40, Low = 20
+- Impact (40%): Max of Core Web Vitals, Search Ranking, Accessibility, UX impact
+- Legal/Compliance Risk (20%): +100 if legal risk
+- Effort vs Benefit (10%): Low effort = 100, Medium = 60, High = 30
+- Quick Win Bonus: +15 points
+
+**Recommended Priority Order:**
+
+**Tier 1 - Critical & Legal (Must Fix)**
+1. Accessibility violations with legal risk (EAA/WCAG compliance)
+2. Critical Core Web Vitals failures (score < 50)
+3. Critical security issues
+
+**Tier 2 - Quick Wins (High ROI)**
+4. Large images (low effort, high impact on performance)
+5. Missing meta descriptions (low effort, high SEO impact)
+6. Missing H1 tags (low effort, high SEO impact)
+7. Broken links
+
+**Tier 3 - High Impact Performance**
+8. High/Medium Core Web Vitals issues (LCP, CLS, INP)
+9. Render-blocking resources
+10. Server response time issues
+
+**Tier 4 - SEO Improvements**
+11. Keyword opportunities
+12. Low organic traffic (long-term strategy)
+13. Content quality issues
+
+**Tier 5 - UX & Content**
+14. User experience improvements
+15. Content recommendations
+16. Design/layout issues
+
+#### 4. Implementation Plan
+- [ ] Update app/audit/[id]/page.tsx to add Audit View icon button
+- [ ] Update components/AuditResults.tsx to make view selector collapsible
+- [ ] Update lib/auditSummaryService.ts to capture all relevant issues
+- [ ] Test on localhost:3000

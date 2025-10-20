@@ -104,38 +104,38 @@ export class EnhancedKeywordService {
       console.warn('Could not get Keywords Everywhere usage:', error);
     }
 
-    // Get ValueSERP usage from above fold analysis
+    // Get Serper usage from above fold analysis
     let vsSearches = 0;
     try {
       vsSearches = aboveFoldAnalysis?.creditsUsed || 0;
-      // Also check if ValueSERP service tracks usage
-      const { ValueSerpService } = require('./valueSerpService');
-      const vsService = new ValueSerpService();
+      // Also check if Serper service tracks usage
+      const { SerperService } = require('./serperService');
+      const vsService = new SerperService();
       if (vsService.getCreditsUsed) {
         vsSearches += vsService.getCreditsUsed() || 0;
       }
     } catch (error) {
-      console.warn('Could not get ValueSERP usage:', error);
+      console.warn('Could not get Serper usage:', error);
     }
 
     // Calculate costs based on API pricing
     const keCost = keCredits * 0.00024; // $0.24 per 1000 credits
-    const vsCost = vsSearches * 0.0016; // $1.60 per 1000 searches  
+    const serperCost = vsSearches * 0.0006; // $0.60 per 1000 searches (2 credits per search for >10 results)
     const claudeCost = 0.038; // Estimated per audit (business detection + above fold analysis)
-    
-    const totalCost = keCost + vsCost + claudeCost;
+
+    const totalCost = keCost + serperCost + claudeCost;
 
     console.log(`💰 AUDIT COST BREAKDOWN:
     • Keywords Everywhere: ${keCredits} credits = $${keCost.toFixed(4)}
-    • ValueSERP: ${vsSearches} searches = $${vsCost.toFixed(4)}  
+    • Serper: ${vsSearches} searches = $${serperCost.toFixed(4)}
     • Claude API: $${claudeCost.toFixed(4)}
     • Total: $${totalCost.toFixed(4)}`);
 
     return {
       keywordsEverywhereCredits: keCredits,
-      valueSerpSearches: vsSearches,
+      serperSearches: vsSearches,
       keywordsEverywhereCost: keCost,
-      valueSerpCost: vsCost,
+      serperCost: serperCost,
       claudeCost: claudeCost,
       totalCost: totalCost
     };
@@ -338,12 +338,12 @@ export class EnhancedKeywordService {
         
         // API Cost Tracking (NEW)
         volumeCreditsUsed: actualCosts.keywordsEverywhereCredits,
-        serpSearchesUsed: actualCosts.valueSerpSearches,
+        serpSearchesUsed: actualCosts.serperSearches,
         totalAuditCost: actualCosts.totalCost,
-        apiDataSource: 'Keywords Everywhere + ValueSERP APIs',
+        apiDataSource: 'Keywords Everywhere + Serper APIs',
         costBreakdown: {
           keywordsEverywhere: actualCosts.keywordsEverywhereCost,
-          valueSERP: actualCosts.valueSerpCost,
+          serper: actualCosts.serperCost,
           claude: actualCosts.claudeCost
         }
       };
@@ -1538,17 +1538,17 @@ export class EnhancedKeywordService {
         return;
       }
       
-      // Check if ValueSERP is available
-      const hasValueSerp = !!process.env.VALUESERP_API_KEY;
-      if (!hasValueSerp) {
-        console.log(`⚠️ ValueSERP API not configured - ${type} position data unavailable`);
+      // Check if Serper is available
+      const hasSerper = !!process.env.SERPER_API_KEY;
+      if (!hasSerper) {
+        console.log(`⚠️ Serper API not configured - ${type} position data unavailable`);
         return;
       }
       
       console.log(`🔍 Checking SERP positions for ${topKeywords.length} top ${type} keywords...`);
       
-      const { ValueSerpService } = await import('./valueSerpService');
-      const serpService = new ValueSerpService();
+      const { SerperService } = await import('./serperService');
+      const serpService = new SerperService();
       
       // Check positions for each keyword
       for (let i = 0; i < topKeywords.length; i++) {

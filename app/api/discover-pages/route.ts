@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Discover pages
-    const result = await discoverPages(url, 50)
+    // Discover pages - set high limit to find all pages (user can limit audit separately)
+    const result = await discoverPages(url, 500)
 
     return NextResponse.json(result)
 

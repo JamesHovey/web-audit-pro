@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import LoadingMessages from "@/components/LoadingMessages"
-import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe } from 'lucide-react'
+import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe, GripVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from './Tooltip'
 import KeywordTable from './KeywordTable'
@@ -39,6 +39,7 @@ interface Audit {
 
 interface AuditResultsProps {
   audit: Audit
+  showViewSelector?: boolean
 }
 
 const INSPIRATIONAL_QUOTES = [
@@ -112,7 +113,7 @@ const SECTION_LABELS = {
   accessibility: "Accessibility"
 }
 
-export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
+export function AuditResults({ audit: initialAudit, showViewSelector = false }: AuditResultsProps) {
   const router = useRouter()
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
@@ -512,8 +513,9 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       {showResults ? (
         <>
           {/* View Switcher */}
-          <div className="card-pmw mb-6">
-            <div className="p-6">
+          {showViewSelector && (
+            <div className="card-pmw mb-6">
+              <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">Audit View</h3>
@@ -596,51 +598,9 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   <p className="text-xs text-gray-600">Full technical details</p>
                 </button>
               </div>
-
-              {/* Section Management Controls */}
-              <div className="mt-6 flex items-center justify-between gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <Tooltip
-                    content={
-                      <div className="max-w-xs">
-                        <p className="font-semibold mb-2">Reorder Sections</p>
-                        <p className="text-sm">To move sections around:</p>
-                        <ol className="list-decimal list-inside text-sm mt-2 space-y-1">
-                          <li>Close all sections using the button</li>
-                          <li>Click and hold on a closed section header</li>
-                          <li>Drag it above or below other sections</li>
-                          <li>Release to drop it in the new position</li>
-                        </ol>
-                        <p className="text-xs mt-2 text-gray-400">💡 Sections can only be moved when closed</p>
-                      </div>
-                    }
-                    position="top"
-                  >
-                    <span className="text-sm text-gray-700 cursor-help">How to reorder sections</span>
-                  </Tooltip>
-                </div>
-                <button
-                  onClick={closeAllSections}
-                  disabled={allSectionsClosed}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    allSectionsClosed
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Close All Sections
-                  </div>
-                </button>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Audit Summary - FIRST SECTION */}
           {audit.results && (
@@ -665,27 +625,37 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   className="flex items-center justify-between cursor-pointer mb-4"
                   onClick={() => toggleSection('traffic')}
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    {SECTION_LABELS.traffic}
-                    <Tooltip
-                      content={
-                        <div>
-                          <p className="font-semibold mb-2">Traffic Insights</p>
-                          <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
-                          <div className="text-xs space-y-1">
-                            <p><strong>Organic:</strong> Visitors from Google search results</p>
-                            <p><strong>Direct:</strong> People typing your URL directly</p>
-                            <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
-                            <p><strong>Social:</strong> Visitors from social media platforms</p>
-                            <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
+                  <div className="flex items-center gap-2">
+                    {collapsedSections.traffic && (
+                      <div
+                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      {SECTION_LABELS.traffic}
+                      <Tooltip
+                        content={
+                          <div>
+                            <p className="font-semibold mb-2">Traffic Insights</p>
+                            <p className="mb-2">Shows estimated monthly visitors and how they find your website.</p>
+                            <div className="text-xs space-y-1">
+                              <p><strong>Organic:</strong> Visitors from Google search results</p>
+                              <p><strong>Direct:</strong> People typing your URL directly</p>
+                              <p><strong>Referral:</strong> Traffic from other websites linking to you</p>
+                              <p><strong>Social:</strong> Visitors from social media platforms</p>
+                              <p><strong>Geographic data:</strong> Where your visitors are located worldwide</p>
+                            </div>
                           </div>
-                        </div>
-                      }
-                      position="top"
-                    >
-                      <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
-                    </Tooltip>
-                  </h3>
+                        }
+                        position="top"
+                      >
+                        <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
+                      </Tooltip>
+                    </h3>
+                  </div>
                   <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.traffic ? '' : 'rotate-180'}`}
@@ -728,26 +698,36 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   className="flex items-center justify-between cursor-pointer mb-4"
                   onClick={() => toggleSection('performance')}
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    Performance & Technical Audit
-                    <Tooltip
-                      content={
-                        <div>
-                          <p className="font-semibold mb-2">Performance & Technical Audit</p>
-                          <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
-                          <div className="text-xs space-y-1">
-                            <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
-                            <p><strong>Page Speed:</strong> How fast your pages load</p>
-                            <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
-                            <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
-                            <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
+                  <div className="flex items-center gap-2">
+                    {collapsedSections.performance && (
+                      <div
+                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      Performance & Technical Audit
+                      <Tooltip
+                        content={
+                          <div>
+                            <p className="font-semibold mb-2">Performance & Technical Audit</p>
+                            <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
+                            <div className="text-xs space-y-1">
+                              <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
+                              <p><strong>Page Speed:</strong> How fast your pages load</p>
+                              <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
+                              <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
+                              <p><strong>Optimization:</strong> Actionable improvements to make your site faster</p>
+                            </div>
                           </div>
-                        </div>
-                      }
-                    >
-                      <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
-                    </Tooltip>
-                  </h3>
+                        }
+                      >
+                        <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" onClick={(e) => e.stopPropagation()} />
+                      </Tooltip>
+                    </h3>
+                  </div>
                   <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.performance ? '' : 'rotate-180'}`}
@@ -803,9 +783,19 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               className="flex items-center justify-between cursor-pointer mb-4"
               onClick={() => toggleSection('viewport')}
             >
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                Viewport Responsiveness
-              </h3>
+              <div className="flex items-center gap-2">
+                {collapsedSections.viewport && (
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <GripVertical className="w-5 h-5" />
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  Viewport Responsiveness
+                </h3>
+              </div>
               <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.viewport ? '' : 'rotate-180'}`}
@@ -847,26 +837,36 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               className="flex items-center justify-between cursor-pointer mb-4"
               onClick={() => toggleSection('technology')}
             >
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                {SECTION_LABELS.technology}
-                <Tooltip
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Technology Stack</p>
-                      <p className="mb-2">Shows what technologies and tools power your website.</p>
-                      <div className="text-xs space-y-1">
-                        <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
-                        <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
-                        <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
-                        <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
-                        <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+              <div className="flex items-center gap-2">
+                {collapsedSections.technology && (
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <GripVertical className="w-5 h-5" />
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  {SECTION_LABELS.technology}
+                  <Tooltip
+                    content={
+                      <div>
+                        <p className="font-semibold mb-2">Technology Stack</p>
+                        <p className="mb-2">Shows what technologies and tools power your website.</p>
+                        <div className="text-xs space-y-1">
+                          <p><strong>Content Management:</strong> WordPress, Shopify, etc.</p>
+                          <p><strong>Analytics Tools:</strong> Google Analytics, tracking scripts</p>
+                          <p><strong>Hosting & CDN:</strong> Where your site is hosted and cached</p>
+                          <p><strong>Plugins & Extensions:</strong> Additional functionality and features</p>
+                          <p><strong>Security Tools:</strong> SSL certificates and security services</p>
+                        </div>
                       </div>
-                    </div>
-                  }
-                >
-                  <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </h3>
+                    }
+                  >
+                    <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </h3>
+              </div>
               <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.technology ? '' : 'rotate-180'}`}
@@ -915,27 +915,37 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               className="flex items-center justify-between cursor-pointer mb-4"
               onClick={() => toggleSection('accessibility')}
             >
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                {SECTION_LABELS.accessibility}
-                <Tooltip
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Accessibility</p>
-                      <p className="mb-2">Tests WCAG 2.2 Level AA compliance for UK/EAA legal requirements.</p>
-                      <div className="text-xs space-y-1">
-                        <p><strong>Automated Testing:</strong> axe-core & Pa11y scan for accessibility issues</p>
-                        <p><strong>WCAG Principles:</strong> Perceivable, Operable, Understandable, Robust</p>
-                        <p><strong>Severity Levels:</strong> Critical, Serious, Moderate, Minor</p>
-                        <p><strong>Legal Compliance:</strong> UK Equality Act & European Accessibility Act</p>
-                        <p><strong>Fix Recommendations:</strong> Specific code examples to resolve issues</p>
+              <div className="flex items-center gap-2">
+                {collapsedSections.accessibility && (
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <GripVertical className="w-5 h-5" />
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  {SECTION_LABELS.accessibility}
+                  <Tooltip
+                    content={
+                      <div>
+                        <p className="font-semibold mb-2">Accessibility</p>
+                        <p className="mb-2">Tests WCAG 2.2 Level AA compliance for UK/EAA legal requirements.</p>
+                        <div className="text-xs space-y-1">
+                          <p><strong>Automated Testing:</strong> axe-core & Pa11y scan for accessibility issues</p>
+                          <p><strong>WCAG Principles:</strong> Perceivable, Operable, Understandable, Robust</p>
+                          <p><strong>Severity Levels:</strong> Critical, Serious, Moderate, Minor</p>
+                          <p><strong>Legal Compliance:</strong> UK Equality Act & European Accessibility Act</p>
+                          <p><strong>Fix Recommendations:</strong> Specific code examples to resolve issues</p>
+                        </div>
                       </div>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </h3>
+                    }
+                    position="top"
+                  >
+                    <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </h3>
+              </div>
               <button className="p-1 hover:bg-gray-100 rounded transition-colors">
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.accessibility ? '' : 'rotate-180'}`}
@@ -984,28 +994,37 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
               className="flex items-center justify-between cursor-pointer mb-4"
               onClick={() => toggleSection('keywords')}
             >
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  {SECTION_LABELS['keywords']}
-                  <Tooltip
-                    content={
-                      <div>
-                        <p className="font-semibold mb-2">Keyword Analysis</p>
-                        <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
-                        <div className="text-xs space-y-1">
-                          <p><strong>Branded Keywords:</strong> Searches including your company name</p>
-                          <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
-                          <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
-                          <p><strong>Search Volume:</strong> How many people search this term monthly</p>
-                          <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
-                        </div>
-                      </div>
-                    }
-                    position="top"
+              <div className="flex items-center gap-2 flex-1">
+                {collapsedSections.keywords && (
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                  </Tooltip>
-                </h3>
+                    <GripVertical className="w-5 h-5" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    {SECTION_LABELS['keywords']}
+                    <Tooltip
+                      content={
+                        <div>
+                          <p className="font-semibold mb-2">Keyword Analysis</p>
+                          <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
+                          <div className="text-xs space-y-1">
+                            <p><strong>Branded Keywords:</strong> Searches including your company name</p>
+                            <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
+                            <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
+                            <p><strong>Search Volume:</strong> How many people search this term monthly</p>
+                            <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+                          </div>
+                        </div>
+                      }
+                      position="top"
+                    >
+                      <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                    </Tooltip>
+                  </h3>
                 {audit.results?.keywords?.dataSource && (
                   <div className="mt-2">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -1020,6 +1039,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     </span>
                   </div>
                 )}
+                </div>
               </div>
               <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4">
                 <svg

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, PoundSterling, TrendingUp, AlertCircle, CheckCircle, RotateCcw } from 'lucide-react'
+import { SerperService } from '@/lib/serperService'
 
 interface CostingData {
   keywordsEverywhere: {
@@ -10,7 +11,7 @@ interface CostingData {
     costPerCredit: number
     planType: string
   }
-  valueSERP: {
+  serper: {
     searchesRemaining: number
     searchesUsed: number
     costPer1000: number
@@ -31,7 +32,7 @@ interface CostingData {
     url: string
     date: string
     keywordsEverywhereCredits: number
-    valueSerpSearches: number
+    serperSearches: number
     claudeBusinessAnalysisCost: number
     claudeConclusionCost: number
     totalCost: number
@@ -56,13 +57,17 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   const fetchCostingData = async () => {
     try {
       setLoading(true)
+
+      // Get real Serper usage from localStorage
+      const serperUsage = SerperService.getTotalUsage()
+
       // TODO: Replace with actual API call
       const response = await fetch('/api/costing')
       if (response.ok) {
         const data = await response.json()
         setCostingData(data)
       } else {
-        // Mock data for now
+        // Mock data for now (with real Serper usage)
         setCostingData({
           keywordsEverywhere: {
             creditsRemaining: 79515,
@@ -70,11 +75,11 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
             costPerCredit: 0.00024, // 24¢ per 1000 credits
             planType: 'Bronze Package (100K/year)'
           },
-          valueSERP: {
-            searchesRemaining: 22350,
-            searchesUsed: 2650,
-            costPer1000: 1.60,
-            planType: '25K Searches/month ($50/month)'
+          serper: {
+            searchesRemaining: serperUsage.remaining,
+            searchesUsed: serperUsage.used,
+            costPer1000: 0.60,
+            planType: `Free Tier (${serperUsage.limit} queries)`
           },
           claudeApi: {
             tokensUsed: 52180,
@@ -92,7 +97,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               url: 'mondeumcapital.com',
               date: new Date().toISOString(),
               keywordsEverywhereCredits: 116,
-              valueSerpSearches: 75,
+              serperSearches: 75,
               claudeBusinessAnalysisCost: 0.0019,
               claudeConclusionCost: 0.00088,
               totalCost: 0.151
@@ -102,7 +107,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               url: 'henryadams.co.uk',
               date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
               keywordsEverywhereCredits: 142,
-              valueSerpSearches: 92,
+              serperSearches: 92,
               claudeBusinessAnalysisCost: 0.0019,
               claudeConclusionCost: 0.00088,
               totalCost: 0.182
@@ -118,20 +123,36 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   }
 
   const calculateCostPerAudit = () => {
-    if (!costingData) return 0
-    
-    const keAvgCost = 116 * costingData.keywordsEverywhere.costPerCredit
-    const vsAvgCost = 75 * (costingData.valueSERP.costPer1000 / 1000)
+    if (!costingData) return { singlePage: 0, fiftyPage: 0 }
+
+    // Single page full audit costs
+    const kePerPage = 116 * costingData.keywordsEverywhere.costPerCredit
+    const vsPerPage = 75 * (costingData.serper.costPer1000 / 1000)
     const claudeBusinessCost = 0.0019 // Average business analysis cost
     const claudeConclusionCost = 0.00088 // Average conclusion generation cost
-    return keAvgCost + vsAvgCost + claudeBusinessCost + claudeConclusionCost
+    const singlePageTotal = kePerPage + vsPerPage + claudeBusinessCost + claudeConclusionCost
+
+    // 50-page website audit costs
+    // Homepage gets full analysis, other pages get lighter analysis
+    const homePageCost = singlePageTotal
+    const additionalPagesCost = 49 * (
+      (25 * costingData.keywordsEverywhere.costPerCredit) + // Reduced keyword checks per page
+      (15 * (costingData.serper.costPer1000 / 1000)) + // Reduced SERP checks per page
+      (claudeConclusionCost * 0.5) // Lighter AI analysis
+    )
+    const fiftyPageTotal = homePageCost + additionalPagesCost
+
+    return {
+      singlePage: singlePageTotal,
+      fiftyPage: fiftyPageTotal
+    }
   }
 
   const calculateRemainingAudits = () => {
     if (!costingData) return { ke: 0, vs: 0, limiting: 0 }
     
     const keAudits = Math.floor(costingData.keywordsEverywhere.creditsRemaining / 116)
-    const vsAudits = Math.floor(costingData.valueSERP.searchesRemaining / 75)
+    const vsAudits = Math.floor(costingData.serper.searchesRemaining / 75)
     
     return {
       ke: keAudits,
@@ -140,18 +161,17 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
     }
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCost = (amount: number) => {
+    if (amount < 1) {
+      const pence = Math.round(amount * 100)
+      return `${pence}p`
+    }
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount)
-  }
-
-  const formatCostInPence = (amount: number) => {
-    const pence = Math.round(amount * 100)
-    return `${pence}p`
   }
 
   const formatDate = (dateString: string) => {
@@ -219,31 +239,73 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
           ) : costingData ? (
             <>
               {/* Cost Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Single Page Audit */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">Cost per Audit</h3>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {formatCostInPence(costPerAudit)}
+                  <h3 className="font-semibold text-blue-900 mb-3">Single Page Full Audit</h3>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    {formatCost(costPerAudit.singlePage)}
                   </div>
-                  <p className="text-blue-700 text-sm">About {Math.round(costPerAudit * 100)} pence per full audit</p>
-                  <p className="text-blue-600 text-xs mt-1">({formatCurrency(costPerAudit)} in decimal)</p>
+                  <p className="text-blue-700 text-sm mb-2">Complete audit of one page</p>
+                  <div className="text-xs text-blue-600 space-y-1 border-t border-blue-200 pt-2 mt-2">
+                    <div className="flex justify-between">
+                      <span>Keywords Research:</span>
+                      <span className="font-medium">{formatCost(116 * costingData.keywordsEverywhere.costPerCredit)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>SERP Analysis:</span>
+                      <span className="font-medium">{formatCost(75 * (costingData.serper.costPer1000 / 1000))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>AI Analysis:</span>
+                      <span className="font-medium">{formatCost(0.0019 + 0.00088)}</span>
+                    </div>
+                  </div>
                 </div>
 
+                {/* 50 Page Website Audit */}
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-purple-900 mb-3">50-Page Website Audit</h3>
+                  <div className="text-3xl font-bold text-purple-600 mb-2">
+                    {formatCost(costPerAudit.fiftyPage)}
+                  </div>
+                  <p className="text-purple-700 text-sm mb-2">Full site audit (homepage + 49 pages)</p>
+                  <div className="text-xs text-purple-600 space-y-1 border-t border-purple-200 pt-2 mt-2">
+                    <div className="flex justify-between">
+                      <span>Homepage (Full):</span>
+                      <span className="font-medium">{formatCost(costPerAudit.singlePage)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>49 Pages (Light):</span>
+                      <span className="font-medium">{formatCost(costPerAudit.fiftyPage - costPerAudit.singlePage)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Avg per page:</span>
+                      <span className="font-medium">{formatCost(costPerAudit.fiftyPage / 50)}</span>
+                    </div>
+                  </div>
+                  <p className="text-purple-600 text-xs mt-2">Efficient multi-page analysis</p>
+                </div>
+              </div>
+
+              {/* Additional Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h3 className="font-semibold text-green-900 mb-2">Audits Remaining</h3>
                   <div className="text-2xl font-bold text-green-600">
                     {remainingAudits.limiting.toLocaleString()}
                   </div>
-                  <p className="text-green-700 text-sm">Based on current credits</p>
+                  <p className="text-green-700 text-sm">Single-page audits available</p>
+                  <p className="text-green-600 text-xs mt-1">Based on current credit balance</p>
                 </div>
 
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-purple-900 mb-2">Monthly Budget</h3>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {formatCurrency(costPerAudit * 100)}
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-orange-900 mb-2">Monthly Budget Example</h3>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {formatCost(costPerAudit.singlePage * 100)}
                   </div>
-                  <p className="text-purple-700 text-sm">For 100 audits/month</p>
-                  <p className="text-purple-600 text-xs mt-1">That's £{(costPerAudit * 100).toFixed(2)} for 100 audits</p>
+                  <p className="text-orange-700 text-sm">For 100 single-page audits</p>
+                  <p className="text-orange-600 text-xs mt-1">Or ~{Math.floor(100 * costPerAudit.singlePage / costPerAudit.fiftyPage)} full 50-page site audits</p>
                 </div>
               </div>
 
@@ -286,22 +348,21 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              {audit.valueSerpSearches}
+                              {audit.serperSearches}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="flex flex-col gap-1">
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {formatCostInPence(audit.claudeBusinessAnalysisCost + audit.claudeConclusionCost)}
+                                {formatCost(audit.claudeBusinessAnalysisCost + audit.claudeConclusionCost)}
                               </span>
                               <div className="text-xs text-gray-500">
-                                Bus: {formatCostInPence(audit.claudeBusinessAnalysisCost)} | Con: {formatCostInPence(audit.claudeConclusionCost)}
+                                Bus: {formatCost(audit.claudeBusinessAnalysisCost)} | Con: {formatCost(audit.claudeConclusionCost)}
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center font-medium text-green-600">
-                            <div>{formatCostInPence(audit.totalCost)}</div>
-                            <div className="text-xs text-gray-500">({formatCurrency(audit.totalCost)})</div>
+                            <div>{formatCost(audit.totalCost)}</div>
                           </td>
                         </tr>
                       ))}
@@ -325,12 +386,13 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                   Cost Optimization Tips
                 </h4>
                 <ul className="text-blue-800 text-sm space-y-1">
-                  <li>• Each full audit costs approximately {formatCostInPence(costPerAudit)} ({formatCurrency(costPerAudit)}) in API credits</li>
-                  <li>• Keywords Everywhere: ~116 credits per audit (keyword research & volumes)</li>
-                  <li>• ValueSERP: ~75 searches per audit (ranking checks & competitor analysis)</li>
-                  <li>• Claude AI Business Analysis: ~{formatCostInPence(0.0019)} per audit (intelligent business detection)</li>
-                  <li>• Claude AI Conclusions: ~{formatCostInPence(0.00088)} per audit (tailored recommendations)</li>
-                  <li>• Consider upgrading to higher tiers for better per-credit rates if running 100+ audits/month</li>
+                  <li>• <strong>Single Page:</strong> {formatCost(costPerAudit.singlePage)} - Full analysis with all APIs</li>
+                  <li>• <strong>50-Page Site:</strong> {formatCost(costPerAudit.fiftyPage)} total - Homepage gets full analysis, other pages optimized</li>
+                  <li>• <strong>Per-page average:</strong> {formatCost(costPerAudit.fiftyPage / 50)} for multi-page audits vs {formatCost(costPerAudit.singlePage)} for single pages</li>
+                  <li>• Keywords Everywhere: ~116 credits/page for full analysis, ~25 for light checks</li>
+                  <li>• Serper: ~75 searches/page for full analysis, ~15 for light checks</li>
+                  <li>• Claude AI: ~{formatCost(0.0019 + 0.00088)} per full page analysis</li>
+                  <li>• Multi-page audits are ~{Math.round((1 - (costPerAudit.fiftyPage / 50) / costPerAudit.singlePage) * 100)}% more cost-effective per page</li>
                 </ul>
               </div>
             </>

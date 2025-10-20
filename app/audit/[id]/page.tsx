@@ -22,6 +22,30 @@ export default function AuditPage() {
   const [audit, setAudit] = useState<Audit | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showViewSelector, setShowViewSelector] = useState(false)
+
+  // Helper function to determine audit type and get appropriate title
+  const getAuditTitle = () => {
+    if (!audit?.results) return 'Audit Results'
+
+    // Check if we have accessibility results with multiple pages
+    const hasMultiplePages = audit.results.accessibility?.pages &&
+                             Array.isArray(audit.results.accessibility.pages) &&
+                             audit.results.accessibility.pages.length > 1
+
+    // Check if it's a full site audit (sitemap with many pages)
+    const sitemapPages = audit.results.sitemap?.pages?.length || 0
+    const isFullAudit = sitemapPages > 10 // Consider it a full audit if more than 10 pages
+
+    // Determine audit type
+    if (hasMultiplePages && !isFullAudit) {
+      return 'Selected pages audit results'
+    } else if (isFullAudit || sitemapPages > 1) {
+      return 'Full audit results'
+    } else {
+      return 'Single page audit results'
+    }
+  }
 
   useEffect(() => {
     const fetchAudit = async () => {
@@ -90,12 +114,14 @@ export default function AuditPage() {
         <div className="mb-6">
           {/* Header with title and back button */}
           <div className="pt-4 mb-4">
-            <h1 className="text-2xl font-bold mb-2">Audit Results</h1>
-            <button 
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold">{getAuditTitle()}</h1>
+            </div>
+            <button
               onClick={() => window.history.back()}
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
-              ← Back
+              ← Back to Dashboard
             </button>
           </div>
           
@@ -140,6 +166,18 @@ export default function AuditPage() {
             
             {/* Action buttons - inline on the right */}
             <div className="ml-auto flex items-center gap-2">
+              {/* Audit View Selector Button */}
+              <button
+                onClick={() => setShowViewSelector(!showViewSelector)}
+                className="inline-flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium transition-colors"
+                title="Change Audit View"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+
               <button
                 onClick={() => {
                   const sitemapUrl = `/sitemap?domain=${encodeURIComponent(audit.url)}`;
@@ -177,7 +215,7 @@ export default function AuditPage() {
           </div>
         </div>
         
-        <AuditResults audit={audit} />
+        <AuditResults audit={audit} showViewSelector={showViewSelector} />
       </div>
     </div>
   )

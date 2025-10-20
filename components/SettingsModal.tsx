@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, RotateCcw, Settings, CheckCircle, AlertCircle } from 'lucide-react'
+import { SerperService } from '@/lib/serperService'
 
 interface CostingData {
   keywordsEverywhere: {
@@ -10,7 +11,7 @@ interface CostingData {
     costPerCredit: number
     planType: string
   }
-  valueSERP: {
+  serper: {
     searchesRemaining: number
     searchesUsed: number
     costPer1000: number
@@ -46,13 +47,17 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const fetchCostingData = async () => {
     try {
       setLoading(true)
+
+      // Get real Serper usage from localStorage
+      const serperUsage = SerperService.getTotalUsage()
+
       // TODO: Replace with actual API call
       const response = await fetch('/api/costing')
       if (response.ok) {
         const data = await response.json()
         setCostingData(data)
       } else {
-        // Mock data for now
+        // Mock data for now (with real Serper usage)
         setCostingData({
           keywordsEverywhere: {
             creditsRemaining: 79515,
@@ -60,11 +65,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             costPerCredit: 0.00024, // 24¢ per 1000 credits
             planType: 'Bronze Package (100K/year)'
           },
-          valueSERP: {
-            searchesRemaining: 22350,
-            searchesUsed: 2650,
-            costPer1000: 1.60,
-            planType: '25K Searches/month ($50/month)'
+          serper: {
+            searchesRemaining: serperUsage.remaining,
+            searchesUsed: serperUsage.used,
+            costPer1000: 0.60,
+            planType: `Free Tier (${serperUsage.limit} queries)`
           },
           claudeApi: {
             tokensUsed: 52180,
@@ -89,7 +94,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (!costingData) return { ke: 0, vs: 0, limiting: 0 }
     
     const keAudits = Math.floor(costingData.keywordsEverywhere.creditsRemaining / 116)
-    const vsAudits = Math.floor(costingData.valueSERP.searchesRemaining / 75)
+    const vsAudits = Math.floor(costingData.serper.searchesRemaining / 75)
     
     return {
       ke: keAudits,
@@ -98,9 +103,17 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
-  const formatCostInPence = (amount: number) => {
-    const pence = Math.round(amount * 100)
-    return `${pence}p`
+  const formatCost = (amount: number) => {
+    if (amount < 1) {
+      const pence = Math.round(amount * 100)
+      return `${pence}p`
+    }
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
   }
 
   const getHealthStatus = (remaining: number, total: number) => {
@@ -184,7 +197,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCostInPence(costingData.keywordsEverywhere.costPerCredit * 1000)}</span>
+                      <span className="font-medium">{formatCost(costingData.keywordsEverywhere.costPerCredit * 1000)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Audits Remaining:</span>
@@ -193,33 +206,33 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 </div>
 
-                {/* ValueSERP */}
+                {/* Serper */}
                 <div className="border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">ValueSERP</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getHealthStatus(costingData.valueSERP.searchesRemaining, 25000).color}`}>
-                      {getHealthStatus(costingData.valueSERP.searchesRemaining, 25000).status}
+                    <h3 className="text-lg font-semibold">Serper</h3>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getHealthStatus(costingData.serper.searchesRemaining, 25000).color}`}>
+                      {getHealthStatus(costingData.serper.searchesRemaining, 25000).status}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Plan:</span>
-                      <span className="font-medium">{costingData.valueSERP.planType}</span>
+                      <span className="font-medium">{costingData.serper.planType}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Searches Remaining:</span>
                       <span className="font-medium text-green-600">
-                        {costingData.valueSERP.searchesRemaining.toLocaleString()}
+                        {costingData.serper.searchesRemaining.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Searches Used:</span>
-                      <span className="font-medium">{costingData.valueSERP.searchesUsed.toLocaleString()}</span>
+                      <span className="font-medium">{costingData.serper.searchesUsed.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cost per 1K:</span>
-                      <span className="font-medium">{formatCostInPence(costingData.valueSERP.costPer1000)}</span>
+                      <span className="font-medium">{formatCost(costingData.serper.costPer1000)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Audits Remaining:</span>
@@ -260,11 +273,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Total Cost:</span>
-                      <span className="font-medium">{formatCostInPence(costingData?.claudeApi?.totalCost || 0)}</span>
+                      <span className="font-medium">{formatCost(costingData?.claudeApi?.totalCost || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Avg Cost/Request:</span>
-                      <span className="font-medium text-green-600">{formatCostInPence(costingData?.claudeApi?.avgCostPerRequest || 0)}</span>
+                      <span className="font-medium text-green-600">{formatCost(costingData?.claudeApi?.avgCostPerRequest || 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -274,34 +287,97 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="border rounded-lg">
                 <div className="px-6 py-4 border-b bg-gray-50">
                   <h3 className="text-lg font-semibold">API Configuration</h3>
-                  <p className="text-gray-600 text-sm">Manage your API keys and settings</p>
+                  <p className="text-gray-600 text-sm">All API integrations (paid and free)</p>
                 </div>
-                
-                <div className="p-6 space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
-                      API Integration Status
-                    </h4>
-                    <div className="text-blue-800 text-sm space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span>Keywords Everywhere API:</span>
-                        <span className="text-green-600 font-medium">✓ Active</span>
+
+                <div className="p-6">
+                  <div className="space-y-3">
+                    {/* Paid APIs */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">Paid APIs</h4>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-blue-50 border border-blue-100 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Keywords Everywhere</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Keyword Research</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>ValueSERP API:</span>
-                        <span className="text-green-600 font-medium">✓ Active</span>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-purple-50 border border-purple-100 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Serper</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">SERP Analysis</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>Claude API:</span>
-                        <span className="text-green-600 font-medium">✓ Active</span>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-indigo-50 border border-indigo-100 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Claude API (Anthropic)</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">AI Analysis</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
+                      </div>
+                    </div>
+
+                    {/* Free APIs */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">Free APIs</h4>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Google PageSpeed Insights</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Core Web Vitals</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Companies House API</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">UK Business Data</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">OpenPageRank</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Domain Authority</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Playwright/Puppeteer</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Web Scraping</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 rounded mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Axe-core</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Accessibility Testing</span>
+                        </div>
+                        <span className="text-green-600 font-medium text-sm">✓ Active</span>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="text-center text-gray-500 py-4">
-                    <p className="text-sm">API key management coming soon</p>
-                    <p className="text-xs text-gray-400">Configure your API keys and rate limits</p>
+
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Cost-Effective Architecture
+                    </h4>
+                    <ul className="text-blue-800 text-xs space-y-1">
+                      <li>• Prioritizes free APIs (Google PageSpeed, Companies House, OpenPageRank)</li>
+                      <li>• Uses paid APIs only for critical data (keywords, SERP rankings)</li>
+                      <li>• Intelligent caching reduces redundant API calls</li>
+                      <li>• Local processing with Playwright for content analysis</li>
+                    </ul>
                   </div>
                 </div>
               </div>
