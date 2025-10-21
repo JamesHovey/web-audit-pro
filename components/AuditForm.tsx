@@ -277,15 +277,6 @@ export function AuditForm() {
     }
   }, [selectedSections, auditScope, discoveredPages, allPagesCount, pageLimit, isValidUrl, excludedPaths])
 
-  // Prevent body scroll when loading overlay is shown
-  useEffect(() => {
-    if (isLoading) {
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = 'unset'
-      }
-    }
-  }, [isLoading])
 
   // Recalculate page count when excluded paths change
   useEffect(() => {
@@ -669,7 +660,7 @@ export function AuditForm() {
 
   return (
     <div className="card-pmw">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" style={isLoading ? { visibility: 'hidden', height: 0, overflow: 'hidden' } : {}}>
         {/* URL Input */}
         <div>
           <div className="flex gap-2 items-stretch">

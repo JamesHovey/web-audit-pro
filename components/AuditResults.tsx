@@ -634,7 +634,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             <AuditSummary
               auditResults={audit.results}
               onNavigateToSection={openSectionAndScroll}
-              defaultCollapsed={selectedView === 'developer'}
+              defaultCollapsed={currentView === 'developer'}
             />
           )}
 

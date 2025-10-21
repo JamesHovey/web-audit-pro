@@ -247,21 +247,27 @@ export async function POST(request: NextRequest) {
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
-              console.log('📱 Running viewport responsiveness analysis...')
-              const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
-              }).catch(async () => {
-                // If fetch fails, simulate the viewport analysis locally
-                return null
-              })
+              try {
+                console.log('📱 Running viewport responsiveness analysis...')
+                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url })
+                })
 
-              if (viewportResponse && viewportResponse.ok) {
-                results.viewport = await viewportResponse.json()
-                console.log('✅ Viewport analysis completed')
-              } else {
-                console.log('⚠️ Viewport analysis skipped')
+                if (viewportResponse.ok) {
+                  const contentType = viewportResponse.headers.get('content-type')
+                  if (contentType && contentType.includes('application/json')) {
+                    results.viewport = await viewportResponse.json()
+                    console.log('✅ Viewport analysis completed')
+                  } else {
+                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
+                  }
+                } else {
+                  console.log('⚠️ Viewport analysis request failed, skipping')
+                }
+              } catch (viewportError) {
+                console.log('⚠️ Viewport analysis error, skipping:', viewportError.message)
               }
             }
 
@@ -325,21 +331,27 @@ export async function POST(request: NextRequest) {
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
-              console.log('📱 Running viewport responsiveness analysis...')
-              const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
-              }).catch(async () => {
-                // If fetch fails, simulate the viewport analysis locally
-                return null
-              })
+              try {
+                console.log('📱 Running viewport responsiveness analysis...')
+                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url })
+                })
 
-              if (viewportResponse && viewportResponse.ok) {
-                results.viewport = await viewportResponse.json()
-                console.log('✅ Viewport analysis completed')
-              } else {
-                console.log('⚠️ Viewport analysis skipped')
+                if (viewportResponse.ok) {
+                  const contentType = viewportResponse.headers.get('content-type')
+                  if (contentType && contentType.includes('application/json')) {
+                    results.viewport = await viewportResponse.json()
+                    console.log('✅ Viewport analysis completed')
+                  } else {
+                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
+                  }
+                } else {
+                  console.log('⚠️ Viewport analysis request failed, skipping')
+                }
+              } catch (viewportError) {
+                console.log('⚠️ Viewport analysis error, skipping:', viewportError.message)
               }
             }
 
