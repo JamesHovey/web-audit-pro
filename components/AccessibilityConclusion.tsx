@@ -230,14 +230,14 @@ export default function AccessibilityConclusion({ data }: AccessibilityConclusio
       </div>
 
       {/* Legal Compliance Notice */}
-      <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
+      <div className="bg-white border-2 border-[#42499c] rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <Info className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+          <Info className="w-6 h-6 text-[#42499c] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-lg font-bold text-amber-900 mb-2">
+            <h3 className="text-lg font-bold text-black mb-2">
               Legal Compliance Requirements
             </h3>
-            <div className="space-y-2 text-sm text-amber-900">
+            <div className="space-y-2 text-sm text-black">
               <p>
                 <strong>European Accessibility Act (EAA):</strong> Businesses with 10+ employees and €2M+ annual turnover
                 must comply with WCAG 2.2 Level AA by June 28, 2025. Penalties up to €3 million for non-compliance.
@@ -246,7 +246,7 @@ export default function AccessibilityConclusion({ data }: AccessibilityConclusio
                 <strong>UK Equality Act 2010:</strong> Requires "reasonable adjustments" for disabled users.
                 WCAG 2.2 AA compliance demonstrates meeting these obligations.
               </p>
-              <p className="pt-2 border-t border-amber-300 mt-3">
+              <p className="pt-2 border-t border-[#42499c] mt-3">
                 <strong>Recommendation:</strong> {
                   aggregateStats.avgScore >= 90
                     ? 'Your website shows excellent accessibility. Continue monitoring and maintain these standards.'

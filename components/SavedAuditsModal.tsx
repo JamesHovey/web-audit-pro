@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Clock, ExternalLink, CheckCircle, Loader, AlertCircle, Trash2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 
 interface SavedAuditsModalProps {
   isOpen: boolean
@@ -25,6 +25,7 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (isOpen) {
@@ -64,6 +65,9 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
       return
     }
 
+    // Check if we're deleting the currently viewed audit
+    const isCurrentAudit = pathname?.includes(auditId)
+
     setDeletingId(auditId)
     try {
       const response = await fetch(`/api/audit/${auditId}`, {
@@ -75,12 +79,19 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
       }
 
       // Remove the deleted audit from the list
-      setAudits(prev => {
-        const newAudits = prev.filter(audit => audit.id !== auditId)
-        // Notify parent about new audit status
+      const newAudits = audits.filter(audit => audit.id !== auditId)
+      setAudits(newAudits)
+
+      // Defer the parent notification to avoid setState during render
+      setTimeout(() => {
         onAuditsChange?.(newAudits.length > 0)
-        return newAudits
-      })
+      }, 0)
+
+      // If user deleted the audit they're currently viewing, redirect to dashboard
+      if (isCurrentAudit) {
+        onClose()
+        router.push('/dashboard')
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete audit')
     } finally {
@@ -130,7 +141,7 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-[#42499C] text-white p-6 flex items-center justify-between">

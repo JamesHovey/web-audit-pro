@@ -3,6 +3,8 @@
  * Uses Claude to understand any business type and generate relevant keywords
  */
 
+import { ClaudeUsageService } from './claudeUsageService'
+
 export interface ClaudeUsageMetrics {
   inputTokens: number;
   outputTokens: number;
@@ -231,10 +233,19 @@ Provide only the JSON response, no additional text.`;
       timestamp: new Date()
     };
 
+    // Track usage in localStorage
+    ClaudeUsageService.trackUsage(
+      this.model,
+      usage.input_tokens,
+      usage.output_tokens,
+      totalCost,
+      'business_analysis'
+    );
+
     try {
       // Parse JSON response from Claude
       const analysisData = JSON.parse(content);
-      
+
       return {
         ...analysisData,
         usageMetrics

@@ -44,10 +44,10 @@ export default function PageSourceModal({ isOpen, onClose, keyword, pageSources 
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50 p-4"
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
       onClick={onClose}
-      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
+      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
     >
       <div 
         className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-hidden relative"

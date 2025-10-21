@@ -3,6 +3,7 @@
  */
 
 import { ClaudeApiService, type ClaudeUsageMetrics } from './claudeApiService';
+import { ClaudeUsageService } from './claudeUsageService';
 
 export interface AuditData {
   domain: string;
@@ -211,6 +212,15 @@ Provide only the JSON response, no additional text.`;
       requestCount: 1,
       timestamp: new Date()
     };
+
+    // Track usage in localStorage
+    ClaudeUsageService.trackUsage(
+      'claude-3-5-haiku-20241022',
+      usage.input_tokens,
+      usage.output_tokens,
+      totalCost,
+      'conclusion_generation'
+    );
 
     try {
       const conclusionData = JSON.parse(content);

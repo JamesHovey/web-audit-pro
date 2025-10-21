@@ -12,7 +12,7 @@ export function PageDiscoveryModal({ isOpen, onClose, websiteUrl }: PageDiscover
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6 text-center">
           <div className="mb-4">

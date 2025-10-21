@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, RotateCcw, Settings, CheckCircle, AlertCircle } from 'lucide-react'
 import { SerperService } from '@/lib/serperService'
+import { ClaudeUsageService } from '@/lib/claudeUsageService'
 
 interface CostingData {
   keywordsEverywhere: {
@@ -51,40 +52,38 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // Get real Serper usage from localStorage
       const serperUsage = SerperService.getTotalUsage()
 
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/costing')
-      if (response.ok) {
-        const data = await response.json()
-        setCostingData(data)
-      } else {
-        // Mock data for now (with real Serper usage)
-        setCostingData({
-          keywordsEverywhere: {
-            creditsRemaining: 79515,
-            creditsUsed: 485,
-            costPerCredit: 0.00024, // 24¢ per 1000 credits
-            planType: 'Bronze Package (100K/year)'
-          },
-          serper: {
-            searchesRemaining: serperUsage.remaining,
-            searchesUsed: serperUsage.used,
-            costPer1000: 0.60,
-            planType: `Free Tier (${serperUsage.limit} queries)`
-          },
-          claudeApi: {
-            tokensUsed: 52180,
-            totalCost: 0.398,
-            requestsThisMonth: 15,
-            avgCostPerRequest: 0.0265,
-            lastUpdated: new Date().toISOString(),
-            model: 'claude-3-5-haiku-20241022',
-            businessAnalysisRequests: 9,
-            conclusionGenerationRequests: 6
-          }
-        })
-      }
+      // Get real Claude usage from localStorage
+      const claudeUsage = ClaudeUsageService.getMonthlyUsage()
+
+      // Mixed data: real tracking for Serper & Claude, mock data for Keywords Everywhere
+      setCostingData({
+        keywordsEverywhere: {
+          creditsRemaining: 79515,
+          creditsUsed: 485,
+          costPerCredit: 0.00024, // 24¢ per 1000 credits
+          planType: 'Bronze Package (100K/year)'
+        },
+        serper: {
+          searchesRemaining: serperUsage.remaining,
+          searchesUsed: serperUsage.used,
+          costPer1000: 0.60,
+          planType: `Free Tier (${serperUsage.limit} queries)`
+        },
+        claudeApi: {
+          tokensUsed: claudeUsage.totalTokens,
+          totalCost: claudeUsage.totalCost,
+          requestsThisMonth: claudeUsage.totalRequests,
+          avgCostPerRequest: claudeUsage.totalRequests > 0
+            ? claudeUsage.totalCost / claudeUsage.totalRequests
+            : 0,
+          lastUpdated: claudeUsage.lastUpdated,
+          model: claudeUsage.model,
+          businessAnalysisRequests: claudeUsage.businessAnalysisRequests,
+          conclusionGenerationRequests: claudeUsage.conclusionGenerationRequests
+        }
+      })
     } catch (error) {
-      console.error('Error fetching costing data:', error)
+      console.error('Error loading costing data:', error)
     } finally {
       setLoading(false)
     }
@@ -128,7 +127,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const remainingAudits = calculateRemainingAudits()
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -170,7 +169,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           ) : costingData ? (
             <>
               {/* API Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {/* Keywords Everywhere */}
                 <div className="border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">

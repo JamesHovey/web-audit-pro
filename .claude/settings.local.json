@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -c \"\nimport sys, json\n\n# Read the first line (sections as JSON)\nsections_json = sys.stdin.readline().strip()\nsections = json.loads(sections_json)\n\n# Read the rest (results as JSON)\nresults_json = sys.stdin.read().strip()\nresults = json.loads(results_json)\n\nprint(''''=== REQUESTED SECTIONS ==='''')\nprint(''''Sections:'''', sections)\nprint()\n\nprint(''''=== ACTUAL RESULTS SECTIONS ==='''')\nprint(''''Result keys:'''', list(results.keys()))\nprint()\n\nprint(''''=== HAS TECHNICAL DATA ==='''')\nprint(''''Has technical section:'''', ''''technical'''' in results)\n\")"
+      "Bash(npx tsx scripts/check-audit-data.ts)"
     ],
     "deny": [],
     "ask": [],

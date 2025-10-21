@@ -514,12 +514,12 @@ export default function AccessibilityResults({ data }: AccessibilityResultsProps
       </div>
 
       {/* Legal Requirements Notice */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div className="bg-white border-2 border-[#42499c] rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-900">
+          <Info className="w-5 h-5 text-[#42499c] flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-black">
             <p className="font-semibold mb-1">UK & European Legal Requirements</p>
-            <p className="text-amber-800">
+            <p className="text-black">
               The <strong>European Accessibility Act (EAA)</strong> requires WCAG 2.2 Level AA compliance for businesses with 10+ employees
               and €2M+ turnover. The <strong>UK Equality Act 2010</strong> requires reasonable adjustments for disabled users.
               Non-compliance may result in fines up to €3M or legal action.

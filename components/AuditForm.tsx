@@ -185,6 +185,17 @@ export function AuditForm() {
   const formatCost = (amount: number) => {
     if (amount < 1) {
       const pence = Math.round(amount * 100)
+      const exactPence = (amount * 100).toFixed(2)
+
+      // If there's a cost but it rounds to 0, show "< 1p" with exact decimal
+      if (pence === 0 && amount > 0) {
+        return (
+          <span className="flex flex-col items-end">
+            <span>{'< 1p'}</span>
+            <span className="text-xs text-gray-500">({exactPence}p)</span>
+          </span>
+        )
+      }
       return `${pence}p`
     }
     return new Intl.NumberFormat('en-GB', {
@@ -233,9 +244,11 @@ export function AuditForm() {
 
     const keCostUSD = keCreditsUsed * 0.00024 // $0.24 per 1000 credits
     const serperCostUSD = vsSearchesUsed * 0.0006 // $0.60 per 1000 searches (2 credits per search)
-    const claudeKeywordsCostUSD = hasKeywords ? 0.038 : 0 // Claude for keywords/business detection
-    const claudePerformanceCostUSD = 0.050 // Claude for performance analysis (fixed per audit)
-    const totalClaudeCostUSD = claudeKeywordsCostUSD + claudePerformanceCostUSD
+
+    // Claude API costs (Haiku: $0.25/MTok input, $1.25/MTok output)
+    const claudeBusinessAnalysisCostUSD = hasKeywords ? 0.0019 : 0 // ~5K input + 1.5K output tokens
+    const claudeConclusionCostUSD = 0.00088 // ~1K input + 500 output tokens (always runs for performance section)
+    const totalClaudeCostUSD = claudeBusinessAnalysisCostUSD + claudeConclusionCostUSD
 
     const totalCostUSD = keCostUSD + serperCostUSD + totalClaudeCostUSD
 
@@ -263,6 +276,16 @@ export function AuditForm() {
       setConfirmCost(false)
     }
   }, [selectedSections, auditScope, discoveredPages, allPagesCount, pageLimit, isValidUrl, excludedPaths])
+
+  // Prevent body scroll when loading overlay is shown
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [isLoading])
 
   // Recalculate page count when excluded paths change
   useEffect(() => {
@@ -1660,7 +1683,7 @@ export function AuditForm() {
 
       {/* Website Analysis Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-[#42499C] flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
           <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-200">
             <div className="mb-4">
               <LoadingSpinner size="lg" />

@@ -552,12 +552,13 @@ img {
       {/* Fullscreen Screenshot Modal */}
       {fullscreenScreenshot && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={() => setFullscreenScreenshot(null)}
+          style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
         >
           <button
             onClick={() => setFullscreenScreenshot(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+            className="absolute top-4 right-4 text-gray-900 hover:text-gray-600 transition-colors"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

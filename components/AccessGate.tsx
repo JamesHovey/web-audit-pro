@@ -109,8 +109,8 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
           </form>
 
           {/* Footer Note */}
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-xs text-amber-800 text-center">
+          <div className="mt-6 p-4 bg-white border-2 border-[#42499c] rounded-lg">
+            <p className="text-xs text-black text-center">
               <strong>⚠️ Testing Phase:</strong> This access gate is temporary and will be removed in production.
             </p>
           </div>

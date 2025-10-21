@@ -305,12 +305,22 @@ export async function POST(request: NextRequest) {
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
 
-            // Preserve large images data from technical audit in performance results
-            // This ensures the large images table can display in AuditResults
+            // Preserve large images data from technical audit in performance results AND root level
+            // This ensures the large images table and Technical Health section can display properly
             if (results.technical.largeImageDetails && results.technical.largeImageDetails.length > 0) {
               results.performance.largeImagesList = results.technical.largeImageDetails
               results.performance.largeImageDetails = results.technical.largeImageDetails
-              console.log(`📸 Preserved ${results.technical.largeImageDetails.length} large images in performance results`)
+              results.performance.largeImages = results.technical.largeImages || results.technical.largeImageDetails.length
+              // Also set at root level for Technical Health section
+              results.largeImages = results.technical.largeImages || results.technical.largeImageDetails.length
+              console.log(`📸 Preserved ${results.technical.largeImageDetails.length} large images in performance results and root level`)
+            }
+
+            // Preserve issues data from technical audit at root level
+            // This ensures the Technical Health "Issues Found" section can display counts
+            if (results.technical.issues) {
+              results.issues = results.technical.issues
+              console.log(`✅ Preserved technical issues in results: ${JSON.stringify(results.issues)}`)
             }
 
             // Run viewport responsiveness analysis (if not already done)
@@ -383,16 +393,43 @@ export async function POST(request: NextRequest) {
         }
         
         // Add scope and pages info to results
-        const finalResults = { 
+        const finalResults = {
           ...results,
           scope,
           pages,
           totalPages: pages.length
         }
-        
+
         // Ensure the results are properly serializable
-        const safeResults = JSON.parse(JSON.stringify(finalResults))
-        
+        // Use a safer serialization approach that handles circular references and non-serializable data
+        let safeResults;
+        try {
+          safeResults = JSON.parse(JSON.stringify(finalResults))
+        } catch (serializationError) {
+          console.error('❌ JSON serialization error details:', serializationError);
+          console.error('Result structure:', Object.keys(finalResults));
+          if (finalResults.technical) {
+            console.error('Technical keys:', Object.keys(finalResults.technical));
+          }
+          if (finalResults.performance) {
+            console.error('Performance keys:', Object.keys(finalResults.performance));
+          }
+
+          // Attempt to serialize without problematic fields
+          safeResults = JSON.parse(JSON.stringify(finalResults, (key, value) => {
+            // Filter out potential HTML content or circular references
+            if (typeof value === 'string' && value.length > 100000) {
+              console.warn(`⚠️ Skipping large string field: ${key} (${value.length} chars)`);
+              return undefined;
+            }
+            if (typeof value === 'string' && value.trim().startsWith('<!DOCTYPE')) {
+              console.warn(`⚠️ Skipping HTML content in field: ${key}`);
+              return undefined;
+            }
+            return value;
+          }))
+        }
+
         await prisma.audit.update({
           where: { id: audit.id },
           data: {

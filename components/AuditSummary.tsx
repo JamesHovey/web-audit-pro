@@ -10,6 +10,7 @@ interface AuditSummaryProps {
   auditResults: any
   auditUrl?: string
   onNavigateToSection?: (sectionId: string) => void
+  defaultCollapsed?: boolean
 }
 
 const CATEGORY_CONFIG = {
@@ -29,7 +30,8 @@ const SEVERITY_CONFIG = {
 
 type TabFilter = 'all' | 'critical' | 'high' | 'quickWins'
 
-export default function AuditSummary({ auditResults, auditUrl, onNavigateToSection }: AuditSummaryProps) {
+export default function AuditSummary({ auditResults, auditUrl, onNavigateToSection, defaultCollapsed = false }: AuditSummaryProps) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
   const { toggleBasket, isInBasket } = useSynergistBasket()
@@ -118,14 +120,35 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
     <div className="card-pmw" data-section="summary">
       <div className="p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Audit Summary</h2>
-          <p className="text-gray-600">
-            Prioritized action items to improve your website performance, SEO, and user experience
-          </p>
+        <div
+          className="mb-6 flex items-start justify-between cursor-pointer"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Audit Summary</h2>
+            {!isCollapsed && (
+              <p className="text-gray-600">
+                Prioritized action items to improve your website performance, SEO, and user experience
+              </p>
+            )}
+          </div>
+          <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4">
+            <svg
+              className={`w-5 h-5 transform transition-transform ${
+                isCollapsed ? 'rotate-0' : 'rotate-180'
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
 
-        {/* Tabs */}
+        {!isCollapsed && (
+          <>
+            {/* Tabs */}
         <div className="border-b border-gray-200 mb-6">
           <div className="flex gap-2">
             <button
@@ -201,6 +224,8 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -424,57 +449,6 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
                   </div>
                 </div>
               )}
-
-              {/* Impact Breakdown */}
-              <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-2">Impact on:</h5>
-                <div className="grid grid-cols-2 gap-2">
-                  {issue.impact.coreWebVitals && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Core Web Vitals</span>
-                        <Tooltip content="Metrics that measure the quality of user experience on your site, including loading speed, interactivity, and visual stability">
-                          <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                        </Tooltip>
-                      </div>
-                      <span className="font-bold text-red-600">+{issue.impact.coreWebVitals}</span>
-                    </div>
-                  )}
-                  {issue.impact.searchRanking && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Search Ranking</span>
-                        <Tooltip content="How well your site ranks in search engine results. Better SEO practices lead to higher visibility and more organic traffic">
-                          <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                        </Tooltip>
-                      </div>
-                      <span className="font-bold text-blue-600">+{issue.impact.searchRanking}</span>
-                    </div>
-                  )}
-                  {issue.impact.accessibility && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Accessibility</span>
-                        <Tooltip content="How easily people with disabilities can use your website. This includes screen reader support, keyboard navigation, and visual clarity">
-                          <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                        </Tooltip>
-                      </div>
-                      <span className="font-bold text-purple-600">+{issue.impact.accessibility}</span>
-                    </div>
-                  )}
-                  {issue.impact.userExperience && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">User Experience</span>
-                        <Tooltip content="The overall quality of interaction visitors have with your site. This includes ease of navigation, visual design, and content readability">
-                          <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                        </Tooltip>
-                      </div>
-                      <span className="font-bold text-green-600">+{issue.impact.userExperience}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         )}

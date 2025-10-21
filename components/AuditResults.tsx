@@ -372,6 +372,16 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     return () => clearInterval(pollInterval)
   }, [audit.id, isPolling])
 
+  // Prevent body scroll when loading overlay is shown
+  useEffect(() => {
+    if (!showResults && (audit.status === "pending" || audit.status === "running")) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [showResults, audit.status])
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -624,6 +634,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             <AuditSummary
               auditResults={audit.results}
               onNavigateToSection={openSectionAndScroll}
+              defaultCollapsed={selectedView === 'developer'}
             />
           )}
 
@@ -1393,7 +1404,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
 
       {/* Internal Links Modal */}
       {internalLinksModal.isOpen && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Internal Links Pointing to {internalLinksModal.targetPage}</h2>
@@ -1609,7 +1620,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
 
       {/* Core Web Vitals Guide Modal */}
       {showCoreWebVitalsGuide && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
@@ -1803,7 +1814,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
 
       {/* Recommended Keywords Guide Modal */}
       {showNonBrandedKeywordsGuide && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
@@ -2005,12 +2016,12 @@ function renderSectionResults(
         <div className="space-y-6">
           {/* Traffic Overview */}
           {results.estimationMethod === 'free_scraping' && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="mb-4 p-3 bg-white border-2 border-[#42499c] rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="text-amber-600 text-sm font-medium">
+                <span className="text-black text-sm font-medium">
                   Data Confidence: {results.confidence === 'high' ? '🟢 High' : results.confidence === 'medium' ? '🟡 Medium' : '🔴 Low'}
                 </span>
-                <Tooltip 
+                <Tooltip
                   content={
                     <div>
                       <p className="font-semibold mb-2">Free Estimation Method</p>
@@ -2025,7 +2036,7 @@ function renderSectionResults(
                     </div>
                   }
                 >
-                  <HelpCircle className="h-4 w-4 text-amber-500" />
+                  <HelpCircle className="h-4 w-4 text-[#42499c]" />
                 </Tooltip>
               </div>
             </div>
@@ -3262,7 +3273,7 @@ function renderSectionResults(
                   }}
                   title="Click to view large images details"
                 >
-                  {results.largeImages}
+                  {results.largeImages ?? results.performance?.largeImages ?? results.performance?.largeImageDetails?.length ?? 0}
                 </div>
                 <div className="text-sm text-gray-600">Large Images</div>
               </div>
@@ -3386,7 +3397,10 @@ function renderSectionResults(
           />
 
           {/* Large Images Table */}
-          {(results.largeImagesList || results.largeImageDetails) && (results.largeImagesList || results.largeImageDetails).length > 0 && (
+          {(() => {
+            const largeImages = results.largeImagesList || results.largeImageDetails || [];
+            return Array.isArray(largeImages) && largeImages.length > 0;
+          })() && (
             <div id="large-images-table" data-subsection="image-optimization">
               <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
               <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
@@ -3401,7 +3415,7 @@ function renderSectionResults(
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-orange-200">
-                      {(results.largeImagesList || results.largeImageDetails || []).slice(0, 10).map((image: any, index: number) => (
+                      {((results.largeImagesList || results.largeImageDetails || []).slice(0, 10) as any[]).map((image: any, index: number) => (
                         <tr key={index} className="hover:bg-orange-50">
                           <td className="px-4 py-3">
                             <a 
@@ -3561,18 +3575,18 @@ function renderSectionResults(
         <div className="space-y-6">
           {/* Check if API is configured */}
           {results.error ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <div className="bg-white border-2 border-[#42499c] rounded-lg p-6">
               <div className="flex items-center mb-4">
-                <svg className="w-8 h-8 text-amber-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text-[#42499c] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <h3 className="text-lg font-semibold text-amber-800">Professional Backlink Analysis Required</h3>
-                  <p className="text-amber-700 text-sm mt-1">Real backlink data requires a premium API subscription</p>
+                  <h3 className="text-lg font-semibold text-black">Professional Backlink Analysis Required</h3>
+                  <p className="text-black text-sm mt-1">Real backlink data requires a premium API subscription</p>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg p-4 mb-4">
+
+              <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">What You Get with Majestic API:</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Real referring domains that actually link to your site</li>
@@ -3582,24 +3596,24 @@ function renderSectionResults(
                   <li>• Spam detection and link quality assessment</li>
                 </ul>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-amber-700 mb-1"><strong>Majestic Lite Plan: $49.99/month</strong></div>
-                  <div className="text-xs text-amber-600">Most affordable professional backlink API</div>
+                  <div className="text-sm text-black mb-1"><strong>Majestic Lite Plan: $49.99/month</strong></div>
+                  <div className="text-xs text-gray-600">Most affordable professional backlink API</div>
                 </div>
                 <div className="flex gap-3">
-                  <a 
-                    href={results.analysisUrl || '#'} 
-                    target="_blank" 
+                  <a
+                    href={results.analysisUrl || '#'}
+                    target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="bg-[#42499c] hover:bg-[#353f85] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                   >
                     View Free Report
                   </a>
-                  <a 
-                    href="https://majestic.com/plans-pricing" 
-                    target="_blank" 
+                  <a
+                    href="https://majestic.com/plans-pricing"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                   >

@@ -279,8 +279,8 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
       </div>
 
       {/* Info Note */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-        <p className="text-xs text-blue-800">
+      <div className="mt-4 p-3 bg-white border-2 border-[#42499c] rounded-lg text-center">
+        <p className="text-xs text-black">
           <strong>💳 Stripe Integration:</strong> Credit purchasing available soon. Register now for 100 free credits!
         </p>
       </div>

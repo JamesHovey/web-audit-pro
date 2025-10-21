@@ -13,9 +13,10 @@ import Image from "next/image"
 
 interface NavigationProps {
   auditIssues?: SummaryIssue[]
+  pageTitle?: string
 }
 
-export function Navigation({ auditIssues = [] }: NavigationProps) {
+export function Navigation({ auditIssues = [], pageTitle }: NavigationProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showBasketModal, setShowBasketModal] = useState(false)
   const [showSavedAuditsModal, setShowSavedAuditsModal] = useState(false)
@@ -52,6 +53,14 @@ export function Navigation({ auditIssues = [] }: NavigationProps) {
                   <div className="text-xs -mt-[2px]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>(Working title)</div>
                 </div>
               </Link>
+              {pageTitle && (
+                <>
+                  <svg className="w-5 h-5 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="text-white text-lg font-medium">{pageTitle}</span>
+                </>
+              )}
             </div>
             
             <div className="flex items-center space-x-4">

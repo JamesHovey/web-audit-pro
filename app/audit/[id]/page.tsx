@@ -145,21 +145,9 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-      <Navigation auditIssues={auditIssues} />
+      <Navigation auditIssues={auditIssues} pageTitle={getAuditTitle()} />
       <div className="container-pmw pt-24 pb-8">
         <div className="mb-6">
-          {/* Header with title and back button */}
-          <div className="pt-4 mb-4">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold">{getAuditTitle()}</h1>
-            </div>
-            <button
-              onClick={() => window.history.back()}
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
           
           {/* Main content row */}
           <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-lg px-6 py-3">
