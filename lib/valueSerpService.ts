@@ -72,7 +72,7 @@ export class ValueSerpService {
   constructor() {
     this.apiKey = process.env.VALUESERP_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('⚠️ ValueSERP API key not configured - cannot fetch real SERP data');
+      console.warn('⚠️ DEPRECATED: This file is legacy. Application now uses Serper API (serperService.ts)');
     }
   }
 
@@ -106,7 +106,7 @@ export class ValueSerpService {
     num: number = 100
   ): Promise<RankingData> {
     if (!this.isConfigured()) {
-      throw new Error('ValueSERP API key not configured. Please add VALUESERP_API_KEY to your .env.local file.');
+      throw new Error('DEPRECATED: This service is legacy. Use SerperService instead.');
     }
 
     try {
@@ -291,7 +291,7 @@ export class ValueSerpService {
     num: number = 20
   ): Promise<{ results: Array<{ domain: string; position: number; title: string; url: string }> } | null> {
     if (!this.isConfigured()) {
-      throw new Error('ValueSERP API key not configured');
+      throw new Error('DEPRECATED: Use SerperService instead');
     }
 
     try {

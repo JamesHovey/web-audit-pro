@@ -8,11 +8,19 @@ interface TrafficInsightsConclusionProps {
 }
 
 export default function TrafficInsightsConclusion({ data }: TrafficInsightsConclusionProps) {
+  // Helper function to extract traffic values (handles both number and object formats)
+  const getTrafficValue = (value: any): number => {
+    if (typeof value === 'object' && value?.estimate !== undefined) {
+      return value.estimate || 0;
+    }
+    return value || 0;
+  };
+
   const getTrafficHealthScore = () => {
     if (!data) return 0;
-    
+
     let score = 0;
-    const organic = data.monthlyOrganicTraffic || 0;
+    const organic = getTrafficValue(data.monthlyOrganicTraffic);
     
     // Score based on traffic volume
     if (organic > 100000) score += 30;
@@ -70,9 +78,9 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
   // Generate intelligent, context-aware recommendations
   const getRecommendations = () => {
     const recommendations = [];
-    const organic = data.monthlyOrganicTraffic || 0;
-    const paid = data.monthlyPaidTraffic || 0;
-    const branded = data.brandedTraffic || 0;
+    const organic = getTrafficValue(data.monthlyOrganicTraffic);
+    const paid = getTrafficValue(data.monthlyPaidTraffic);
+    const branded = getTrafficValue(data.brandedTraffic);
     const brandScore = data.brandStrength?.score || 0;
     const industry = data.industry?.primary || '';
     const businessType = data.industry?.b2bVsB2c || '';
@@ -197,10 +205,13 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
   };
 
   // Calculate key metrics for display
-  const totalTraffic = (data.monthlyOrganicTraffic || 0) + (data.monthlyPaidTraffic || 0);
-  const organicPercentage = totalTraffic > 0 ? Math.round((data.monthlyOrganicTraffic / totalTraffic) * 100) : 0;
-  const brandedPercentage = data.monthlyOrganicTraffic > 0 
-    ? Math.round((data.brandedTraffic / data.monthlyOrganicTraffic) * 100) 
+  const organicTraffic = getTrafficValue(data.monthlyOrganicTraffic);
+  const paidTraffic = getTrafficValue(data.monthlyPaidTraffic);
+  const brandedTraffic = getTrafficValue(data.brandedTraffic);
+  const totalTraffic = organicTraffic + paidTraffic;
+  const organicPercentage = totalTraffic > 0 ? Math.round((organicTraffic / totalTraffic) * 100) : 0;
+  const brandedPercentage = organicTraffic > 0
+    ? Math.round((brandedTraffic / organicTraffic) * 100)
     : 0;
 
   const recommendations = getRecommendations();
@@ -268,7 +279,7 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
         </div>
       </div>
 
-      {/* AI-Enhanced Insights */}
+      {/* Enhanced Insights */}
       {data.enhancedWithAI && (
         <div className="space-y-4 mb-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -276,7 +287,7 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-blue-900 mb-1">
-                  AI-Enhanced Analysis
+                  Enhanced Analysis
                 </p>
                 <p className="text-sm text-blue-700">
                   {data.industry && (
@@ -402,9 +413,6 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 mb-2">{rec.description}</p>
-                  {rec.timeframe && (
-                    <p className="text-xs text-gray-500 italic">Timeline: {rec.timeframe}</p>
-                  )}
                 </div>
               </div>
             ))}

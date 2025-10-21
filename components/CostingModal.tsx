@@ -123,7 +123,9 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   }
 
   const calculateCostPerAudit = () => {
-    if (!costingData) return { singlePage: 0, fiftyPage: 0 }
+    if (!costingData || !costingData.serper || !costingData.keywordsEverywhere) {
+      return { singlePage: 0, fiftyPage: 0 }
+    }
 
     // Single page full audit costs
     const kePerPage = 116 * costingData.keywordsEverywhere.costPerCredit
@@ -149,8 +151,10 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   }
 
   const calculateRemainingAudits = () => {
-    if (!costingData) return { ke: 0, vs: 0, limiting: 0 }
-    
+    if (!costingData || !costingData.serper || !costingData.keywordsEverywhere) {
+      return { ke: 0, vs: 0, limiting: 0 }
+    }
+
     const keAudits = Math.floor(costingData.keywordsEverywhere.creditsRemaining / 116)
     const vsAudits = Math.floor(costingData.serper.searchesRemaining / 75)
     
@@ -196,6 +200,12 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
   const costPerAudit = calculateCostPerAudit()
   const remainingAudits = calculateRemainingAudits()
 
+  // Check if we have all required data for rendering
+  const hasCompleteData = costingData &&
+    costingData.serper &&
+    costingData.keywordsEverywhere &&
+    costingData.claudeApi
+
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
@@ -236,7 +246,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               <span className="ml-3 text-gray-600">Loading costing data...</span>
             </div>
-          ) : costingData ? (
+          ) : hasCompleteData ? (
             <>
               {/* Cost Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -257,7 +267,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                       <span className="font-medium">{formatCost(75 * (costingData.serper.costPer1000 / 1000))}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>AI Analysis:</span>
+                      <span>Automated Analysis:</span>
                       <span className="font-medium">{formatCost(0.0019 + 0.00088)}</span>
                     </div>
                   </div>
@@ -325,7 +335,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                         <th className="px-6 py-3 text-left font-medium text-gray-700">Date</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">KE Credits</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">VS Searches</th>
-                        <th className="px-6 py-3 text-center font-medium text-gray-700">Claude AI</th>
+                        <th className="px-6 py-3 text-center font-medium text-gray-700">Advanced analysis</th>
                         <th className="px-6 py-3 text-center font-medium text-gray-700">Total Cost</th>
                       </tr>
                     </thead>
@@ -391,7 +401,7 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
                   <li>• <strong>Per-page average:</strong> {formatCost(costPerAudit.fiftyPage / 50)} for multi-page audits vs {formatCost(costPerAudit.singlePage)} for single pages</li>
                   <li>• Keywords Everywhere: ~116 credits/page for full analysis, ~25 for light checks</li>
                   <li>• Serper: ~75 searches/page for full analysis, ~15 for light checks</li>
-                  <li>• Claude AI: ~{formatCost(0.0019 + 0.00088)} per full page analysis</li>
+                  <li>• Advanced analysis: ~{formatCost(0.0019 + 0.00088)} per full page analysis</li>
                   <li>• Multi-page audits are ~{Math.round((1 - (costPerAudit.fiftyPage / 50) / costPerAudit.singlePage) * 100)}% more cost-effective per page</li>
                 </ul>
               </div>

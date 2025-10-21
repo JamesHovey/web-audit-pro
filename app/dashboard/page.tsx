@@ -1,17 +1,24 @@
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
+import { authOptions } from "@/lib/auth"
 import { AuditForm } from "@/components/AuditForm"
 import { Navigation } from "@/components/Navigation"
+import UserHeader from "@/components/UserHeader"
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
+
+  if (!session) {
+    redirect('/login')
+  }
+
+  const user = session.user as any
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }} suppressHydrationWarning>
       <Navigation />
-      <div className="container-pmw py-8">
-        <div className="mb-8 spacing-pmw pt-8">
-          <p style={{ color: 'var(--pmw-text)' }} className="text-lg" suppressHydrationWarning>
-            Enter a URL below to start your comprehensive website audit
-          </p>
-        </div>
-        
+      <UserHeader user={user} />
+      <div className="container-pmw pt-4 pb-4">
         <AuditForm />
       </div>
     </div>

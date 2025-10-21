@@ -258,21 +258,21 @@ Focus on keywords that real competitors in this industry would actually rank for
   async estimateTargetDomainAuthority(): Promise<number> {
     try {
       // Get some ranking data for the target domain to estimate its authority
-      const { isValueSerpConfigured, ValueSerpService } = await import('./valueSerpService');
-      
-      if (!isValueSerpConfigured()) {
+      const { isSerperConfigured, SerperService } = await import('./serperService');
+
+      if (!isSerperConfigured()) {
         return 35; // Default estimate
       }
-      
-      const valueSerpService = new ValueSerpService();
-      
+
+      const serperService = new SerperService();
+
       // Try common business keywords to see if target ranks
       const testKeywords = [this.domain.replace(/\.[^.]+$/, ''), 'about', 'contact', 'services'];
       let totalScore = 30; // Base score
-      
+
       for (const keyword of testKeywords) {
         try {
-          const ranking = await valueSerpService.checkKeywordPosition(keyword, this.domain);
+          const ranking = await serperService.checkKeywordPosition(keyword, this.domain);
           if (ranking && ranking <= 20) {
             totalScore += (21 - ranking) * 2;
           }
@@ -280,9 +280,9 @@ Focus on keywords that real competitors in this industry would actually rank for
           // Continue with other keywords
         }
       }
-      
+
       return Math.min(85, Math.max(15, totalScore));
-      
+
     } catch (error) {
       console.warn('Target domain authority estimation failed:', error);
       return 35; // Default estimate
@@ -297,38 +297,38 @@ Focus on keywords that real competitors in this industry would actually rank for
     country: string = 'gb'
   ): Promise<CompetitorIntelligence[]> {
     console.log(`🏆 Finding competitors for ${keywords.length} keywords...`);
-    
+
     try {
-      // Check if ValueSERP is available
-      const { isValueSerpConfigured, ValueSerpService } = await import('./valueSerpService');
-      
-      if (!isValueSerpConfigured()) {
-        console.warn('⚠️ ValueSERP not configured - cannot get real competitor data');
+      // Check if Serper is available
+      const { isSerperConfigured, SerperService } = await import('./serperService');
+
+      if (!isSerperConfigured()) {
+        console.warn('⚠️ Serper not configured - cannot get real competitor data');
         return [];
       }
-      
-      const valueSerpService = new ValueSerpService();
+
+      const serperService = new SerperService();
       const competitorMap = new Map<string, {
         keywords: string[];
         positions: number[];
         titles: string[];
         totalScore: number;
       }>();
-      
+
       // Get target domain authority for comparison
       const targetAuthority = await this.estimateTargetDomainAuthority();
       console.log(`🎯 Target domain authority: ${targetAuthority}`);
-      
+
       // Analyze more keywords to ensure we get 10+ competitors
       const keywordsToAnalyze = keywords
         .sort((a, b) => (b.volume || 0) - (a.volume || 0))
         .slice(0, 15); // Increased to 15 keywords to get more competitors
-      
+
       console.log(`🔍 Analyzing competitor rankings for:`, keywordsToAnalyze.map(k => k.keyword));
-      
+
       for (const keywordData of keywordsToAnalyze) {
         try {
-          const serpResults = await valueSerpService.getFullSerpResults(
+          const serpResults = await serperService.getFullSerpResults(
             keywordData.keyword,
             country === 'gb' ? 'United Kingdom' : 'United States',
             20

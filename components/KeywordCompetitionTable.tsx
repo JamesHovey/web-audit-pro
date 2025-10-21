@@ -41,8 +41,8 @@ export default function KeywordCompetitionTable({
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <h4 className="font-semibold text-black">{title}</h4>
-            <Tooltip 
-              content="Keyword Competition analysis requires ValueSERP API to identify competitors ranking for the same keywords as your Above Fold Keywords"
+            <Tooltip
+              content="Keyword Competition analysis requires Serper API to identify competitors ranking for the same keywords as your Above Fold Keywords"
               position="top"
             >
               <div className="w-6 h-6 text-gray-400 hover:text-gray-600 cursor-help border border-gray-300 rounded-full flex items-center justify-center text-sm font-medium">?</div>
@@ -54,10 +54,10 @@ export default function KeywordCompetitionTable({
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              ⚠️ ValueSERP API Required
+              ⚠️ Serper API Required
             </div>
             <p className="text-yellow-700 text-xs mt-1">
-              Keyword Competition analysis requires ValueSERP API to identify competitors ranking for the same Above Fold Keywords.
+              Keyword Competition analysis requires Serper API to identify competitors ranking for the same Above Fold Keywords.
             </p>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function KeywordCompetitionTable({
               <p className="mb-2"><strong>How it works:</strong></p>
               <ul className="list-disc list-inside mb-2 text-xs">
                 <li>Analyzes your top-ranking keywords (positions 1-3)</li>
-                <li>Uses ValueSERP API to check who else ranks for these keywords</li>
+                <li>Uses Serper API to check who else ranks for these keywords</li>
                 <li>Calculates percentage overlap and average competitor positions</li>
                 <li>Shows top 10 competitors with highest keyword overlap</li>
               </ul>

@@ -35,17 +35,17 @@ export async function GET() {
       
       // Extract credit usage from results
       const keywordsEverywhereCredits = results?.volumeCreditsUsed || 0
-      const valueSerpSearches = results?.keywordCompetition?.creditsUsed || 0
-      
+      const serperSearches = results?.keywordCompetition?.creditsUsed || 0
+
       // Calculate costs using the costing service
-      const totalCost = costingService.calculateAuditCost(keywordsEverywhereCredits, valueSerpSearches)
+      const totalCost = costingService.calculateAuditCost(keywordsEverywhereCredits, serperSearches)
 
       return {
         id: audit.id,
         url: audit.url,
         date: audit.completedAt?.toISOString() || new Date().toISOString(),
         keywordsEverywhereCredits,
-        valueSerpSearches,
+        serperSearches,
         totalCost
       }
     })
@@ -53,7 +53,7 @@ export async function GET() {
     // Combine real-time costs with audit history
     const responseData = {
       keywordsEverywhere: realTimeCosts.keywordsEverywhere,
-      valueSERP: realTimeCosts.valueSERP,
+      serper: realTimeCosts.serper,
       auditHistory
     }
 
@@ -71,7 +71,7 @@ export async function GET() {
         costPerCredit: 0.00024,
         planType: 'Bronze Package (100K/year)'
       },
-      valueSERP: {
+      serper: {
         searchesRemaining: 22350,
         searchesUsed: 2650,
         costPer1000: 1.60,

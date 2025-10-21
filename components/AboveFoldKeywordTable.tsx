@@ -34,11 +34,11 @@ export default function AboveFoldKeywordTable({
   
   // Set description based on discovery method
   const finalDescription = description || (
-    discoveryMethod === 'valueserp_actual_rankings' 
+    discoveryMethod === 'serper_actual_rankings'
       ? "Business-relevant longtail keywords (3+ words) found on your website that rank in Google's top 3 positions (1-3). Sorted by position then volume."
       : discoveryMethod === 'api_required'
-      ? "ValueSERP API required to show actual Google rankings for longtail keywords."
-      : "Business-relevant longtail keywords analysis requires ValueSERP API configuration."
+      ? "Serper API required to show actual Google rankings for longtail keywords."
+      : "Business-relevant longtail keywords analysis requires Serper API configuration."
   );
   
   // Sort by position (1,2,3) then by volume (high to low) - matches backend sorting
@@ -163,7 +163,7 @@ export default function AboveFoldKeywordTable({
       </div>
       
       {/* Discovery Method Notice */}
-      {discoveryMethod === "valueserp_actual_rankings" && sortedKeywords.length > 0 && (
+      {discoveryMethod === "serper_actual_rankings" && sortedKeywords.length > 0 && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center gap-2 text-green-800 text-sm font-medium">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -183,10 +183,10 @@ export default function AboveFoldKeywordTable({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            ⚠️ ValueSERP API Required
+            ⚠️ Serper API Required
           </div>
           <p className="text-yellow-700 text-xs mt-1">
-            Above Fold Keywords analysis requires both Keywords Everywhere API (for volumes) and ValueSERP API (for real rankings). No fallback data is provided.
+            Above Fold Keywords analysis requires both Keywords Everywhere API (for volumes) and Serper API (for real rankings). No fallback data is provided.
           </p>
         </div>
       )}
@@ -206,7 +206,7 @@ export default function AboveFoldKeywordTable({
             <div className="col-span-2 text-center">
               Position
               <Tooltip 
-                content="Google organic ranking position (1-3) for keywords where your site appears in the top 3 results. ValueSERP provides real-time ranking data."
+                content="Google organic ranking position (1-3) for keywords where your site appears in the top 3 results. Serper provides real-time ranking data."
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>

@@ -43,7 +43,7 @@ const SECTION_CONFIG = {
     icon: Search,
     estimatedTime: 60, // seconds
     steps: [
-      { name: "Analyzing business type with Claude AI", time: 15 },
+      { name: "Analyzing business type", time: 15 },
       { name: "Discovering branded keywords", time: 20 },
       { name: "Finding competitor keywords", time: 15 },
       { name: "Getting real search volumes", time: 10 }
@@ -211,9 +211,9 @@ export default function LoadingMessages({ section, className = "", progress, sta
   }
 
   return (
-    <div className={`flex flex-col items-center justify-center min-h-screen py-6 px-8 ${className}`}>
+    <div className={`flex flex-col items-center justify-center h-screen px-8 overflow-hidden ${className}`}>
       {/* Centered container with border only */}
-      <div className="w-full max-w-4xl bg-white rounded-xl border border-gray-200 p-8 mx-auto">
+      <div className="w-full max-w-4xl bg-white rounded-xl border border-gray-200 p-8 mx-auto my-auto">
         
         {/* Header - Minimal */}
         <div className="text-center space-y-4">

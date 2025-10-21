@@ -2,10 +2,12 @@
 
 import { Navigation } from "@/components/Navigation"
 import { AuditResults } from "@/components/AuditResults"
-import { notFound } from "next/navigation"
-import { useEffect, useState } from "react"
+import { notFound, useRouter } from "next/navigation"
+import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { exportAuditToPDF } from "@/lib/pdfExportService"
+import { generateAuditSummary } from "@/lib/auditSummaryService"
+import { Trash2, Loader } from "lucide-react"
 
 interface Audit {
   id: string
@@ -18,11 +20,20 @@ interface Audit {
 
 export default function AuditPage() {
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
   const [audit, setAudit] = useState<Audit | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showViewSelector, setShowViewSelector] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  // Generate audit summary to get issues for Synergist basket
+  const auditIssues = useMemo(() => {
+    if (!audit?.results) return []
+    const summary = generateAuditSummary(audit.results, audit.url)
+    return summary.topPriorities
+  }, [audit])
 
   // Helper function to determine audit type and get appropriate title
   const getAuditTitle = () => {
@@ -44,6 +55,31 @@ export default function AuditPage() {
       return 'Full audit results'
     } else {
       return 'Single page audit results'
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!audit) return
+
+    if (!confirm(`Are you sure you want to delete the audit for "${audit.url}"?`)) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/audit/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete audit')
+      }
+
+      // Redirect to dashboard after successful deletion
+      router.push('/dashboard')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete audit')
+      setDeleting(false)
     }
   }
 
@@ -84,8 +120,8 @@ export default function AuditPage() {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-        <Navigation />
-        <div className="container-pmw py-8">
+        <Navigation auditIssues={[]} />
+        <div className="container-pmw pt-24 pb-8">
           <div className="flex items-center justify-center">
             <div>Loading...</div>
           </div>
@@ -97,8 +133,8 @@ export default function AuditPage() {
   if (error || !audit) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-        <Navigation />
-        <div className="container-pmw py-8">
+        <Navigation auditIssues={[]} />
+        <div className="container-pmw pt-24 pb-8">
           <div className="flex items-center justify-center">
             <div className="text-red-600">{error || 'Audit not found'}</div>
           </div>
@@ -109,8 +145,8 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-      <Navigation />
-      <div className="container-pmw py-8">
+      <Navigation auditIssues={auditIssues} />
+      <div className="container-pmw pt-24 pb-8">
         <div className="mb-6">
           {/* Header with title and back button */}
           <div className="pt-4 mb-4">
@@ -211,6 +247,26 @@ export default function AuditPage() {
                   </button>
                 </>
               )}
+
+              {/* Delete button */}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors disabled:bg-red-400 disabled:cursor-not-allowed flex items-center gap-2"
+                title="Delete audit"
+              >
+                {deleting ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

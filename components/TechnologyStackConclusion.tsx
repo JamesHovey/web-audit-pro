@@ -27,7 +27,7 @@ interface TechnologyStackConclusionProps {
 }
 
 export default function TechnologyStackConclusion({ data }: TechnologyStackConclusionProps) {
-  // Check if we have Claude AI enhanced data
+  // Check if we have Advanced analysis enhanced data
   const hasAIAnalysis = data?.enhancedWithAI && data?.technologyIntelligence;
 
   if (!hasAIAnalysis) {
@@ -99,7 +99,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           content={
             <div>
               <p className="font-semibold mb-2">Technology Intelligence</p>
-              <p className="mb-2">AI-powered analysis of your website's technology stack and security posture.</p>
+              <p className="mb-2">Automated analysis of your website's technology stack and security posture.</p>
               <div className="text-xs space-y-1">
                 <p><strong>Stack Health:</strong> Overall technology score and recommendations</p>
                 <p><strong>Performance Impact:</strong> How your tech choices affect site speed</p>

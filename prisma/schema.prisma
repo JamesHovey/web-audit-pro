@@ -39,17 +39,20 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  audits        Audit[]
+  id                String    @id @default(cuid())
+  username          String    @unique
+  name              String?
+  email             String?   @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String
+  plaintextPassword String?   // TESTING ONLY - Remove in production
+  credits           Int       @default(100) // Free credits on signup
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  accounts          Account[]
+  sessions          Session[]
+  audits            Audit[]
 }
 
 model VerificationToken {
@@ -62,7 +65,7 @@ model VerificationToken {
 
 model Audit {
   id          String   @id @default(cuid())
-  userId      String
+  userId      String?
   url         String
   status      String   @default("pending") // pending, running, completed, failed
   sections    Json     // Selected audit sections
@@ -70,8 +73,9 @@ model Audit {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   completedAt DateTime?
+  creditCost  Int?     // Credits deducted for this audit
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])

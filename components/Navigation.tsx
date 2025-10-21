@@ -1,16 +1,43 @@
 'use client'
 
 import Link from "next/link"
-import { useState } from "react"
-import { PoundSterling } from "lucide-react"
+import { useState, useEffect } from "react"
 import { PMWLogo } from "./PMWLogo"
-import CostingModal from "./CostingModal"
 import SettingsModal from "./SettingsModal"
+import SynergistBasketModal from "./SynergistBasketModal"
+import SavedAuditsModal from "./SavedAuditsModal"
+import { ShoppingCart, Clock } from "lucide-react"
+import { useSynergistBasket } from "@/contexts/SynergistBasketContext"
+import { SummaryIssue } from "@/lib/auditSummaryService"
 import Image from "next/image"
 
-export function Navigation() {
-  const [showCostingModal, setShowCostingModal] = useState(false)
+interface NavigationProps {
+  auditIssues?: SummaryIssue[]
+}
+
+export function Navigation({ auditIssues = [] }: NavigationProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showBasketModal, setShowBasketModal] = useState(false)
+  const [showSavedAuditsModal, setShowSavedAuditsModal] = useState(false)
+  const [hasSavedAudits, setHasSavedAudits] = useState(false)
+  const { basket } = useSynergistBasket()
+
+  // Check if user has any saved audits
+  useEffect(() => {
+    const checkSavedAudits = async () => {
+      try {
+        const response = await fetch('/api/audit/list')
+        if (response.ok) {
+          const data = await response.json()
+          setHasSavedAudits(data.audits && data.audits.length > 0)
+        }
+      } catch (error) {
+        // Silently fail - icon will remain hidden
+        console.error('Failed to check saved audits:', error)
+      }
+    }
+    checkSavedAudits()
+  }, [])
 
   return (
     <>
@@ -18,22 +45,41 @@ export function Navigation() {
         <div className="container-pmw">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-3">
-              <Link href="/dashboard" className="flex items-center gap-3 text-xl font-bold text-white hover:opacity-90 transition-opacity">
+              <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                 <PMWLogo size={40} />
-                <span>Web Audit Pro</span>
+                <div className="text-center">
+                  <div className="text-xl font-bold leading-[1]" style={{ color: 'white' }}>Web Audit Pro</div>
+                  <div className="text-xs -mt-[2px]" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>(Working title)</div>
+                </div>
               </Link>
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Costing Section */}
-              <button
-                onClick={() => setShowCostingModal(true)}
-                className="flex items-center justify-center p-2 rounded transition-all duration-200 group"
-                title="View API costs and usage"
-              >
-                <span className="text-lg font-bold text-white group-hover:text-[#ef86ce]">£</span>
-              </button>
-              
+              {/* Saved Audits */}
+              {hasSavedAudits && (
+                <button
+                  onClick={() => setShowSavedAuditsModal(true)}
+                  className="flex items-center justify-center p-2 rounded transition-all duration-200 group"
+                  title="Saved Audits"
+                >
+                  <Clock className="w-5 h-5 text-white group-hover:text-[#ef86ce] transition-colors" />
+                </button>
+              )}
+
+              {/* Synergist Basket */}
+              {basket.length > 0 && (
+                <button
+                  onClick={() => setShowBasketModal(true)}
+                  className="relative flex items-center justify-center p-2 rounded transition-all duration-200 group"
+                  title="Synergist Basket"
+                >
+                  <ShoppingCart className="w-5 h-5 text-white group-hover:text-[#ef86ce] transition-colors" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {basket.length}
+                  </span>
+                </button>
+              )}
+
               {/* Settings Section */}
               <button
                 onClick={() => setShowSettingsModal(true)}
@@ -45,7 +91,7 @@ export function Navigation() {
                   <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="white" strokeWidth="2" className="group-hover:stroke-[#ef86ce]" suppressHydrationWarning/>
                 </svg>
               </button>
-              
+
               <span className="text-white text-sm">
                 Demo Version
               </span>
@@ -54,16 +100,24 @@ export function Navigation() {
         </div>
       </nav>
 
-      {/* Costing Modal */}
-      <CostingModal 
-        isOpen={showCostingModal}
-        onClose={() => setShowCostingModal(false)}
-      />
-      
       {/* Settings Modal */}
-      <SettingsModal 
+      <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+
+      {/* Saved Audits Modal */}
+      <SavedAuditsModal
+        isOpen={showSavedAuditsModal}
+        onClose={() => setShowSavedAuditsModal(false)}
+        onAuditsChange={setHasSavedAudits}
+      />
+
+      {/* Synergist Basket Modal */}
+      <SynergistBasketModal
+        isOpen={showBasketModal}
+        onClose={() => setShowBasketModal(false)}
+        allIssues={auditIssues}
       />
     </>
   )

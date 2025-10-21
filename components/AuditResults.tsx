@@ -25,6 +25,7 @@ import AuditSummary from './AuditSummary'
 import EnhancedRecommendations from './EnhancedRecommendations'
 import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
+import SectionExportButtons from './SectionExportButtons'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -220,6 +221,22 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       ...prev,
       [section]: !prev[section]
     }))
+  }
+
+  const openSectionAndScroll = (sectionId: string) => {
+    // First, open the section if it's collapsed
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionId]: false
+    }))
+
+    // Then scroll to it after a brief delay to allow the section to expand
+    setTimeout(() => {
+      const element = document.querySelector(`[data-section="${sectionId}"]`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
   }
 
   const closeAllSections = () => {
@@ -604,7 +621,10 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
 
           {/* Audit Summary - FIRST SECTION */}
           {audit.results && (
-            <AuditSummary auditResults={audit.results} />
+            <AuditSummary
+              auditResults={audit.results}
+              onNavigateToSection={openSectionAndScroll}
+            />
           )}
 
           {/* Traffic Section - Full Width */}
@@ -656,7 +676,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       </Tooltip>
                     </h3>
                   </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                  <div className="flex items-center gap-2">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <SectionExportButtons
+                        sectionName="Traffic Insights"
+                        sectionData={audit.results?.traffic || {}}
+                        auditUrl={audit.url}
+                      />
+                    </div>
+                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('traffic')}>
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.traffic ? '' : 'rotate-180'}`}
                       fill="none"
@@ -666,13 +694,27 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+                  </div>
                 </div>
                 {!collapsedSections.traffic && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                       <LoadingMessages section="traffic" />
                     ) : (
-                      renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+                      <>
+                        {renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+                        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                            Back to Top
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -728,7 +770,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       </Tooltip>
                     </h3>
                   </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                  <div className="flex items-center gap-2">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <SectionExportButtons
+                        sectionName="Performance & Technical Audit"
+                        sectionData={audit.results?.performance || {}}
+                        auditUrl={audit.url}
+                      />
+                    </div>
+                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('performance')}>
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.performance ? '' : 'rotate-180'}`}
                       fill="none"
@@ -738,26 +788,40 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+                  </div>
                 </div>
                 {!collapsedSections.performance && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                       <LoadingMessages section="performance" />
                     ) : (
-                      renderSectionResults(
-                        audit?.sections?.includes('technical') ? "technical" : "performance",
-                        {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})},
-                        undefined,
-                        showMethodologyExpanded,
-                        toggleMethodology,
-                        setPageModalState,
-                        performancePagination,
-                        setPerformancePagination,
-                        setShowCoreWebVitalsGuide,
-                        audit?.auditType,
-                        audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
-                        audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
-                      )
+                      <>
+                        {renderSectionResults(
+                          audit?.sections?.includes('technical') ? "technical" : "performance",
+                          {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})},
+                          undefined,
+                          showMethodologyExpanded,
+                          toggleMethodology,
+                          setPageModalState,
+                          performancePagination,
+                          setPerformancePagination,
+                          setShowCoreWebVitalsGuide,
+                          audit?.auditType,
+                          audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
+                          audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
+                        )}
+                        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                            Back to Top
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -796,7 +860,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   Viewport Responsiveness
                 </h3>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+              <div className="flex items-center gap-2">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <SectionExportButtons
+                    sectionName="Viewport Responsiveness"
+                    sectionData={audit.results?.viewportAnalysis || {}}
+                    auditUrl={audit.url}
+                  />
+                </div>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('viewport')}>
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.viewport ? '' : 'rotate-180'}`}
                   fill="none"
@@ -806,6 +878,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              </div>
             </div>
             {!collapsedSections.viewport && (
               <div className="mt-4">
@@ -813,6 +886,17 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   url={audit.url}
                   data={audit?.results?.viewport as any}
                 />
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    Back to Top
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -867,7 +951,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   </Tooltip>
                 </h3>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+              <div className="flex items-center gap-2">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <SectionExportButtons
+                    sectionName="Technology Stack"
+                    sectionData={audit.results?.technology || {}}
+                    auditUrl={audit.url}
+                  />
+                </div>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('technology')}>
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.technology ? '' : 'rotate-180'}`}
                   fill="none"
@@ -877,6 +969,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              </div>
             </div>
             {!collapsedSections.technology && (
               <div className="mt-4">
@@ -885,12 +978,23 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 ) : (
                   renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
                 )}
-                {/* AI-Enhanced Technology Conclusion */}
+                {/* Enhanced Technology Conclusion */}
                 {audit.status === "completed" && audit?.results?.technology && (
                   <TechnologyStackConclusion
                     data={audit?.results?.technology}
                   />
                 )}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    Back to Top
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -946,7 +1050,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   </Tooltip>
                 </h3>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+              <div className="flex items-center gap-2">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <SectionExportButtons
+                    sectionName="Accessibility"
+                    sectionData={audit.results?.accessibility || {}}
+                    auditUrl={audit.url}
+                  />
+                </div>
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('accessibility')}>
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.accessibility ? '' : 'rotate-180'}`}
                   fill="none"
@@ -956,6 +1068,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              </div>
             </div>
             {!collapsedSections.accessibility && (
               <div className="mt-4">
@@ -970,6 +1083,17 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     <AccessibilityConclusion data={audit?.results?.accessibility} />
                   </div>
                 )}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    Back to Top
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1004,35 +1128,44 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    {SECTION_LABELS['keywords']}
-                    <Tooltip
-                      content={
-                        <div>
-                          <p className="font-semibold mb-2">Keyword Analysis</p>
-                          <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
-                          <div className="text-xs space-y-1">
-                            <p><strong>Branded Keywords:</strong> Searches including your company name</p>
-                            <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
-                            <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
-                            <p><strong>Search Volume:</strong> How many people search this term monthly</p>
-                            <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      {SECTION_LABELS['keywords']}
+                      <Tooltip
+                        content={
+                          <div>
+                            <p className="font-semibold mb-2">Keyword Analysis</p>
+                            <p className="mb-2">Analyzes what keywords your website ranks for on Google.</p>
+                            <div className="text-xs space-y-1">
+                              <p><strong>Branded Keywords:</strong> Searches including your company name</p>
+                              <p><strong>Non-Branded Keywords:</strong> Generic industry terms you rank for</p>
+                              <p><strong>Position:</strong> Where you rank on Google (1-100+)</p>
+                              <p><strong>Search Volume:</strong> How many people search this term monthly</p>
+                              <p><strong>Competition:</strong> How difficult it is to rank for this keyword</p>
+                            </div>
                           </div>
-                        </div>
-                      }
-                      position="top"
-                    >
-                      <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                    </Tooltip>
-                  </h3>
+                        }
+                        position="top"
+                      >
+                        <HelpCircle onClick={(e) => e.stopPropagation()} className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                      </Tooltip>
+                    </h3>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <SectionExportButtons
+                        sectionName="Keywords"
+                        sectionData={audit.results?.keywords || {}}
+                        auditUrl={audit.url}
+                      />
+                    </div>
+                  </div>
                 {audit.results?.keywords?.dataSource && (
                   <div className="mt-2">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      audit.results.keywords.dataSource === 'valueserp' || audit.results.keywords.dataSource === 'mixed'
+                      audit.results.keywords.dataSource === 'serper' || audit.results.keywords.dataSource === 'mixed'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {audit.results.keywords.dataSource === 'valueserp' && '✓ Real Google Ranking Data'}
+                      {audit.results.keywords.dataSource === 'serper' && '✓ Real Google Ranking Data'}
                       {audit.results.keywords.dataSource === 'mixed' && '✓ Mixed Real & Estimated Data'}
                       {audit.results.keywords.dataSource === 'estimation' && '⚠ Estimated Data Only'}
                       {audit.results.keywords.searchesUsed && ` (${audit.results.keywords.searchesUsed} searches)`}
@@ -1041,7 +1174,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 )}
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4">
+              <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4" onClick={() => toggleSection('keywords')}>
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.keywords ? '' : 'rotate-180'}`}
                   fill="none"
@@ -1058,14 +1191,27 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                   <LoadingMessages section="keywords" />
                 ) : audit.results?.keywords ? (
-                  <div className="space-y-4">
-                    {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+                  <>
+                    <div className="space-y-4">
+                      {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
 
-                    {/* Claude AI Keyword Analysis Conclusion */}
-                    {audit.results.keywords.claudeAnalysis && (
-                      <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />
-                    )}
-                  </div>
+                      {/* Advanced analysis Keyword Analysis Conclusion */}
+                      {audit.results.keywords.claudeAnalysis && (
+                        <KeywordAnalysisConclusion analysis={audit.results.keywords.claudeAnalysis} />
+                      )}
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                      <button
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                        Back to Top
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <LoadingMessages section="keywords" />
                 )}
@@ -1079,27 +1225,34 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {audit?.sections?.includes('backlinks') && (
         <div className="card-pmw">
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              {SECTION_LABELS.backlinks}
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Authority & Backlinks</p>
-                    <p className="mb-2">Shows how authoritative your website is and which sites link to you.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Domain Authority:</strong> Overall strength of your website (0-100)</p>
-                      <p><strong>Backlinks:</strong> Other websites linking to your pages</p>
-                      <p><strong>Referring Domains:</strong> Number of unique websites linking to you</p>
-                      <p><strong>Link Quality:</strong> Authority and relevance of sites linking to you</p>
-                      <p><strong>Anchor Text:</strong> The clickable text in links pointing to your site</p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                {SECTION_LABELS.backlinks}
+                <Tooltip
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Authority & Backlinks</p>
+                      <p className="mb-2">Shows how authoritative your website is and which sites link to you.</p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>Domain Authority:</strong> Overall strength of your website (0-100)</p>
+                        <p><strong>Backlinks:</strong> Other websites linking to your pages</p>
+                        <p><strong>Referring Domains:</strong> Number of unique websites linking to you</p>
+                        <p><strong>Link Quality:</strong> Authority and relevance of sites linking to you</p>
+                        <p><strong>Anchor Text:</strong> The clickable text in links pointing to your site</p>
+                      </div>
                     </div>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </h3>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </h3>
+              <SectionExportButtons
+                sectionName="Authority & Backlinks"
+                sectionData={audit.results?.backlinks || {}}
+                auditUrl={audit.url}
+              />
+            </div>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
@@ -1432,7 +1585,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 </div>
 
                 <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                  <p><strong>About this data:</strong> Shows all pages on the website that contain links pointing to <code className="bg-gray-200 px-1 rounded">{internalLinksModal.targetPage}</code>. This helps understand the internal linking structure and page authority flow.</p>
+                  <p><strong>About this data:</strong> Shows {results.scope === 'single' ? 'pages' : results.scope === 'custom' ? `pages among the ${results.totalPages} analyzed pages` : 'all pages on the website'} that contain links pointing to <code className="bg-gray-200 px-1 rounded">{internalLinksModal.targetPage}</code>. This helps understand the internal linking structure and page authority flow.</p>
                 </div>
               </div>
             ) : (
@@ -1879,15 +2032,18 @@ function renderSectionResults(
           )}
           <div className="grid grid-cols-3 gap-4">
             {(() => {
-              const totalTraffic = (results.monthlyOrganicTraffic || 0) + (results.monthlyPaidTraffic || 0);
-              const organicPercentage = totalTraffic > 0 ? Math.round((results.monthlyOrganicTraffic / totalTraffic) * 100) : 0;
-              const paidPercentage = totalTraffic > 0 ? Math.round((results.monthlyPaidTraffic / totalTraffic) * 100) : 0;
-              const brandedPercentage = results.monthlyOrganicTraffic > 0 ? Math.round((results.brandedTraffic / results.monthlyOrganicTraffic) * 100) : 0;
-              
+              // Handle both old format (number) and new format (object with estimate property)
+              const organicTraffic = typeof results.monthlyOrganicTraffic === 'object' ? (results.monthlyOrganicTraffic?.estimate || 0) : (results.monthlyOrganicTraffic || 0);
+              const paidTraffic = typeof results.monthlyPaidTraffic === 'object' ? (results.monthlyPaidTraffic?.estimate || 0) : (results.monthlyPaidTraffic || 0);
+              const totalTraffic = organicTraffic + paidTraffic;
+              const organicPercentage = totalTraffic > 0 ? Math.round((organicTraffic / totalTraffic) * 100) : 0;
+              const paidPercentage = totalTraffic > 0 ? Math.round((paidTraffic / totalTraffic) * 100) : 0;
+              const brandedPercentage = organicTraffic > 0 ? Math.round((results.brandedTraffic / organicTraffic) * 100) : 0;
+
               return (
                 <>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{results.monthlyOrganicTraffic?.toLocaleString('en-GB')}</div>
+                    <div className="text-2xl font-bold text-blue-600">{organicTraffic?.toLocaleString('en-GB')}</div>
                     <div className="text-xs text-blue-500 font-medium mb-1">{organicPercentage}% of total traffic</div>
                     <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                       Monthly Organic Traffic
@@ -1915,7 +2071,7 @@ function renderSectionResults(
               </div>
                     </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{results.monthlyPaidTraffic?.toLocaleString('en-GB')}</div>
+                    <div className="text-2xl font-bold text-green-600">{paidTraffic?.toLocaleString('en-GB')}</div>
                     <div className="text-xs text-green-500 font-medium mb-1">{paidPercentage}% of total traffic</div>
                     <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
                       Monthly Paid Traffic
@@ -2010,7 +2166,7 @@ function renderSectionResults(
             <div className="mt-4 pt-3 border-t border-gray-200">
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>
-                  Data source: {results.dataSource === 'mcp-analysis' ? 'AI Analysis' : 
+                  Data source: {results.dataSource === 'mcp-analysis' ? 'Automated Analysis' : 
                               results.dataSource === 'web-scraping' ? 'Web Analysis' : 
                               results.dataSource === 'api' ? 'API Data' : 'Estimated'}
                 </span>
@@ -2422,6 +2578,32 @@ function renderSectionResults(
 
     case "performance":
     case "technical":
+      // Use the passed detectedPlugins and pageBuilder parameters
+      // If not provided, try to extract from results
+      let pluginsList: string[] = detectedPlugins || [];
+
+      if (!pluginsList.length) {
+        const pluginsData = results.plugins;
+        if (Array.isArray(pluginsData)) {
+          pluginsList = pluginsData;
+        } else if (typeof pluginsData === 'object' && pluginsData) {
+          // Plugin data is categorized - extract all plugin names
+          Object.values(pluginsData).forEach((category: any) => {
+            if (Array.isArray(category)) {
+              category.forEach((plugin: any) => {
+                if (typeof plugin === 'string') {
+                  pluginsList.push(plugin);
+                } else if (plugin?.name) {
+                  pluginsList.push(plugin.name);
+                }
+              });
+            }
+          });
+        }
+      }
+
+      const pageBuilderName = pageBuilder || results.pageBuilder;
+
       return (
         <div className="space-y-6">
 
@@ -2558,6 +2740,152 @@ function renderSectionResults(
               </div>
             );
           })()}
+
+          {/* Summary Performance Data (when per-page data is not available) */}
+          {!results.pages?.some((page: any) => page.performance) && results.performance && results.performance.desktop && results.performance.mobile && (
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h4 className="font-semibold text-lg">Core Web Vitals Performance</h4>
+                <Tooltip
+                  content={
+                    <div>
+                      <p className="font-semibold mb-2">Core Web Vitals Performance</p>
+                      <p className="mb-2">Overall performance scores for your website on Google's Core Web Vitals metrics.</p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>LCP (Largest Contentful Paint):</strong> How quickly main content loads (&lt; 2.5s = Good)</p>
+                        <p><strong>CLS (Cumulative Layout Shift):</strong> Visual stability of page (&lt; 0.1 = Good)</p>
+                        <p><strong>INP (Interaction to Next Paint):</strong> Page responsiveness (&lt; 200ms = Good)</p>
+                      </div>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Desktop Performance */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-medium">Desktop Performance</span>
+                    <span className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
+                      results.performance.desktop.status === 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {results.performance.desktop.status === 'pass' ? 'Pass' : 'Fail'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">LCP (Largest Contentful Paint)</span>
+                        <span className="text-sm font-medium">{results.performance.desktop.lcp}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 2.5s</div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">CLS (Cumulative Layout Shift)</span>
+                        <span className="text-sm font-medium">{results.performance.desktop.cls}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 0.1</div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">INP (Interaction to Next Paint)</span>
+                        <span className="text-sm font-medium">{results.performance.desktop.inp}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 200ms</div>
+                    </div>
+                    {results.performance.desktop.score !== undefined && (
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Performance Score</span>
+                          <span className={`text-lg font-bold ${
+                            results.performance.desktop.score >= 90 ? 'text-green-600' :
+                            results.performance.desktop.score >= 50 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {results.performance.desktop.score}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile Performance */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-medium">Mobile Performance</span>
+                    <span className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
+                      results.performance.mobile.status === 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {results.performance.mobile.status === 'pass' ? 'Pass' : 'Fail'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">LCP (Largest Contentful Paint)</span>
+                        <span className="text-sm font-medium">{results.performance.mobile.lcp}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 2.5s</div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">CLS (Cumulative Layout Shift)</span>
+                        <span className="text-sm font-medium">{results.performance.mobile.cls}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 0.1</div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600">INP (Interaction to Next Paint)</span>
+                        <span className="text-sm font-medium">{results.performance.mobile.inp}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">Target: &lt; 200ms</div>
+                    </div>
+                    {results.performance.mobile.score !== undefined && (
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Performance Score</span>
+                          <span className={`text-lg font-bold ${
+                            results.performance.mobile.score >= 90 ? 'text-green-600' :
+                            results.performance.mobile.score >= 50 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {results.performance.mobile.score}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommendations */}
+              {results.performance.recommendations && results.performance.recommendations.length > 0 && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h5 className="font-medium text-gray-900 mb-2">Performance Recommendations</h5>
+                  <ul className="space-y-1">
+                    {results.performance.recommendations.map((rec: string, idx: number) => (
+                      <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                        <span className="text-blue-600 mt-0.5">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Per-Page Performance Metrics Table */}
           {results.pages && results.pages.some((page: any) => page.performance) && (
@@ -3045,8 +3373,8 @@ function renderSectionResults(
             lcpScore={results.desktop?.lcp || results.mobile?.lcp}
             clsScore={results.desktop?.cls || results.mobile?.cls}
             inpScore={results.desktop?.inp || results.mobile?.inp}
-            detectedPlugins={detectedPlugins || []}
-            pageBuilder={pageBuilder}
+            detectedPlugins={pluginsList || []}
+            pageBuilder={pageBuilderName}
             cms={results.cms}
             technicalIssues={{
               missingH1Tags: results.issues?.missingH1Tags,
@@ -3059,7 +3387,7 @@ function renderSectionResults(
 
           {/* Large Images Table */}
           {(results.largeImagesList || results.largeImageDetails) && (results.largeImagesList || results.largeImageDetails).length > 0 && (
-            <div id="large-images-table">
+            <div id="large-images-table" data-subsection="image-optimization">
               <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
               <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -3194,7 +3522,7 @@ function renderSectionResults(
                   <h5 className="font-medium mb-2">⚡ Performance & Technical Analysis Method</h5>
                   <p className="text-blue-700 leading-relaxed">
                     We use Google's official PageSpeed Insights API to test your site in real Chrome browsers (desktop and mobile).
-                    This captures actual Core Web Vitals from real devices. Claude AI then analyzes the results to provide
+                    This captures actual Core Web Vitals from real devices. Advanced analysis then analyzes the results to provide
                     plain-English explanations and prioritized recommendations. We also use Puppeteer to test responsive design
                     across 4 viewport sizes with real screenshots.
                   </p>
@@ -3206,9 +3534,9 @@ function renderSectionResults(
                     <li><strong>Real Core Web Vitals:</strong> Google PageSpeed API measures LCP, CLS, INP on real Chrome browsers</li>
                     <li><strong>Sitemap Discovery:</strong> Automatically find all pages via sitemap.xml or RSS feeds</li>
                     <li><strong>Page-by-Page Analysis:</strong> Meta titles, descriptions, H1 tags across all discovered pages</li>
-                    <li><strong>Image Optimization:</strong> File sizes, formats, and alt text with Claude AI recommendations</li>
+                    <li><strong>Image Optimization:</strong> File sizes, formats, and alt text with Advanced analysis recommendations</li>
                     <li><strong>Viewport Testing:</strong> Puppeteer screenshots at Mobile (360px), Tablet (768px), Desktop (1366px), Wide (1920px)</li>
-                    <li><strong>Claude AI Insights:</strong> Plain-English explanations, business impact analysis, and prioritized fixes</li>
+                    <li><strong>Advanced analysis Insights:</strong> Plain-English explanations, business impact analysis, and prioritized fixes</li>
                   </ul>
                 </div>
 
@@ -3218,7 +3546,7 @@ function renderSectionResults(
                     Performance data comes directly from Google's PageSpeed Insights API - the same data Google uses for
                     search rankings. Viewport tests use real Chromium browsers via Puppeteer with actual screenshots.
                     Technical SEO data is gathered by crawling your public sitemap and analyzing each page's HTML structure.
-                    Claude AI provides the analysis layer, translating technical metrics into actionable business recommendations.
+                    Advanced analysis provides the analysis layer, translating technical metrics into actionable business recommendations.
                   </p>
                 </div>
               </div>
@@ -3384,18 +3712,83 @@ function renderSectionResults(
           )}
 
           {/* WordPress Plugins */}
-          {results.plugins && results.plugins.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3">WordPress Plugins Detected</h4>
-              <div className="flex flex-wrap gap-2">
-                {results.plugins.map((plugin: string, index: number) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                    {plugin}
-                  </span>
-                ))}
+          {results.plugins && (() => {
+            // Handle both array format and categorized object format
+            let pluginsToDisplay: any[] = [];
+            let isCategorized = false;
+
+            if (Array.isArray(results.plugins)) {
+              // Old format: simple array of plugin names
+              pluginsToDisplay = results.plugins.map((name: string) => ({ name, category: null }));
+            } else if (typeof results.plugins === 'object') {
+              // New format: categorized object
+              isCategorized = true;
+              Object.entries(results.plugins).forEach(([category, plugins]: [string, any]) => {
+                if (Array.isArray(plugins)) {
+                  plugins.forEach((plugin: any) => {
+                    pluginsToDisplay.push({
+                      ...plugin,
+                      categoryKey: category
+                    });
+                  });
+                }
+              });
+            }
+
+            if (pluginsToDisplay.length === 0) return null;
+
+            return (
+              <div>
+                <h4 className="font-semibold mb-3">WordPress Plugins Detected ({pluginsToDisplay.length})</h4>
+                {isCategorized ? (
+                  // Display plugins grouped by category
+                  <div className="space-y-4">
+                    {Object.entries(results.plugins).map(([category, plugins]: [string, any]) => {
+                      if (!Array.isArray(plugins) || plugins.length === 0) return null;
+
+                      const categoryLabels: Record<string, string> = {
+                        'seo': 'SEO',
+                        'page-builder': 'Page Builder',
+                        'analytics': 'Analytics',
+                        'compliance': 'Compliance',
+                        'forms': 'Forms',
+                        'ecommerce': 'E-commerce',
+                        'security': 'Security',
+                        'performance': 'Performance',
+                        'media': 'Media',
+                        'social': 'Social Media'
+                      };
+
+                      return (
+                        <div key={category}>
+                          <h5 className="text-sm font-medium text-gray-600 mb-2">{categoryLabels[category] || category}</h5>
+                          <div className="flex flex-wrap gap-2">
+                            {plugins.map((plugin: any, index: number) => (
+                              <div key={index} className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                                <div className="font-medium text-blue-900">{plugin.name}</div>
+                                {plugin.version && plugin.version !== 'N/A' && (
+                                  <div className="text-xs text-blue-600">v{plugin.version}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  // Display plugins as simple list
+                  <div className="flex flex-wrap gap-2">
+                    {pluginsToDisplay.map((plugin: any, index: number) => (
+                      <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        {plugin.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Additional Technologies */}
           <div>
@@ -3471,8 +3864,8 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">🔍 Detection Method</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  We combine traditional pattern matching with Claude AI-powered analysis. The system examines HTML source code,
-                  HTTP headers, JavaScript files, and CSS classes. Claude AI then analyzes this data to detect plugins,
+                  We combine traditional pattern matching with Advanced analysis-powered analysis. The system examines HTML source code,
+                  HTTP headers, JavaScript files, and CSS classes. Advanced analysis then analyzes this data to detect plugins,
                   extensions, and technologies across WordPress, Shopify, Drupal, and 100+ other platforms. This provides
                   business-focused insights beyond basic detection.
                 </p>
@@ -3482,8 +3875,8 @@ function renderSectionResults(
                 <h5 className="font-medium mb-2">🎯 What We Detect</h5>
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
                   <li><strong>CMS & Platform:</strong> WordPress, Shopify, Webflow, Squarespace, Wix, and 100+ others</li>
-                  <li><strong>Claude AI Plugin Detection:</strong> Identifies plugins by category (security, performance, SEO, etc.)</li>
-                  <li><strong>Technology Intelligence:</strong> Claude AI provides business impact analysis and recommendations</li>
+                  <li><strong>Advanced analysis Plugin Detection:</strong> Identifies plugins by category (security, performance, SEO, etc.)</li>
+                  <li><strong>Technology Intelligence:</strong> Advanced analysis provides business impact analysis and recommendations</li>
                   <li><strong>Analytics & Marketing:</strong> Google Analytics, Tag Manager, Facebook Pixel, and tracking scripts</li>
                   <li><strong>Hosting & CDN:</strong> WHOIS data, IP geolocation, and Cloudflare bypass attempts</li>
                   <li><strong>Page Builders:</strong> Elementor, WPBakery, Divi, and other visual builders</li>
@@ -3493,7 +3886,7 @@ function renderSectionResults(
               <div>
                 <h5 className="font-medium mb-2">🌐 Advanced Features</h5>
                 <p className="text-blue-700 leading-relaxed">
-                  For WordPress sites, Claude AI performs universal plugin detection by analyzing script sources, CSS patterns,
+                  For WordPress sites, Advanced analysis performs universal plugin detection by analyzing script sources, CSS patterns,
                   and meta tags. It categorizes plugins by function (security, performance, ecommerce) and assesses business
                   impact. For hosting, we use WHOIS APIs and attempt Cloudflare bypass to identify the real origin server
                   behind CDN protection.

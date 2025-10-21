@@ -273,13 +273,12 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
                 content={
                   <div>
                     <p className="font-semibold mb-2">Overall Audit Conclusion</p>
-                    <p className="mb-2">AI-powered comprehensive analysis combining all audit data into actionable insights.</p>
+                    <p className="mb-2">Automated comprehensive analysis combining all audit data into actionable insights.</p>
                     <div className="text-xs space-y-1">
                       <p><strong>Overall Score:</strong> Weighted combination of all audit sections</p>
                       <p><strong>Priority Actions:</strong> Most important tasks ranked by impact</p>
-                      <p><strong>Timeline:</strong> Suggested implementation order (Quick wins → Long-term)</p>
                       <p><strong>Business Impact:</strong> Expected results from implementing recommendations</p>
-                      <p><strong>AI Analysis:</strong> Claude processes all data to identify patterns and opportunities</p>
+                      <p><strong>Automated Analysis:</strong> Claude processes all data to identify patterns and opportunities</p>
                     </div>
                   </div>
                 }
@@ -345,9 +344,9 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">🧠</span>
-            <h3 className="text-xl font-semibold text-gray-900">AI Executive Summary</h3>
+            <h3 className="text-xl font-semibold text-gray-900">Executive Summary</h3>
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-              Claude AI Analysis
+              Advanced analysis Analysis
             </span>
           </div>
           
@@ -424,9 +423,6 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
                       </span>
                       <span className={`${getPriorityTextColor(item.priority)}`}>
                         <strong>Difficulty:</strong> {item.difficulty}
-                      </span>
-                      <span className={`${getPriorityTextColor(item.priority)}`}>
-                        <strong>Timeline:</strong> {item.timeframe}
                       </span>
                     </div>
                   </div>
@@ -539,7 +535,7 @@ export default function OverallAuditConclusion({ results, domain, auditType = 'w
           <h3 className="text-xl font-semibold text-gray-900">⏰ Recommended Timeline</h3>
           {claudeConclusions && claudeConclusions.nextSteps.length > 0 && (
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-              🧠 AI Next Steps
+              🧠 Next Steps
             </span>
           )}
         </div>

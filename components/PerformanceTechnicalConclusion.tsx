@@ -24,7 +24,7 @@ interface PerformanceTechnicalConclusionProps {
 }
 
 export default function PerformanceTechnicalConclusion({ data }: PerformanceTechnicalConclusionProps) {
-  // Check if we have Claude AI enhanced data
+  // Check if we have Advanced analysis enhanced data
   const hasAIAnalysis = data?.enhancedWithAI && (
     data?.performanceDiagnosis || 
     data?.technicalSEOIntelligence || 
@@ -307,7 +307,7 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
       {/* Summary Statement */}
       <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
         <p className="text-sm text-gray-700">
-          <strong>AI Analysis Summary:</strong> Your website scored{' '}
+          <strong>Automated Analysis Summary:</strong> Your website scored{' '}
           <strong>{overallScore}/100</strong> overall. 
           {performanceDiagnosis && (
             <> Performance grade: <strong>{performanceDiagnosis.healthGrade}</strong>.</>

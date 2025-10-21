@@ -1,13 +1,15 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, CheckCircle, ChevronRight, Clock, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, HelpCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ChevronRight, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, HelpCircle, ShoppingCart, Check } from 'lucide-react'
 import { generateAuditSummary, SummaryIssue, AuditSummaryResult } from '@/lib/auditSummaryService'
+import { useSynergistBasket } from '@/contexts/SynergistBasketContext'
 import Tooltip from './Tooltip'
 
 interface AuditSummaryProps {
   auditResults: any
   auditUrl?: string
+  onNavigateToSection?: (sectionId: string) => void
 }
 
 const CATEGORY_CONFIG = {
@@ -27,9 +29,10 @@ const SEVERITY_CONFIG = {
 
 type TabFilter = 'all' | 'critical' | 'high' | 'quickWins'
 
-export default function AuditSummary({ auditResults, auditUrl }: AuditSummaryProps) {
+export default function AuditSummary({ auditResults, auditUrl, onNavigateToSection }: AuditSummaryProps) {
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
+  const { toggleBasket, isInBasket } = useSynergistBasket()
 
   // Generate summary
   const summary: AuditSummaryResult = generateAuditSummary(auditResults, auditUrl)
@@ -46,10 +49,29 @@ export default function AuditSummary({ auditResults, auditUrl }: AuditSummaryPro
     )
   }
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.querySelector(`[data-section="${sectionId}"]`)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const handleSeeMore = (sectionId: string, subsectionId?: string) => {
+    if (onNavigateToSection) {
+      // Use the passed callback which will open accordion and scroll
+      onNavigateToSection(sectionId)
+
+      // After opening section, scroll to subsection if provided
+      if (subsectionId) {
+        setTimeout(() => {
+          const subsection = document.querySelector(`[data-subsection="${subsectionId}"]`)
+          if (subsection) {
+            subsection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 300) // Wait for accordion to open
+      }
+    } else {
+      // Fallback to just scrolling if callback not provided
+      const targetSelector = subsectionId
+        ? `[data-subsection="${subsectionId}"]`
+        : `[data-section="${sectionId}"]`
+      const element = document.querySelector(targetSelector)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
     }
   }
 
@@ -168,7 +190,9 @@ export default function AuditSummary({ auditResults, auditUrl }: AuditSummaryPro
                 index={index + 1}
                 isExpanded={expandedIssue === issue.id}
                 onToggle={() => setExpandedIssue(expandedIssue === issue.id ? null : issue.id)}
-                onSeeMore={() => scrollToSection(issue.sectionId)}
+                onSeeMore={() => handleSeeMore(issue.sectionId, issue.subsectionId)}
+                isInBasket={isInBasket(issue.id)}
+                onToggleBasket={() => toggleBasket(issue.id)}
               />
             ))
           ) : (
@@ -188,9 +212,11 @@ interface IssueCardProps {
   isExpanded: boolean
   onToggle: () => void
   onSeeMore: () => void
+  isInBasket: boolean
+  onToggleBasket: () => void
 }
 
-function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore }: IssueCardProps) {
+function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, onToggleBasket }: IssueCardProps) {
   const categoryConfig = CATEGORY_CONFIG[issue.category]
   const severityConfig = SEVERITY_CONFIG[issue.severity]
   const CategoryIcon = categoryConfig.icon
@@ -244,13 +270,31 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore }: IssueCardP
               </div>
             </div>
 
-            <h4 className="font-semibold text-gray-900 mb-1">{issue.title}</h4>
+            <h4 className="font-semibold text-gray-900 mb-1">
+              {issue.affectedItems ? `${issue.affectedItems} ${issue.title}` : issue.title}
+            </h4>
             <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
 
             <div className="flex items-center gap-4 text-xs text-gray-500">
+              {/* Affected Pages Count */}
+              {issue.affectedPages && issue.affectedPages > 1 && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
+                  <FileText className="w-3 h-3" />
+                  <span>{issue.affectedPages} pages affected</span>
+                </div>
+              )}
+
+              {/* Large Images Count */}
+              {issue.imageData && issue.imageData.largeImages > 0 && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded font-semibold">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>{issue.imageData.largeImages} large images</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-1">
                 <span className="font-medium">Impact Score:</span>
-                <span className="font-bold text-blue-600">{issue.priorityScore}</span>
+                <span className="font-bold text-blue-600">{Math.round(issue.priorityScore)}</span>
                 <Tooltip
                   content={
                     <div className="text-xs max-w-xs">
@@ -275,6 +319,27 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore }: IssueCardP
           </div>
 
           <div className="flex flex-col gap-2 ml-4">
+            <button
+              onClick={onToggleBasket}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-all ${
+                isInBasket
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-[#42499C] text-white hover:bg-[#363d85]'
+              }`}
+              title={isInBasket ? 'Remove from Synergist basket' : 'Add to Synergist basket'}
+            >
+              {isInBasket ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  In Basket
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  Add to Synergist
+                </>
+              )}
+            </button>
             <button
               onClick={onSeeMore}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 whitespace-nowrap"

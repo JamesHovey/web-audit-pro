@@ -76,7 +76,7 @@ export class CostingService {
         serper: {
           searchesRemaining: vsBalance.remaining,
           searchesUsed: vsBalance.used,
-          costPer1000: 0.60, // $0.60 per 1000 searches
+          costPer1000: 0.30, // $0.30 per 1000 searches
           planType: vsBalance.planType,
           lastUpdated: new Date().toISOString()
         },
@@ -252,8 +252,8 @@ export class CostingService {
    */
   calculateAuditCost(keCredits: number, vsSearches: number, claudeCost?: number): number {
     const keCost = keCredits * 0.00024 // 24¢ per 1000 credits
-    const vsCost = vsSearches * 0.0016 // $1.60 per 1000 searches
-    const totalCost = keCost + vsCost + (claudeCost || 0.038) // Default Claude cost per audit
+    const serperCost = vsSearches * 0.0003 // $0.30 per 1000 searches
+    const totalCost = keCost + serperCost + (claudeCost || 0.038) // Default Claude cost per audit
     return Math.round(totalCost * 1000) / 1000 // Round to 3 decimal places
   }
 
@@ -269,11 +269,11 @@ export class CostingService {
       keCreditsUsed: number,
       vsSearchesUsed: number,
       keCostPer1000: number,
-      vsCostPer1000: number
+      serperCostPer1000: number
     }
   } {
     const keCost = keCredits * 0.00024;
-    const serperCost = vsSearches * 0.0006;
+    const serperCost = vsSearches * 0.0003;
     const actualClaudeCost = claudeCost || 0.038;
     const total = keCost + serperCost + actualClaudeCost;
 
@@ -286,7 +286,7 @@ export class CostingService {
         keCreditsUsed: keCredits,
         vsSearchesUsed: vsSearches,
         keCostPer1000: 0.24,
-        vsCostPer1000: 0.60
+        serperCostPer1000: 0.30
       }
     };
   }
@@ -324,7 +324,7 @@ export class CostingService {
     const claudeCost = 0.038;
 
     const keCost = avgKeCredits * 0.00024;
-    const serperCost = avgVsSearches * 0.0006;
+    const serperCost = avgVsSearches * 0.0003;
     const total = keCost + serperCost + claudeCost;
 
     return {
@@ -350,8 +350,8 @@ export class CostingService {
       serper: {
         searchesRemaining: 22350,
         searchesUsed: 2650,
-        costPer1000: 0.60,
-        planType: '25K Searches/month ($30/month)',
+        costPer1000: 0.30,
+        planType: '25K Searches/month ($7.50/month)',
         lastUpdated: new Date().toISOString()
       },
       claudeApi: {

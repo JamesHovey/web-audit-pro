@@ -1,6 +1,6 @@
 /**
  * Above Fold Discovery Service
- * Discovers actual Google rankings using ValueSERP API when available
+ * Discovers actual Google rankings using Serper API when available
  * Falls back to content-based analysis when SERP data is unavailable
  */
 
@@ -13,7 +13,7 @@ interface AboveFoldKeyword {
   snippet?: string;
   searchIntent?: 'informational' | 'commercial' | 'transactional' | 'navigational';
   contentRelevance?: number; // How relevant to website content (0-1)
-  isActualRanking?: boolean; // True if this is a real SERP ranking from ValueSERP
+  isActualRanking?: boolean; // True if this is a real SERP ranking from Serper
 }
 
 interface AboveFoldAnalysis {
@@ -33,19 +33,19 @@ export class AboveFoldDiscoveryService {
 
   /**
    * Discover actual Google rankings or content opportunities
-   * Uses ValueSERP API for real rankings when available
+   * Uses Serper API for real rankings when available
    */
   async discoverAboveFoldKeywords(html: string, country: string = 'gb', existingKeywords?: any[], businessType?: string): Promise<AboveFoldAnalysis> {
     console.log(`🔍 Starting Above Fold Discovery for ${this.domain}...`);
-    
-    // Check if ValueSERP is configured
-    const { isValueSerpConfigured } = await import('./valueSerpService');
-    const useRealSerpData = isValueSerpConfigured();
-    
+
+    // Check if Serper is configured
+    const { isSerperConfigured } = await import('./serperService');
+    const useRealSerpData = isSerperConfigured();
+
     if (useRealSerpData) {
-      console.log('✅ ValueSERP API configured - fetching real Google rankings...');
+      console.log('✅ Serper API configured - fetching real Google rankings...');
     } else {
-      console.log('ℹ️ ValueSERP API not configured - using content-based analysis...');
+      console.log('ℹ️ Serper API not configured - using content-based analysis...');
     }
     
     let discoveryMethod = 'content_opportunity_analysis';
@@ -58,16 +58,16 @@ export class AboveFoldDiscoveryService {
       // Step 2: Get real search volumes for all potential keywords
       const keywordsWithVolumes = await this.getKeywordVolumes(potentialKeywords, country);
       
-      // Step 3: Only use ValueSERP API for real rankings - no fallbacks
+      // Step 3: Only use Serper API for real rankings - no fallbacks
       let keywordOpportunities: AboveFoldKeyword[];
-      
+
       if (useRealSerpData) {
-        // Get actual SERP rankings from ValueSERP (positions 1-3 only)
+        // Get actual SERP rankings from Serper (positions 1-3 only)
         keywordOpportunities = await this.getRealSerpRankings(keywordsWithVolumes, country);
-        discoveryMethod = 'valueserp_actual_rankings';
+        discoveryMethod = 'serper_actual_rankings';
       } else {
-        // No fallbacks - require ValueSERP API
-        console.log('⚠️ ValueSERP API required for Above Fold Keywords analysis');
+        // No fallbacks - require Serper API
+        console.log('⚠️ Serper API required for Above Fold Keywords analysis');
         keywordOpportunities = [];
         discoveryMethod = 'api_required';
       }
@@ -101,7 +101,7 @@ export class AboveFoldDiscoveryService {
           k.keyword.split(' ').length >= 2 // 2+ words for long-tail
         );
         
-        console.log(`🎯 ValueSERP: Found ${filteredKeywords.length} keywords meeting strict criteria (volume >50 AND positions 1-3)`);
+        console.log(`🎯 Serper: Found ${filteredKeywords.length} keywords meeting strict criteria (volume >50 AND positions 1-3)`);
         
         // No fallback - if criteria not met, show empty results
         if (filteredKeywords.length === 0) {
@@ -124,9 +124,9 @@ export class AboveFoldDiscoveryService {
           console.log(`  ✅ "${k.keyword}" - Position ${k.position}, Volume: ${k.volume || 0}`);
         });
       } else {
-        // No fallbacks - empty array if ValueSERP not available
+        // No fallbacks - empty array if Serper not available
         filteredKeywords = [];
-        console.log('⚠️ No Above Fold Keywords - ValueSERP API required');
+        console.log('⚠️ No Above Fold Keywords - Serper API required');
       }
 
       console.log(`🔍 BEFORE calculating final results - filteredKeywords.length: ${filteredKeywords.length}`);
@@ -640,47 +640,47 @@ export class AboveFoldDiscoveryService {
   }
 
   /**
-   * Get real SERP rankings from ValueSERP API
+   * Get real SERP rankings from Serper API
    */
   private async getRealSerpRankings(
     keywordsWithVolumes: { keyword: string; volume: number; difficulty: number }[],
     country: string
   ): Promise<AboveFoldKeyword[]> {
-    const { ValueSerpService } = await import('./valueSerpService');
-    const valueSerpService = new ValueSerpService();
-    
+    const { SerperService } = await import('./serperService');
+    const serperService = new SerperService();
+
     // Map country code to location string
-    const location = country === 'gb' ? 'United Kingdom' : 
-                     country === 'us' ? 'United States' : 
+    const location = country === 'gb' ? 'United Kingdom' :
+                     country === 'us' ? 'United States' :
                      'United Kingdom'; // Default to UK
-    
+
     console.log(`🔍 Fetching real SERP rankings for ${keywordsWithVolumes.length} keywords...`);
-    
+
     const aboveFoldKeywords: AboveFoldKeyword[] = [];
     let checkedCount = 0;
     const maxChecks = 50; // Limit to avoid excessive API usage
-    
+
     // Sort by volume to check most important keywords first
     const sortedKeywords = [...keywordsWithVolumes]
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
       .slice(0, maxChecks);
-    
+
     for (const kw of sortedKeywords) {
       try {
         checkedCount++;
         console.log(`📊 Checking SERP for "${kw.keyword}" (${checkedCount}/${sortedKeywords.length})...`);
-        
-        const rankingData = await valueSerpService.getKeywordRankings(
+
+        const rankingData = await serperService.getKeywordRankings(
           kw.keyword,
           this.domain,
           location,
           100 // Check top 100 results
         );
-        
+
         if (rankingData.position !== null && rankingData.position <= 3) {
           // Domain ranks in top 3 positions for this keyword
           console.log(`✅ Found top 3 ranking: "${kw.keyword}" - Position ${rankingData.position}`);
-          
+
           aboveFoldKeywords.push({
             keyword: kw.keyword,
             position: rankingData.position,
@@ -697,18 +697,18 @@ export class AboveFoldDiscoveryService {
         } else {
           console.log(`❌ Keyword not ranking: "${kw.keyword}"`);
         }
-        
+
         // Small delay to avoid rate limiting
         await this.sleep(100);
-        
+
       } catch (error) {
         console.error(`Failed to check SERP for "${kw.keyword}":`, error);
       }
     }
-    
-    console.log(`✅ ValueSERP: Found ${aboveFoldKeywords.filter(k => k.isActualRanking).length} top 3 rankings`);
-    console.log(`🎯 ValueSERP: Filtered to show only positions 1-3 rankings`);
-    
+
+    console.log(`✅ Serper: Found ${aboveFoldKeywords.filter(k => k.isActualRanking).length} top 3 rankings`);
+    console.log(`🎯 Serper: Filtered to show only positions 1-3 rankings`);
+
     return aboveFoldKeywords;
   }
 

@@ -144,8 +144,8 @@ export class ValueSerpKeywordService {
       topCompetitors: [], // ValueSerp doesn't provide competitor data directly
       pagesAnalyzed: 1,
       totalContentLength: html.length,
-      estimationMethod: 'valueserp_real_data',
-      dataSource: 'valueserp_keywords_everywhere',
+      estimationMethod: 'serper_real_data',
+      dataSource: 'serper_keywords_everywhere',
       searchesUsed: this.creditsUsed,
       volumeCreditsUsed: volumeCreditsUsed,
       creditsRemaining: await this.getCreditsRemaining(),

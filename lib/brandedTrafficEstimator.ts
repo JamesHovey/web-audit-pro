@@ -1,19 +1,19 @@
 /**
  * Branded Traffic Estimator
- * Simple estimation of monthly branded traffic using KeywordsEverywhere + ValueSerp APIs
+ * Simple estimation of monthly branded traffic using KeywordsEverywhere + Serper APIs
  * Returns a single number: estimated monthly branded traffic
  */
 
 import { KeywordsEverywhereService } from './keywordsEverywhereService';
-import { ValueSerpService } from './valueSerpService';
+import { SerperService } from './serperService';
 
 export class BrandedTrafficEstimator {
   private keywordsService: KeywordsEverywhereService;
-  private valueSerpService: ValueSerpService;
+  private serperService: SerperService;
 
   constructor() {
     this.keywordsService = new KeywordsEverywhereService();
-    this.valueSerpService = new ValueSerpService();
+    this.serperService = new SerperService();
   }
 
   /**
@@ -26,8 +26,8 @@ export class BrandedTrafficEstimator {
     console.log(`\n🎯 Estimating monthly branded traffic for ${domain}`);
     
     // Check if APIs are available
-    if (!process.env.KEYWORDS_EVERYWHERE_API_KEY || !process.env.VALUESERP_API_KEY) {
-      throw new Error('API keys not configured. Please ensure both KEYWORDS_EVERYWHERE_API_KEY and VALUESERP_API_KEY are set in your environment variables.');
+    if (!process.env.KEYWORDS_EVERYWHERE_API_KEY || !process.env.SERPER_API_KEY) {
+      throw new Error('API keys not configured. Please ensure both KEYWORDS_EVERYWHERE_API_KEY and SERPER_API_KEY are set in your environment variables.');
     }
 
     try {
@@ -101,10 +101,10 @@ export class BrandedTrafficEstimator {
     try {
       console.log(`Checking if ${domain} ranks for "${brandTerm}"...`);
       
-      // Map country code to location name for ValueSERP
-      const locationMap: { [key: string]: string } = {
+      // Map country code to location name for Serper
+      const locationMap: { [key: string]: string} = {
         'gb': 'United Kingdom',
-        'us': 'United States', 
+        'us': 'United States',
         'ca': 'Canada',
         'au': 'Australia',
         'de': 'Germany',
@@ -113,12 +113,12 @@ export class BrandedTrafficEstimator {
         'it': 'Italy',
         'nl': 'Netherlands'
       };
-      
+
       const location = locationMap[country] || 'United Kingdom';
-      const serpResults = await this.valueSerpService.getFullSerpResults(brandTerm, location, 10);
+      const serpResults = await this.serperService.getFullSerpResults(brandTerm, location, 10);
 
       if (!serpResults || !serpResults.results) {
-        throw new Error(`No SERP results returned for "${brandTerm}" from ValueSERP API`);
+        throw new Error(`No SERP results returned for "${brandTerm}" from Serper API`);
       }
 
       const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '');
@@ -134,7 +134,7 @@ export class BrandedTrafficEstimator {
 
     } catch (error) {
       console.error(`Failed to check ranking for "${brandTerm}":`, error.message);
-      throw new Error(`ValueSERP API failed to check brand ranking: ${error.message}`);
+      throw new Error(`Serper API failed to check brand ranking: ${error.message}`);
     }
   }
 

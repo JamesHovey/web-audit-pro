@@ -6,7 +6,7 @@
 import { SemanticKeywordExpansion, SemanticKeyword } from './semanticKeywordExpansion';
 import { generateKeywordVariations, BUSINESS_KEYWORD_COLLECTIONS } from './keywordCollections';
 import { KeywordsEverywhereService } from './keywordsEverywhereService';
-import { ValueSerpService } from './valueSerpService';
+import { SerperService } from './serperService';
 import { SophisticatedBusinessContextService } from './sophisticatedBusinessContext';
 
 export interface KeywordDiscoveryResult {
@@ -30,13 +30,13 @@ export interface VolumeThresholds {
 export class KeywordDiscoveryService {
   private semanticExpansion: SemanticKeywordExpansion;
   private keywordsEverywhereService: KeywordsEverywhereService;
-  private valueSerpService: ValueSerpService;
+  private serperService: SerperService;
   private businessContextService: SophisticatedBusinessContextService;
-  
+
   constructor() {
     this.semanticExpansion = new SemanticKeywordExpansion();
     this.keywordsEverywhereService = new KeywordsEverywhereService();
-    this.valueSerpService = new ValueSerpService();
+    this.serperService = new SerperService();
     this.businessContextService = new SophisticatedBusinessContextService();
   }
 
@@ -761,7 +761,7 @@ export class KeywordDiscoveryService {
       volumeThresholds,
       domain
     );
-    discoveryMethods.push('Business-Relevant Suggestions + ValueSERP + Keywords Everywhere');
+    discoveryMethods.push('Business-Relevant Suggestions + Serper + Keywords Everywhere');
     
     // 4. Business pattern matching
     console.log('🏢 Matching business patterns...');
@@ -857,7 +857,7 @@ export class KeywordDiscoveryService {
         `${businessCategory} company`
       ];
       
-      // Step 2: Get competitor keywords using ValueSERP (if available)
+      // Step 2: Get competitor keywords using Serper (if available)
       const competitorKeywords = await this.getCompetitorKeywords(domain, businessCategory);
       enhancedSeeds.push(...competitorKeywords.slice(0, 5)); // Add top competitor keywords as seeds
       
@@ -966,32 +966,34 @@ export class KeywordDiscoveryService {
   }
 
   /**
-   * Get competitor keywords using ValueSERP API
+   * Get competitor keywords using Serper API
    */
   private async getCompetitorKeywords(domain: string, businessCategory: string): Promise<string[]> {
     try {
-      // Use ValueSERP to search for business category and analyze top results
+      // Use Serper to search for business category and analyze top results
       const searchQuery = `${businessCategory} services`;
-      
-      const serpResults = await this.valueSerpService.search(searchQuery, {
-        location: 'United Kingdom',
-        num: 10
-      });
-      
-      const competitorDomains = serpResults.organic_results
-        ?.filter((result: any) => !result.link.includes(domain)) // Exclude own domain
+
+      const serpResults = await this.serperService.getFullSerpResults(searchQuery, 'United Kingdom', 10);
+
+      if (!serpResults) {
+        console.log('⚠️ Serper API returned no results');
+        return [];
+      }
+
+      const competitorDomains = serpResults.results
+        ?.filter((result: any) => !result.url.includes(domain)) // Exclude own domain
         ?.slice(0, 5)
-        ?.map((result: any) => new URL(result.link).hostname) || [];
-      
+        ?.map((result: any) => result.domain) || [];
+
       console.log(`🏆 Found ${competitorDomains.length} competitors from SERP analysis`);
-      
-      // Extract potential keywords from competitor titles and descriptions
+
+      // Extract potential keywords from competitor titles
       const competitorKeywords: string[] = [];
-      serpResults.organic_results?.slice(0, 5).forEach((result: any) => {
-        if (result.title && result.snippet) {
-          const text = `${result.title} ${result.snippet}`.toLowerCase();
+      serpResults.results?.slice(0, 5).forEach((result: any) => {
+        if (result.title) {
+          const text = result.title.toLowerCase();
           const words = text.match(/\b[a-z]{3,}\b/g) || [];
-          
+
           // Extract meaningful phrases
           words.forEach((word, index) => {
             if (index < words.length - 1) {
@@ -1003,11 +1005,11 @@ export class KeywordDiscoveryService {
           });
         }
       });
-      
+
       return [...new Set(competitorKeywords)].slice(0, 10);
-      
+
     } catch (error) {
-      console.log('⚠️ ValueSERP competitor analysis failed, continuing without competitor insights');
+      console.log('⚠️ Serper competitor analysis failed, continuing without competitor insights');
       return [];
     }
   }

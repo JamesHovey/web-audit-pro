@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import HydrationFix from "@/components/HydrationFix";
+import Providers from "@/components/Providers";
+import AccessGate from "@/components/AccessGate";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -32,7 +34,11 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <HydrationFix />
-        {children}
+        <Providers>
+          <AccessGate>
+            {children}
+          </AccessGate>
+        </Providers>
       </body>
     </html>
   );

@@ -19,11 +19,13 @@ export interface SummaryIssue {
   priorityScore: number
   section: string
   sectionId: string // For navigation
+  subsectionId?: string // Optional subsection target for more precise navigation
   fixRecommendation: string
   estimatedTimeToFix: string
   legalRisk: boolean
   quickWin: boolean
   affectedPages?: number
+  affectedItems?: number // Generic count (e.g., images, plugins, etc.)
   detailsLink?: string
   pageUrl?: string // The URL of the page with the issue
   imageData?: {
@@ -63,26 +65,47 @@ export interface AuditSummaryResult {
 export function generateAuditSummary(auditResults: any, pageUrl?: string): AuditSummaryResult {
   const issues: SummaryIssue[] = []
 
+  // Extract scope information from audit results
+  const scope = auditResults.scope || 'single' // 'single', 'all', or 'custom'
+  const totalPages = auditResults.totalPages || 1
+
   // Extract issues from each audit section
   if (auditResults.performance) {
-    issues.push(...extractPerformanceIssues(auditResults.performance, pageUrl))
+    issues.push(...extractPerformanceIssues(auditResults.performance, pageUrl, scope, totalPages))
   }
 
   // Technical issues are often embedded in performance results
   if (auditResults.performance) {
-    issues.push(...extractTechnicalIssues(auditResults.performance, pageUrl, auditResults.technical))
+    issues.push(...extractTechnicalIssues(
+      auditResults.performance,
+      pageUrl,
+      auditResults.technology || auditResults.technical,
+      scope,
+      totalPages
+    ))
   }
 
   if (auditResults.accessibility) {
-    issues.push(...extractAccessibilityIssues(auditResults.accessibility, pageUrl))
+    issues.push(...extractAccessibilityIssues(auditResults.accessibility, pageUrl, scope, totalPages))
   }
 
   if (auditResults.keywords) {
-    issues.push(...extractSEOIssues(auditResults.keywords, pageUrl))
+    issues.push(...extractSEOIssues(auditResults.keywords, pageUrl, scope, totalPages))
   }
 
   if (auditResults.traffic) {
-    issues.push(...extractTrafficIssues(auditResults.traffic, pageUrl))
+    issues.push(...extractTrafficIssues(auditResults.traffic, pageUrl, scope, totalPages))
+  }
+
+  // Extract technology/plugin insights
+  if (auditResults.technology || auditResults.technical || auditResults.performance) {
+    issues.push(...extractTechnologyInsights(
+      auditResults.technology || auditResults.technical,
+      auditResults.performance,
+      pageUrl,
+      scope,
+      totalPages
+    ))
   }
 
   // Deduplicate issues by ID (keep the first occurrence, which is usually more specific)
@@ -90,8 +113,14 @@ export function generateAuditSummary(auditResults: any, pageUrl?: string): Audit
     index === self.findIndex((i) => i.id === issue.id)
   )
 
+  // Filter out Core Web Vitals issues (LCP, CLS) from Audit Summary
+  // These are shown in the Performance section instead
+  const filteredIssues = deduplicatedIssues.filter(issue =>
+    !issue.id.startsWith('perf-lcp') && !issue.id.startsWith('perf-cls')
+  )
+
   // Calculate priority scores for all issues
-  const prioritizedIssues = deduplicatedIssues.map(issue => ({
+  const prioritizedIssues = filteredIssues.map(issue => ({
     ...issue,
     priorityScore: calculatePriorityScore(issue)
   }))
@@ -125,7 +154,22 @@ export function generateAuditSummary(auditResults: any, pageUrl?: string): Audit
 }
 
 /**
+ * Helper function to generate scope-aware text for issue descriptions
+ */
+function getScopeText(scope: string, totalPages: number, singular: string, plural: string, customPlural?: string): string {
+  if (scope === 'single') {
+    return singular
+  } else if (scope === 'custom') {
+    return customPlural || `${totalPages} selected ${plural}`
+  } else {
+    // scope === 'all'
+    return plural
+  }
+}
+
+/**
  * Calculate priority score based on multiple factors
+ * Prioritizes SEO and Technical issues over Core Web Vitals
  */
 function calculatePriorityScore(issue: SummaryIssue): number {
   let score = 0
@@ -134,12 +178,12 @@ function calculatePriorityScore(issue: SummaryIssue): number {
   const severityScores = { critical: 100, high: 70, medium: 40, low: 20 }
   score += severityScores[issue.severity] * 0.3
 
-  // Impact weight (40%)
+  // Impact weight (40%) - Prioritize SEO over Core Web Vitals
   const impactScore = Math.max(
-    issue.impact.coreWebVitals || 0,
-    issue.impact.searchRanking || 0,
+    (issue.impact.searchRanking || 0) * 1.2, // Boost SEO ranking importance by 20%
     issue.impact.accessibility || 0,
-    issue.impact.userExperience || 0
+    issue.impact.userExperience || 0,
+    (issue.impact.coreWebVitals || 0) * 0.6 // Reduce Core Web Vitals importance by 40%
   )
   score += impactScore * 0.4
 
@@ -163,7 +207,7 @@ function calculatePriorityScore(issue: SummaryIssue): number {
 /**
  * Extract performance issues
  */
-function extractPerformanceIssues(performanceData: any, pageUrl?: string): SummaryIssue[] {
+function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
   // Parse LCP value (format: "5.5s" or "11.4s")
@@ -176,6 +220,100 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string): Summa
   const parseCLS = (clsString: string): number => {
     if (!clsString || clsString === 'N/A') return 0
     return parseFloat(clsString)
+  }
+
+  // Check for image optimization in recommendations
+  if (performanceData.recommendations && Array.isArray(performanceData.recommendations)) {
+    const hasImageOptimization = performanceData.recommendations.some((rec: string) =>
+      rec.toLowerCase().includes('image') ||
+      rec.toLowerCase().includes('webp') ||
+      rec.toLowerCase().includes('avif')
+    )
+
+    if (hasImageOptimization) {
+      issues.push({
+        id: 'perf-image-optimization',
+        title: 'Images Need Optimization',
+        description: 'Unoptimized images are slowing down your page. Consider compressing images and using modern formats.',
+        category: 'performance',
+        severity: 'high',
+        impact: {
+          coreWebVitals: 75,
+          userExperience: 80,
+          searchRanking: 60
+        },
+        effort: 'low',
+        priorityScore: 0,
+        section: 'Performance & Technical',
+        sectionId: 'performance',
+        subsectionId: 'image-optimization', // Target the image optimization subsection
+        fixRecommendation: 'Compress images using tools like TinyPNG, convert to WebP/AVIF format, implement lazy loading, and use responsive images with srcset.',
+        estimatedTimeToFix: '2-4 hours',
+        legalRisk: false,
+        quickWin: true,
+        pageUrl
+      })
+    }
+
+    // Check for JavaScript optimization
+    const hasJSOptimization = performanceData.recommendations.some((rec: string) =>
+      rec.toLowerCase().includes('javascript') ||
+      rec.toLowerCase().includes('js')
+    )
+
+    if (hasJSOptimization) {
+      issues.push({
+        id: 'perf-js-optimization',
+        title: 'Excessive JavaScript Slowing Page Load',
+        description: 'Unused or unoptimized JavaScript is impacting page performance and user experience.',
+        category: 'performance',
+        severity: 'medium',
+        impact: {
+          coreWebVitals: 65,
+          userExperience: 70,
+          searchRanking: 50
+        },
+        effort: 'medium',
+        priorityScore: 0,
+        section: 'Performance & Technical',
+        sectionId: 'performance',
+        fixRecommendation: 'Remove unused JavaScript, defer non-critical scripts, minify and bundle JavaScript files, and consider code splitting.',
+        estimatedTimeToFix: '3-6 hours',
+        legalRisk: false,
+        quickWin: false,
+        pageUrl
+      })
+    }
+
+    // Check for render-blocking resources
+    const hasRenderBlocking = performanceData.recommendations.some((rec: string) =>
+      rec.toLowerCase().includes('render-blocking') ||
+      rec.toLowerCase().includes('css')
+    )
+
+    if (hasRenderBlocking) {
+      issues.push({
+        id: 'perf-render-blocking',
+        title: 'Render-Blocking Resources Delay Page Display',
+        description: 'CSS and JavaScript files are blocking the page from rendering quickly, creating a poor first impression.',
+        category: 'performance',
+        severity: 'medium',
+        impact: {
+          coreWebVitals: 70,
+          userExperience: 75,
+          searchRanking: 55
+        },
+        effort: 'medium',
+        priorityScore: 0,
+        section: 'Performance & Technical',
+        sectionId: 'performance',
+        fixRecommendation: 'Inline critical CSS, defer non-critical CSS, async load JavaScript, and minimize render-blocking resources.',
+        estimatedTimeToFix: '2-4 hours',
+        legalRisk: false,
+        quickWin: false,
+        pageUrl
+      })
+    }
   }
 
   // Check desktop performance
@@ -273,7 +411,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string): Summa
 /**
  * Extract technical issues
  */
-function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalResults?: any): SummaryIssue[] {
+function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalResults?: any, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
   // Large images - check in imageOptimizationStrategy
@@ -291,12 +429,18 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
       largeImageDetails: technicalResults?.largeImageDetails || []
     }
 
+    const scopeContext = scope === 'single'
+      ? 'on this page'
+      : scope === 'custom'
+        ? `across ${totalPages} selected pages`
+        : 'across the site'
+
     issues.push({
       id: 'tech-large-images',
       title: 'Large Images Need Optimization',
       description: largeImagesCount === 1
-        ? '1 large image over 100KB detected. This slows down page load significantly.'
-        : `${largeImagesCount} large images over 100KB detected. These slow down page load significantly.`,
+        ? `1 large image over 100KB detected ${scopeContext}. This slows down page load significantly.`
+        : `${largeImagesCount} large images over 100KB detected ${scopeContext}. These slow down page load significantly.`,
       category: 'performance',
       severity: largeImagesCount > 10 ? 'high' : largeImagesCount > 5 ? 'medium' : 'low',
       impact: {
@@ -339,10 +483,12 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 
   // If both title and H1 are missing on a single page, create a combined issue
   if (hasMissingTitle && hasMissingH1 && missingH1Count === 1) {
+    const pageContext = scope === 'single' ? 'This page is' : 'Page is'
+
     issues.push({
       id: 'tech-page-metadata',
       title: 'Missing Page Title & H1 Tag',
-      description: 'Page is missing both title tag and H1 heading. Critical for SEO and content structure.',
+      description: `${pageContext} missing both title tag and H1 heading. Critical for SEO and content structure.`,
       category: 'seo',
       severity: 'critical',
       impact: {
@@ -370,12 +516,16 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
       )
       const titleCount = technicalData.seo?.missingMetaTitles || technicalData.issues?.missingMetaTitles || 1
 
+      const titleDescription = scope === 'single'
+        ? 'This page is missing a title tag, critical for SEO.'
+        : scope === 'custom'
+          ? `${titleCount} of ${totalPages} selected pages lack meta titles, severely impacting search engine rankings.`
+          : `${titleCount} pages lack meta titles, severely impacting search engine rankings.`
+
       issues.push({
         id: 'tech-meta-titles',
         title: titleCount === 1 ? 'Missing Page Title' : `${titleCount} Pages Missing Meta Titles`,
-        description: titleCount === 1
-          ? 'Page missing title tag, critical for SEO.'
-          : `${titleCount} pages lack meta titles, severely impacting search engine rankings.`,
+        description: titleDescription,
         category: 'seo',
         severity: 'critical',
         impact: {
@@ -398,12 +548,16 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
     }
 
     if (hasMissingH1) {
+      const h1Description = scope === 'single'
+        ? 'This page lacks an H1 heading, confusing search engines and users.'
+        : scope === 'custom'
+          ? `${missingH1Count} of ${totalPages} selected pages lack H1 headings, confusing search engines and users.`
+          : `${missingH1Count} pages lack H1 headings, confusing search engines and users.`
+
       issues.push({
         id: 'tech-h1-tags',
         title: missingH1Count === 1 ? 'Missing H1 Tag' : `${missingH1Count} Pages Missing H1 Tags`,
-        description: missingH1Count === 1
-          ? 'Page lacks H1 heading, confusing search engines and users.'
-          : `${missingH1Count} pages lack H1 headings, confusing search engines and users.`,
+        description: h1Description,
         category: 'seo',
         severity: 'high',
         impact: {
@@ -430,12 +584,17 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
   // Missing meta descriptions
   if (technicalData.seo?.missingMetaDescriptions > 0) {
     const count = technicalData.seo.missingMetaDescriptions
+
+    const metaDescription = scope === 'single'
+      ? "This page doesn't have a meta description, hurting click-through rates from search."
+      : scope === 'custom'
+        ? `${count} of ${totalPages} selected pages don't have meta descriptions, hurting click-through rates from search.`
+        : `${count} pages don't have meta descriptions, hurting click-through rates from search.`
+
     issues.push({
       id: 'tech-meta-descriptions',
       title: count === 1 ? 'Missing Meta Description' : `${count} Pages Missing Meta Descriptions`,
-      description: count === 1
-        ? "Page doesn't have a meta description, hurting click-through rates from search."
-        : `${count} pages don't have meta descriptions, hurting click-through rates from search.`,
+      description: metaDescription,
       category: 'seo',
       severity: count > 10 ? 'high' : 'medium',
       impact: {
@@ -460,12 +619,19 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
   // Broken links
   if (technicalData.links?.brokenLinks > 0) {
     const count = technicalData.links.brokenLinks
+
+    const brokenLinksDescription = scope === 'single'
+      ? count === 1
+        ? 'This page has a broken link that returns a 404 error, hurting SEO and user experience.'
+        : `This page has ${count} broken links that return 404 errors, hurting SEO and user experience.`
+      : scope === 'custom'
+        ? `${count} broken links found across ${totalPages} selected pages, hurting SEO and user experience.`
+        : `${count} links return 404 errors, hurting SEO and user experience.`
+
     issues.push({
       id: 'tech-broken-links',
       title: count === 1 ? 'Broken Link Detected' : `${count} Broken Links Detected`,
-      description: count === 1
-        ? 'Link returns 404 error, hurting SEO and user experience.'
-        : `${count} links return 404 errors, hurting SEO and user experience.`,
+      description: brokenLinksDescription,
       category: 'technical',
       severity: count > 20 ? 'critical' : count > 10 ? 'high' : 'medium',
       impact: {
@@ -492,10 +658,17 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
   // 404 Errors
   if (technicalData.issues?.notFoundErrors > 0 || technicalData.issues?.httpErrors > 0) {
     const count = technicalData.issues?.notFoundErrors || technicalData.issues?.httpErrors || 0
+
+    const errorDescription = scope === 'single'
+      ? 'This page returns a 404 error, creating poor user experience and wasting crawl budget.'
+      : scope === 'custom'
+        ? `${count} of ${totalPages} selected pages return 404 errors, creating poor user experience and wasting crawl budget.`
+        : `${count} pages returning 404 errors, creating poor user experience and wasting crawl budget.`
+
     issues.push({
       id: 'tech-404-errors',
       title: `${count} 404 Errors Found`,
-      description: `${count} pages returning 404 errors, creating poor user experience and wasting crawl budget.`,
+      description: errorDescription,
       category: 'technical',
       severity: count > 20 ? 'critical' : count > 10 ? 'high' : 'medium',
       impact: {
@@ -518,10 +691,17 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
   // Broken internal links
   if (technicalData.issues?.brokenInternalLinks > 0) {
     const count = technicalData.issues.brokenInternalLinks
+
+    const internalLinksDescription = scope === 'single'
+      ? `${count} internal links on this page point to non-existent pages, hurting SEO and user navigation.`
+      : scope === 'custom'
+        ? `${count} broken internal links found across ${totalPages} selected pages, hurting SEO and user navigation.`
+        : `${count} internal links pointing to non-existent pages, hurting SEO and user navigation.`
+
     issues.push({
       id: 'tech-broken-internal-links',
       title: `${count} Broken Internal Links`,
-      description: `${count} internal links pointing to non-existent pages, hurting SEO and user navigation.`,
+      description: internalLinksDescription,
       category: 'technical',
       severity: count > 15 ? 'high' : 'medium',
       impact: {
@@ -547,7 +727,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 /**
  * Extract accessibility issues
  */
-function extractAccessibilityIssues(accessibilityData: any, pageUrl?: string): SummaryIssue[] {
+function extractAccessibilityIssues(accessibilityData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
   // Check if single result or multi-page
@@ -560,10 +740,16 @@ function extractAccessibilityIssues(accessibilityData: any, pageUrl?: string): S
 
   // Critical accessibility violations
   if (totalCritical > 0) {
+    const a11yDescription = scope === 'single'
+      ? `${totalCritical} critical WCAG violations found on this page, blocking disabled users. Legal liability risk.`
+      : scope === 'custom'
+        ? `${totalCritical} critical WCAG violations found across ${totalPages} selected pages, blocking disabled users. Legal liability risk.`
+        : `${totalCritical} critical WCAG violations found, blocking disabled users. Legal liability risk.`
+
     issues.push({
       id: 'a11y-critical',
       title: `${totalCritical} Critical Accessibility Violations`,
-      description: `Critical WCAG violations blocking disabled users. Legal liability risk.`,
+      description: a11yDescription,
       category: 'accessibility',
       severity: 'critical',
       impact: {
@@ -586,10 +772,16 @@ function extractAccessibilityIssues(accessibilityData: any, pageUrl?: string): S
 
   // EAA/UK compliance
   if (!results[0]?.eaaCompliant) {
+    const complianceDescription = scope === 'single'
+      ? "This page doesn't meet WCAG 2.2 AA standards. Risk of fines up to €3M under European Accessibility Act."
+      : scope === 'custom'
+        ? `${totalPages} selected pages don't meet WCAG 2.2 AA standards. Risk of fines up to €3M under European Accessibility Act.`
+        : "Website doesn't meet WCAG 2.2 AA. Risk of fines up to €3M under European Accessibility Act."
+
     issues.push({
       id: 'a11y-compliance',
       title: 'Non-Compliant with UK/EAA Accessibility Laws',
-      description: `Website doesn't meet WCAG 2.2 AA. Risk of fines up to €3M under European Accessibility Act.`,
+      description: complianceDescription,
       category: 'accessibility',
       severity: 'critical',
       impact: {
@@ -613,15 +805,25 @@ function extractAccessibilityIssues(accessibilityData: any, pageUrl?: string): S
 /**
  * Extract SEO issues from keywords
  */
-function extractSEOIssues(keywordsData: any, pageUrl?: string): SummaryIssue[] {
+function extractSEOIssues(keywordsData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
+  // Handle both formats: nonBrandedKeywordsList (array) or nonBrandedKeywords (number or array)
+  const keywordList = keywordsData.nonBrandedKeywordsList || keywordsData.nonBrandedKeywords
+  const keywordCount = Array.isArray(keywordList) ? keywordList.length : (typeof keywordList === 'number' ? keywordList : 0)
+
   // Low keyword coverage
-  if (keywordsData.nonBrandedKeywords?.length < 10) {
+  if (keywordCount < 10) {
+    const keywordDescription = scope === 'single'
+      ? `This page ranks for only ${keywordCount} non-branded keywords. Missing opportunities for broader visibility.`
+      : scope === 'custom'
+        ? `${totalPages} selected pages rank for only ${keywordCount} non-branded keywords combined. Missing opportunities.`
+        : `Only ${keywordCount} non-branded keywords ranking. Missing opportunities.`
+
     issues.push({
       id: 'seo-keywords',
       title: 'Limited Non-Branded Keyword Rankings',
-      description: `Only ${keywordsData.nonBrandedKeywords?.length || 0} non-branded keywords ranking. Missing opportunities.`,
+      description: keywordDescription,
       category: 'seo',
       severity: 'high',
       impact: {
@@ -643,10 +845,14 @@ function extractSEOIssues(keywordsData: any, pageUrl?: string): SummaryIssue[] {
   // Keyword opportunities
   if (keywordsData.recommendedKeywords?.length > 0) {
     const opportunities = keywordsData.recommendedKeywords.slice(0, 5).length
+    const opportunitiesDescription = scope === 'single'
+      ? `Found ${opportunities} high-value keywords with good search volume and low competition that this page could target.`
+      : `Found ${opportunities} high-value keywords with good search volume and low competition.`
+
     issues.push({
       id: 'seo-opportunities',
       title: `${opportunities} High-Value Keyword Opportunities`,
-      description: `Found ${opportunities} keywords with good search volume and low competition.`,
+      description: opportunitiesDescription,
       category: 'content',
       severity: 'medium',
       impact: {
@@ -671,32 +877,168 @@ function extractSEOIssues(keywordsData: any, pageUrl?: string): SummaryIssue[] {
 /**
  * Extract traffic-related issues
  */
-function extractTrafficIssues(trafficData: any, pageUrl?: string): SummaryIssue[] {
+function extractTrafficIssues(trafficData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
-  // Low organic traffic
-  const organicTraffic = trafficData.organic?.total || 0
-  if (organicTraffic < 1000) {
+  // Note: Traffic data is pattern-based estimation, not actual analytics
+  // Removed "Low Organic Traffic" warning as it's not helpful without real data
+
+  return issues
+}
+
+/**
+ * Extract technology and plugin insights for executive summary
+ */
+function extractTechnologyInsights(technicalData: any, performanceData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
+  const issues: SummaryIssue[] = []
+
+  // Check if we have plugin data
+  if (!technicalData?.plugins && !technicalData?.cms && !performanceData?.cms) {
+    return issues
+  }
+
+  // Handle both array and object formats for plugins
+  let detectedPlugins: string[] = []
+  if (technicalData?.plugins) {
+    if (Array.isArray(technicalData.plugins)) {
+      detectedPlugins = technicalData.plugins
+    } else if (typeof technicalData.plugins === 'object') {
+      // Plugin data is categorized (seo, page-builder, analytics, etc.)
+      // Extract all plugin names from all categories
+      Object.values(technicalData.plugins).forEach((category: any) => {
+        if (Array.isArray(category)) {
+          category.forEach((plugin: any) => {
+            if (plugin.name) {
+              detectedPlugins.push(plugin.name)
+            }
+          })
+        }
+      })
+    }
+  }
+
+  const cms = technicalData?.cms || performanceData?.cms
+  const pageBuilder = technicalData?.pageBuilder
+
+  // WordPress site with minimal plugins
+  if (cms === 'WordPress' && detectedPlugins.length > 0 && detectedPlugins.length < 5) {
     issues.push({
-      id: 'traffic-low-organic',
-      title: 'Low Organic Traffic',
-      description: `Only ${organicTraffic.toLocaleString()} monthly organic visits. Significant growth opportunity.`,
-      category: 'seo',
+      id: 'tech-minimal-plugins',
+      title: 'Limited WordPress Plugin Usage',
+      description: `Only ${detectedPlugins.length} plugins detected (${detectedPlugins.join(', ')}). Consider adding SEO, caching, and security plugins.`,
+      category: 'technical',
       severity: 'medium',
       impact: {
-        searchRanking: 85,
-        userExperience: 20
+        searchRanking: 60,
+        userExperience: 50
       },
-      effort: 'high',
+      effort: 'low',
       priorityScore: 0,
-      section: 'Traffic',
-      sectionId: 'traffic',
-      fixRecommendation: 'Improve SEO fundamentals, create quality content, build backlinks, target long-tail keywords',
-      estimatedTimeToFix: '3-6 months',
+      section: 'Technology Stack',
+      sectionId: 'technical',
+      fixRecommendation: 'Install essential plugins: SEO (Yoast/Rank Math), Caching (WP Rocket), Security (Wordfence)',
+      estimatedTimeToFix: '1-2 hours',
+      legalRisk: false,
+      quickWin: true,
+      pageUrl
+    })
+  }
+
+  // WordPress site with many plugins
+  if (cms === 'WordPress' && detectedPlugins.length > 15) {
+    issues.push({
+      id: 'tech-plugin-bloat',
+      title: 'Excessive Plugin Usage Detected',
+      description: `${detectedPlugins.length} plugins detected. This can slow down your site and create security vulnerabilities.`,
+      category: 'performance',
+      severity: 'medium',
+      impact: {
+        coreWebVitals: 65,
+        userExperience: 70,
+        searchRanking: 50
+      },
+      effort: 'medium',
+      priorityScore: 0,
+      section: 'Technology Stack',
+      sectionId: 'technical',
+      fixRecommendation: 'Audit plugins, remove unused ones, replace multiple plugins with all-in-one solutions',
+      estimatedTimeToFix: '2-4 hours',
       legalRisk: false,
       quickWin: false,
       pageUrl
     })
+  }
+
+  // No caching plugin detected (WordPress)
+  if (cms === 'WordPress' && detectedPlugins.length > 0) {
+    const hasCachingPlugin = detectedPlugins.some((plugin: string) =>
+      plugin.toLowerCase().includes('cache') ||
+      plugin.toLowerCase().includes('rocket') ||
+      plugin.toLowerCase().includes('w3') ||
+      plugin.toLowerCase().includes('litespeed')
+    )
+
+    if (!hasCachingPlugin) {
+      issues.push({
+        id: 'tech-no-caching',
+        title: 'No Caching Plugin Detected',
+        description: 'WordPress site without caching plugin. This significantly impacts page load speed.',
+        category: 'performance',
+        severity: 'high',
+        impact: {
+          coreWebVitals: 80,
+          userExperience: 85,
+          searchRanking: 75
+        },
+        effort: 'low',
+        priorityScore: 0,
+        section: 'Technology Stack',
+        sectionId: 'technical',
+        fixRecommendation: 'Install and configure a caching plugin like WP Rocket, LiteSpeed Cache, or W3 Total Cache',
+        estimatedTimeToFix: '30 min - 1 hour',
+        legalRisk: false,
+        quickWin: true,
+        pageUrl
+      })
+    }
+  }
+
+  // No SEO plugin detected (WordPress)
+  if (cms === 'WordPress' && detectedPlugins.length > 0) {
+    const hasSEOPlugin = detectedPlugins.some((plugin: string) => {
+      const pluginLower = plugin.toLowerCase()
+      return pluginLower.includes('yoast') ||
+        pluginLower.includes('rank math') ||
+        pluginLower.includes('seopress') ||
+        pluginLower.includes('aioseo') ||
+        pluginLower.includes('all in one seo') ||
+        pluginLower.includes('squirrly') ||
+        pluginLower.includes('seo framework') ||
+        (pluginLower.includes('seo') && !pluginLower.includes('image')) // Generic SEO but not image SEO
+    })
+
+    if (!hasSEOPlugin) {
+      issues.push({
+        id: 'tech-no-seo-plugin',
+        title: 'No SEO Plugin Detected',
+        description: 'Missing SEO plugin makes it harder to optimize content and manage technical SEO.',
+        category: 'seo',
+        severity: 'medium',
+        impact: {
+          searchRanking: 70,
+          userExperience: 30
+        },
+        effort: 'low',
+        priorityScore: 0,
+        section: 'Technology Stack',
+        sectionId: 'technical',
+        fixRecommendation: 'Install an SEO plugin like Yoast SEO, Rank Math, or All in One SEO',
+        estimatedTimeToFix: '1 hour',
+        legalRisk: false,
+        quickWin: true,
+        pageUrl
+      })
+    }
   }
 
   return issues

@@ -315,7 +315,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="flex items-center justify-between py-2 px-3 bg-indigo-50 border border-indigo-100 rounded mt-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">Claude API (Anthropic)</span>
-                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">AI Analysis</span>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded">Automated Analysis</span>
                         </div>
                         <span className="text-green-600 font-medium text-sm">✓ Active</span>
                       </div>

@@ -250,7 +250,7 @@ export default function KeywordAnalysisConclusion({ analysis }: KeywordAnalysisC
       {/* Summary */}
       <div className="p-4 bg-gradient-to-r from-[#42499c]/5 to-[#675c9b]/5 rounded-lg border border-[#42499c]/20">
         <p className="text-sm text-gray-700">
-          <strong>AI Analysis Summary:</strong> {analysis.summary}
+          <strong>Automated Analysis Summary:</strong> {analysis.summary}
           {analysis.confidence && (
             <span className={`ml-2 text-xs px-2 py-1 rounded-full font-medium ${
               analysis.confidence === 'high' ? 'bg-[#27ae60]/10 text-[#27ae60]' :

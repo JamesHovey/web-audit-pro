@@ -92,7 +92,7 @@ export class ClaudeKeywordAnalyzer {
       // Step 2: Get Claude's business and keyword analysis
       const claudeAnalysis = await this.getClaudeAnalysis(domain, webContent);
       
-      // Step 3: Enhance with API data (Keywords Everywhere & ValueSERP)
+      // Step 3: Enhance with API data (Keywords Everywhere & Serper)
       const enhancedAnalysis = await this.enhanceWithApiData(claudeAnalysis, country, domain);
       
       // Step 4: Generate final comprehensive analysis
@@ -340,23 +340,23 @@ Be specific and practical in your recommendations based on what this business AC
       // Create volume lookup
       const volumeMap = new Map(volumeData.map(v => [v.keyword.toLowerCase(), v.volume]));
       
-      // Get rankings from ValueSERP (limited to top keywords to save API credits)
+      // Get rankings from Serper (limited to top keywords to save API credits)
       let rankingData: Map<string, number> = new Map();
       try {
         const topKeywords = [
           ...claudeAnalysis.brandedKeywords.slice(0, 3), // Limit branded keywords
           ...claudeAnalysis.nonBrandedKeywords.slice(0, 7) // Limit non-branded keywords
         ];
-        
+
         if (topKeywords.length > 0) {
-          const { ValueSerpService } = await import('./valueSerpService');
-          const serpService = new ValueSerpService();
-          
+          const { SerperService } = await import('./serperService');
+          const serpService = new SerperService();
+
           console.log(`🔍 Checking SERP positions for ${topKeywords.length} top keywords...`);
-          
-          // Get clean domain for SERP checking  
+
+          // Get clean domain for SERP checking
           const targetDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-          
+
           for (const kw of topKeywords) {
             try {
               const position = await serpService.checkKeywordPosition(kw.keyword, targetDomain);
@@ -375,7 +375,7 @@ Be specific and practical in your recommendations based on what this business AC
           console.log(`✅ Got ranking data for ${rankingData.size} keywords`);
         }
       } catch (error) {
-        console.warn('ValueSERP API failed:', error);
+        console.warn('Serper API failed:', error);
       }
       
       // Apply API data to keywords

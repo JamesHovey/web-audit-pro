@@ -39,24 +39,24 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`🚀 Dynamic competitor analysis for ${domain} using ValueSERP`);
+    console.log(`🚀 Dynamic competitor analysis for ${domain} using Serper`);
     console.log(`📊 Analyzing ${keywords.length} provided keywords`);
 
-    // Check if ValueSERP is configured
-    const { isValueSerpConfigured } = await import('../../../lib/valueSerpService');
-    
-    if (!isValueSerpConfigured()) {
+    // Check if Serper is configured
+    const { isSerperConfigured } = await import('../../../lib/serperService');
+
+    if (!isSerperConfigured()) {
       return NextResponse.json({
         competitors: [],
         totalKeywordsAnalyzed: keywords.length,
-        analysisMethod: 'valueserp_not_configured',
+        analysisMethod: 'serper_not_configured',
         creditsUsed: 0,
-        error: 'ValueSERP API not configured'
+        error: 'Serper API not configured'
       }, { status: 400 });
     }
 
-    const { ValueSerpService } = await import('../../../lib/valueSerpService');
-    const valueSerpService = new ValueSerpService();
+    const { SerperService } = await import('../../../lib/serperService');
+    const serperService = new SerperService();
     
     // Use the provided keywords directly (these are from the website's keyword analysis)
     const keywordsToAnalyze = keywords
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       try {
         console.log(`🔍 Checking who ranks for: "${keywordData.keyword}"`);
         
-        const serpResults = await valueSerpService.getFullSerpResults(
+        const serpResults = await serperService.getFullSerpResults(
           keywordData.keyword,
           'United Kingdom',
           20
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       .sort((a, b) => (b.overlapPercentage * b.authority) - (a.overlapPercentage * a.authority))
       .slice(0, 12);
     
-    console.log(`✅ Found ${sortedCompetitors.length} real competitors via ValueSERP`);
+    console.log(`✅ Found ${sortedCompetitors.length} real competitors via Serper`);
     sortedCompetitors.slice(0, 5).forEach(comp => {
       console.log(`  🎯 ${comp.domain}: ${comp.overlapPercentage}% overlap (${comp.overlapCount} keywords)`);
     });
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       competitors: sortedCompetitors,
       totalKeywordsAnalyzed: keywords.length,
-      analysisMethod: 'valueserp_dynamic_analysis',
+      analysisMethod: 'serper_dynamic_analysis',
       creditsUsed: 0,
       analysis: {
         marketType: 'Dynamically identified market based on keyword rankings',
@@ -193,11 +193,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('ValueSERP competitor analysis failed:', error);
+    console.error('Serper competitor analysis failed:', error);
     return NextResponse.json({
       competitors: [],
       totalKeywordsAnalyzed: 0,
-      analysisMethod: 'valueserp_failed',
+      analysisMethod: 'serper_failed',
       creditsUsed: 0,
       error: 'Competition analysis failed'
     }, { status: 500 });

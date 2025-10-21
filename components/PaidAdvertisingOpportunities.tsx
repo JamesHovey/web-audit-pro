@@ -2,7 +2,15 @@
 
 import { useState, useMemo } from 'react'
 import Tooltip from './Tooltip'
-import { ChevronUp, ChevronDown, ChevronsUpDown, HelpCircle, DollarSign } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, HelpCircle } from 'lucide-react'
+
+// Pound sign icon component
+const PoundSign = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
+    <text x="12" y="16" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">£</text>
+  </svg>
+)
 
 interface KeywordData {
   keyword: string;
@@ -121,7 +129,7 @@ export default function PaidAdvertisingOpportunities({
           </Tooltip>
         </div>
         <div className="border rounded-lg p-8 text-center text-gray-500">
-          <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <PoundSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-sm">No high-competition keywords suitable for paid advertising found.</p>
           <p className="text-xs text-gray-400 mt-2">Your current keywords may be achievable through organic SEO efforts.</p>
         </div>
@@ -195,7 +203,7 @@ export default function PaidAdvertisingOpportunities({
       {/* Summary Card */}
       <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
         <div className="flex items-center gap-2 text-yellow-800 text-sm font-medium">
-          <DollarSign className="w-4 h-4" />
+          <PoundSign className="w-4 h-4" />
           💰 {sortedKeywords.length} High-Value Paid Advertising Opportunities
         </div>
         <p className="text-yellow-700 text-xs mt-1">
@@ -286,7 +294,7 @@ export default function PaidAdvertisingOpportunities({
                           </span>
                         )}
                         <span className="text-green-600 text-xs bg-green-50 px-2 py-1 rounded-md inline-flex items-center gap-1 w-fit">
-                          <DollarSign className="w-3 h-3" />
+                          <PoundSign className="w-3 h-3" />
                           Ideal for paid campaigns
                         </span>
                       </div>
@@ -303,7 +311,7 @@ export default function PaidAdvertisingOpportunities({
                   </div>
                   <div className="col-span-3 text-center">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
-                      <DollarSign className="w-3 h-3 mr-1" />
+                      <PoundSign className="w-3 h-3 mr-1" />
                       High ROI Potential
                     </span>
                   </div>
@@ -371,7 +379,7 @@ export default function PaidAdvertisingOpportunities({
       {/* Conclusion Section */}
       <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-center gap-3 mb-3">
-          <DollarSign className="w-10 h-10 text-green-600" />
+          <PoundSign className="w-10 h-10 text-green-600" />
           <h5 className="font-semibold text-green-900">Paid Advertising Strategy</h5>
         </div>
         <div className="text-green-800 text-sm space-y-2">

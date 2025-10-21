@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { CreditCalculator } from "@/lib/creditCalculator"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,30 +24,64 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 })
     }
 
-    // Ensure demo user exists
-    const demoUserId = "demo-user-id"
-    let demoUser = await prisma.user.findUnique({
-      where: { id: demoUserId }
-    })
-    
-    if (!demoUser) {
-      // Create demo user if it doesn't exist
-      demoUser = await prisma.user.create({
-        data: {
-          id: demoUserId,
-          email: "demo@webauditpro.com",
-          name: "Demo User"
-        }
-      })
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    // Create audit record with demo user
+    const userId = (session.user as any).id
+
+    // Calculate estimated credit cost
+    const pageCount = pages.length
+    const creditEstimate = CreditCalculator.estimateAuditCost(
+      scope as 'single' | 'custom' | 'all',
+      pageCount,
+      sections
+    )
+
+    console.log(`💰 Audit estimate: ${creditEstimate.creditsRequired} credits for ${pageCount} pages`)
+
+    // Get current user credits
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { credits: true }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    // Check if user has sufficient credits
+    if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
+      return NextResponse.json({
+        error: "Insufficient credits",
+        required: creditEstimate.creditsRequired,
+        available: user.credits,
+        shortfall: creditEstimate.creditsRequired - user.credits
+      }, { status: 402 }) // 402 Payment Required
+    }
+
+    // Deduct credits from user
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        credits: {
+          decrement: creditEstimate.creditsRequired
+        }
+      }
+    })
+
+    console.log(`✅ Deducted ${creditEstimate.creditsRequired} credits from user ${userId}`)
+
+    // Create audit record with user ID and credit cost
     const audit = await prisma.audit.create({
       data: {
-        userId: demoUserId,
+        userId,
         url,
         sections: sections,
         status: "pending",
+        creditCost: creditEstimate.creditsRequired,
         // Store additional audit metadata
         results: {
           scope,
@@ -267,6 +304,14 @@ export async function POST(request: NextRequest) {
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
+
+            // Preserve large images data from technical audit in performance results
+            // This ensures the large images table can display in AuditResults
+            if (results.technical.largeImageDetails && results.technical.largeImageDetails.length > 0) {
+              results.performance.largeImagesList = results.technical.largeImageDetails
+              results.performance.largeImageDetails = results.technical.largeImageDetails
+              console.log(`📸 Preserved ${results.technical.largeImageDetails.length} large images in performance results`)
+            }
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {

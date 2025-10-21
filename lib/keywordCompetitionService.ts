@@ -1,7 +1,7 @@
 /**
  * Keyword Competition Service
  * Analyzes competitor websites based on keyword overlap from Above Fold Keywords
- * Uses ValueSERP API to identify competitors ranking for the same keywords
+ * Uses Serper API to identify competitors ranking for the same keywords
  */
 
 interface CompetitorData {
@@ -37,17 +37,17 @@ export class KeywordCompetitionService {
   ): Promise<KeywordCompetitionAnalysis> {
     console.log(`🏆 Starting competitor analysis for ${this.domain} with ${aboveFoldKeywords.length} keywords...`);
     
-    // Check if ValueSERP is configured
-    const { isValueSerpConfigured } = await import('./valueSerpService');
-    const useValueSerp = isValueSerpConfigured();
-    
-    if (!useValueSerp) {
-      console.log('⚠️ ValueSERP API not configured, using Claude-powered competitor analysis');
+    // Check if Serper is configured
+    const { isSerperConfigured } = await import('./serperService');
+    const useSerper = isSerperConfigured();
+
+    if (!useSerper) {
+      console.log('⚠️ Serper API not configured, using Claude-powered competitor analysis');
       return await this.getClaudePoweredCompetitorAnalysis(aboveFoldKeywords, country);
     }
 
-    const { ValueSerpService } = await import('./valueSerpService');
-    const valueSerpService = new ValueSerpService();
+    const { SerperService } = await import('./serperService');
+    const serperService = new SerperService();
     
     // Map country code to location string
     const location = country === 'gb' ? 'United Kingdom' : 
@@ -77,7 +77,7 @@ export class KeywordCompetitionService {
         console.log(`📊 Analyzing competitors for "${keyword.keyword}" (${checkedKeywords}/${sortedKeywords.length})...`);
         
         // Get full SERP results for this keyword
-        const serpResults = await valueSerpService.getFullSerpResults(
+        const serpResults = await serperService.getFullSerpResults(
           keyword.keyword,
           location,
           20 // Get top 20 results to find competitors
@@ -156,8 +156,8 @@ export class KeywordCompetitionService {
     return {
       competitors: topCompetitors,
       totalKeywordsAnalyzed: checkedKeywords,
-      analysisMethod: 'valueserp_competitor_analysis',
-      creditsUsed: checkedKeywords, // Approximate - ValueSERP tracks actual usage
+      analysisMethod: 'serper_competitor_analysis',
+      creditsUsed: checkedKeywords, // Approximate - Serper tracks actual usage
       targetDomainAuthority
     };
   }

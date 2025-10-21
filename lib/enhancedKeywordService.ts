@@ -69,7 +69,7 @@ export interface EnhancedKeywordAnalysis {
   apiDataSource?: string;
   costBreakdown?: {
     keywordsEverywhere: number;
-    valueSERP: number;
+    serper: number;
     claude: number;
   };
 }
@@ -88,9 +88,9 @@ export class EnhancedKeywordService {
    */
   private calculateActualAPICosts(enhancedKeywords: any, aboveFoldAnalysis: any): {
     keywordsEverywhereCredits: number,
-    valueSerpSearches: number,
+    serperSearches: number,
     keywordsEverywhereCost: number,
-    valueSerpCost: number,
+    serperCost: number,
     claudeCost: number,
     totalCost: number
   } {
