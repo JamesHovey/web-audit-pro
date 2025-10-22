@@ -28,6 +28,7 @@ interface TechnicalAuditResult {
     hasH1: boolean;
     imageCount: number;
     performance?: PagePerformanceMetrics;
+    html?: string; // Raw HTML content for heading analysis
   }>;
   // Aggregate performance metrics for overview
   desktop?: {
@@ -65,6 +66,7 @@ interface TechnicalAuditResult {
   discoveryMethod: string;
   sitemapUrl?: string;
   viewportAnalysis?: any; // ViewportAuditResult from viewportAnalysisService
+  html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
 export async function performTechnicalAudit(
@@ -145,6 +147,8 @@ export async function performTechnicalAudit(
 
     if (scope === 'single') {
       console.log('🔍 Single page audit - analyzing main URL only');
+      // Store HTML for single page audits (for heading hierarchy analysis)
+      result.html = html;
       // For single page, only analyze the main URL
       pageDiscovery = {
         totalPages: 1,
@@ -157,7 +161,8 @@ export async function performTechnicalAudit(
           hasH1: pageAnalysis.hasH1,
           imageCount: (html.match(/<img[^>]+>/gi) || []).length,
           linkCount: findAllLinks(html, url).length,
-          source: 'navigation' as const
+          source: 'navigation' as const,
+          html: html // Store HTML for heading analysis
         }],
         sitemapStatus: 'missing' as const,
         discoveryMethod: 'single_page',
@@ -188,7 +193,8 @@ export async function performTechnicalAudit(
                 hasH1: hasH1Tag(pageHtml),
                 imageCount: (pageHtml.match(/<img[^>]+>/gi) || []).length,
                 linkCount: findAllLinks(pageHtml, pageUrl).length,
-                source: 'navigation' as const
+                source: 'navigation' as const,
+                html: pageHtml // Store HTML for heading analysis
               };
             }
           } catch (error) {
@@ -232,25 +238,26 @@ export async function performTechnicalAudit(
     const pagesWithPerformance = await Promise.all(
       pagesToAnalyze.map(async (page, index) => {
         let performance: PagePerformanceMetrics | undefined;
-        
+        let pageHtml: string | undefined = undefined;
+
         try {
           // Only do detailed HTML fetching for first N pages to avoid timeouts
           const shouldFetchHTML = index < maxDetailedAnalysis;
-          
+
           if (shouldFetchHTML) {
             // Try to fetch page HTML for detailed performance analysis
-            let pageHtml = '';
+            let tempHtml = '';
             let fetchSuccess = false;
-            
+
             // Try with the original URL first
             try {
               const pageResponse = await fetch(page.url, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
                 signal: AbortSignal.timeout(10000) // 10 second timeout
               });
-              
+
               if (pageResponse.ok) {
-                pageHtml = await pageResponse.text();
+                tempHtml = await pageResponse.text();
                 fetchSuccess = true;
               }
             } catch (fetchError) {
@@ -262,9 +269,9 @@ export async function performTechnicalAudit(
                     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
                     signal: AbortSignal.timeout(10000)
                   });
-                  
+
                   if (pageResponse.ok) {
-                    pageHtml = await pageResponse.text();
+                    tempHtml = await pageResponse.text();
                     fetchSuccess = true;
                     console.log(`✓ Successfully fetched ${httpsUrl} (https fallback)`);
                   }
@@ -273,10 +280,11 @@ export async function performTechnicalAudit(
                 }
               }
             }
-            
+
             // Generate performance metrics based on real or fallback HTML
-            if (fetchSuccess && pageHtml) {
-              performance = await analyzePagePerformance(page.url, pageHtml);
+            if (fetchSuccess && tempHtml) {
+              pageHtml = tempHtml; // Store HTML for heading analysis
+              performance = await analyzePagePerformance(page.url, tempHtml);
               console.log(`📊 Analyzing performance for ${page.url} (real data)`);
             } else {
               // Generate simulated performance metrics
@@ -296,7 +304,7 @@ export async function performTechnicalAudit(
             mobile: { lcp: 5000, cls: 0.25, inp: 450, score: 25 }
           };
         }
-        
+
         return {
           url: page.url,
           title: page.title,
@@ -305,7 +313,8 @@ export async function performTechnicalAudit(
           hasDescription: page.hasDescription,
           hasH1: page.hasH1,
           imageCount: page.imageCount,
-          performance
+          performance,
+          html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
         };
       })
     );

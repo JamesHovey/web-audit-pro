@@ -45,34 +45,41 @@ export async function POST(request: NextRequest) {
     // Get current user credits
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { credits: true }
+      select: { credits: true, username: true }
     })
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check if user has sufficient credits
-    if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
-      return NextResponse.json({
-        error: "Insufficient credits",
-        required: creditEstimate.creditsRequired,
-        available: user.credits,
-        shortfall: creditEstimate.creditsRequired - user.credits
-      }, { status: 402 }) // 402 Payment Required
-    }
+    // Bypass credit checks for testing user
+    const isBypassUser = user.username === 'james.hovey'
 
-    // Deduct credits from user
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        credits: {
-          decrement: creditEstimate.creditsRequired
-        }
+    if (!isBypassUser) {
+      // Check if user has sufficient credits
+      if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
+        return NextResponse.json({
+          error: "Insufficient credits",
+          required: creditEstimate.creditsRequired,
+          available: user.credits,
+          shortfall: creditEstimate.creditsRequired - user.credits
+        }, { status: 402 }) // 402 Payment Required
       }
-    })
 
-    console.log(`✅ Deducted ${creditEstimate.creditsRequired} credits from user ${userId}`)
+      // Deduct credits from user
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          credits: {
+            decrement: creditEstimate.creditsRequired
+          }
+        }
+      })
+
+      console.log(`✅ Deducted ${creditEstimate.creditsRequired} credits from user ${userId}`)
+    } else {
+      console.log(`🔓 Credit check bypassed for testing user: ${user.username}`)
+    }
 
     // Create audit record with user ID and credit cost
     const audit = await prisma.audit.create({
@@ -272,13 +279,59 @@ export async function POST(request: NextRequest) {
             }
 
           } else if (section === 'performance') {
-            // Enhanced performance analysis with Claude AI
+            // Enhanced performance analysis with Claude AI + Technology Stack Detection
             const { analyzePageSpeedWithClaude } = await import('@/lib/pageSpeedService')
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+            const { detectTechStack, getHostingOrganization } = await import('@/lib/professionalTechDetection')
+            const { analyzeTechnologyWithClaude } = await import('@/lib/claudeTechnologyAnalyzer')
 
             // First run technical audit to get comprehensive data
             console.log('🔧 Running technical audit...')
             results.technical = await performTechnicalAudit(url, scope, pages)
+
+            // Run technology stack detection
+            console.log('🔍 Running technology stack detection...')
+            try {
+              const professionalTechStack = await detectTechStack(url)
+
+              // Get hosting organization if available
+              let hostingOrganization = null
+              try {
+                if (professionalTechStack.hosting) {
+                  hostingOrganization = await getHostingOrganization(professionalTechStack.hosting)
+                }
+              } catch (orgError) {
+                console.log('Warning: getHostingOrganization failed:', orgError)
+              }
+
+              const baseTechnologyData = {
+                cms: professionalTechStack.cms || 'Not detected',
+                framework: professionalTechStack.framework || 'Not detected',
+                pageBuilder: professionalTechStack.pageBuilder || null,
+                ecommerce: professionalTechStack.ecommerce || null,
+                analytics: professionalTechStack.analytics || 'Not detected',
+                hosting: professionalTechStack.hosting || 'Not detected',
+                cdn: professionalTechStack.cdn || null,
+                organization: hostingOrganization || null,
+                plugins: professionalTechStack.plugins || [],
+                pluginAnalysis: professionalTechStack.pluginAnalysis || null,
+                detectedPlatform: professionalTechStack.detectedPlatform || professionalTechStack.cms,
+                totalPlugins: professionalTechStack.totalPlugins || 0,
+                technologies: [
+                  'HTML5', 'CSS3', 'JavaScript',
+                  ...(professionalTechStack.other || [])
+                ].filter(Boolean),
+                source: professionalTechStack.source || 'fallback',
+                confidence: professionalTechStack.confidence || 'low'
+              }
+
+              results.technology = baseTechnologyData
+
+              console.log('✅ Technology stack detection completed')
+            } catch (techError) {
+              console.error('❌ Technology stack detection failed:', techError)
+              results.technology = { cms: 'Unknown', plugins: [], frameworks: [] }
+            }
 
             // Fetch HTML content for Claude analysis
             let htmlContent = '';
@@ -327,6 +380,22 @@ export async function POST(request: NextRequest) {
             if (results.technical.issues) {
               results.issues = results.technical.issues
               console.log(`✅ Preserved technical issues in results: ${JSON.stringify(results.issues)}`)
+            }
+
+            // Run Claude AI technology intelligence analysis
+            if (results.technology && htmlContent) {
+              try {
+                console.log('🧠 Running Claude technology intelligence analysis...')
+                const technologyIntelligence = await analyzeTechnologyWithClaude(url, htmlContent, results.technology)
+                results.technology = {
+                  ...results.technology,
+                  enhancedWithAI: true,
+                  technologyIntelligence
+                }
+                console.log('✅ Claude technology analysis completed')
+              } catch (claudeError) {
+                console.log('⚠️ Claude technology analysis failed, continuing without it:', claudeError.message)
+              }
             }
 
             // Run viewport responsiveness analysis (if not already done)

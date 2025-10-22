@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }} suppressHydrationWarning>
       <Navigation />
       <UserHeader user={user} />
-      <div className="container-pmw pt-4 pb-4">
+      <div className="container-pmw pb-4">
         <AuditForm />
       </div>
     </div>

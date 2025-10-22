@@ -429,8 +429,13 @@ export default function EnhancedRecommendations({
   // Combine and prioritize: Technical SEO issues first (High impact), then performance recommendations
   const allRecs = [...technicalRecs, ...performanceRecs]
 
+  // Deduplicate by title (keep first occurrence)
+  const deduplicatedRecs = allRecs.filter((rec, index, self) =>
+    index === self.findIndex((r) => r.title === rec.title)
+  )
+
   // Sort by impact (High > Medium > Low) and limit to top 10
-  const sortedRecs = allRecs.sort((a, b) => {
+  const sortedRecs = deduplicatedRecs.sort((a, b) => {
     const impactOrder = { 'High': 0, 'Medium': 1, 'Low': 2 }
     return impactOrder[a.impact] - impactOrder[b.impact]
   })
@@ -532,9 +537,17 @@ export default function EnhancedRecommendations({
 
                   <p className="text-sm text-gray-600 mb-3">{rec.description}</p>
 
-                  <details open className="text-sm">
-                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
-                      How to fix this →
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4 transform transition-transform details-chevron"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      How to fix this
                     </summary>
                     <div className="mt-2 p-3 bg-gray-50 rounded">
                       <p className="text-gray-700 mb-3">{rec.details}</p>
@@ -543,7 +556,21 @@ export default function EnhancedRecommendations({
                       <div className="space-y-2 mb-4">
                         <div className="font-medium text-gray-800">Steps:</div>
                         {rec.howTo
-                          .filter(step => !step.includes('plugin') && !step.includes('Plugin') && !step.toLowerCase().includes('yoast') && !step.toLowerCase().includes('rank math') && !step.toLowerCase().includes('imagify') && !step.toLowerCase().includes('shortpixel') && !step.toLowerCase().includes('ewww') && !step.toLowerCase().includes('wp rocket') && !step.toLowerCase().includes('autoptimize'))
+                          .filter(step => {
+                            // Filter out plugin-specific steps since they're shown in PluginRecommendationTable
+                            const lower = step.toLowerCase()
+                            return !(
+                              lower.includes('install') && lower.includes('plugin') ||
+                              lower.includes('yoast') ||
+                              lower.includes('rank math') ||
+                              lower.includes('imagify') ||
+                              lower.includes('shortpixel') ||
+                              lower.includes('ewww') ||
+                              lower.includes('wp rocket') ||
+                              lower.includes('autoptimize') ||
+                              lower.includes('w3 total cache')
+                            )
+                          })
                           .map((step, stepIndex) => (
                             <div key={stepIndex} className="flex items-start gap-2">
                               <span className="text-blue-500 text-xs mt-1">•</span>
@@ -551,71 +578,6 @@ export default function EnhancedRecommendations({
                             </div>
                           ))}
                       </div>
-
-                      {/* Recommended Plugins */}
-                      {(() => {
-                        const pluginSteps = rec.howTo.filter(step =>
-                          step.toLowerCase().includes('plugin') ||
-                          step.toLowerCase().includes('yoast') ||
-                          step.toLowerCase().includes('rank math') ||
-                          step.toLowerCase().includes('all in one seo') ||
-                          step.toLowerCase().includes('imagify') ||
-                          step.toLowerCase().includes('shortpixel') ||
-                          step.toLowerCase().includes('ewww') ||
-                          step.toLowerCase().includes('wp rocket') ||
-                          step.toLowerCase().includes('autoptimize') ||
-                          step.toLowerCase().includes('w3 total cache') ||
-                          step.toLowerCase().includes('tinypng') ||
-                          step.toLowerCase().includes('squoosh')
-                        )
-
-                        const getPluginLink = (text: string): string | null => {
-                          const lower = text.toLowerCase()
-                          if (lower.includes('yoast')) return 'https://wordpress.org/plugins/wordpress-seo/'
-                          if (lower.includes('rank math')) return 'https://wordpress.org/plugins/seo-by-rank-math/'
-                          if (lower.includes('all in one seo')) return 'https://wordpress.org/plugins/all-in-one-seo-pack/'
-                          if (lower.includes('imagify')) return 'https://wordpress.org/plugins/imagify/'
-                          if (lower.includes('shortpixel')) return 'https://wordpress.org/plugins/shortpixel-image-optimiser/'
-                          if (lower.includes('ewww')) return 'https://wordpress.org/plugins/ewww-image-optimizer/'
-                          if (lower.includes('wp rocket')) return 'https://wp-rocket.me/'
-                          if (lower.includes('autoptimize')) return 'https://wordpress.org/plugins/autoptimize/'
-                          if (lower.includes('w3 total cache')) return 'https://wordpress.org/plugins/w3-total-cache/'
-                          if (lower.includes('tinypng')) return 'https://tinypng.com/'
-                          if (lower.includes('squoosh')) return 'https://squoosh.app/'
-                          return null
-                        }
-
-                        if (pluginSteps.length === 0) return null
-
-                        return (
-                          <div className="space-y-2 pt-3 border-t border-gray-300">
-                            <div className="font-medium text-gray-800 flex items-center gap-2">
-                              <span>Recommended Plugins & Tools:</span>
-                            </div>
-                            {pluginSteps.map((step, stepIndex) => {
-                              const link = getPluginLink(step)
-                              return (
-                                <div key={stepIndex} className="flex items-start gap-2">
-                                  <span className="text-green-500 text-xs mt-1">🔧</span>
-                                  <span className="text-gray-700">
-                                    {step}
-                                    {link && (
-                                      <a
-                                        href={link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-blue-600 hover:text-blue-800 underline text-xs"
-                                      >
-                                        Visit plugin →
-                                      </a>
-                                    )}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )
-                      })()}
 
                       {/* Plugin Recommendation Tables */}
                       {rec.useCase && cms === 'WordPress' && (
@@ -663,7 +625,15 @@ export default function EnhancedRecommendations({
               return optimizations.map((opt: any, index: number) => (
                 <details key={index} className="mb-3 last:mb-0">
                   <summary className="cursor-pointer text-blue-700 hover:text-blue-900 font-medium flex items-center gap-2">
-                    {opt.title}
+                    <svg
+                      className="w-4 h-4 transform transition-transform details-chevron flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="flex-1">{opt.title}</span>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       opt.impact === 'High' ? 'bg-red-100 text-red-700' :
                       opt.impact === 'Medium' ? 'bg-yellow-100 text-yellow-700' :

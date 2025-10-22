@@ -107,9 +107,9 @@ const BACKGROUND_THEMES = [
 const SECTION_LABELS = {
   traffic: "Traffic Insights",
   keywords: "Keywords",
-  performance: "Performance & Technical Audit",
+  performance: "Performance, Technical Audit & Tech Stack",
   backlinks: "Authority & Backlinks",
-  technical: "Performance & Technical Audit",
+  technical: "Performance, Technical Audit & Tech Stack",
   technology: "Technology Stack",
   accessibility: "Accessibility"
 }
@@ -133,7 +133,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     technology: true,
     accessibility: true,
     keywords: true,
-    viewport: true
+    viewport: false  // Always expanded so it runs automatically
   })
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
   const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
@@ -761,11 +761,11 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       </div>
                     )}
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      Performance & Technical Audit
+                      Performance, Technical Audit & Tech Stack
                       <Tooltip
                         content={
                           <div>
-                            <p className="font-semibold mb-2">Performance & Technical Audit</p>
+                            <p className="font-semibold mb-2">Performance, Technical Audit & Tech Stack</p>
                             <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
                             <div className="text-xs space-y-1">
                               <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
@@ -784,7 +784,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <div className="flex items-center gap-2">
                     <div onClick={(e) => e.stopPropagation()}>
                       <SectionExportButtons
-                        sectionName="Performance & Technical Audit"
+                        sectionName="Performance, Technical Audit & Tech Stack"
                         sectionData={audit.results?.performance || {}}
                         auditUrl={audit.url}
                       />

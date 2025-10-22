@@ -209,6 +209,9 @@ export class OpenPageRankService {
   }
 }
 
+// Export singleton instance for use throughout the application
+export const openPageRankService = new OpenPageRankService();
+
 // Export convenience function
 export async function getDomainAuthority(url: string): Promise<DomainAuthorityResult> {
   const service = new OpenPageRankService();

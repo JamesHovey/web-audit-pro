@@ -3,6 +3,8 @@
  * Analyzes all audit results and generates prioritized action items
  */
 
+import { analyzeHeadingHierarchy, type HeadingIssue } from './headingHierarchyService'
+
 export interface SummaryIssue {
   id: string
   title: string
@@ -41,6 +43,11 @@ export interface SummaryIssue {
       sizeKB: number
     }>
   }
+  affectedPagesList?: Array<{
+    url: string
+    title: string
+    details?: string // Additional details about the issue on this page
+  }> // Detailed list of affected pages for modal display
 }
 
 export interface AuditSummaryResult {
@@ -71,7 +78,13 @@ export function generateAuditSummary(auditResults: any, pageUrl?: string): Audit
 
   // Extract issues from each audit section
   if (auditResults.performance) {
-    issues.push(...extractPerformanceIssues(auditResults.performance, pageUrl, scope, totalPages))
+    issues.push(...extractPerformanceIssues(
+      auditResults.performance,
+      pageUrl,
+      scope,
+      totalPages,
+      auditResults.technology || auditResults.technical
+    ))
   }
 
   // Technical issues are often embedded in performance results
@@ -106,6 +119,11 @@ export function generateAuditSummary(auditResults: any, pageUrl?: string): Audit
       scope,
       totalPages
     ))
+  }
+
+  // Extract viewport responsiveness issues
+  if (auditResults.viewport) {
+    issues.push(...extractViewportIssues(auditResults.viewport, pageUrl, scope, totalPages))
   }
 
   // Deduplicate issues by ID (keep the first occurrence, which is usually more specific)
@@ -207,7 +225,7 @@ function calculatePriorityScore(issue: SummaryIssue): number {
 /**
  * Extract performance issues
  */
-function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
+function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1, technologyData?: any): SummaryIssue[] {
   const issues: SummaryIssue[] = []
 
   // Parse LCP value (format: "5.5s" or "11.4s")
@@ -222,39 +240,9 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
     return parseFloat(clsString)
   }
 
-  // Check for image optimization in recommendations
+  // Skip generic image optimization check - we have a more specific one in extractTechnicalIssues that includes actual counts and links to the table
+
   if (performanceData.recommendations && Array.isArray(performanceData.recommendations)) {
-    const hasImageOptimization = performanceData.recommendations.some((rec: string) =>
-      rec.toLowerCase().includes('image') ||
-      rec.toLowerCase().includes('webp') ||
-      rec.toLowerCase().includes('avif')
-    )
-
-    if (hasImageOptimization) {
-      issues.push({
-        id: 'perf-image-optimization',
-        title: 'Images Need Optimization',
-        description: 'Unoptimized images are slowing down your page. Consider compressing images and using modern formats.',
-        category: 'performance',
-        severity: 'high',
-        impact: {
-          coreWebVitals: 75,
-          userExperience: 80,
-          searchRanking: 60
-        },
-        effort: 'low',
-        priorityScore: 0,
-        section: 'Performance & Technical',
-        sectionId: 'performance',
-        subsectionId: 'image-optimization', // Target the image optimization subsection
-        fixRecommendation: 'Compress images using tools like TinyPNG, convert to WebP/AVIF format, implement lazy loading, and use responsive images with srcset.',
-        estimatedTimeToFix: '2-4 hours',
-        legalRisk: false,
-        quickWin: true,
-        pageUrl
-      })
-    }
-
     // Check for JavaScript optimization
     const hasJSOptimization = performanceData.recommendations.some((rec: string) =>
       rec.toLowerCase().includes('javascript') ||
@@ -275,7 +263,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'performance',
         fixRecommendation: 'Remove unused JavaScript, defer non-critical scripts, minify and bundle JavaScript files, and consider code splitting.',
         estimatedTimeToFix: '3-6 hours',
@@ -292,10 +280,67 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
     )
 
     if (hasRenderBlocking) {
+      // Check if technology audit was run and look for relevant plugins
+      let pluginRecommendation = ''
+      let hasRelevantPlugins = false
+      let cmsRecommendation = ''
+
+      if (technologyData) {
+        // Detect CMS
+        const cms = technologyData.cms?.toLowerCase() || ''
+
+        // Check for installed optimization plugins
+        if (Array.isArray(technologyData.plugins)) {
+          const optimizationPlugins = technologyData.plugins.filter((plugin: any) => {
+            const name = plugin.name?.toLowerCase() || ''
+            return name.includes('cache') ||
+                   name.includes('optimization') ||
+                   name.includes('optimize') ||
+                   name.includes('speed') ||
+                   name.includes('performance') ||
+                   name.includes('minif') ||
+                   name.includes('wp rocket') ||
+                   name.includes('w3 total cache') ||
+                   name.includes('autoptimize')
+          })
+
+          if (optimizationPlugins.length > 0) {
+            hasRelevantPlugins = true
+            const pluginNames = optimizationPlugins.map((p: any) => p.name).slice(0, 3).join(', ')
+            pluginRecommendation = ` Your installed plugins (${pluginNames}) may have settings to help address this.`
+          }
+        }
+
+        // CMS-specific recommendations
+        if (cms.includes('wordpress')) {
+          cmsRecommendation = hasRelevantPlugins
+            ? ''
+            : ' For WordPress, consider installing WP Rocket, Autoptimize, or W3 Total Cache to automatically handle CSS/JS optimization.'
+        } else if (cms.includes('shopify')) {
+          cmsRecommendation = ' For Shopify, use the Theme Editor to defer JavaScript and consider apps like Booster: Page Speed Optimizer or Hyperspeed.'
+        } else if (cms.includes('wix')) {
+          cmsRecommendation = ' Wix handles most optimization automatically. Enable "Lazy Load" in Site Settings and use the "Performance" tab in Dashboard.'
+        } else if (cms.includes('squarespace')) {
+          cmsRecommendation = ' Squarespace manages asset loading automatically. Minimize custom code and use native blocks where possible.'
+        } else if (cms.includes('webflow')) {
+          cmsRecommendation = ' In Webflow, enable "Minify HTML, CSS & JavaScript" in Project Settings > Publishing tab.'
+        } else if (cms.includes('drupal')) {
+          cmsRecommendation = ' For Drupal, enable "Aggregate CSS files" and "Aggregate JavaScript files" in Performance settings. Consider the Advanced CSS/JS Aggregation module.'
+        } else if (cms.includes('joomla')) {
+          cmsRecommendation = ' For Joomla, enable "Gzip Page Compression" in Global Configuration > Server. Consider extensions like JCH Optimize or Speed Cache.'
+        } else if (cms) {
+          cmsRecommendation = ` Detected CMS: ${cms}. Look for built-in optimization settings or recommended performance plugins/extensions for this platform.`
+        }
+      }
+
+      const techStackRecommendation = !technologyData
+        ? ' Run the Performance, Technical Audit & Tech Stack audit to get CMS-specific optimization recommendations.'
+        : ''
+
       issues.push({
         id: 'perf-render-blocking',
         title: 'Render-Blocking Resources Delay Page Display',
-        description: 'CSS and JavaScript files are blocking the page from rendering quickly, creating a poor first impression.',
+        description: `CSS and JavaScript files are blocking the page from rendering quickly, creating a poor first impression.${pluginRecommendation}${cmsRecommendation}${techStackRecommendation}`,
         category: 'performance',
         severity: 'medium',
         impact: {
@@ -305,9 +350,11 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'performance',
-        fixRecommendation: 'Inline critical CSS, defer non-critical CSS, async load JavaScript, and minimize render-blocking resources.',
+        fixRecommendation: hasRelevantPlugins
+          ? 'Inline critical CSS, defer non-critical CSS, async load JavaScript, and minimize render-blocking resources. Check your optimization plugin settings for CSS/JS minification and deferral options.'
+          : `Inline critical CSS, defer non-critical CSS, async load JavaScript, and minimize render-blocking resources.${cmsRecommendation || ' Consider using a CMS-specific optimization plugin or built-in performance settings.'}`,
         estimatedTimeToFix: '2-4 hours',
         legalRisk: false,
         quickWin: false,
@@ -338,7 +385,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'performance',
         fixRecommendation: 'Optimize images, reduce server response time, eliminate render-blocking resources',
         estimatedTimeToFix: '2-4 hours',
@@ -363,7 +410,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'performance',
         fixRecommendation: 'Add size attributes to images/videos, reserve space for ads',
         estimatedTimeToFix: '1-3 hours',
@@ -394,7 +441,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'high',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'performance',
         fixRecommendation: 'Prioritize mobile optimization: compress images, lazy load content, minimize JavaScript',
         estimatedTimeToFix: '4-8 hours',
@@ -426,7 +473,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
       totalSavings: technicalData.imageOptimizationStrategy?.estimatedSavings?.totalSizeReduction || '0 MB',
       recommendations: technicalData.imageOptimizationStrategy?.recommendations || [],
       quickWins: technicalData.imageOptimizationStrategy?.quickWins || [],
-      largeImageDetails: technicalResults?.largeImageDetails || []
+      largeImageDetails: technicalResults?.largeImageDetails || technicalData.largeImageDetails || []
     }
 
     const scopeContext = scope === 'single'
@@ -437,7 +484,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 
     issues.push({
       id: 'tech-large-images',
-      title: 'Large Images Need Optimization',
+      title: largeImagesCount === 1 ? 'Large Image Needs Optimisation' : 'Large Images Need Optimisation',
       description: largeImagesCount === 1
         ? `1 large image over 100KB detected ${scopeContext}. This slows down page load significantly.`
         : `${largeImagesCount} large images over 100KB detected ${scopeContext}. These slow down page load significantly.`,
@@ -452,11 +499,12 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
       priorityScore: 0,
       section: 'Performance & Technical',
       sectionId: 'performance',
+      subsectionId: 'large-images-table',
       fixRecommendation: 'Compress images using WebP/AVIF format, implement lazy loading, use responsive images. This will directly improve LCP performance.',
       estimatedTimeToFix: '1-2 hours',
       legalRisk: false,
       quickWin: true,
-      affectedPages: largeImagesCount,
+      affectedPages: scope === 'single' ? 1 : totalPages,
       pageUrl,
       imageData
     })
@@ -473,10 +521,8 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
   }
 
   // Check for missing title and H1 tags - combine if both are missing on single page
-  const hasMissingTitle = technicalData.performanceDiagnosis?.primaryIssues?.some((i: any) =>
-    i.title?.toLowerCase().includes('missing page title') ||
-    i.description?.toLowerCase().includes('missing a title tag')
-  ) || (technicalData.seo?.missingMetaTitles > 0) || (technicalData.issues?.missingMetaTitles > 0)
+  // ONLY trust the actual technical audit data, not Claude's analysis which can hallucinate
+  const hasMissingTitle = (technicalData.seo?.missingMetaTitles > 0) || (technicalData.issues?.missingMetaTitles > 0)
 
   const missingH1Count = technicalData.seo?.missingH1 || 0
   const hasMissingH1 = missingH1Count > 0
@@ -487,8 +533,8 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 
     issues.push({
       id: 'tech-page-metadata',
-      title: 'Missing Page Title & H1 Tag',
-      description: `${pageContext} missing both title tag and H1 heading. Critical for SEO and content structure.`,
+      title: 'Missing <title> & <h1> Tags',
+      description: `${pageContext} missing both <title> tag and <h1> heading. Critical for SEO and content structure.`,
       category: 'seo',
       severity: 'critical',
       impact: {
@@ -509,7 +555,8 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
     })
   } else {
     // Add them separately if only one is missing or if multiple pages
-    if (hasMissingTitle) {
+    // Only add title issue if it's actually missing (not just H1 missing)
+    if (hasMissingTitle && !hasMissingH1) {
       const titleIssue = technicalData.performanceDiagnosis?.primaryIssues?.find((i: any) =>
         i.title?.toLowerCase().includes('missing page title') ||
         i.description?.toLowerCase().includes('missing a title tag')
@@ -524,7 +571,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 
       issues.push({
         id: 'tech-meta-titles',
-        title: titleCount === 1 ? 'Missing Page Title' : `${titleCount} Pages Missing Meta Titles`,
+        title: titleCount === 1 ? 'Missing <title> Tag' : `${titleCount} Pages Missing <title> Tags`,
         description: titleDescription,
         category: 'seo',
         severity: 'critical',
@@ -534,7 +581,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
         },
         effort: 'low',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'technical',
         fixRecommendation: titleCount === 1
           ? 'Add unique, descriptive title tag (50-60 characters) with target keywords'
@@ -556,7 +603,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
 
       issues.push({
         id: 'tech-h1-tags',
-        title: missingH1Count === 1 ? 'Missing H1 Tag' : `${missingH1Count} Pages Missing H1 Tags`,
+        title: missingH1Count === 1 ? 'Missing <h1> Tag' : `${missingH1Count} Pages Missing <h1> Tags`,
         description: h1Description,
         category: 'seo',
         severity: 'high',
@@ -567,7 +614,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
         },
         effort: 'low',
         priorityScore: 0,
-        section: 'Performance & Technical',
+        section: 'Performance, Technical Audit & Tech Stack',
         sectionId: 'technical',
         fixRecommendation: missingH1Count === 1
           ? 'Add descriptive H1 tag with target keywords'
@@ -613,6 +660,124 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
       quickWin: true,
       affectedPages: count,
       pageUrl
+    })
+  }
+
+  // Heading hierarchy analysis - analyze all pages with HTML
+  const pages = technicalResults?.pages || technicalData.pages || (technicalData.html ? [{ url: pageUrl, title: 'Page', html: technicalData.html }] : [])
+
+  if (pages.length > 0) {
+    // Analyze heading hierarchy for each page and aggregate by issue type
+    const headingIssuesByType: Map<HeadingIssue['type'], Array<{ url: string; title: string; details: string }>> = new Map()
+
+    pages.forEach((page: any) => {
+      if (page.html) {
+        const headingAnalysis = analyzeHeadingHierarchy(page.html)
+
+        if (headingAnalysis.hasIssues) {
+          headingAnalysis.issues.forEach((headingIssue: HeadingIssue) => {
+            if (!headingIssuesByType.has(headingIssue.type)) {
+              headingIssuesByType.set(headingIssue.type, [])
+            }
+
+            headingIssuesByType.get(headingIssue.type)!.push({
+              url: page.url,
+              title: page.title || 'Untitled Page',
+              details: headingIssue.affectedHeadings?.join(', ') || headingIssue.description
+            })
+          })
+        }
+      }
+    })
+
+    // Create aggregated issues
+    const severityMap: Record<HeadingIssue['severity'], SummaryIssue['severity']> = {
+      critical: 'critical',
+      high: 'high',
+      medium: 'medium',
+      low: 'low'
+    }
+
+    const impactMap: Record<HeadingIssue['type'], SummaryIssue['impact']> = {
+      missing_h1: { searchRanking: 90, accessibility: 60 },
+      multiple_h1: { searchRanking: 70, accessibility: 50 },
+      skipped_level: { searchRanking: 60, accessibility: 80 },
+      no_headings: { searchRanking: 95, accessibility: 90 },
+      empty_heading: { searchRanking: 50, accessibility: 70 }
+    }
+
+    const effortMap: Record<HeadingIssue['type'], SummaryIssue['effort']> = {
+      missing_h1: 'low',
+      multiple_h1: 'low',
+      skipped_level: 'medium',
+      no_headings: 'medium',
+      empty_heading: 'low'
+    }
+
+    const timeMap: Record<HeadingIssue['type'], string> = {
+      missing_h1: '15-30 min',
+      multiple_h1: '30 min - 1 hour',
+      skipped_level: '1-2 hours',
+      no_headings: '2-4 hours',
+      empty_heading: '30 min - 1 hour'
+    }
+
+    const titleMap: Record<HeadingIssue['type'], (count: number) => string> = {
+      missing_h1: (count) => count === 1 ? 'Page Missing <h1> Tag' : `${count} Pages Missing <h1> Tags`,
+      multiple_h1: (count) => count === 1 ? 'Page Has Multiple <h1> Tags' : `${count} Pages Have Multiple <h1> Tags`,
+      skipped_level: (count) => count === 1 ? 'Page Has Skipped Heading Levels' : `${count} Pages Have Skipped Heading Levels`,
+      no_headings: (count) => count === 1 ? 'Page Has No Headings' : `${count} Pages Have No Headings`,
+      empty_heading: (count) => count === 1 ? 'Page Has Empty Headings' : `${count} Pages Have Empty Headings`
+    }
+
+    const descriptionMap: Record<HeadingIssue['type'], (count: number) => string> = {
+      missing_h1: (count) => count === 1
+        ? 'This page lacks an H1 heading, confusing search engines and users.'
+        : `${count} pages lack H1 headings, confusing search engines and users.`,
+      multiple_h1: (count) => count === 1
+        ? 'This page has multiple H1 tags. Best practice is to use only one H1 per page.'
+        : `${count} pages have multiple H1 tags. Best practice is to use only one H1 per page.`,
+      skipped_level: (count) => count === 1
+        ? 'This page skips heading levels (e.g., H2 → H4). Headings should follow a logical order.'
+        : `${count} pages skip heading levels (e.g., H2 → H4). Headings should follow a logical order.`,
+      no_headings: (count) => count === 1
+        ? 'This page has no heading tags (H1-H6). Headings provide structure for both users and search engines.'
+        : `${count} pages have no heading tags (H1-H6). Headings provide structure for both users and search engines.`,
+      empty_heading: (count) => count === 1
+        ? 'This page has empty headings with no content. These provide no value to users or search engines.'
+        : `${count} pages have empty headings with no content. These provide no value to users or search engines.`
+    }
+
+    const severityByType: Record<HeadingIssue['type'], HeadingIssue['severity']> = {
+      missing_h1: 'high',
+      multiple_h1: 'medium',
+      skipped_level: 'medium',
+      no_headings: 'critical',
+      empty_heading: 'high'
+    }
+
+    headingIssuesByType.forEach((affectedPages, issueType) => {
+      const count = affectedPages.length
+
+      issues.push({
+        id: `tech-heading-${issueType}`,
+        title: titleMap[issueType](count),
+        description: descriptionMap[issueType](count),
+        category: 'seo',
+        severity: severityMap[severityByType[issueType]],
+        impact: impactMap[issueType],
+        effort: effortMap[issueType],
+        priorityScore: 0,
+        section: 'Performance, Technical Audit & Tech Stack',
+        sectionId: 'technical',
+        fixRecommendation: 'Correct heading hierarchy to follow proper H1→H2→H3 structure without skipping levels',
+        estimatedTimeToFix: timeMap[issueType],
+        legalRisk: false,
+        quickWin: issueType === 'missing_h1' || issueType === 'empty_heading',
+        affectedPages: count,
+        affectedPagesList: affectedPages,
+        pageUrl: scope === 'single' ? pageUrl : undefined
+      })
     })
   }
 
@@ -1072,4 +1237,96 @@ function calculateTotalTime(issues: SummaryIssue[]): string {
   } else {
     return `${Math.round(totalHours / 40)} weeks`
   }
+}
+
+/**
+ * Extract viewport responsiveness issues for the Audit Summary
+ */
+function extractViewportIssues(viewportData: any, pageUrl?: string, scope: string = 'single', totalPages: number = 1): SummaryIssue[] {
+  const issues: SummaryIssue[] = []
+
+  if (!viewportData) return issues
+
+  // Check overall responsive score
+  const score = viewportData.overallScore || 100
+
+  // Add issue if score is below acceptable threshold
+  if (score < 90) {
+    const severity = score < 50 ? 'critical' : score < 70 ? 'high' : 'medium'
+    const criticalIssues = viewportData.globalIssues?.filter((issue: any) => issue.severity === 'critical') || []
+    const warningIssues = viewportData.globalIssues?.filter((issue: any) => issue.severity === 'warning') || []
+
+    // Count issues by type
+    let issueDescription = 'Website has responsive design issues affecting mobile and tablet users.'
+    if (criticalIssues.length > 0) {
+      const types = [...new Set(criticalIssues.map((i: any) => {
+        switch(i.type) {
+          case 'horizontal_scroll': return 'horizontal scrolling'
+          case 'small_touch_targets': return 'small touch targets'
+          case 'small_text': return 'small text'
+          case 'layout_break': return 'layout breaks'
+          case 'navigation_issues': return 'navigation problems'
+          case 'content_hidden': return 'hidden content'
+          case 'viewport_meta': return 'viewport configuration'
+          default: return 'responsive issues'
+        }
+      }))]
+      issueDescription = `Critical responsive issues detected: ${types.join(', ')}. ${warningIssues.length > 0 ? `Also ${warningIssues.length} warning(s).` : ''}`
+    } else if (warningIssues.length > 0) {
+      issueDescription = `${warningIssues.length} responsive design warning(s) found that should be addressed.`
+    }
+
+    issues.push({
+      id: 'viewport-responsive',
+      title: 'Responsive Design Issues',
+      description: issueDescription,
+      category: 'accessibility',
+      severity: severity,
+      impact: {
+        userExperience: 80,
+        accessibility: 70,
+        searchRanking: 60 // Google prioritizes mobile-friendly sites
+      },
+      effort: severity === 'critical' ? 'high' : 'medium',
+      priorityScore: 0,
+      section: 'Viewport Responsiveness',
+      sectionId: 'viewport',
+      fixRecommendation: viewportData.cssAnalysis?.hasViewportMeta
+        ? 'Fix layout breaks, ensure touch targets are at least 48x48px, use responsive font sizes (minimum 16px), and test on actual devices.'
+        : 'Add viewport meta tag (<meta name="viewport" content="width=device-width, initial-scale=1">), fix layout breaks, ensure touch targets are at least 48x48px, and use responsive font sizes.',
+      estimatedTimeToFix: severity === 'critical' ? '8-16 hours' : '4-8 hours',
+      legalRisk: false,
+      quickWin: severity === 'medium' && !viewportData.cssAnalysis?.hasViewportMeta,
+      pageUrl,
+      affectedPages: scope === 'single' ? undefined : totalPages
+    })
+  }
+
+  // Check for missing viewport meta tag specifically (quick win)
+  if (viewportData.cssAnalysis && !viewportData.cssAnalysis.hasViewportMeta) {
+    issues.push({
+      id: 'viewport-meta-missing',
+      title: 'Missing Viewport Meta Tag',
+      description: 'The viewport meta tag is missing, causing poor mobile display and zooming issues.',
+      category: 'technical',
+      severity: 'high',
+      impact: {
+        userExperience: 75,
+        searchRanking: 50,
+        accessibility: 60
+      },
+      effort: 'low',
+      priorityScore: 0,
+      section: 'Viewport Responsiveness',
+      sectionId: 'viewport',
+      fixRecommendation: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to the <head> section of your HTML.',
+      estimatedTimeToFix: '5-15 minutes',
+      legalRisk: false,
+      quickWin: true,
+      pageUrl,
+      affectedPages: scope === 'single' ? undefined : totalPages
+    })
+  }
+
+  return issues
 }

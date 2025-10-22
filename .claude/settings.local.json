@@ -1,8 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsx scripts/check-audit-data.ts)",
-      "Bash(npx tsx -e \"import { PrismaClient } from ''@prisma/client''; const prisma = new PrismaClient(); prisma.audit.findFirst({ where: { url: { contains: ''livingspace'' } }, orderBy: { createdAt: ''desc'' } }).then(audit => { console.log(''Latest audit ID:'', audit.id); console.log(''Created:'', audit.createdAt); console.log(''Status:'', audit.status); const results = audit.results as any; console.log(''Top-level keys:'', Object.keys(results)); console.log(''Has technical?'', !!results.technical); console.log(''Has performance?'', !!results.performance); console.log(''largeImages at root:'', results.largeImages); if (results.performance) { console.log(''performance.largeImages:'', results.performance.largeImages); console.log(''performance.largeImageDetails:'', results.performance.largeImageDetails?.length || 0); } prisma.$disconnect(); })\")"
+      "Read(//Users/jameshovey/Desktop/**)",
+      "WebFetch(domain:www.livingspacearchitects.com)",
+      "Bash(curl -s \"https://www.livingspacearchitects.com/\")",
+      "Bash(npm run dev)"
     ],
     "deny": [],
     "ask": [],

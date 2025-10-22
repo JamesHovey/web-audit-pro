@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -17,23 +17,23 @@ const AUDIT_SECTIONS = [
   {
     id: "keywords",
     label: "Keywords",
-    description: "Branded and non-branded keyword analysis with competitive intelligence",
-    phase: 2
+    description: "Branded and non-branded keyword analysis with competitive intelligence"
   },
   {
     id: "performance",
-    label: "Performance & Technical Audit",
-    description: "Core Web Vitals, technical SEO health, image optimization, and site structure analysis"
-  },
-  {
-    id: "technology",
-    label: "Technology Stack",
-    description: "Technologies, frameworks, and platforms used in website construction"
+    label: "Performance, Technical Audit & Tech Stack",
+    description: "Core Web Vitals, technical SEO health, image optimization, site structure analysis, and technology stack detection"
   },
   {
     id: "accessibility",
     label: "Accessibility",
     description: "WCAG 2.2 Level AA compliance testing for UK/EAA requirements with actionable fixes",
+    phase: 2
+  },
+  {
+    id: "backlinks",
+    label: "Backlinks",
+    description: "Possible merger with Keywords.",
     phase: 2
   }
 ]
@@ -113,6 +113,7 @@ export function AuditForm() {
   const [discoveredPages, setDiscoveredPages] = useState<PageOption[]>([])
   const [isDiscoveringPages, setIsDiscoveringPages] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false)
   const [error, setError] = useState("")
   const [showErrorTooltip, setShowErrorTooltip] = useState(false)
   const [isValidUrl, setIsValidUrl] = useState(false)
@@ -131,6 +132,8 @@ export function AuditForm() {
     creditsRequired: 0
   })
   const [confirmCost, setConfirmCost] = useState(false)
+  const [domainAuthority, setDomainAuthority] = useState<number | null>(null)
+  const [isDomainAuthorityLoading, setIsDomainAuthorityLoading] = useState(false)
 
   // Helper function to check if a URL should be excluded
   const isPathExcluded = (url: string): boolean => {
@@ -303,6 +306,38 @@ export function AuditForm() {
       cacheExcludedPaths(urlToCache, excludedPaths)
     }
   }, [excludedPaths, url, isValidUrl])
+
+  // Fetch domain authority when URL is valid
+  useEffect(() => {
+    if (!isValidUrl || !url) {
+      setDomainAuthority(null)
+      return
+    }
+
+    const fetchDomainAuthority = async () => {
+      setIsDomainAuthorityLoading(true)
+      try {
+        const urlToCheck = url.startsWith('http') ? url : `https://${url}`
+        const response = await fetch(`/api/domain-authority?url=${encodeURIComponent(urlToCheck)}`)
+        const data = await response.json()
+
+        if (data.success && data.domainAuthority !== undefined) {
+          setDomainAuthority(data.domainAuthority)
+        } else {
+          setDomainAuthority(null)
+        }
+      } catch (error) {
+        console.error('Error fetching domain authority:', error)
+        setDomainAuthority(null)
+      } finally {
+        setIsDomainAuthorityLoading(false)
+      }
+    }
+
+    // Debounce the fetch to avoid too many requests
+    const timeoutId = setTimeout(fetchDomainAuthority, 500)
+    return () => clearTimeout(timeoutId)
+  }, [url, isValidUrl])
 
   const validateUrl = (urlString: string) => {
     try {
@@ -573,8 +608,9 @@ export function AuditForm() {
   }
 
   const handleSelectAll = () => {
-    const allSelected = selectedSections.length === AUDIT_SECTIONS.length;
-    setSelectedSections(allSelected ? [] : AUDIT_SECTIONS.map(section => section.id));
+    const phase1Sections = AUDIT_SECTIONS.filter(section => section.phase !== 2);
+    const allPhase1Selected = phase1Sections.every(section => selectedSections.includes(section.id));
+    setSelectedSections(allPhase1Selected ? [] : phase1Sections.map(section => section.id));
     setShowErrorTooltip(false) // Hide tooltip when user uses select all
   }
 
@@ -606,6 +642,9 @@ export function AuditForm() {
     setIsLoading(true)
     setError("")
     setShowErrorTooltip(false)
+
+    // Show overlay immediately
+    setShowLoadingOverlay(true)
 
     try {
       // Add protocol if missing
@@ -644,6 +683,7 @@ export function AuditForm() {
         }
         setShowErrorTooltip(false)
         setIsLoading(false)
+        setShowLoadingOverlay(false)
         return
       }
 
@@ -655,16 +695,17 @@ export function AuditForm() {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setShowErrorTooltip(false) // Hide tooltip for regular errors (they use the box)
       setIsLoading(false) // Only set to false on error
+      setShowLoadingOverlay(false)
     }
   }
 
   return (
-    <div className="card-pmw">
-      <form onSubmit={handleSubmit} className="space-y-4" style={isLoading ? { visibility: 'hidden', height: 0, overflow: 'hidden' } : {}}>
+    <div className="card-pmw relative">
+      <form onSubmit={handleSubmit} className="space-y-4 transition-opacity duration-200" style={showLoadingOverlay ? { display: 'none' } : {}}>
         {/* URL Input */}
         <div>
-          <div className="flex gap-2 items-stretch">
-            <div className="flex-1 relative">
+          <div className="flex gap-2 items-stretch flex-wrap">
+            <div className="flex-1 min-w-[300px] relative">
               <input
                 type="text"
                 id="url"
@@ -684,6 +725,47 @@ export function AuditForm() {
                 </div>
               )}
             </div>
+
+            {/* Domain Authority Display */}
+            {isValidUrl && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                <span className="text-sm font-medium text-gray-700">DA:</span>
+                {isDomainAuthorityLoading ? (
+                  <div className="w-8 h-5 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
+                  </div>
+                ) : domainAuthority !== null ? (
+                  <span className="text-lg font-bold text-blue-600">{domainAuthority}</span>
+                ) : (
+                  <span className="text-sm text-gray-400">--</span>
+                )}
+                <Tooltip
+                  content={
+                    <div className="space-y-2">
+                      <p className="font-medium">Domain Authority (DA)</p>
+                      <p>A score from 0-100 that predicts how well a website will rank on search engines.</p>
+                      <ul className="list-disc pl-4 space-y-1 text-sm">
+                        <li><strong>0-30:</strong> New or low authority site</li>
+                        <li><strong>30-50:</strong> Moderate authority</li>
+                        <li><strong>50-70:</strong> Good authority</li>
+                        <li><strong>70+:</strong> Excellent authority</li>
+                      </ul>
+                      <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
+                        <p className="font-medium">How it's calculated:</p>
+                        <p>Based on factors like backlink quality, domain age, content quality, and technical SEO.</p>
+                      </div>
+                    </div>
+                  }
+                  position="right"
+                >
+                  <svg className="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                    <circle cx="12" cy="12" r="9.5" />
+                    <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Tooltip>
+              </div>
+            )}
+
             {isValidUrl && (
               <button
                 type="button"
@@ -1309,74 +1391,90 @@ export function AuditForm() {
               onClick={handleSelectAll}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium"
             >
-              {selectedSections.length === AUDIT_SECTIONS.length ? 'Unselect All' : 'Select All'}
+              {(() => {
+                const phase1Sections = AUDIT_SECTIONS.filter(section => section.phase !== 2);
+                const allPhase1Selected = phase1Sections.every(section => selectedSections.includes(section.id));
+                return allPhase1Selected ? 'Unselect All' : 'Select All';
+              })()}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {AUDIT_SECTIONS.map((section) => (
-              <div
-                key={section.id}
-                className={`border rounded-lg p-4 transition-colors ${
-                  selectedSections.includes(section.id)
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id={section.id}
-                    checked={selectedSections.includes(section.id)}
-                    onChange={() => handleSectionToggle(section.id)}
-                    className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {AUDIT_SECTIONS.map((section, index) => {
+              const isFirstPhase2 = section.phase === 2 && (index === 0 || AUDIT_SECTIONS[index - 1]?.phase !== 2)
+
+              return (
+                <React.Fragment key={section.id}>
+                  {isFirstPhase2 && (
+                    <div className="col-span-1 md:col-span-3 flex items-center my-4">
+                      <div className="flex-grow border-t border-gray-300"></div>
+                      <span className="px-4 text-sm font-medium text-gray-600">Phase 2</span>
+                      <div className="flex-grow border-t border-gray-300"></div>
+                    </div>
+                  )}
+                  <div
+                    className={`border rounded-lg p-4 transition-colors ${
+                      selectedSections.includes(section.id)
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        id={section.id}
+                        checked={selectedSections.includes(section.id)}
+                        onChange={() => handleSectionToggle(section.id)}
+                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
                       <div className="flex-1">
-                        <label htmlFor={section.id} className="font-medium text-gray-900 cursor-pointer flex items-center gap-2">
-                          {section.label}
-                          {section.phase === 2 && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                              Phase 2
-                            </span>
-                          )}
-                        </label>
-                        <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                      </div>
-                      
-                      {/* Inline Country Selection for Keywords Section */}
-                      {section.id === 'keywords' && selectedSections.includes('keywords') && (
-                        <div className="ml-4 min-w-0 flex-shrink-0">
-                          <label htmlFor={`${section.id}-country`} className="block text-xs font-medium text-gray-700 mb-1">
-                            Target Country
-                          </label>
-                          <div className="relative">
-                            <select
-                              id={`${section.id}-country`}
-                              value={country}
-                              onChange={(e) => setCountry(e.target.value)}
-                              className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
-                              disabled={isLoading}
-                            >
-                              {COUNTRIES.map((c) => (
-                                <option key={c.code} value={c.code}>
-                                  {c.flag} {c.name}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <label htmlFor={section.id} className="font-medium text-gray-900 cursor-pointer flex items-center gap-2">
+                              {section.label}
+                              {section.phase === 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ef86ce] text-white">
+                                  Phase 2
+                                </span>
+                              )}
+                            </label>
+                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
                           </div>
+
+                          {/* Inline Country Selection for Keywords Section */}
+                          {section.id === 'keywords' && selectedSections.includes('keywords') && (
+                            <div className="ml-4 min-w-0 flex-shrink-0">
+                              <label htmlFor={`${section.id}-country`} className="block text-xs font-medium text-gray-700 mb-1">
+                                Target Country
+                              </label>
+                              <div className="relative">
+                                <select
+                                  id={`${section.id}-country`}
+                                  value={country}
+                                  onChange={(e) => setCountry(e.target.value)}
+                                  className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
+                                  disabled={isLoading}
+                                >
+                                  {COUNTRIES.map((c) => (
+                                    <option key={c.code} value={c.code}>
+                                      {c.flag} {c.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </React.Fragment>
+              )
+            })}
           </div>
         </div>
 
@@ -1564,22 +1662,23 @@ export function AuditForm() {
             <div className="space-y-3">
               {/* Cost Breakdown */}
               <div className="space-y-2">
-                {selectedSections.includes('keywords') && (
-                  <>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700">Keywords Everywhere API</span>
-                      <span className="font-semibold text-gray-900">{formatCost(estimatedCost.keywordsEverywhere)}</span>
+                {selectedSections.map((sectionId) => {
+                  const section = AUDIT_SECTIONS.find(s => s.id === sectionId)
+                  // Calculate cost for this section
+                  let sectionCost = estimatedCost.claude / selectedSections.length
+
+                  // For keywords section, include API costs
+                  if (sectionId === 'keywords') {
+                    sectionCost += estimatedCost.keywordsEverywhere + estimatedCost.serper
+                  }
+
+                  return (
+                    <div key={sectionId} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">{section?.label}</span>
+                      <span className="font-semibold text-gray-900">{formatCost(sectionCost)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700">Serper API</span>
-                      <span className="font-semibold text-gray-900">{formatCost(estimatedCost.serper)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-700">Advanced Analysis</span>
-                  <span className="font-semibold text-gray-900">{formatCost(estimatedCost.claude)}</span>
-                </div>
+                  )
+                })}
 
                 <div className="border-t border-blue-300 pt-3 mt-3">
                   <div className="flex justify-between items-center">
@@ -1608,7 +1707,7 @@ export function AuditForm() {
 
         {/* Cost Confirmation Checkbox */}
         {isValidUrl && estimatedCost.total > 0 && (
-          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+          <div className="bg-white border-2 border-[#42499c] rounded-lg p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -1673,24 +1772,26 @@ export function AuditForm() {
       /> */}
 
       {/* Website Analysis Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
+      {showLoadingOverlay && (
+        <div className="flex items-center justify-center p-8 rounded-lg">
           <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-200">
             <div className="mb-4">
               <LoadingSpinner size="lg" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Analyzing Website
-            </h3>
-            <p className="text-gray-600 mb-4 break-words">
-              Initializing comprehensive audit for {url.startsWith('http') ? url : `https://${url}`}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              We're conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}. Depending on the size and complexity of the site it should take between 5 - 10 minutes.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-blue-800 text-sm">
-                ✓ URL validated and audit parameters configured
+
+            {/* Inspirational Quote */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <p className="text-center text-gray-700 italic mb-2">
+                "Great SEO is a marathon, not a sprint. Stay consistent and patient."
               </p>
-              <p className="text-blue-700 text-xs mt-1">
-                You'll be redirected to the live audit progress page shortly...
+              <p className="text-center text-xs text-gray-500">
+                Background: Technical Audit
               </p>
             </div>
           </div>

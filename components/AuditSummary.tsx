@@ -1,10 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, CheckCircle, ChevronRight, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, HelpCircle, ShoppingCart, Check } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ChevronRight, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, HelpCircle, ShoppingCart, Check, Lightbulb } from 'lucide-react'
 import { generateAuditSummary, SummaryIssue, AuditSummaryResult } from '@/lib/auditSummaryService'
 import { useSynergistBasket } from '@/contexts/SynergistBasketContext'
 import Tooltip from './Tooltip'
+import AffectedPagesModal from './AffectedPagesModal'
+import LargeImagesModal from './LargeImagesModal'
 
 interface AuditSummaryProps {
   auditResults: any
@@ -34,7 +36,14 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
+  const [modalIssue, setModalIssue] = useState<SummaryIssue | null>(null)
+  const [largeImagesModalIssue, setLargeImagesModalIssue] = useState<SummaryIssue | null>(null)
   const { toggleBasket, isInBasket } = useSynergistBasket()
+
+  // Extract CMS and plugin data
+  const technologyData = auditResults.technology || auditResults.technical
+  const detectedCMS = technologyData?.cms || technologyData?.platform
+  const detectedPlugins = technologyData?.plugins || technologyData?.detectedPlugins || []
 
   // Generate summary
   const summary: AuditSummaryResult = generateAuditSummary(auditResults, auditUrl)
@@ -216,6 +225,18 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
                 onSeeMore={() => handleSeeMore(issue.sectionId, issue.subsectionId)}
                 isInBasket={isInBasket(issue.id)}
                 onToggleBasket={() => toggleBasket(issue.id)}
+                detectedCMS={detectedCMS}
+                detectedPlugins={detectedPlugins}
+                onShowAffectedPages={
+                  issue.affectedPagesList && issue.affectedPagesList.length > 0
+                    ? () => setModalIssue(issue)
+                    : undefined
+                }
+                onShowLargeImages={
+                  issue.imageData && issue.imageData.largeImages > 0
+                    ? () => setLargeImagesModalIssue(issue)
+                    : undefined
+                }
               />
             ))
           ) : (
@@ -227,8 +248,103 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
           </>
         )}
       </div>
+
+      {/* Affected Pages Modal */}
+      <AffectedPagesModal
+        isOpen={modalIssue !== null}
+        onClose={() => setModalIssue(null)}
+        title={modalIssue?.title || ''}
+        description={modalIssue?.description || ''}
+        pages={modalIssue?.affectedPagesList || []}
+      />
+
+      {/* Large Images Modal */}
+      <LargeImagesModal
+        isOpen={largeImagesModalIssue !== null}
+        onClose={() => setLargeImagesModalIssue(null)}
+        images={largeImagesModalIssue?.imageData?.largeImageDetails || []}
+        totalSavings={largeImagesModalIssue?.imageData?.totalSavings}
+      />
     </div>
   )
+}
+
+// Plugin URLs mapping
+const PLUGIN_URLS: { [key: string]: string } = {
+  'WP Rocket': 'https://wp-rocket.me/',
+  'LiteSpeed Cache': 'https://wordpress.org/plugins/litespeed-cache/',
+  'W3 Total Cache': 'https://wordpress.org/plugins/w3-total-cache/',
+  'Yoast SEO': 'https://yoast.com/wordpress/plugins/seo/',
+  'Yoast': 'https://yoast.com/wordpress/plugins/seo/',
+  'Rank Math': 'https://rankmath.com/',
+  'All in One SEO': 'https://aioseo.com/',
+  'Wordfence': 'https://www.wordfence.com/',
+  'Autoptimize': 'https://wordpress.org/plugins/autoptimize/',
+  'Imagify': 'https://imagify.io/',
+  'ShortPixel': 'https://shortpixel.com/',
+  'EWWW Image Optimizer': 'https://wordpress.org/plugins/ewww-image-optimizer/'
+}
+
+// Helper function to convert plugin names to links
+function renderTextWithPluginLinks(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  let remainingText = text
+  let keyCounter = 0
+
+  // Find all plugin names in the text
+  const matches: Array<{ name: string; url: string; index: number; length: number }> = []
+
+  Object.entries(PLUGIN_URLS).forEach(([pluginName, url]) => {
+    const regex = new RegExp(`\\b${pluginName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+    let match
+    while ((match = regex.exec(text)) !== null) {
+      matches.push({
+        name: match[0],
+        url: url,
+        index: match.index,
+        length: match[0].length
+      })
+    }
+  })
+
+  // Sort matches by index to process them in order
+  matches.sort((a, b) => a.index - b.index)
+
+  // Build the result by alternating between text and links
+  let currentIndex = 0
+  matches.forEach((match, i) => {
+    // Add text before the match
+    if (match.index > currentIndex) {
+      parts.push(text.substring(currentIndex, match.index))
+    }
+
+    // Add the link
+    parts.push(
+      <a
+        key={`plugin-link-${keyCounter++}`}
+        href={match.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:text-blue-800 underline"
+      >
+        {match.name}
+      </a>
+    )
+
+    currentIndex = match.index + match.length
+  })
+
+  // Add any remaining text after the last match
+  if (currentIndex < text.length) {
+    parts.push(text.substring(currentIndex))
+  }
+
+  // If no matches were found, return the original text
+  if (parts.length === 0) {
+    return text
+  }
+
+  return <>{parts}</>
 }
 
 interface IssueCardProps {
@@ -239,15 +355,113 @@ interface IssueCardProps {
   onSeeMore: () => void
   isInBasket: boolean
   onToggleBasket: () => void
+  detectedCMS?: any
+  detectedPlugins?: any[]
+  onShowAffectedPages?: () => void
+  onShowLargeImages?: () => void
 }
 
-function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, onToggleBasket }: IssueCardProps) {
+function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, onToggleBasket, detectedCMS, detectedPlugins, onShowAffectedPages, onShowLargeImages }: IssueCardProps) {
   const categoryConfig = CATEGORY_CONFIG[issue.category]
   const severityConfig = SEVERITY_CONFIG[issue.severity]
   const CategoryIcon = categoryConfig.icon
 
+  // Generate contextual recommendations based on detected CMS and plugins
+  const getContextualRecommendations = () => {
+    if (!detectedCMS) return null
+
+    const cmsName = detectedCMS.name || detectedCMS
+
+    // Safely extract plugin names - handle various data structures
+    let pluginNames: string[] = []
+    if (Array.isArray(detectedPlugins)) {
+      pluginNames = detectedPlugins.map((p: any) => (p.name || p).toLowerCase())
+    } else if (detectedPlugins && typeof detectedPlugins === 'object') {
+      // Handle case where plugins is an object
+      pluginNames = Object.keys(detectedPlugins).map(key => key.toLowerCase())
+    }
+
+    const issueTitle = issue.title.toLowerCase()
+    const issueCategory = issue.category
+
+    let recommendations: string[] = []
+    let existingTools: string[] = []
+
+    // Performance and JavaScript issues
+    if (issueCategory === 'performance' || issueTitle.includes('javascript') || issueTitle.includes('speed') || issueTitle.includes('loading')) {
+      // Check for existing caching/optimization plugins
+      const cachingPlugins = pluginNames.filter(name =>
+        name.includes('cache') ||
+        name.includes('rocket') ||
+        name.includes('litespeed') ||
+        name.includes('w3 total') ||
+        name.includes('wp super') ||
+        name.includes('autoptimize') ||
+        name.includes('speed')
+      )
+
+      if (cachingPlugins.length > 0) {
+        existingTools.push(`Your site has caching/optimization tools installed. Ensure they're properly configured for JavaScript minification and combination.`)
+      } else if (cmsName.toLowerCase().includes('wordpress')) {
+        recommendations.push(`Install a caching plugin like WP Rocket or LiteSpeed Cache to automatically optimize JavaScript files.`)
+      }
+    }
+
+    // Image optimization issues
+    if (issueTitle.includes('image') || issueTitle.includes('photo') || issueCategory === 'performance') {
+      const imagePlugins = pluginNames.filter(name =>
+        name.includes('imagify') ||
+        name.includes('shortpixel') ||
+        name.includes('ewww') ||
+        name.includes('smush') ||
+        name.includes('optimole')
+      )
+
+      if (imagePlugins.length > 0) {
+        existingTools.push(`You have image optimization plugins installed. Enable automatic compression and WebP conversion.`)
+      } else if (cmsName.toLowerCase().includes('wordpress')) {
+        recommendations.push(`Install Imagify or ShortPixel to automatically compress and optimize images.`)
+      }
+    }
+
+    // SEO issues
+    if (issueCategory === 'seo' || issueTitle.includes('seo') || issueTitle.includes('meta') || issueTitle.includes('heading')) {
+      const seoPlugins = pluginNames.filter(name =>
+        name.includes('yoast') ||
+        name.includes('rank math') ||
+        name.includes('seo') ||
+        name.includes('all in one seo')
+      )
+
+      if (seoPlugins.length > 0) {
+        existingTools.push(`Your SEO plugin can help fix this. Check its recommendations and settings.`)
+      } else if (cmsName.toLowerCase().includes('wordpress')) {
+        recommendations.push(`Install Rank Math or Yoast SEO for comprehensive SEO management and automatic optimization.`)
+      }
+    }
+
+    // Page builder issues
+    if (issueTitle.includes('builder') || issueTitle.includes('elementor') || issueTitle.includes('wpbakery') || issueTitle.includes('divi')) {
+      const builderPlugins = pluginNames.filter(name =>
+        name.includes('elementor') ||
+        name.includes('wpbakery') ||
+        name.includes('divi') ||
+        name.includes('beaver') ||
+        name.includes('oxygen')
+      )
+
+      if (builderPlugins.length > 0) {
+        existingTools.push(`Your page builder (${builderPlugins.join(', ')}) may be causing performance issues. Consider optimizing or replacing heavy elements.`)
+      }
+    }
+
+    return { existingTools, recommendations }
+  }
+
+  const contextualInfo = getContextualRecommendations()
+
   return (
-    <div className={`border rounded-lg overflow-hidden ${categoryConfig.border} ${isExpanded ? categoryConfig.bg : 'bg-white'}`}>
+    <div className="border-2 border-[#42499c] rounded-lg overflow-hidden bg-white">
       <div className="p-4">
         {/* Page URL */}
         {issue.pageUrl && (
@@ -269,7 +483,7 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#42499c] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
                 {index}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -295,51 +509,59 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
               </div>
             </div>
 
-            <h4 className="font-semibold text-gray-900 mb-1">
-              {issue.affectedItems ? `${issue.affectedItems} ${issue.title}` : issue.title}
-            </h4>
+            {issue.detailsLink ? (
+              <h4 className="font-semibold text-gray-900 mb-1">
+                <a
+                  href={issue.detailsLink}
+                  className="hover:text-[#42499c] transition-colors hover:underline"
+                >
+                  {issue.affectedItems ? `${issue.affectedItems} ${issue.title}` : issue.title}
+                </a>
+              </h4>
+            ) : (
+              <h4 className="font-semibold text-gray-900 mb-1">
+                {issue.affectedItems ? `${issue.affectedItems} ${issue.title}` : issue.title}
+              </h4>
+            )}
             <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
 
             <div className="flex items-center gap-4 text-xs text-gray-500">
               {/* Affected Pages Count */}
               {issue.affectedPages && issue.affectedPages > 1 && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
-                  <FileText className="w-3 h-3" />
-                  <span>{issue.affectedPages} pages affected</span>
-                </div>
+                issue.affectedPagesList && issue.affectedPagesList.length > 0 ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onShowAffectedPages?.()
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold hover:bg-orange-200 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>{issue.affectedPages} pages affected</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
+                    <FileText className="w-3 h-3" />
+                    <span>{issue.affectedPages} pages affected</span>
+                  </div>
+                )
               )}
 
               {/* Large Images Count */}
-              {issue.imageData && issue.imageData.largeImages > 0 && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded font-semibold">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>{issue.imageData.largeImages} large images</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1">
-                <span className="font-medium">Impact Score:</span>
-                <span className="font-bold text-blue-600">{Math.round(issue.priorityScore)}</span>
-                <Tooltip
-                  content={
-                    <div className="text-xs max-w-xs">
-                      <p className="font-semibold mb-2">What is Impact Score?</p>
-                      <p className="mb-2">This score helps you prioritize which issues to fix first. It considers:</p>
-                      <ul className="space-y-1.5 ml-2">
-                        <li>• How serious the problem is</li>
-                        <li>• How much it affects your site's performance, SEO, or user experience</li>
-                        <li>• Whether it could cause legal problems</li>
-                        <li>• How easy or hard it is to fix</li>
-                      </ul>
-                      <p className="mt-2 font-medium text-blue-300">Higher score = Fix this first!</p>
-                      <p className="text-gray-400 text-[10px] mt-1">Issues are ranked automatically so you can focus on what matters most.</p>
-                    </div>
-                  }
-                  position="top"
+              {issue.imageData && issue.imageData.largeImages > 0 && onShowLargeImages && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onShowLargeImages()
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded font-semibold hover:bg-red-200 transition-colors cursor-pointer"
                 >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>See Large Images</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -349,7 +571,7 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-all ${
                 isInBasket
                   ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : 'bg-[#42499C] text-white hover:bg-[#363d85]'
+                  : 'bg-white text-[#42499c] border border-[#42499c] hover:bg-gray-50'
               }`}
               title={isInBasket ? 'Remove from Synergist basket' : 'Add to Synergist basket'}
             >
@@ -360,106 +582,60 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
                 </>
               ) : (
                 <>
-                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <img src="https://synergist.co.uk/favicon.ico" alt="" className="w-7 h-7" />
                   Add to Synergist
                 </>
               )}
-            </button>
-            <button
-              onClick={onSeeMore}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 whitespace-nowrap"
-            >
-              See more
-              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Expanded Details */}
-        {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="space-y-3">
+              {/* How to Fix Section */}
               <div>
                 <h5 className="text-sm font-semibold text-gray-700 mb-1">How to Fix:</h5>
-                <p className="text-sm text-gray-600">{issue.fixRecommendation}</p>
-              </div>
+                <p className="text-sm text-gray-600 mb-3">{renderTextWithPluginLinks(issue.fixRecommendation)}</p>
 
-              {/* Image Data Table */}
-              {issue.imageData && issue.imageData.largeImageDetails && issue.imageData.largeImageDetails.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-orange-600" />
-                    <h5 className="text-sm font-semibold text-gray-700">Large Images Need Optimization</h5>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg border border-orange-200 overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-orange-100 border-b border-orange-200">
-                        <tr>
-                          <th className="px-3 py-2 text-left font-semibold text-orange-900">Image</th>
-                          <th className="px-3 py-2 text-left font-semibold text-orange-900">Found On Page</th>
-                          <th className="px-3 py-2 text-right font-semibold text-orange-900">Size</th>
-                          <th className="px-3 py-2 text-left font-semibold text-orange-900">Action Needed</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {issue.imageData.largeImageDetails.map((img: any, idx: number) => {
-                          const fileName = img.imageUrl.split('/').pop() || img.imageUrl
-                          const sizeKB = Math.round(img.sizeKB)
-                          const actionNeeded = sizeKB > 500 ? 'Optimize urgently' : 'Compress image'
-
-                          return (
-                            <tr key={idx} className="border-b border-orange-100 hover:bg-orange-50">
-                              <td className="px-3 py-2">
-                                <a
-                                  href={img.imageUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                >
-                                  {fileName}
-                                </a>
-                              </td>
-                              <td className="px-3 py-2">
-                                <a
-                                  href={img.pageUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 hover:underline truncate max-w-xs block"
-                                >
-                                  {img.pageUrl}
-                                </a>
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                <span className="text-red-600 font-semibold">{sizeKB}KB</span>
-                              </td>
-                              <td className="px-3 py-2 text-gray-700">{actionNeeded}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-
-                    {/* Tip */}
-                    <div className="p-3 bg-orange-50 border-t border-orange-200">
-                      <div className="flex items-start gap-2 text-xs text-orange-800">
-                        <span className="text-orange-600">💡</span>
-                        <span><strong>Tip:</strong> Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.</span>
+                {/* Contextual Recommendations based on existing CMS/plugins */}
+                {contextualInfo && (contextualInfo.existingTools.length > 0 || contextualInfo.recommendations.length > 0) && (
+                  <div className="mt-3 space-y-2">
+                    {/* Existing Tools */}
+                    {contextualInfo.existingTools.length > 0 && (
+                      <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-green-800">
+                            <p className="font-semibold mb-1">Using Your Existing Tools:</p>
+                            {contextualInfo.existingTools.map((tool, idx) => (
+                              <p key={idx} className="mb-1 last:mb-0">{renderTextWithPluginLinks(tool)}</p>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Recommended Tools */}
+                    {contextualInfo.recommendations.length > 0 && (
+                      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                        <div className="flex items-start gap-2">
+                          <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-blue-800">
+                            <p className="font-semibold mb-1">Recommended Solutions:</p>
+                            {contextualInfo.recommendations.map((rec, idx) => (
+                              <p key={idx} className="mb-1 last:mb-0">{renderTextWithPluginLinks(rec)}</p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        )}
       </div>
-
-      <button
-        onClick={onToggle}
-        className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 text-sm text-gray-600 font-medium transition-colors border-t border-gray-200"
-      >
-        {isExpanded ? 'Show less' : 'Show details'}
-      </button>
     </div>
   )
 }

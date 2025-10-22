@@ -22,7 +22,7 @@ export default function UserHeader({ user }: UserHeaderProps) {
   }
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
+    <div className="bg-white border-b border-gray-200 shadow-sm mb-8">
       <div className="container-pmw">
         <div className="py-4 flex items-center justify-between">
           {/* Welcome Message */}
@@ -31,7 +31,7 @@ export default function UserHeader({ user }: UserHeaderProps) {
               Welcome back, <span className="text-[#42499c]">{user.username}</span>!
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Run comprehensive SEO audits on your websites
+              Run comprehensive websites audits across multiple categories
             </p>
           </div>
 
@@ -40,13 +40,9 @@ export default function UserHeader({ user }: UserHeaderProps) {
             {/* Credit Balance - Clickable */}
             <button
               onClick={() => setShowBuyCreditsModal(true)}
-              className="bg-gradient-to-r from-[#42499c] to-[#353f85] text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+              className="bg-gradient-to-r from-[#42499c] to-[#353f85] text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="10" fill="white" opacity="0.2"/>
-                  <text x="12" y="16" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">£</text>
-                </svg>
                 <div>
                   <div className="text-xs opacity-90">Credits</div>
                   <div className="text-lg font-bold">{user.credits.toLocaleString()}</div>
@@ -72,9 +68,9 @@ export default function UserHeader({ user }: UserHeaderProps) {
       </div>
 
       {/* Low Credits Warning */}
-      {user.credits < 20 && (
-        <div className="bg-white border-t-2 border-[#42499c]">
-          <div className="container-pmw py-3">
+      {user.credits < 20 && user.username !== 'james.hovey' && (
+        <div className="bg-white border-t-2 border-[#42499c] py-8">
+          <div className="container-pmw">
             <div className="flex items-center gap-3 text-sm">
               <svg className="w-5 h-5 text-[#42499c]" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
