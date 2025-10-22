@@ -4,7 +4,12 @@
       "Read(//Users/jameshovey/Desktop/**)",
       "WebFetch(domain:www.livingspacearchitects.com)",
       "Bash(curl -s \"https://www.livingspacearchitects.com/\")",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(git log --all -p -S \"OPENPAGERANK_API_KEY\")",
+      "Bash(cat .gitignore)",
+      "Bash(git rm --cached prisma/dev.db)",
+      "Bash(git add .gitignore)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd database files to .gitignore and remove from tracking\n\nDatabase files should not be version controlled as they may contain\nsensitive data and cause merge conflicts.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": [],
