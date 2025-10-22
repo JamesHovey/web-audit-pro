@@ -340,7 +340,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
       issues.push({
         id: 'perf-render-blocking',
         title: 'Render-Blocking Resources Delay Page Display',
-        description: `CSS and JavaScript files are blocking the page from rendering quickly, creating a poor first impression.${pluginRecommendation}${cmsRecommendation}${techStackRecommendation}`,
+        description: `CSS and JavaScript files are blocking the page from rendering quickly, creating a poor first impression.${pluginRecommendation}${techStackRecommendation}`,
         category: 'performance',
         severity: 'medium',
         impact: {

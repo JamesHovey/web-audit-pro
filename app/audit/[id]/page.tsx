@@ -157,11 +157,29 @@ export default function AuditPage() {
                 {audit.url}
               </div>
               {audit.results?.authority?.domainAuthority && (
-                <div className="flex items-center gap-1 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
-                  <span className="text-xs font-medium text-blue-600">DA:</span>
-                  <span className="text-sm font-bold text-blue-700">
-                    {audit.results.authority.domainAuthority}/100
-                  </span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">DA:</span>
+                  <span className="text-lg font-bold text-blue-600">{audit.results.authority.domainAuthority}</span>
+                  <div className="relative group">
+                    <svg className="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                      <circle cx="12" cy="12" r="9.5" />
+                      <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+                      <p className="font-medium mb-2">Domain Authority (DA)</p>
+                      <p className="mb-2">A score from 0-100 that predicts how well a website will rank on search engines.</p>
+                      <ul className="list-disc pl-4 space-y-1 text-xs">
+                        <li><strong>0-30:</strong> New or low authority site</li>
+                        <li><strong>30-50:</strong> Moderate authority</li>
+                        <li><strong>50-70:</strong> Good authority</li>
+                        <li><strong>70+:</strong> Excellent authority</li>
+                      </ul>
+                      <div className="mt-2 p-2 bg-blue-900 rounded text-xs">
+                        <p className="font-medium">How it's calculated:</p>
+                        <p>Based on factors like backlink quality, domain age, content quality, and technical SEO.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -173,20 +191,10 @@ export default function AuditPage() {
                 audit.status === 'running' ? 'bg-blue-100 text-blue-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
-                {audit.status === 'completed' ? 'Completed' : 
+                {audit.status === 'completed' ? 'Completed' :
                  audit.status === 'running' ? 'Running' : 'Pending'}
               </span>
             </div>
-            
-            {/* Domain Authority */}
-            {audit.results?.backlinks?.domainAuthority && (
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">DA:</span>
-                <span className="text-2xl font-bold text-purple-600">
-                  {Math.round(audit.results.backlinks.domainAuthority) || 'N/A'}
-                </span>
-              </div>
-            )}
             
             {/* Action buttons - inline on the right */}
             <div className="ml-auto flex items-center gap-2">
@@ -240,19 +248,13 @@ export default function AuditPage() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors disabled:bg-red-400 disabled:cursor-not-allowed flex items-center gap-2"
+                className="p-2 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                 title="Delete audit"
               >
                 {deleting ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Deleting...
-                  </>
+                  <Loader className="w-4 h-4 text-gray-400 animate-spin" />
                 ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </>
+                  <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
                 )}
               </button>
             </div>

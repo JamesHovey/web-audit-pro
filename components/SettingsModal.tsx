@@ -250,7 +250,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Model:</span>
-                      <span className="font-medium">{costingData?.claudeApi?.model || 'N/A'}</span>
+                      <span className="font-medium">{costingData?.claudeApi?.model || 'claude-3-5-haiku-20241022'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Requests This Month:</span>
+                      <span className="font-medium text-blue-600">
+                        {costingData?.claudeApi?.requestsThisMonth || 0}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Business Analysis:</span>
@@ -276,6 +282,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <span className="text-gray-600">Avg Cost/Request:</span>
                       <span className="font-medium text-green-600">{formatCost(costingData?.claudeApi?.avgCostPerRequest || 0)}</span>
                     </div>
+
+                    {(costingData?.claudeApi?.requestsThisMonth || 0) === 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>Note:</strong> Claude API tracking will begin once audits using AI analysis are run. Usage data is stored locally in your browser.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
