@@ -48,7 +48,13 @@ export interface EnhancedKeywordAnalysis {
   aboveFoldKeywords?: number;
   aboveFoldKeywordsList?: any[];
   aboveFoldCompetitors?: any;
-  
+
+  // Google AI Overview data
+  aiOverviewAnalysis?: any;
+  aiKeywordsWithOverview?: number;
+  aiCitationCount?: number;
+  aiEstimatedTrafficLoss?: number;
+
   // Enhanced metadata
   analysisMethod: string;
   industrySpecific: boolean;
@@ -127,9 +133,11 @@ export class EnhancedKeywordService {
 
     console.log(`💰 AUDIT COST BREAKDOWN:
     • Keywords Everywhere: ${keCredits} credits = $${keCost.toFixed(4)}
-    • Serper: ${vsSearches} searches = $${serperCost.toFixed(4)}
+    • Serper: ${vsSearches} searches = $${serperCost.toFixed(4)} (includes AI Overview data)
     • Claude API: $${claudeCost.toFixed(4)}
-    • Total: $${totalCost.toFixed(4)}`);
+    • Total: $${totalCost.toFixed(4)}
+
+    ℹ️  AI Overview analysis uses existing SERP data - no additional costs`);
 
     return {
       keywordsEverywhereCredits: keCredits,
@@ -279,12 +287,19 @@ export class EnhancedKeywordService {
       
       // Step 9: SERP Position Analysis for both branded and non-branded keywords
       console.log('🔍 Step 9: SERP Position Analysis...');
-      await this.enhanceWithSerpPositions(enhancedFormat.brandedKeywordsList, cleanDomain, 'branded');
-      await this.enhanceWithSerpPositions(enhancedFormat.nonBrandedKeywordsList, cleanDomain, 'non-branded');
-      
+      const brandedSerpData = await this.enhanceWithSerpPositions(enhancedFormat.brandedKeywordsList, cleanDomain, 'branded');
+      const nonBrandedSerpData = await this.enhanceWithSerpPositions(enhancedFormat.nonBrandedKeywordsList, cleanDomain, 'non-branded');
+
+      // Combine SERP data for AI Overview analysis
+      const allSerpData = [...brandedSerpData, ...nonBrandedSerpData];
+
+      // Step 9.5: Google AI Overview Analysis
+      console.log('🤖 Step 9.5: Google AI Overview Analysis...');
+      const aiOverviewAnalysis = await this.analyzeAIOverviews(allSerpData, cleanDomain);
+
       // Calculate enhanced metrics
       const metrics = this.calculateEnhancedMetrics(finalKeywords);
-      
+
       // Step 10: Domain Authority calculation
       console.log('📊 Step 10: Domain Authority Calculation...');
       let domainAuthorityResult;
@@ -322,7 +337,13 @@ export class EnhancedKeywordService {
         aboveFoldKeywords: aboveFoldAnalysis?.keywords?.length || 0,
         aboveFoldKeywordsList: aboveFoldAnalysis?.keywords || [],
         aboveFoldCompetitors: competitionAnalysis,
-        
+
+        // Google AI Overview data
+        aiOverviewAnalysis: aiOverviewAnalysis,
+        aiKeywordsWithOverview: aiOverviewAnalysis?.keywordsWithAI || 0,
+        aiCitationCount: aiOverviewAnalysis?.citationCount || 0,
+        aiEstimatedTrafficLoss: aiOverviewAnalysis?.estimatedTrafficLoss || 0,
+
         // Analysis metadata
         analysisMethod: 'enhanced_dynamic_generation',
         industrySpecific: finalKeywords.industrySpecific,
@@ -1525,60 +1546,98 @@ export class EnhancedKeywordService {
   }
 
   /**
-   * Enhance keywords with real SERP positions
+   * Enhance keywords with real SERP positions and return SERP data for AI analysis
    */
-  private async enhanceWithSerpPositions(keywords: any[], domain: string, type: 'branded' | 'non-branded'): Promise<void> {
+  private async enhanceWithSerpPositions(keywords: any[], domain: string, type: 'branded' | 'non-branded'): Promise<any[]> {
+    const serpResults: any[] = [];
+
     try {
       // Limit branded keywords to top 5, non-branded to top 8 to save API credits
       const maxKeywords = type === 'branded' ? 5 : 8;
       const topKeywords = keywords.slice(0, maxKeywords);
-      
+
       if (topKeywords.length === 0) {
         console.log(`⚠️ No ${type} keywords to check positions for`);
-        return;
+        return serpResults;
       }
-      
+
       // Check if Serper is available
       const hasSerper = !!process.env.SERPER_API_KEY;
       if (!hasSerper) {
         console.log(`⚠️ Serper API not configured - ${type} position data unavailable`);
-        return;
+        return serpResults;
       }
-      
+
       console.log(`🔍 Checking SERP positions for ${topKeywords.length} top ${type} keywords...`);
-      
+
       const { SerperService } = await import('./serperService');
       const serpService = new SerperService();
-      
+
       // Check positions for each keyword
       for (let i = 0; i < topKeywords.length; i++) {
         const keyword = topKeywords[i];
         try {
           console.log(`📊 Checking ${type} position for "${keyword.keyword}" (${i + 1}/${topKeywords.length})...`);
-          const position = await serpService.checkKeywordPosition(keyword.keyword, domain);
-          
-          if (position && position > 0 && position <= 100) {
-            keyword.position = position;
-            console.log(`✅ Found ${type} ranking: "${keyword.keyword}" - Position ${position}`);
+          const rankingData = await serpService.getKeywordRankings(keyword.keyword, domain);
+
+          if (rankingData.position && rankingData.position > 0 && rankingData.position <= 100) {
+            keyword.position = rankingData.position;
+            console.log(`✅ Found ${type} ranking: "${keyword.keyword}" - Position ${rankingData.position}`);
           } else {
             console.log(`❌ Not ranking: "${keyword.keyword}"`);
             // Keep position as 0 to show "Not ranking" in UI
           }
-          
+
+          // Store SERP data for AI analysis
+          serpResults.push({
+            keyword: keyword.keyword,
+            volume: keyword.volume,
+            position: rankingData.position,
+            organic: rankingData.allPositions,
+            searchParameters: { q: keyword.keyword }
+          });
+
           // Small delay to respect API limits
           if (i < topKeywords.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
-        } catch (error) {
+        } catch (error: any) {
           console.warn(`⚠️ Error checking position for "${keyword.keyword}":`, error.message);
           // Leave position as 0 to show "Not ranking"
         }
       }
-      
+
       console.log(`✅ ${type} SERP position analysis complete`);
-      
+
     } catch (error) {
       console.error(`❌ ${type} SERP position enhancement failed:`, error);
+    }
+
+    return serpResults;
+  }
+
+  /**
+   * Analyze Google AI Overviews across keywords
+   */
+  private async analyzeAIOverviews(serpResults: any[], domain: string): Promise<any | null> {
+    try {
+      if (serpResults.length === 0) {
+        console.log('⚠️ No SERP data available for AI Overview analysis');
+        return null;
+      }
+
+      console.log(`🤖 Analyzing AI Overviews for ${serpResults.length} keywords...`);
+
+      const { AIOverviewService } = await import('./aiOverviewService');
+      const aiService = new AIOverviewService(domain);
+
+      const analysis = await aiService.analyzeAIOverviews(serpResults);
+
+      return analysis;
+
+    } catch (error) {
+      console.error('❌ AI Overview analysis failed:', error);
+      return null;
     }
   }
 

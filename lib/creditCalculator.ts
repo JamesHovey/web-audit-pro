@@ -76,7 +76,7 @@ export class CreditCalculator {
     // Keywords Everywhere: ~10 keywords per page @ $0.0001 each
     const kePerPage = 10 * 0.0001  // $0.001 per page
 
-    // Serper: 1 search per page @ $0.0003 each
+    // Serper: 1 search per page @ $0.0003 each (includes AI Overview data - no extra cost)
     const serperPerPage = 0.0003
 
     // Base cost includes Claude for all pages
@@ -132,6 +132,7 @@ export class CreditCalculator {
   /**
    * Convert actual API costs to credits
    * Used after audit completion to record actual cost
+   * Note: AI Overview analysis uses existing Serper data - no additional costs
    */
   static convertActualCostToCredits(
     keywordsEverywhereCredits: number,
@@ -143,6 +144,7 @@ export class CreditCalculator {
     const keCost = keywordsEverywhereCredits * 0.0001
 
     // Serper: $0.0003 per search (paid tier: $0.30 per 1,000 searches)
+    // Note: AI Overview data comes from the same SERP calls - no extra cost
     const serperCost = serperSearches * 0.0003
 
     // Claude Sonnet 4.5 (paid tier):

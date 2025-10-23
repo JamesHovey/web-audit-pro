@@ -117,26 +117,53 @@ export class SophisticatedBusinessContextService {
     intelligence.industryKeywords.push(...contentAnalysis.keywords);
     intelligence.localContext = contentAnalysis.localContext;
     intelligence.sources.push('Semantic Content Analysis');
-    
-    // 3.5. Website Location Detection (prioritize over Companies House)
-    const websiteLocation = this.extractWebsiteLocation(html);
-    
-    if (websiteLocation.confidence > 0.5) {
-      // Website location has good confidence - use it
+
+    // 3.5. ENHANCED Location Detection Strategy
+    // Priority: Contact Page/Footer > Companies House > General Content
+
+    // Try to fetch contact page first (most accurate)
+    const contactPageLocation = await this.fetchContactPageLocation(domain);
+
+    // Also check homepage for footer/location info
+    const homepageLocation = this.extractWebsiteLocation(html);
+
+    // Use the highest confidence website source
+    const websiteLocation = contactPageLocation.confidence > homepageLocation.confidence
+      ? contactPageLocation
+      : homepageLocation;
+
+    // Decision logic with new priority order
+    if (websiteLocation.confidence >= 0.8) {
+      // High confidence from website (footer/contact page) - use it as primary
+      if (websiteLocation.locality) intelligence.localContext.locality = websiteLocation.locality;
+      if (websiteLocation.region) intelligence.localContext.region = websiteLocation.region;
+      intelligence.localContext.country = websiteLocation.country || intelligence.localContext.country;
+      intelligence.sources.push('Website Location (Contact/Footer)');
+
+      console.log(`🎯 Using high-confidence website location: ${websiteLocation.locality || websiteLocation.region} (${websiteLocation.confidence.toFixed(2)})`);
+
+      // Note if it differs from Companies House
+      if (intelligence.sicCodes.length > 0 && websiteLocation.locality) {
+        console.log(`📋 Companies House location also available but using website as primary source`);
+      }
+    } else if (intelligence.localContext.locality && intelligence.sicCodes.length > 0) {
+      // We have Companies House location - use as fallback
+      console.log(`📋 Using Companies House location (official): ${intelligence.localContext.locality}`);
+
+      // Note website location if found but low confidence
+      if (websiteLocation.confidence > 0.3) {
+        console.log(`   Website also shows: ${websiteLocation.locality || websiteLocation.region} (${websiteLocation.confidence.toFixed(2)} confidence)`);
+      }
+    } else if (websiteLocation.confidence > 0.3) {
+      // Medium/low confidence website location - better than nothing
       if (websiteLocation.locality) intelligence.localContext.locality = websiteLocation.locality;
       if (websiteLocation.region) intelligence.localContext.region = websiteLocation.region;
       intelligence.localContext.country = websiteLocation.country || intelligence.localContext.country;
       intelligence.sources.push('Website Location Detection');
-      
-      console.log(`🎯 Using website location (${websiteLocation.confidence.toFixed(2)} confidence): ${websiteLocation.locality || websiteLocation.region}`);
-      
-      // If we found Sussex but Companies House said Bristol, log the override
-      if (intelligence.sicCodes.length > 0 && websiteLocation.region?.includes('Sussex')) {
-        console.log(`🔄 Location override: Website shows Sussex operations, using website location over registered address`);
-      }
-    } else if (intelligence.localContext.locality) {
-      // Fall back to Companies House location if website detection failed
-      console.log(`📋 Using Companies House location (website detection confidence too low: ${websiteLocation.confidence.toFixed(2)})`);
+
+      console.log(`🌐 Using website location (no Companies House data): ${websiteLocation.locality || websiteLocation.region} (${websiteLocation.confidence.toFixed(2)})`);
+    } else {
+      console.log(`⚠️ Low confidence location detection: ${websiteLocation.confidence.toFixed(2)}`);
     }
 
     // 4. Wikipedia/Industry Knowledge Base
@@ -484,9 +511,71 @@ export class SophisticatedBusinessContextService {
   }
 
   /**
-   * Extract location from website content (prioritize over Companies House)
+   * Fetch contact/about pages to get more accurate location data
    */
-  private extractWebsiteLocation(html: string): {
+  private async fetchContactPageLocation(domain: string): Promise<{
+    locality?: string;
+    region?: string;
+    country?: string;
+    confidence: number;
+    source?: string;
+  }> {
+    // Common contact page paths (in order of preference)
+    const contactPaths = [
+      '/contact',
+      '/contact-us',
+      '/contact-us/',
+      '/about',
+      '/about-us',
+      '/about-us/',
+      '/find-us',
+      '/location',
+      '/locations'
+    ];
+
+    console.log(`🔍 Searching for contact page on ${domain}...`);
+
+    for (const path of contactPaths) {
+      try {
+        const url = `https://${domain}${path}`;
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; WebAuditBot/1.0)'
+          },
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          console.log(`✅ Found contact page: ${path}`);
+
+          // Extract location with higher confidence since it's from contact page
+          const location = this.extractWebsiteLocation(html, true);
+
+          if (location.confidence > 0) {
+            return {
+              ...location,
+              confidence: Math.min(location.confidence + 0.2, 1.0), // Boost confidence by 0.2
+              source: `contact-page${path}`
+            };
+          }
+        }
+      } catch (error) {
+        // Silently continue to next path
+        continue;
+      }
+    }
+
+    console.log(`⚠️ No contact page found, using homepage content`);
+    return { confidence: 0 };
+  }
+
+  /**
+   * Extract location from website content
+   * @param html - HTML content to analyze
+   * @param isContactPage - Whether this is from a contact/about page (higher confidence)
+   */
+  private extractWebsiteLocation(html: string, isContactPage: boolean = false): {
     locality?: string;
     region?: string;
     country?: string;
@@ -495,21 +584,40 @@ export class SophisticatedBusinessContextService {
   } {
     const content = html.toLowerCase();
     const sources: string[] = [];
-    
+
     // UK locations to detect (ordered by specificity)
     const ukLocations = {
+      // Devon areas (high priority - specific to general)
+      devon: ['devon', 'alton', 'exeter', 'plymouth', 'torquay', 'barnstaple', 'newton abbot', 'exmouth'],
       // Sussex areas (specific to general)
       sussex: ['west sussex', 'east sussex', 'sussex', 'billingshurst', 'brighton', 'worthing', 'chichester', 'crawley', 'horsham'],
       london: ['london', 'central london', 'greater london', 'city of london'],
       other: ['bristol', 'manchester', 'birmingham', 'leeds', 'liverpool', 'sheffield', 'edinburgh', 'glasgow', 'cardiff', 'belfast']
     };
-    
+
     const foundLocations: Array<{location: string; type: 'locality' | 'region'; confidence: number; source: string}> = [];
-    
-    // Look for locations in contact/address sections (highest confidence)
+
+    // HIGHEST PRIORITY: Look for footer content (most accurate for business address)
+    const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/i);
+    if (footerMatch) {
+      const footerContent = footerMatch[1].toLowerCase();
+      Object.values(ukLocations).flat().forEach(loc => {
+        if (footerContent.includes(loc)) {
+          foundLocations.push({
+            location: loc,
+            type: loc.includes('devon') || loc.includes('sussex') || loc === 'london' ? 'region' : 'locality',
+            confidence: 0.95, // Very high confidence from footer
+            source: 'footer-element'
+          });
+          console.log(`📍 Found location in footer: ${loc}`);
+        }
+      });
+    }
+
+    // Look for locations in contact/address sections (high confidence)
     const addressPatterns = [
-      /(?:address|office|located|based|headquarters?)[^.]{0,100}([a-z\s,]+(?:sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g,
-      /(?:contact|visit|find us)[^.]{0,100}([a-z\s,]+(?:sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g
+      /(?:address|office|located|based|headquarters?)[^.]{0,100}([a-z\s,]+(?:devon|alton|sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g,
+      /(?:contact|visit|find us)[^.]{0,100}([a-z\s,]+(?:devon|alton|sussex|london|bristol|manchester|birmingham)[^.]{0,50})/g
     ];
     
     addressPatterns.forEach((pattern, i) => {
@@ -564,15 +672,22 @@ export class SophisticatedBusinessContextService {
       return { confidence: 0, sources: [] };
     }
     
-    // Sort by confidence and specificity (Sussex areas first)
+    // Sort by confidence and specificity (Devon first, then other regions, then by confidence)
     foundLocations.sort((a, b) => {
-      // Prioritize Sussex locations
+      // Prioritize Devon locations (most specific first)
+      const aIsDevon = a.location.includes('devon') || a.location === 'alton';
+      const bIsDevon = b.location.includes('devon') || b.location === 'alton';
+
+      if (aIsDevon && !bIsDevon) return -1;
+      if (!aIsDevon && bIsDevon) return 1;
+
+      // Then Sussex locations
       const aIsSussex = a.location.includes('sussex') || a.location === 'billingshurst';
       const bIsSussex = b.location.includes('sussex') || b.location === 'billingshurst';
-      
+
       if (aIsSussex && !bIsSussex) return -1;
       if (!aIsSussex && bIsSussex) return 1;
-      
+
       // Then by confidence
       return b.confidence - a.confidence;
     });
@@ -583,13 +698,23 @@ export class SophisticatedBusinessContextService {
     // Determine locality vs region
     let locality: string | undefined;
     let region: string | undefined;
-    
-    if (bestLocation.location.includes('sussex')) {
-      region = bestLocation.location.includes('west') ? 'West Sussex' : 
+
+    if (bestLocation.location.includes('devon')) {
+      region = 'Devon';
+
+      // Look for more specific town within Devon
+      const devonTowns = foundLocations.filter(f =>
+        ['alton', 'exeter', 'plymouth', 'torquay', 'barnstaple', 'newton abbot', 'exmouth'].includes(f.location)
+      );
+      if (devonTowns.length > 0) {
+        locality = devonTowns[0].location.charAt(0).toUpperCase() + devonTowns[0].location.slice(1);
+      }
+    } else if (bestLocation.location.includes('sussex')) {
+      region = bestLocation.location.includes('west') ? 'West Sussex' :
              bestLocation.location.includes('east') ? 'East Sussex' : 'Sussex';
-      
+
       // Look for more specific town within Sussex
-      const sussexTowns = foundLocations.filter(f => 
+      const sussexTowns = foundLocations.filter(f =>
         ['billingshurst', 'brighton', 'worthing', 'chichester', 'crawley', 'horsham'].includes(f.location)
       );
       if (sussexTowns.length > 0) {
@@ -598,14 +723,21 @@ export class SophisticatedBusinessContextService {
     } else {
       locality = bestLocation.location.charAt(0).toUpperCase() + bestLocation.location.slice(1);
     }
+
+    // Boost confidence if this is from a contact page
+    let finalConfidence = bestLocation.confidence;
+    if (isContactPage && finalConfidence > 0) {
+      finalConfidence = Math.min(finalConfidence + 0.1, 1.0);
+      console.log(`📞 Contact page confidence boost: ${bestLocation.confidence.toFixed(2)} → ${finalConfidence.toFixed(2)}`);
+    }
     
-    console.log(`📍 Website location detected: ${locality || region || bestLocation.location} (confidence: ${bestLocation.confidence.toFixed(2)}, sources: ${allSources.join(', ')})`);
-    
+    console.log(`📍 Website location detected: ${locality || region || bestLocation.location} (confidence: ${finalConfidence.toFixed(2)}, sources: ${allSources.join(', ')})`);
+
     return {
       locality,
       region,
       country: 'UK',
-      confidence: bestLocation.confidence,
+      confidence: finalConfidence,
       sources: allSources
     };
   }

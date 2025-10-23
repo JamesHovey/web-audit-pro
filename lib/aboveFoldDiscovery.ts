@@ -62,7 +62,7 @@ export class AboveFoldDiscoveryService {
       let keywordOpportunities: AboveFoldKeyword[];
 
       if (useRealSerpData) {
-        // Get actual SERP rankings from Serper (positions 1-3 only)
+        // Get actual SERP rankings from Serper (first page - positions 1-10)
         keywordOpportunities = await this.getRealSerpRankings(keywordsWithVolumes, country);
         discoveryMethod = 'serper_actual_rankings';
       } else {
@@ -92,33 +92,44 @@ export class AboveFoldDiscoveryService {
       let filteredKeywords = keywordOpportunities;
       
       if (useRealSerpData) {
-        // STRICT CRITERIA: Only show keywords with volume >50 AND ranking in positions 1-3
-        filteredKeywords = filteredKeywords.filter(k => 
-          k.isActualRanking && 
-          k.position >= 1 && 
-          k.position <= 3 &&
-          (k.volume || 0) > 50 &&
+        // RELAXED CRITERIA: Show keywords ranking in positions 1-10 with volume >10
+        // This is more realistic for small businesses
+        filteredKeywords = filteredKeywords.filter(k =>
+          k.isActualRanking &&
+          k.position >= 1 &&
+          k.position <= 10 &&
+          (k.volume || 0) > 10 &&
           k.keyword.split(' ').length >= 2 // 2+ words for long-tail
         );
-        
-        console.log(`🎯 Serper: Found ${filteredKeywords.length} keywords meeting strict criteria (volume >50 AND positions 1-3)`);
-        
-        // No fallback - if criteria not met, show empty results
+
+        console.log(`🎯 Serper: Found ${filteredKeywords.length} keywords (positions 1-10, volume >10)`);
+
+        // Categorize keywords by tier
+        const topPerformers = filteredKeywords.filter(k => k.position <= 3 && (k.volume || 0) > 100);
+        const strongRankings = filteredKeywords.filter(k => k.position <= 3 && (k.volume || 0) >= 10 && (k.volume || 0) <= 100);
+        const page1Rankings = filteredKeywords.filter(k => k.position >= 4 && k.position <= 10 && (k.volume || 0) > 25);
+        const longTailWins = filteredKeywords.filter(k => k.position <= 10 && (k.volume || 0) >= 10 && (k.volume || 0) <= 25);
+
+        console.log(`  📊 Top Performers (pos 1-3, vol >100): ${topPerformers.length}`);
+        console.log(`  📊 Strong Rankings (pos 1-3, vol 10-100): ${strongRankings.length}`);
+        console.log(`  📊 Page 1 Rankings (pos 4-10, vol >25): ${page1Rankings.length}`);
+        console.log(`  📊 Long-tail Wins (pos 1-10, vol 10-25): ${longTailWins.length}`);
+
         if (filteredKeywords.length === 0) {
-          console.log(`🎯 No keywords meet criteria - showing empty results`);
+          console.log(`⚠️ No keywords found ranking in positions 1-10 with volume >10`);
         }
-        
-        // Sort by position (1,2,3) then by volume (high to low)
+
+        // Sort by position first, then by volume
         filteredKeywords.sort((a, b) => {
           if (a.position !== b.position) {
-            return a.position - b.position; // Position 1 first, then 2, then 3
+            return a.position - b.position; // Better positions first
           }
           return (b.volume || 0) - (a.volume || 0); // Higher volume first within same position
         });
-        
-        // Limit to maximum 30 keywords
-        filteredKeywords = filteredKeywords.slice(0, 30);
-        
+
+        // Limit to maximum 50 keywords (increased from 30)
+        filteredKeywords = filteredKeywords.slice(0, 50);
+
         console.log(`🔍 Final Above Fold Keywords: ${filteredKeywords.length} business-relevant longtail keywords`);
         filteredKeywords.slice(0, 10).forEach(k => {
           console.log(`  ✅ "${k.keyword}" - Position ${k.position}, Volume: ${k.volume || 0}`);
@@ -677,9 +688,9 @@ export class AboveFoldDiscoveryService {
           100 // Check top 100 results
         );
 
-        if (rankingData.position !== null && rankingData.position <= 3) {
-          // Domain ranks in top 3 positions for this keyword
-          console.log(`✅ Found top 3 ranking: "${kw.keyword}" - Position ${rankingData.position}`);
+        if (rankingData.position !== null && rankingData.position <= 10) {
+          // Domain ranks in first page (positions 1-10) for this keyword
+          console.log(`✅ Found page 1 ranking: "${kw.keyword}" - Position ${rankingData.position}`);
 
           aboveFoldKeywords.push({
             keyword: kw.keyword,
@@ -693,7 +704,7 @@ export class AboveFoldDiscoveryService {
             contentRelevance: this.calculateKeywordRelevance(kw.keyword, '') // Will be calculated if needed
           });
         } else if (rankingData.position !== null) {
-          console.log(`⚪ Keyword ranks but not in top 3: "${kw.keyword}" - Position ${rankingData.position}`);
+          console.log(`⚪ Keyword ranks but not in first page: "${kw.keyword}" - Position ${rankingData.position}`);
         } else {
           console.log(`❌ Keyword not ranking: "${kw.keyword}"`);
         }

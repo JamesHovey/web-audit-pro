@@ -2429,6 +2429,183 @@ function renderSectionResults(
             />
           )}
 
+          {/* Google AI Overview Analysis */}
+          {results.aiOverviewAnalysis && results.aiOverviewAnalysis.totalKeywords > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <div className="flex items-center gap-2 mb-6">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900">Google AI Overview Impact</h3>
+                <Tooltip
+                  content={
+                    <div className="max-w-md">
+                      <p className="font-semibold mb-3">Understanding AI Overviews</p>
+                      <div className="space-y-3 text-sm">
+                        <p className="text-gray-200">
+                          Google AI Overviews are AI-generated answers that appear at the top of search results,
+                          potentially reducing clicks to organic listings by 40-60%.
+                        </p>
+                        <div>
+                          <p className="font-medium mb-1">Why This Matters</p>
+                          <ul className="list-disc list-inside text-gray-200 space-y-1">
+                            <li>AI Overviews can significantly impact your organic traffic</li>
+                            <li>Being cited in AI builds authority and brand awareness</li>
+                            <li>Understanding competitor citations reveals content gaps</li>
+                            <li>Helps prioritize content strategy for maximum visibility</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  position="top"
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                </Tooltip>
+              </div>
+
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {results.aiOverviewAnalysis.percentageWithAI}%
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Keywords with AI</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {results.aiOverviewAnalysis.keywordsWithAI} of {results.aiOverviewAnalysis.totalKeywords} keywords
+                  </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-green-600">
+                    {results.aiOverviewAnalysis.citationCount}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Citations</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Times your domain is cited
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {results.aiOverviewAnalysis.estimatedTrafficLoss}%
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Traffic Impact</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Estimated click reduction
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {results.aiOverviewAnalysis.competitorCitations.length}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Competitors</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Cited in AI Overviews
+                  </div>
+                </div>
+              </div>
+
+              {/* Strategic Insights */}
+              {results.aiOverviewAnalysis.insights && results.aiOverviewAnalysis.insights.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3">Strategic Insights</h4>
+                  <div className="space-y-2">
+                    {results.aiOverviewAnalysis.insights.map((insight: string, index: number) => (
+                      <div key={index} className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-purple-600 mt-0.5">
+                          {insight.includes('✅') ? '✅' : insight.includes('⚠️') ? '⚠️' : insight.includes('❌') ? '❌' : insight.includes('🏆') ? '🏆' : insight.includes('💡') ? '💡' : '•'}
+                        </div>
+                        <div className="text-sm text-gray-700 flex-1">
+                          {insight.replace(/^[✅⚠️❌🏆💡]\s*/, '')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Competitor Citations */}
+              {results.aiOverviewAnalysis.competitorCitations && results.aiOverviewAnalysis.competitorCitations.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Top Competitors in AI Overviews</h4>
+                  <div className="space-y-2">
+                    {results.aiOverviewAnalysis.competitorCitations.slice(0, 5).map((competitor: { domain: string; count: number }, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm font-medium text-gray-700">
+                            #{index + 1}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{competitor.domain}</div>
+                            <div className="text-xs text-gray-500">Cited {competitor.count} times</div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-purple-600">
+                          {Math.round((competitor.count / results.aiOverviewAnalysis.keywordsWithAI) * 100)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Keywords with AI Overviews */}
+              {results.aiOverviewAnalysis.keywords && results.aiOverviewAnalysis.keywords.length > 0 && (
+                <div className="mt-6">
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        View Keywords with AI Overviews ({results.aiOverviewAnalysis.keywords.filter((k: any) => k.hasAIOverview).length})
+                      </div>
+                    </summary>
+                    <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                      {results.aiOverviewAnalysis.keywords
+                        .filter((k: any) => k.hasAIOverview)
+                        .map((keyword: any, index: number) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{keyword.keyword}</div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                                  {keyword.volume && <span>Volume: {keyword.volume.toLocaleString()}</span>}
+                                  {keyword.position && <span>Position: #{keyword.position}</span>}
+                                  {keyword.aiOverviewType && (
+                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                                      {keyword.aiOverviewType.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {keyword.isCitedInAI && (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                  You're Cited
+                                </span>
+                              )}
+                            </div>
+                            {keyword.aiSnippet && (
+                              <div className="text-xs text-gray-600 italic mt-2 pl-3 border-l-2 border-purple-200">
+                                {keyword.aiSnippet.substring(0, 200)}...
+                              </div>
+                            )}
+                            {keyword.competitorsCited && keyword.competitorsCited.length > 0 && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                <span className="font-medium">Competitors cited:</span> {keyword.competitorsCited.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Branded vs Non-Branded Chart - NEW */}
           {(results.brandedKeywordsList || results.keywords?.brandedKeywordsList) &&
            (results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList) && (
