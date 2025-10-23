@@ -14,8 +14,8 @@ const calculatePrice = (credits: number, markup: number) => {
   const costPerCredit = BASE_COST_PER_CREDIT
   const priceWithMarkup = credits * costPerCredit * (1 + markup / 100)
 
-  // Convert to .99 format (subtract 1p and ensure minimum of 0.99)
-  const priceNinetyNine = Math.max(0.99, Math.floor(priceWithMarkup) - 0.01)
+  // Convert to .99 format (round to nearest pound, then subtract 1p)
+  const priceNinetyNine = Math.max(0.99, Math.round(priceWithMarkup) - 0.01)
 
   return priceNinetyNine
 }
@@ -24,9 +24,12 @@ const formatPrice = (price: number) => {
   return `£${price.toFixed(2)}`
 }
 
-const formatPricePerCredit = (totalPrice: number, credits: number) => {
+const formatPricePerCredit = (totalPrice: number, credits: number, numAudits: number) => {
   const pricePerCredit = (totalPrice / credits) * 100
-  return `${Math.round(pricePerCredit)}p / credit`
+  // Actual cost: 81p per 50-page audit with keywords
+  const costPerFullAudit = 0.81
+  const totalCostPMW = numAudits * costPerFullAudit
+  return `${Math.round(pricePerCredit)}p / credit (Total cost PMW: £${totalCostPMW.toFixed(2)} for ${numAudits}×50-page audits)`
 }
 
 export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
@@ -35,11 +38,12 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
   const packages = [
     {
       name: "Starter",
-      credits: 100,
+      credits: 250,
+      numAudits: 3,
       features: [
-        "100 audit credits",
-        "~3-7 full-site audits",
-        "All SEO features",
+        "250 audit credits",
+        "3 full-site audits (up to 50 pages)",
+        "All SEO features including keywords",
         "PDF exports",
         "Email support"
       ],
@@ -47,11 +51,12 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
     },
     {
       name: "Professional",
-      credits: 500,
+      credits: 400,
+      numAudits: 5,
       features: [
-        "500 audit credits",
-        "~15-35 full-site audits",
-        "All SEO features",
+        "400 audit credits",
+        "5 full-site audits (up to 50 pages)",
+        "All SEO features including keywords",
         "PDF exports",
         "Priority support",
         "API access (coming soon)"
@@ -60,30 +65,16 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
     },
     {
       name: "Business",
-      credits: 2000,
+      credits: 800,
+      numAudits: 10,
       features: [
-        "2,000 audit credits",
-        "~60-140 full-site audits",
-        "All SEO features",
+        "800 audit credits",
+        "10 full-site audits (up to 50 pages)",
+        "All SEO features including keywords",
         "PDF exports",
         "Priority support",
         "API access (coming soon)",
         "White-label reports"
-      ],
-      popular: false
-    },
-    {
-      name: "Enterprise",
-      credits: 10000,
-      features: [
-        "10,000 audit credits",
-        "~300-700 full-site audits",
-        "All SEO features",
-        "PDF exports",
-        "Dedicated support",
-        "API access",
-        "White-label reports",
-        "Custom integrations"
       ],
       popular: false
     }
@@ -118,7 +109,7 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packages.map((pkg) => {
             const price = calculatePrice(pkg.credits, markup)
-            const pricePerCredit = formatPricePerCredit(price, pkg.credits)
+            const pricePerCredit = formatPricePerCredit(price, pkg.credits, pkg.numAudits)
             const savings = calculateSavings(pkg.credits)
 
             return (
@@ -200,7 +191,7 @@ export default function CreditPackages({ markup = 100 }: CreditPackagesProps) {
               )}
               <div className="text-xs text-gray-600">
                 {customCredits && parseInt(customCredits) > 0
-                  ? formatPricePerCredit(customPrice, parseInt(customCredits))
+                  ? formatPricePerCredit(customPrice, parseInt(customCredits), Math.floor(parseInt(customCredits) / 80))
                   : '- / credit'}
               </div>
             </div>

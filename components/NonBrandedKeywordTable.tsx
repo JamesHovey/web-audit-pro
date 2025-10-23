@@ -315,7 +315,7 @@ export default function NonBrandedKeywordTable({
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
               </Tooltip>
             </div>
-            <div className="col-span-3 text-center">
+            <div className={auditType === 'page' ? 'col-span-6 text-center' : 'col-span-3 text-center'}>
               <button
                 onClick={() => handleSort('volume')}
                 className="inline-flex items-center gap-1 hover:text-gray-900"
@@ -323,22 +323,24 @@ export default function NonBrandedKeywordTable({
                 Monthly Volume
                 {getSortIcon('volume')}
               </button>
-              <Tooltip 
+              <Tooltip
                 content="Monthly search volume from Google Keyword Planner via Keywords Everywhere API. These are real search volumes, not estimates."
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
               </Tooltip>
             </div>
-            <div className="col-span-3 text-center">
-              Pages
-              <Tooltip 
-                content="Number of pages where this keyword was found (click number to view details)"
-                position="top"
-              >
-                <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
-              </Tooltip>
-            </div>
+            {auditType !== 'page' && (
+              <div className="col-span-3 text-center">
+                Pages
+                <Tooltip
+                  content="Number of pages where this keyword was found (click number to view details)"
+                  position="top"
+                >
+                  <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>
+                </Tooltip>
+              </div>
+            )}
           </div>
         </div>
         
@@ -360,17 +362,19 @@ export default function NonBrandedKeywordTable({
                         {keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
                       </span>
                     </div>
-                    <div className="col-span-3 text-center text-gray-600">
+                    <div className={auditType === 'page' ? 'col-span-6 text-center text-gray-600' : 'col-span-3 text-center text-gray-600'}>
                       {keyword.volume.toLocaleString()}/mo
                     </div>
-                    <div className="col-span-3 text-center">
-                      <button
-                        onClick={() => openPageSourceModal(keyword.keyword, pageSources)}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors cursor-pointer"
-                      >
-                        {pageSources.length}
-                      </button>
-                    </div>
+                    {auditType !== 'page' && (
+                      <div className="col-span-3 text-center">
+                        <button
+                          onClick={() => openPageSourceModal(keyword.keyword, pageSources)}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors cursor-pointer"
+                        >
+                          {pageSources.length}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -394,12 +398,14 @@ export default function NonBrandedKeywordTable({
                         {keyword.position === 0 ? 'Not ranking' : `#${keyword.position}`}
                       </span>
                     </div>
-                    <div className="col-span-3 text-center text-gray-600">
+                    <div className={auditType === 'page' ? 'col-span-6 text-center text-gray-600' : 'col-span-3 text-center text-gray-600'}>
                       {keyword.volume.toLocaleString()}/mo
                     </div>
-                    <div className="col-span-3 text-center text-xs">
-                      {pageSources.length}
-                    </div>
+                    {auditType !== 'page' && (
+                      <div className="col-span-3 text-center text-xs">
+                        {pageSources.length}
+                      </div>
+                    )}
                   </div>
                 </div>
               )

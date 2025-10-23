@@ -15,14 +15,14 @@ const AUDIT_SECTIONS = [
     description: "Organic search performance, paid advertising metrics, and geographic distribution"
   },
   {
+    id: "performance",
+    label: "Performance & Technical Audit",
+    description: "Core Web Vitals, technical SEO health, image optimization, site structure analysis, and technology stack detection"
+  },
+  {
     id: "keywords",
     label: "Keywords",
     description: "Branded and non-branded keyword analysis with competitive intelligence"
-  },
-  {
-    id: "performance",
-    label: "Performance, Technical Audit & Tech Stack",
-    description: "Core Web Vitals, technical SEO health, image optimization, site structure analysis, and technology stack detection"
   },
   {
     id: "accessibility",
@@ -44,6 +44,40 @@ interface PageOption {
   url: string
   title: string
   selected: boolean
+}
+
+// Rotating comments for different audit types
+const AUDIT_COMMENTS: Record<string, string[]> = {
+  traffic: [
+    "Analysing organic search traffic patterns and user engagement metrics...",
+    "Comparing your organic performance against industry benchmarks...",
+    "Evaluating geographic distribution and traffic sources...",
+    "Assessing paid advertising effectiveness and opportunities..."
+  ],
+  performance: [
+    "Running Core Web Vitals assessment for optimal user experience...",
+    "Scanning site structure and technical SEO health...",
+    "Analyzing page speed and performance metrics...",
+    "Detecting technology stack and optimization opportunities...",
+    "Checking image optimization and resource loading..."
+  ],
+  keywords: [
+    "Identifying branded vs non-branded keyword opportunities...",
+    "Analyzing keyword rankings and search visibility...",
+    "Discovering high-value keyword gaps and opportunities...",
+    "Assessing competitive keyword positioning..."
+  ],
+  accessibility: [
+    "Testing WCAG 2.2 Level AA compliance requirements...",
+    "Scanning for accessibility barriers and fixes...",
+    "Evaluating keyboard navigation and screen reader support...",
+    "Checking color contrast and visual accessibility..."
+  ],
+  backlinks: [
+    "Analyzing backlink profile and domain authority...",
+    "Identifying high-quality link opportunities...",
+    "Assessing link diversity and anchor text distribution..."
+  ]
 }
 
 // Countries supported by Keywords Everywhere API
@@ -114,6 +148,7 @@ export function AuditForm() {
   const [isDiscoveringPages, setIsDiscoveringPages] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false)
+  const [currentComment, setCurrentComment] = useState("")
   const [error, setError] = useState("")
   const [showErrorTooltip, setShowErrorTooltip] = useState(false)
   const [isValidUrl, setIsValidUrl] = useState(false)
@@ -248,10 +283,11 @@ export function AuditForm() {
     const keCostUSD = keCreditsUsed * 0.00024 // $0.24 per 1000 credits
     const serperCostUSD = vsSearchesUsed * 0.0006 // $0.60 per 1000 searches (2 credits per search)
 
-    // Claude API costs (Haiku: $0.25/MTok input, $1.25/MTok output)
-    const claudeBusinessAnalysisCostUSD = hasKeywords ? 0.0019 : 0 // ~5K input + 1.5K output tokens
-    const claudeConclusionCostUSD = 0.00088 // ~1K input + 500 output tokens (always runs for performance section)
-    const totalClaudeCostUSD = claudeBusinessAnalysisCostUSD + claudeConclusionCostUSD
+    // Claude API costs (Haiku: $0.25/MTok input, $1.25/MTok output) - PER PAGE
+    const claudeBusinessAnalysisPerPageUSD = hasKeywords ? 0.0019 : 0 // ~5K input + 1.5K output tokens
+    const claudeConclusionPerPageUSD = 0.00088 // ~1K input + 500 output tokens (always runs for performance section)
+    const claudePerPageUSD = claudeBusinessAnalysisPerPageUSD + claudeConclusionPerPageUSD
+    const totalClaudeCostUSD = claudePerPageUSD * pageCount
 
     const totalCostUSD = keCostUSD + serperCostUSD + totalClaudeCostUSD
 
@@ -260,13 +296,14 @@ export function AuditForm() {
     const totalCostGBP = totalCostUSD * usdToGbp
 
     // Calculate credits with 100% markup (1 credit = 1p = £0.01)
-    const creditsRequired = Math.ceil((totalCostGBP * 2) / 0.01) // 2x for 100% markup
+    const totalCostWithMarkupGBP = totalCostGBP * 2 // Apply 100% markup
+    const creditsRequired = Math.ceil(totalCostWithMarkupGBP / 0.01) // Convert to credits
 
     setEstimatedCost({
       keywordsEverywhere: keCostUSD * usdToGbp,
       serper: serperCostUSD * usdToGbp,
       claude: totalClaudeCostUSD * usdToGbp,
-      total: totalCostGBP,
+      total: totalCostWithMarkupGBP, // Display cost WITH markup
       creditsRequired: creditsRequired
     })
   }
@@ -306,6 +343,36 @@ export function AuditForm() {
       cacheExcludedPaths(urlToCache, excludedPaths)
     }
   }, [excludedPaths, url, isValidUrl])
+
+  // Rotate comments based on selected audit sections
+  useEffect(() => {
+    if (!showLoadingOverlay) return
+
+    // Collect all relevant comments from selected audit types
+    const allComments: string[] = []
+    selectedSections.forEach(section => {
+      if (AUDIT_COMMENTS[section]) {
+        allComments.push(...AUDIT_COMMENTS[section])
+      }
+    })
+
+    // If no comments found, use a generic one
+    if (allComments.length === 0) {
+      allComments.push("Running comprehensive website analysis...")
+    }
+
+    // Set initial comment
+    let currentIndex = 0
+    setCurrentComment(allComments[0])
+
+    // Rotate comments every 3 seconds
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % allComments.length
+      setCurrentComment(allComments[currentIndex])
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [showLoadingOverlay, selectedSections])
 
   // Fetch domain authority when URL is valid
   useEffect(() => {
@@ -1682,12 +1749,23 @@ export function AuditForm() {
 
                 <div className="border-t border-blue-300 pt-3 mt-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900 text-base">Total Estimated Cost</span>
+                    <span className="font-semibold text-gray-900 text-base">Customer Price (with 100% markup)</span>
                     <div className="text-right">
                       <span className="font-bold text-2xl text-blue-600">{formatCost(estimatedCost.total)}</span>
                       <div className="text-sm text-gray-700 mt-1">
                         ({estimatedCost.creditsRequired} credits required)
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-blue-200 bg-green-50 -mx-4 px-4 py-2 rounded">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700">Your Actual API Cost:</span>
+                      <span className="font-semibold text-green-700">{formatCost(estimatedCost.total / 2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-gray-700">Your Profit (100% markup):</span>
+                      <span className="font-bold text-green-600">{formatCost(estimatedCost.total / 2)}</span>
                     </div>
                   </div>
                 </div>
@@ -1779,19 +1857,16 @@ export function AuditForm() {
               <LoadingSpinner size="lg" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Analyzing Website
+              Analysing Website
             </h2>
             <p className="text-gray-600 mb-6">
-              We're conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}. Depending on the size and complexity of the site it should take between 5 - 10 minutes.
+              We're conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}.
             </p>
 
-            {/* Inspirational Quote */}
+            {/* Rotating Comment */}
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-              <p className="text-center text-gray-700 italic mb-2">
-                "Great SEO is a marathon, not a sprint. Stay consistent and patient."
-              </p>
-              <p className="text-center text-xs text-gray-500">
-                Background: Technical Audit
+              <p className="text-center text-gray-700 italic transition-opacity duration-500">
+                {currentComment}
               </p>
             </div>
           </div>

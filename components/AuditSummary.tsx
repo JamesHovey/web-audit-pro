@@ -49,15 +49,7 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
   const summary: AuditSummaryResult = generateAuditSummary(auditResults, auditUrl)
 
   if (summary.totalIssues === 0) {
-    return (
-      <div className="card-pmw">
-        <div className="p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Excellent! No Issues Found</h2>
-          <p className="text-gray-600">Your website is in great shape across all audited areas.</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   const handleSeeMore = (sectionId: string, subsectionId?: string) => {

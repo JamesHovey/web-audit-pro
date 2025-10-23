@@ -43,7 +43,7 @@ const SECTION_CONFIG = {
     icon: Search,
     estimatedTime: 60, // seconds
     steps: [
-      { name: "Analyzing business type", time: 15 },
+      { name: "Analysing business type", time: 15 },
       { name: "Discovering branded keywords", time: 20 },
       { name: "Finding competitor keywords", time: 15 },
       { name: "Getting real search volumes", time: 10 }
@@ -56,7 +56,7 @@ const SECTION_CONFIG = {
     estimatedTime: 45,
     steps: [
       { name: "Estimating organic traffic", time: 15 },
-      { name: "Analyzing traffic patterns", time: 15 },
+      { name: "Analysing traffic patterns", time: 15 },
       { name: "Geographic distribution", time: 15 }
     ],
     color: "#059669"
@@ -89,7 +89,7 @@ const SECTION_CONFIG = {
     estimatedTime: 35,
     steps: [
       { name: "Detecting CMS platform", time: 10 },
-      { name: "Analyzing frameworks", time: 15 },
+      { name: "Analysing frameworks", time: 15 },
       { name: "Security assessment", time: 10 }
     ],
     color: "#1F2937"
@@ -101,7 +101,7 @@ const SECTION_CONFIG = {
     steps: [
       { name: "Running axe-core WCAG tests", time: 20 },
       { name: "Running Pa11y compliance scan", time: 20 },
-      { name: "Analyzing accessibility issues", time: 15 },
+      { name: "Analysing accessibility issues", time: 15 },
       { name: "Generating fix recommendations", time: 5 }
     ],
     color: "#7C3AED"
@@ -219,10 +219,10 @@ export default function LoadingMessages({ section, className = "", progress, sta
         <div className="text-center space-y-4">
           <div>
             <h2 className="text-2xl font-bold text-black">
-              Analyzing Website
+              Analysing Website
             </h2>
             <p className="text-base text-black mt-2">
-              Please wait while we analyze your website
+              Please wait while we analyse your website
             </p>
           </div>
         </div>

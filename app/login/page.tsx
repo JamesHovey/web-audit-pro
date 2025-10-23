@@ -45,12 +45,12 @@ export default function LoginPage() {
         {/* Introduction */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Professional SEO Audits Made Simple
+            Professional Website Audits Made Simple
           </h2>
           <p className="text-lg text-gray-600 leading-relaxed">
             Web Audit Pro delivers comprehensive website audits that help you identify technical issues,
             improve performance, and boost your search engine rankings. Get detailed insights on traffic, keywords,
-            accessibility, and more—all in beautifully formatted PDF reports.
+            accessibility, and more—all in a beautiful user friendly dashboard.
           </p>
           <div className="mt-8 flex items-center justify-center gap-8 text-sm text-gray-700">
             <div className="flex items-center gap-2">

@@ -1,17 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Read(//Users/jameshovey/Desktop/**)",
-      "WebFetch(domain:www.livingspacearchitects.com)",
-      "Bash(curl -s \"https://www.livingspacearchitects.com/\")",
-      "Bash(npm run dev)",
-      "Bash(git log --all -p -S \"OPENPAGERANK_API_KEY\")",
-      "Bash(cat .gitignore)",
-      "Bash(git rm --cached prisma/dev.db)",
-      "Bash(git add .gitignore)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd database files to .gitignore and remove from tracking\n\nDatabase files should not be version controlled as they may contain\nsensitive data and cause merge conflicts.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(find components/ -name \"*.tsx\" -exec grep -l \"Trash\" {} ;)",
-      "Bash(find app/ -name \"*.tsx\" -exec grep -l \"bg-red-600\\|Delete.*button\\|button.*Delete\" {})"
+      "Bash(node -e \"\nconst { PrismaClient } = require(''@prisma/client'');\nconst prisma = new PrismaClient();\n\nasync function checkResults() {\n  try {\n    const audits = await prisma.audit.findMany({\n      where: {\n        url: {\n          contains: ''livingspacearchitects''\n        }\n      },\n      orderBy: {\n        createdAt: ''desc''\n      },\n      take: 1,\n      select: {\n        id: true,\n        url: true,\n        results: true\n      }\n    });\n    \n    if (audits.length > 0) {\n      const audit = audits[0];\n      const results = typeof audit.results === ''string'' ? JSON.parse(audit.results) : audit.results;\n      \n      console.log(''Audit ID:'', audit.id);\n      console.log(''URL:'', audit.url);\n      console.log(''\\nChecking for auditScope/auditType fields:'');\n      console.log(''results.auditScope:'', results.auditScope);\n      console.log(''results.auditType:'', results.auditType);\n      console.log(''results.scope:'', results.scope);\n      \n      console.log(''\\nTop level keys in results:'');\n      console.log(Object.keys(results).slice(0, 20));\n    } else {\n      console.log(''No audits found'');\n    }\n    \n    await prisma.$disconnect();\n  } catch (error) {\n    console.error(''Error:'', error);\n    process.exit(1);\n  }\n}\n\ncheckResults();\n\")"
     ],
     "deny": [],
     "ask": [],

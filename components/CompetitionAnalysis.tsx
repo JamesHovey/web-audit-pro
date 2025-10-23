@@ -156,12 +156,12 @@ export default function CompetitionAnalysis({ targetDomain, keywords }: Competit
           <Users className="w-5 h-5 text-[#42499c]" />
           <h3 className="text-lg font-semibold text-gray-900">Competition Analysis</h3>
           <div className="text-xs bg-[#42499c]/10 text-[#42499c] px-2 py-1 rounded-full font-medium">
-            Analyzing...
+            Analysing...
           </div>
         </div>
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#42499c] mx-auto mb-4"></div>
-          <p className="text-gray-600">Analyzing keyword competition...</p>
+          <p className="text-gray-600">Analysing keyword competition...</p>
         </div>
       </div>
     );

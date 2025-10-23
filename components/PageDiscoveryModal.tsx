@@ -12,8 +12,8 @@ export function PageDiscoveryModal({ isOpen, onClose, websiteUrl }: PageDiscover
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 text-center">
           <div className="mb-4">
             <LoadingSpinner size="lg" />
@@ -39,7 +39,7 @@ export function PageDiscoveryModal({ isOpen, onClose, websiteUrl }: PageDiscover
           <div className="space-y-2 text-left">
             <div className="flex items-center text-sm text-gray-600">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-              Analyzing XML sitemaps
+              Analysing XML sitemaps
             </div>
             <div className="flex items-center text-sm text-gray-600">
               <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>

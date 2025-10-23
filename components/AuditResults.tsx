@@ -24,6 +24,7 @@ import AccessibilityResults from './AccessibilityResults'
 import AuditSummary from './AuditSummary'
 import EnhancedRecommendations from './EnhancedRecommendations'
 import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
+import BrandedVsNonBrandedChart from './BrandedVsNonBrandedChart'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
 import SectionExportButtons from './SectionExportButtons'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
@@ -107,9 +108,9 @@ const BACKGROUND_THEMES = [
 const SECTION_LABELS = {
   traffic: "Traffic Insights",
   keywords: "Keywords",
-  performance: "Performance, Technical Audit & Tech Stack",
+  performance: "Performance & Technical Audit",
   backlinks: "Authority & Backlinks",
-  technical: "Performance, Technical Audit & Tech Stack",
+  technical: "Performance & Technical Audit",
   technology: "Technology Stack",
   accessibility: "Accessibility"
 }
@@ -132,7 +133,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     performance: true,
     technology: true,
     accessibility: true,
-    keywords: true,
+    keywords: false,  // Always expanded for keyword audits
     viewport: false  // Always expanded so it runs automatically
   })
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
@@ -184,13 +185,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   // Update collapsed sections when view changes
   useEffect(() => {
     if (currentView === 'executive') {
-      // Collapse all sections except summary
+      // Collapse all sections except summary and keywords
       setCollapsedSections({
         traffic: true,
         performance: true,
         technology: true,
         accessibility: true,
-        keywords: true,
+        keywords: false, // Always expanded for keyword audits
         viewport: true
       })
     } else if (currentView === 'manager') {
@@ -200,7 +201,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
         performance: false,
         technology: true,
         accessibility: false,
-        keywords: false,
+        keywords: false, // Always expanded for keyword audits
         viewport: true
       })
     } else if (currentView === 'developer') {
@@ -210,7 +211,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
         performance: false,
         technology: false,
         accessibility: false,
-        keywords: false,
+        keywords: false, // Always expanded for keyword audits
         viewport: false
       })
     }
@@ -713,7 +714,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       <LoadingMessages section="traffic" />
                     ) : (
                       <>
-                        {renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+                        {renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)}
                         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                           <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -761,11 +762,11 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                       </div>
                     )}
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      Performance, Technical Audit & Tech Stack
+                      Performance & Technical Audit
                       <Tooltip
                         content={
                           <div>
-                            <p className="font-semibold mb-2">Performance, Technical Audit & Tech Stack</p>
+                            <p className="font-semibold mb-2">Performance & Technical Audit</p>
                             <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
                             <div className="text-xs space-y-1">
                               <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
@@ -784,7 +785,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <div className="flex items-center gap-2">
                     <div onClick={(e) => e.stopPropagation()}>
                       <SectionExportButtons
-                        sectionName="Performance, Technical Audit & Tech Stack"
+                        sectionName="Performance & Technical Audit"
                         sectionData={audit.results?.performance || {}}
                         auditUrl={audit.url}
                       />
@@ -817,7 +818,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                           performancePagination,
                           setPerformancePagination,
                           setShowCoreWebVitalsGuide,
-                          audit?.auditType,
+                          audit.results?.scope,
                           audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
                           audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
                         )}
@@ -985,7 +986,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                   <LoadingMessages section="technology" />
                 ) : (
-                  renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+                  renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
                 )}
                 {/* Enhanced Technology Conclusion */}
                 {audit.status === "completed" && audit?.results?.technology && (
@@ -1202,7 +1203,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 ) : audit.results?.keywords ? (
                   <>
                     <div className="space-y-4">
-                      {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+                      {renderSectionResults('keywords', audit.results.keywords, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)}
 
                       {/* Advanced analysis Keyword Analysis Conclusion */}
                       {audit.results.keywords.claudeAnalysis && (
@@ -1266,7 +1267,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
                 <LoadingMessages section="backlinks" />
               ) : (
-                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)
+                renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
               )}
             </div>
           </div>
@@ -1309,7 +1310,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               ) : audit.status === "completed" && audit.results?.[sectionId] ? (
                 <div className="space-y-4">
                   {/* Section Results */}
-                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit?.auditType, undefined, undefined)}
+                  {renderSectionResults(sectionId, audit.results[sectionId], undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)}
                 </div>
               ) : audit.status === "failed" ? (
                 <div className="text-center py-8">
@@ -1342,10 +1343,9 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             {audit.status === "running" ? (
               <>
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analyzing Website</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analysing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
                   We're conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
-                  This typically takes 1-2 minutes.
                 </p>
                 
                 {/* Inspirational Quote */}
@@ -2376,99 +2376,7 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* Keywords Overview - Enhanced Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <button 
-                onClick={() => {
-                  const element = document.getElementById('branded-keywords-section');
-                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="text-2xl font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-              >
-                {results.brandedKeywords || results.brandedKeywordsList?.length || 0}
-              </button>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Branded Keywords
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Branded Keywords</p>
-                      <p className="mb-2"><strong>Definition:</strong> Search terms that include your brand name, company name, or specific branded products/services</p>
-                      <p className="mb-2"><strong>Examples:</strong> &quot;PMW Communications&quot;, &quot;PMW marketing agency&quot;, &quot;PMW reviews&quot;</p>
-                      <p className="mb-2"><strong>Importance:</strong> Shows brand recognition and customer loyalty. Easier to rank for but lower volume.</p>
-                      <p><strong>Typical Range:</strong> Small businesses: 15-50 branded keywords</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <button 
-                onClick={() => {
-                  const element = document.getElementById('non-branded-keywords-section');
-                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="text-2xl font-bold text-green-600 hover:text-green-800 transition-colors cursor-pointer"
-              >
-                {results.nonBrandedKeywords || results.nonBrandedKeywordsList?.length || 0}
-              </button>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Recommended keywords
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Recommended keywords</p>
-                      <p className="mb-2"><strong>Definition:</strong> Search terms related to your services/products that don&apos;t include your brand name</p>
-                      <p className="mb-2"><strong>Examples:</strong> &quot;marketing agency London&quot;, &quot;digital marketing services&quot;, &quot;brand strategy consultant&quot;</p>
-                      <p className="mb-2"><strong>Importance:</strong> Drives new customer acquisition. Higher competition but larger market opportunity.</p>
-                      <p><strong>Typical Range:</strong> Small businesses: 50-200 non-branded keywords</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
-              <div className="mt-2 flex justify-center">
-                <button 
-                  onClick={() => {
-                    const element = document.getElementById('recommended-keywords-section');
-                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-full text-xs font-medium transition-colors"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Guide</span>
-                </button>
-              </div>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">{(results.brandedKeywords || 0) + (results.nonBrandedKeywords || 0)}</div>
-              <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                Total Keywords
-                <Tooltip 
-                  content={
-                    <div>
-                      <p className="font-semibold mb-2">Total Keywords Found</p>
-                      <p className="mb-2"><strong>Source:</strong> All keywords extracted from your website content</p>
-                      <p className="mb-2"><strong>Method:</strong> Content analysis and text processing</p>
-                      <p><strong>Note:</strong> This represents keywords present in your content, not search rankings</p>
-                    </div>
-                  }
-                  position="top"
-                >
-                  <HelpCircle className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                </Tooltip>
-              </div>
-            </div>
-            
-          </div>
+          {/* Keywords Overview - REMOVED (3 colored boxes) */}
 
           {/* Keyword Intent Distribution */}
           {results.intentDistribution && (
@@ -2514,56 +2422,65 @@ function renderSectionResults(
 
           {/* Keyword Competition Analysis */}
           {results.keywordCompetition && (
-            <KeywordCompetitionTable 
+            <KeywordCompetitionTable
               competitionData={results.keywordCompetition}
               title="Keyword Competition"
               description="Competitor websites with the highest keyword overlap based on your Above Fold Keywords"
             />
           )}
 
+          {/* Branded vs Non-Branded Chart - NEW */}
+          {(results.brandedKeywordsList || results.keywords?.brandedKeywordsList) &&
+           (results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList) && (
+            <BrandedVsNonBrandedChart
+              brandedKeywords={results.brandedKeywordsList || results.keywords?.brandedKeywordsList}
+              nonBrandedKeywords={results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList}
+            />
+          )}
+
           {/* Branded Keywords Table */}
-          {results.brandedKeywordsList && (
+          {(results.brandedKeywordsList || results.keywords?.brandedKeywordsList) && (
             <div id="branded-keywords-section">
-            <BrandedKeywordTable 
-              keywords={results.brandedKeywordsList}
+            <BrandedKeywordTable
+              keywords={results.brandedKeywordsList || results.keywords?.brandedKeywordsList}
               title="Branded keywords on Search engines"
               description="Complete list of search terms that include your brand name or company name"
             />
             </div>
           )}
 
+          {/* Keywords with Search Volume Table */}
+          {(results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList) && (
+            <div id="non-branded-keywords-section">
+            <NonBrandedKeywordTable
+              keywords={results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList}
+              title="Keywords with search volume on this website"
+              description="Complete list of industry and service-related keywords that drive new customer acquisition"
+              auditType={auditType === 'single' ? 'page' : 'website'}
+            />
+            </div>
+          )}
+
           {/* Recommended Keywords Table */}
-          {results.nonBrandedKeywordsList && (
+          {(results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList) && (
             <div id="recommended-keywords-section">
-            <RecommendedKeywordTable 
-              keywords={results.nonBrandedKeywordsList}
+            <RecommendedKeywordTable
+              keywords={results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList}
               title="Recommended target keywords"
               description="Business-relevant keywords we recommend you target to improve your search visibility"
-              auditType={auditType === 'page' ? 'page' : 'website'}
+              auditType={auditType === 'single' ? 'page' : 'website'}
             />
             </div>
           )}
 
           {/* Paid Advertising Opportunities */}
-          {results.nonBrandedKeywordsList && (
+          {(results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList) && (
             <div id="paid-advertising-section">
-            <PaidAdvertisingOpportunities 
-              keywords={results.nonBrandedKeywordsList}
+            <PaidAdvertisingOpportunities
+              keywords={results.nonBrandedKeywordsList || results.keywords?.nonBrandedKeywordsList}
               targetDomainAuthority={results.domainAuthority || 35}
               title="Paid Advertising Opportunities"
               description="High-value keywords with strong competition - better suited for paid advertising than organic SEO"
-            />
-            </div>
-          )}
-
-          {/* Keywords with Search Volume Table */}
-          {results.nonBrandedKeywordsList && (
-            <div id="non-branded-keywords-section">
-            <NonBrandedKeywordTable 
-              keywords={results.nonBrandedKeywordsList}
-              title="Keywords with search volume"
-              description="Complete list of industry and service-related keywords that drive new customer acquisition"
-              auditType={auditType === 'page' ? 'page' : 'website'}
             />
             </div>
           )}

@@ -13,11 +13,17 @@ interface BuyCreditsModalProps {
 export default function BuyCreditsModal({ isOpen, onClose, currentCredits }: BuyCreditsModalProps) {
   const [markup, setMarkup] = useState(100)
 
+  // Calculate what user can do with remaining credits
+  const creditsPerFullAudit = 81 // Cost for 50-page audit with keywords
+  const creditsPerSinglePage = 15 // Cost for single page audit with keywords
+  const fullAuditsRemaining = Math.floor(currentCredits / creditsPerFullAudit)
+  const singlePagesRemaining = Math.floor(currentCredits / creditsPerSinglePage)
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}>
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -26,6 +32,27 @@ export default function BuyCreditsModal({ isOpen, onClose, currentCredits }: Buy
               <p className="text-sm text-gray-600 mt-1">
                 Current Balance: <span className="font-semibold text-[#42499c]">{currentCredits.toLocaleString()} credits</span>
               </p>
+              {currentCredits > 0 && (
+                <div className="mt-2 text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="font-medium text-blue-900 mb-1">As an example you can:</p>
+                  {fullAuditsRemaining > 0 ? (
+                    <p className="text-blue-800">
+                      <span className="font-semibold">{fullAuditsRemaining}</span> × full website audit{fullAuditsRemaining !== 1 ? 's' : ''} (up to 50 pages with keywords)
+                      {singlePagesRemaining > fullAuditsRemaining * creditsPerFullAudit / creditsPerSinglePage && (
+                        <span> or <span className="font-semibold">{singlePagesRemaining}</span> × single page audit{singlePagesRemaining !== 1 ? 's' : ''}</span>
+                      )}
+                    </p>
+                  ) : currentCredits >= creditsPerSinglePage ? (
+                    <p className="text-blue-800">
+                      <span className="font-semibold">{singlePagesRemaining}</span> × single page audit{singlePagesRemaining !== 1 ? 's' : ''} with keywords
+                    </p>
+                  ) : (
+                    <p className="text-orange-700">
+                      Not enough credits for a full audit. You need at least <span className="font-semibold">{creditsPerSinglePage}</span> credits for a single page audit or <span className="font-semibold">{creditsPerFullAudit}</span> credits for a 50-page audit.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             <button
               onClick={onClose}

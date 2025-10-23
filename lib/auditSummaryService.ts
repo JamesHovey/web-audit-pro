@@ -263,7 +263,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'performance',
         fixRecommendation: 'Remove unused JavaScript, defer non-critical scripts, minify and bundle JavaScript files, and consider code splitting.',
         estimatedTimeToFix: '3-6 hours',
@@ -334,7 +334,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
       }
 
       const techStackRecommendation = !technologyData
-        ? ' Run the Performance, Technical Audit & Tech Stack audit to get CMS-specific optimization recommendations.'
+        ? ' Run the Performance & Technical Audit audit to get CMS-specific optimization recommendations.'
         : ''
 
       issues.push({
@@ -350,7 +350,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'performance',
         fixRecommendation: hasRelevantPlugins
           ? 'Inline critical CSS, defer non-critical CSS, async load JavaScript, and minimize render-blocking resources. Check your optimization plugin settings for CSS/JS minification and deferral options.'
@@ -385,7 +385,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'performance',
         fixRecommendation: 'Optimize images, reduce server response time, eliminate render-blocking resources',
         estimatedTimeToFix: '2-4 hours',
@@ -410,7 +410,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'medium',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'performance',
         fixRecommendation: 'Add size attributes to images/videos, reserve space for ads',
         estimatedTimeToFix: '1-3 hours',
@@ -441,7 +441,7 @@ function extractPerformanceIssues(performanceData: any, pageUrl?: string, scope:
         },
         effort: 'high',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'performance',
         fixRecommendation: 'Prioritize mobile optimization: compress images, lazy load content, minimize JavaScript',
         estimatedTimeToFix: '4-8 hours',
@@ -581,7 +581,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
         },
         effort: 'low',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'technical',
         fixRecommendation: titleCount === 1
           ? 'Add unique, descriptive title tag (50-60 characters) with target keywords'
@@ -614,7 +614,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
         },
         effort: 'low',
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'technical',
         fixRecommendation: missingH1Count === 1
           ? 'Add descriptive H1 tag with target keywords'
@@ -768,7 +768,7 @@ function extractTechnicalIssues(technicalData: any, pageUrl?: string, technicalR
         impact: impactMap[issueType],
         effort: effortMap[issueType],
         priorityScore: 0,
-        section: 'Performance, Technical Audit & Tech Stack',
+        section: 'Performance & Technical Audit',
         sectionId: 'technical',
         fixRecommendation: 'Correct heading hierarchy to follow proper H1→H2→H3 structure without skipping levels',
         estimatedTimeToFix: timeMap[issueType],

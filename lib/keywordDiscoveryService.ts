@@ -756,10 +756,11 @@ export class KeywordDiscoveryService {
     // 3. Business-relevant Google suggestions (volume-filtered + competitor analysis)
     console.log('🔍 Getting business-relevant Google suggestions...');
     const googleSuggestions = await this.getBusinessRelevantSuggestions(
-      extractedKeywords.slice(0, 5), 
-      businessCategory, 
+      extractedKeywords.slice(0, 5),
+      businessCategory,
       volumeThresholds,
-      domain
+      domain,
+      location
     );
     discoveryMethods.push('Business-Relevant Suggestions + Serper + Keywords Everywhere');
     
@@ -827,18 +828,32 @@ export class KeywordDiscoveryService {
    * Get business-relevant keyword suggestions with real API data and competitor analysis
    */
   private async getBusinessRelevantSuggestions(
-    seedKeywords: string[], 
-    businessCategory: string, 
+    seedKeywords: string[],
+    businessCategory: string,
     volumeThresholds: VolumeThresholds,
-    domain: string
+    domain: string,
+    location?: string
   ): Promise<SemanticKeyword[]> {
     console.log(`🎯 Discovering business-relevant keywords (volume: ${volumeThresholds.min}-${volumeThresholds.max})`);
     const suggestions: SemanticKeyword[] = [];
-    
+
     try {
       // Step 1: Enhanced seed terms based on business category
-      // Add UK-specific location modifiers
-      const ukLocations = ['uk', 'london', 'sussex', 'brighton', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh'];
+      // Extract business region from location for filtering
+      const businessRegion = this.extractRegionFromLocation(location);
+      console.log(`📍 Business region detected: ${businessRegion || 'unknown'}`);
+
+      // UK regions and cities that should be filtered if not matching business location
+      const ukRegions = {
+        scotland: ['scotland', 'glasgow', 'edinburgh', 'aberdeen', 'dundee', 'inverness'],
+        wales: ['wales', 'cardiff', 'swansea', 'newport'],
+        northEngland: ['manchester', 'liverpool', 'leeds', 'newcastle', 'sheffield', 'bradford', 'york'],
+        midlands: ['birmingham', 'nottingham', 'leicester', 'coventry', 'derby', 'wolverhampton'],
+        southEast: ['london', 'brighton', 'oxford', 'cambridge', 'reading', 'southampton'],
+        southWest: ['bristol', 'exeter', 'plymouth', 'bath', 'bournemouth', 'devon', 'cornwall', 'somerset', 'dorset'],
+        eastEngland: ['norwich', 'ipswich', 'peterborough', 'luton'],
+        northWest: ['preston', 'blackpool', 'carlisle', 'lancaster']
+      };
       
       const enhancedSeeds = [
         ...seedKeywords,
@@ -885,15 +900,29 @@ export class KeywordDiscoveryService {
                 // Filter out non-UK location keywords
                 const nonUKLocations = ['mumbai', 'delhi', 'bangalore', 'pune', 'chennai', 'kolkata', 'hyderabad', 'ahmedabad', 'dubai', 'singapore', 'new york', 'los angeles', 'chicago', 'toronto', 'sydney', 'melbourne'];
                 const lowerSuggestion = suggestion.toLowerCase();
-                
+
                 // Skip if contains non-UK city names
                 if (nonUKLocations.some(city => lowerSuggestion.includes(city))) {
                   return;
                 }
-                
+
+                // Filter out irrelevant UK regions (if business region is known)
+                if (businessRegion) {
+                  // Get all UK locations except those in the business's region
+                  const irrelevantLocations = Object.entries(ukRegions)
+                    .filter(([region]) => region !== businessRegion)
+                    .flatMap(([, cities]) => cities);
+
+                  // Skip if keyword contains location from different UK region
+                  if (irrelevantLocations.some(city => lowerSuggestion.includes(city))) {
+                    console.log(`⊘ Filtered out irrelevant region: "${suggestion}" (business in ${businessRegion})`);
+                    return;
+                  }
+                }
+
                 // Filter for business relevance
                 const isBusinessRelevant = this.isBusinessRelevantSuggestion(suggestion, businessCategory);
-                
+
                 if (isBusinessRelevant && !discoveredKeywords.includes(lowerSuggestion)) {
                   discoveredKeywords.push(lowerSuggestion);
                 }
@@ -1100,6 +1129,38 @@ export class KeywordDiscoveryService {
     const isTooGeneric = tooGeneric.some(generic => suggestionLower.includes(generic));
     
     return hasBusinessTerm && !isTooGeneric;
+  }
+
+  /**
+   * Extract UK region from business location
+   */
+  private extractRegionFromLocation(location?: string): string | null {
+    if (!location) return null;
+
+    const lowerLocation = location.toLowerCase();
+
+    // Map location to UK region
+    const regionMappings: { [key: string]: string[] } = {
+      scotland: ['scotland', 'glasgow', 'edinburgh', 'aberdeen', 'dundee', 'inverness', 'stirling', 'perth'],
+      wales: ['wales', 'cardiff', 'swansea', 'newport', 'wrexham', 'bangor'],
+      northEngland: ['manchester', 'liverpool', 'leeds', 'newcastle', 'sheffield', 'bradford', 'york', 'sunderland', 'hull', 'lancashire', 'yorkshire', 'durham', 'cumbria'],
+      midlands: ['birmingham', 'nottingham', 'leicester', 'coventry', 'derby', 'wolverhampton', 'stoke', 'west midlands', 'east midlands'],
+      southEast: ['london', 'brighton', 'oxford', 'cambridge', 'reading', 'southampton', 'portsmouth', 'kent', 'surrey', 'sussex', 'hampshire', 'berkshire', 'essex'],
+      southWest: ['bristol', 'exeter', 'plymouth', 'bath', 'bournemouth', 'devon', 'cornwall', 'somerset', 'dorset', 'gloucestershire', 'wiltshire', 'alton'],
+      eastEngland: ['norwich', 'ipswich', 'peterborough', 'luton', 'norfolk', 'suffolk', 'cambridgeshire'],
+      northWest: ['preston', 'blackpool', 'carlisle', 'lancaster', 'chester', 'warrington']
+    };
+
+    // Find which region the location belongs to
+    for (const [region, locations] of Object.entries(regionMappings)) {
+      if (locations.some(loc => lowerLocation.includes(loc))) {
+        console.log(`✓ Matched location "${location}" to region: ${region}`);
+        return region;
+      }
+    }
+
+    console.log(`✗ Could not match location "${location}" to a specific UK region`);
+    return null;
   }
 
   /**
