@@ -7,7 +7,13 @@
       "Bash(npx wrangler d1 create web-audit-db)",
       "Bash(npx wrangler d1 execute web-audit-db --file=prisma/migrations/init.sql)",
       "Bash(npx wrangler d1 execute web-audit-db --file=prisma/migrations/init.sql --remote)",
-      "Bash(npm install @prisma/adapter-d1)"
+      "Bash(npm install @prisma/adapter-d1)",
+      "Bash(openssl rand -base64 32)",
+      "Bash(git pull origin main)",
+      "Bash(npm uninstall @cloudflare/next-on-pages)",
+      "Bash(git add -A)",
+      "Bash(git commit -m \"Fix Cloudflare deployment: Remove next-on-pages adapter, use native Next.js support\")",
+      "Bash(git push origin main)"
     ],
     "deny": [],
     "ask": [],
