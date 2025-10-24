@@ -17,7 +17,8 @@
       "Bash(git commit -m \"Remove account_id from wrangler.toml (not supported in Pages)\")",
       "Bash(git commit -m \"Add postbuild script to remove cache, preventing Cloudflare file size errors\")",
       "Bash(curl -I https://web-audit-pro.pages.dev)",
-      "Bash(git commit -m \"Add standalone output mode for Cloudflare Pages deployment\")"
+      "Bash(git commit -m \"Add standalone output mode for Cloudflare Pages deployment\")",
+      "Bash(git commit -m \"Add Railway deployment configuration with PostgreSQL\")"
     ],
     "deny": [],
     "ask": [],
