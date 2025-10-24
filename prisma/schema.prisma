@@ -2,8 +2,9 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "darwin"]
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "darwin"]
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

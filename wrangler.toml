@@ -1,6 +1,7 @@
 name = "web-audit-pro"
 compatibility_date = "2025-01-24"
 pages_build_output_dir = ".vercel/output/static"
+account_id = "4950afe6869a3aafe716d9467f1d0782"  # James.hovey@pmwcom.co.uk's Account
 
 # Cloudflare Pages configuration
 [env.production]
@@ -11,7 +12,7 @@ compatibility_date = "2025-01-24"
 # DATABASE_URL = "your-database-url"
 
 # Browser Rendering API binding (for Puppeteer replacement)
-[[browser]]
+[browser]
 binding = "BROWSER"
 
 # KV Namespaces for caching (optional)
@@ -19,11 +20,11 @@ binding = "BROWSER"
 # binding = "AUDIT_CACHE"
 # id = "your-kv-namespace-id"
 
-# D1 Database (optional, for SQLite replacement)
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "web-audit-db"
-# database_id = "your-database-id"
+# D1 Database (for SQLite replacement)
+[[d1_databases]]
+binding = "DB"
+database_name = "web-audit-db"
+database_id = "c005a91a-a3c1-4e45-96f6-5a25a5cc0552"
 
 # Limits and configuration
 [limits]
