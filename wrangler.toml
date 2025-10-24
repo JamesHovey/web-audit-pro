@@ -1,7 +1,6 @@
 name = "web-audit-pro"
 compatibility_date = "2025-01-24"
 pages_build_output_dir = ".next"
-account_id = "4950afe6869a3aafe716d9467f1d0782"  # James.hovey@pmwcom.co.uk's Account
 
 # Cloudflare Pages configuration
 [env.production]
