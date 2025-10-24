@@ -1,0 +1,36 @@
+# Cloudflare Pages ignore file
+# Exclude cache and unnecessary files from deployment
+
+# Next.js cache
+.next/cache/
+
+# Build cache
+.next/cache
+.next/server/vendor-chunks
+
+# Development files
+node_modules/
+.git/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Database
+prisma/dev.db
+prisma/dev.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
