@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, PoundSterling, TrendingUp, AlertCircle, CheckCircle, RotateCcw } from 'lucide-react'
+import { X, PoundSterling, AlertCircle, CheckCircle, RotateCcw } from 'lucide-react'
 import { SerperService } from '@/lib/serperService'
 
 interface CostingData {
@@ -188,12 +188,6 @@ export default function CostingModal({ isOpen, onClose }: CostingModalProps) {
     }).format(new Date(dateString))
   }
 
-  const getHealthStatus = (remaining: number, total: number) => {
-    const percentage = (remaining / total) * 100
-    if (percentage > 50) return { color: 'text-green-600 bg-green-50', status: 'Healthy' }
-    if (percentage > 20) return { color: 'text-yellow-600 bg-yellow-50', status: 'Medium' }
-    return { color: 'text-red-600 bg-red-50', status: 'Low' }
-  }
 
   if (!isOpen) return null
 

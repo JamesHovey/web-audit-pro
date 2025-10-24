@@ -94,7 +94,7 @@ export default function RecommendedKeywordTable({
       const needsImprovement = position === 0 || position > 3;
       
       // Achievability check
-      const averageCompetitorDA = (k as any).averageCompetitorDA || 0;
+      const averageCompetitorDA = (k as { averageCompetitorDA?: number }).averageCompetitorDA || 0;
       const isAchievable = averageCompetitorDA === 0 || averageCompetitorDA <= 50; // More realistic threshold
       
       // Final decision
@@ -186,7 +186,7 @@ export default function RecommendedKeywordTable({
                 <p className="mb-2">Business-relevant keywords we recommend you target to improve your search visibility on this {contextWord}</p>
                 <p className="text-xs"><strong>What makes a keyword recommended:</strong></p>
                 <ul className="list-disc list-inside text-xs mt-1 space-y-1">
-                  <li>Business-relevant keywords you're not ranking highly for (position 4+)</li>
+                  <li>Business-relevant keywords you&apos;re not ranking highly for (position 4+)</li>
                   <li>Keywords with search volume (10+ monthly searches)</li>
                   <li>Realistic ranking opportunities based on competition</li>
                   <li>Mix of short and long-tail keyword opportunities</li>
@@ -201,7 +201,7 @@ export default function RecommendedKeywordTable({
         </div>
         <div className="border rounded-lg p-8 text-center text-gray-500">
           <p className="text-sm">No keyword opportunities found - this is actually good news!</p>
-          <p className="text-xs text-gray-400 mt-2">This could mean you're already ranking well for most relevant keywords, or your current strategy is focused on the right terms.</p>
+          <p className="text-xs text-gray-400 mt-2">This could mean you&apos;re already ranking well for most relevant keywords, or your current strategy is focused on the right terms.</p>
         </div>
       </div>
     );

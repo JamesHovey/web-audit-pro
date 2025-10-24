@@ -1,19 +1,21 @@
 /**
  * Credit Calculator Service
  * Calculates credit costs for audits with 100% markup over actual API costs
+ * All costs in British Pounds (GBP)
  *
- * Example: If an audit costs $0.14 (14p) to run, users pay 28 credits (28p)
+ * Example: If an audit costs £0.14 (14p) to run, users pay 28 credits (28p)
  */
 
 export interface AuditCostBreakdown {
-  keywordsEverywhere: number  // Cost in dollars
-  serper: number              // Cost in dollars
-  claude: number              // Cost in dollars
-  total: number               // Total cost in dollars
+  keywordsEverywhere: number  // Cost in GBP
+  serper: number              // Cost in GBP
+  claude: number              // Cost in GBP
+  cloudflare: number          // Cost in GBP (Browser Rendering API)
+  total: number               // Total cost in GBP
 }
 
 export interface CreditCost {
-  actualCost: number          // Actual cost in dollars
+  actualCost: number          // Actual cost in GBP
   markup: number              // Markup percentage (100%)
   creditsRequired: number     // Credits needed (with markup)
   displayCost: string         // Formatted cost for display
@@ -21,11 +23,12 @@ export interface CreditCost {
 
 export class CreditCalculator {
   private static MARKUP_PERCENTAGE = 100  // 100% markup
-  private static CREDIT_VALUE = 0.01      // 1 credit = $0.01 (1 penny)
+  private static CREDIT_VALUE = 0.01      // 1 credit = £0.01 (1 penny)
+  private static USD_TO_GBP = 0.79        // Exchange rate: $1 = £0.79
 
   /**
    * Calculate credits required for an audit
-   * @param actualCost - Actual cost in dollars
+   * @param actualCost - Actual cost in GBP
    * @returns Credit calculation with markup
    */
   static calculateCredits(actualCost: number): CreditCost {
@@ -41,6 +44,13 @@ export class CreditCalculator {
       creditsRequired,
       displayCost: this.formatCost(costWithMarkup)
     }
+  }
+
+  /**
+   * Convert USD to GBP
+   */
+  private static toGBP(usdAmount: number): number {
+    return usdAmount * this.USD_TO_GBP
   }
 
   /**
@@ -66,30 +76,45 @@ export class CreditCalculator {
   ): CreditCost {
     let estimatedCost = 0
 
-    // Claude API costs per page (realistic estimates for Sonnet 4.5):
-    // - Input tokens: ~5,000 per page (page content + prompts)
-    // - Output tokens: ~2,000 per page (analysis/recommendations)
-    const claudeInputPerPage = (5000 / 1000) * 0.003  // $0.015 per page
-    const claudeOutputPerPage = (2000 / 1000) * 0.015  // $0.030 per page
-    const claudePerPage = claudeInputPerPage + claudeOutputPerPage  // $0.045 total
+    // Claude API costs per page (Sonnet 4.5 in USD, converted to GBP):
+    // - Input tokens: ~5,000 per page @ $0.003 per 1K = $0.015
+    // - Output tokens: ~2,000 per page @ $0.015 per 1K = $0.030
+    const claudeInputPerPageUSD = (5000 / 1000) * 0.003  // $0.015
+    const claudeOutputPerPageUSD = (2000 / 1000) * 0.015  // $0.030
+    const claudePerPage = this.toGBP(claudeInputPerPageUSD + claudeOutputPerPageUSD)  // ~£0.036
 
     // Keywords Everywhere: ~10 keywords per page @ $0.0001 each
-    const kePerPage = 10 * 0.0001  // $0.001 per page
+    const kePerPage = this.toGBP(10 * 0.0001)  // ~£0.0008
 
-    // Serper: 1 search per page @ $0.0003 each (includes AI Overview data - no extra cost)
-    const serperPerPage = 0.0003
+    // Serper: 1 search per page @ $0.0003 each
+    const serperPerPage = this.toGBP(0.0003)  // ~£0.00024
 
-    // Base cost includes Claude for all pages
-    estimatedCost += pageCount * claudePerPage
+    // Cloudflare Browser Rendering API: £0.09 per hour
+    // Estimate: ~2-5 minutes per page = 0.033-0.083 hours
+    // Conservative estimate: 3 minutes per page = 0.05 hours
+    const browserMinutesPerPage = 3
+    const browserHoursPerPage = browserMinutesPerPage / 60  // 0.05 hours
+    const cloudflarePerPage = this.toGBP(0.09) * browserHoursPerPage  // ~£0.0036
+
+    // Base cost includes Claude + Browser for all pages
+    estimatedCost += pageCount * (claudePerPage + cloudflarePerPage)
 
     // Add keyword costs if selected
     if (sections.includes('keywords')) {
       estimatedCost += pageCount * (kePerPage + serperPerPage)
     }
 
+    // Add extra browser time for technical audits (accessibility, performance testing)
+    if (sections.includes('technical') || sections.includes('performance') || sections.includes('accessibility')) {
+      // Technical audits take longer - add 2 more minutes per page
+      const extraBrowserTime = (2 / 60) * this.toGBP(0.09)  // ~£0.0024
+      estimatedCost += pageCount * extraBrowserTime
+    }
+
     // Single page minimum (covers at least one basic analysis)
     if (scope === 'single') {
-      estimatedCost = Math.max(estimatedCost, 0.045)  // Minimum one page with Claude
+      const minimumCost = claudePerPage + cloudflarePerPage
+      estimatedCost = Math.max(estimatedCost, minimumCost)
     }
 
     return this.calculateCredits(estimatedCost)
@@ -132,30 +157,72 @@ export class CreditCalculator {
   /**
    * Convert actual API costs to credits
    * Used after audit completion to record actual cost
-   * Note: AI Overview analysis uses existing Serper data - no additional costs
+   * All costs converted from USD to GBP
+   * @param keywordsEverywhereCredits - Number of KE credits used
+   * @param serperSearches - Number of Serper searches
+   * @param claudeInputTokens - Claude input tokens used
+   * @param claudeOutputTokens - Claude output tokens used
+   * @param cloudfareBrowserMinutes - Minutes of browser usage
    */
   static convertActualCostToCredits(
     keywordsEverywhereCredits: number,
     serperSearches: number,
     claudeInputTokens: number = 0,
-    claudeOutputTokens: number = 0
+    claudeOutputTokens: number = 0,
+    cloudfareBrowserMinutes: number = 0
   ): number {
-    // Keywords Everywhere: $0.0001 per credit (paid tier: $10 per 100,000 credits)
-    const keCost = keywordsEverywhereCredits * 0.0001
+    // Keywords Everywhere: $0.0001 per credit → £0.000079
+    const keCostUSD = keywordsEverywhereCredits * 0.0001
+    const keCost = this.toGBP(keCostUSD)
 
-    // Serper: $0.0003 per search (paid tier: $0.30 per 1,000 searches)
+    // Serper: $0.0003 per search → £0.000237
     // Note: AI Overview data comes from the same SERP calls - no extra cost
-    const serperCost = serperSearches * 0.0003
+    const serperCostUSD = serperSearches * 0.0003
+    const serperCost = this.toGBP(serperCostUSD)
 
-    // Claude Sonnet 4.5 (paid tier):
-    // Input: $0.003 per 1K tokens ($3 per million)
-    // Output: $0.015 per 1K tokens ($15 per million)
-    const claudeInputCost = (claudeInputTokens / 1000) * 0.003
-    const claudeOutputCost = (claudeOutputTokens / 1000) * 0.015
+    // Claude Sonnet 4.5:
+    // Input: $0.003 per 1K tokens → £0.00237 per 1K
+    // Output: $0.015 per 1K tokens → £0.01185 per 1K
+    const claudeInputCostUSD = (claudeInputTokens / 1000) * 0.003
+    const claudeOutputCostUSD = (claudeOutputTokens / 1000) * 0.015
+    const claudeCost = this.toGBP(claudeInputCostUSD + claudeOutputCostUSD)
 
-    const totalCost = keCost + serperCost + claudeInputCost + claudeOutputCost
+    // Cloudflare Browser Rendering API:
+    // $0.09 per hour → £0.0711 per hour → £0.001185 per minute
+    const browserHours = cloudfareBrowserMinutes / 60
+    const cloudflareCostUSD = browserHours * 0.09
+    const cloudflareCost = this.toGBP(cloudflareCostUSD)
+
+    const totalCost = keCost + serperCost + claudeCost + cloudflareCost
 
     return this.calculateCredits(totalCost).creditsRequired
+  }
+
+  /**
+   * Create detailed cost breakdown
+   * Useful for displaying itemized costs to users
+   */
+  static createBreakdown(
+    keywordsEverywhereCredits: number,
+    serperSearches: number,
+    claudeInputTokens: number = 0,
+    claudeOutputTokens: number = 0,
+    cloudfareBrowserMinutes: number = 0
+  ): AuditCostBreakdown {
+    const keCost = this.toGBP(keywordsEverywhereCredits * 0.0001)
+    const serperCost = this.toGBP(serperSearches * 0.0003)
+    const claudeCost = this.toGBP(
+      (claudeInputTokens / 1000) * 0.003 + (claudeOutputTokens / 1000) * 0.015
+    )
+    const cloudflareCost = this.toGBP((cloudfareBrowserMinutes / 60) * 0.09)
+
+    return {
+      keywordsEverywhere: keCost,
+      serper: serperCost,
+      claude: claudeCost,
+      cloudflare: cloudflareCost,
+      total: keCost + serperCost + claudeCost + cloudflareCost
+    }
   }
 }
 

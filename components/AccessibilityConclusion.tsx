@@ -243,7 +243,7 @@ export default function AccessibilityConclusion({ data }: AccessibilityConclusio
                 must comply with WCAG 2.2 Level AA by June 28, 2025. Penalties up to €3 million for non-compliance.
               </p>
               <p>
-                <strong>UK Equality Act 2010:</strong> Requires "reasonable adjustments" for disabled users.
+                <strong>UK Equality Act 2010:</strong> Requires &quot;reasonable adjustments&quot; for disabled users.
                 WCAG 2.2 AA compliance demonstrates meeting these obligations.
               </p>
               <p className="pt-2 border-t border-[#42499c] mt-3">

@@ -1,0 +1,30 @@
+name = "web-audit-pro"
+compatibility_date = "2025-01-24"
+pages_build_output_dir = ".vercel/output/static"
+
+# Cloudflare Pages configuration
+[env.production]
+compatibility_date = "2025-01-24"
+
+# Environment variables (add your secrets via Wrangler CLI or dashboard)
+# ANTHROPIC_API_KEY = "your-key-here"
+# DATABASE_URL = "your-database-url"
+
+# Browser Rendering API binding (for Puppeteer replacement)
+[[browser]]
+binding = "BROWSER"
+
+# KV Namespaces for caching (optional)
+# [[kv_namespaces]]
+# binding = "AUDIT_CACHE"
+# id = "your-kv-namespace-id"
+
+# D1 Database (optional, for SQLite replacement)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "web-audit-db"
+# database_id = "your-database-id"
+
+# Limits and configuration
+[limits]
+cpu_ms = 30000  # 30 seconds max CPU time per request

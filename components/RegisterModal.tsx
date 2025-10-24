@@ -76,7 +76,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
           onSwitchToLogin()
         }, 2000)
       }
-    } catch (error) {
+    } catch (_error) {
       setError('An error occurred. Please try again.')
       setIsLoading(false)
     }
@@ -172,7 +172,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
 
           {/* Signup Benefits */}
           <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <h3 className="font-semibold text-green-900 text-sm mb-2">✨ You'll receive:</h3>
+            <h3 className="font-semibold text-green-900 text-sm mb-2">✨ You&apos;ll receive:</h3>
             <ul className="space-y-1 text-xs text-green-800">
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">

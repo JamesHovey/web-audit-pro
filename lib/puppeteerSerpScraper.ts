@@ -329,7 +329,7 @@ export class PuppeteerSerpScraper {
                     snippet: '' // We'll add snippet extraction later if needed
                   });
                 }
-              } catch (e) {
+              } catch (_e) {
                 // Invalid URL, skip
               }
             }
@@ -337,7 +337,7 @@ export class PuppeteerSerpScraper {
           
           if (results.length >= maxResults) break;
           
-        } catch (e) {
+        } catch (_e) {
           console.log(`Selector ${selector} failed:`, e.message);
           continue;
         }

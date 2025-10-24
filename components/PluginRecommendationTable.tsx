@@ -18,7 +18,6 @@ type CostFilter = 'all' | 'Free' | 'Freemium' | 'Paid'
 export default function PluginRecommendationTable({
   plugins,
   installedPlugins,
-  issueType,
   mode = 'recommended'
 }: PluginRecommendationTableProps) {
   const [sortField, setSortField] = useState<SortField>('rating')
@@ -26,8 +25,8 @@ export default function PluginRecommendationTable({
   const [costFilter, setCostFilter] = useState<CostFilter>('all')
   const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null)
 
-  // Check if a plugin is installed
-  const isInstalled = (plugin: PluginMetadata): boolean => {
+  // Check if a plugin is installed - not currently used in UI but kept for potential future use
+  const _isInstalled = (plugin: PluginMetadata): boolean => {
     return installedPlugins.some(installed =>
       installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
       installed.toLowerCase().includes(plugin.slug)
@@ -208,7 +207,7 @@ export default function PluginRecommendationTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {sortedAndFilteredPlugins.map((plugin, index) => (
+            {sortedAndFilteredPlugins.map((plugin) => (
               <React.Fragment key={plugin.slug}>
                 <tr className={`hover:bg-gray-50 ${mode === 'installed' ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3">

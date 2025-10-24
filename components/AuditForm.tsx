@@ -818,7 +818,7 @@ export function AuditForm() {
                         <li><strong>70+:</strong> Excellent authority</li>
                       </ul>
                       <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
-                        <p className="font-medium">How it's calculated:</p>
+                        <p className="font-medium">How it&apos;s calculated:</p>
                         <p>Based on factors like backlink quality, domain age, content quality, and technical SEO.</p>
                       </div>
                     </div>
@@ -935,9 +935,9 @@ export function AuditForm() {
                           </ul>
                           <div className="mt-3 p-2 bg-blue-900 rounded text-white">
                             <p className="font-medium">How it works:</p>
-                            <p className="text-sm">1. We'll scrape the site to count all discoverable pages</p>
+                            <p className="text-sm">1. We&apos;ll scrape the site to count all discoverable pages</p>
                             <p className="text-sm">2. You can set how many pages to audit (default: 50)</p>
-                            <p className="text-sm">3. Click "Start Audit" when ready</p>
+                            <p className="text-sm">3. Click &quot;Start Audit&quot; when ready</p>
                           </div>
                         </div>
                       }
@@ -1194,7 +1194,7 @@ export function AuditForm() {
                           <p className="font-medium">Custom Page Selection</p>
                           <p>This option lets you choose exactly which pages to audit:</p>
                           <ul className="list-disc pl-4 space-y-1">
-                            <li>Click "Discover Pages" to find available pages</li>
+                            <li>Click &quot;Discover Pages&quot; to find available pages</li>
                             <li>Select/deselect individual pages</li>
                             <li>Perfect for targeted analysis</li>
                           </ul>
@@ -1860,7 +1860,7 @@ export function AuditForm() {
               Analysing Website
             </h2>
             <p className="text-gray-600 mb-6">
-              We're conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}.
+              We&apos;re conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}.
             </p>
 
             {/* Rotating Comment */}

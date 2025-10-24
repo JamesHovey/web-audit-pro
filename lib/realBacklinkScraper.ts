@@ -106,7 +106,7 @@ class RealBacklinkScraper {
                 source: 'Semrush'
               };
             }
-          } catch (e) {
+          } catch (_e) {
             console.log('Could not parse Semrush Next.js data');
           }
         }
@@ -283,7 +283,7 @@ class RealBacklinkScraper {
           anchorText: urlObj.hostname,
           linkType: 'dofollow' // Default assumption
         });
-      } catch (e) {
+      } catch (_e) {
         // Invalid URL, skip
       }
     });
@@ -316,7 +316,7 @@ class RealBacklinkScraper {
           }
         });
       }
-    } catch (e) {
+    } catch (_e) {
       console.log('Could not extract Semrush backlinks from JSON');
     }
     

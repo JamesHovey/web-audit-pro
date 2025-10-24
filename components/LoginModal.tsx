@@ -36,7 +36,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
         router.push('/dashboard')
         router.refresh()
       }
-    } catch (error) {
+    } catch (_error) {
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -123,7 +123,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 onClick={onSwitchToRegister}
                 className="text-[#42499c] hover:underline font-medium"

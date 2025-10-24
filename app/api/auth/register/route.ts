@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcrypt"
 import { prisma } from "@/lib/prisma"
 
+interface RegisterTempRequestBody {
+  username: string;
+  password: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json() as RegisterTempRequestBody
     const { username, password } = body
 
     if (!username || !password) {

@@ -9,7 +9,6 @@ import SavedAuditsModal from "./SavedAuditsModal"
 import { ShoppingCart, Clock } from "lucide-react"
 import { useSynergistBasket } from "@/contexts/SynergistBasketContext"
 import { SummaryIssue } from "@/lib/auditSummaryService"
-import Image from "next/image"
 
 interface NavigationProps {
   auditIssues?: SummaryIssue[]

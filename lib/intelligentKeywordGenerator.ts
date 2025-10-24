@@ -84,7 +84,8 @@ export class IntelligentKeywordGenerator {
       
     } catch (error) {
       console.error('❌ Intelligent keyword generation failed:', error);
-      throw new Error(`Failed to generate intelligent keywords: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to generate intelligent keywords: ${errorMessage}`);
     }
   }
   
@@ -106,7 +107,8 @@ export class IntelligentKeywordGenerator {
     const costPerKeyword = totalKeywords > 0 ? claudeAnalysis.usageMetrics.totalCost / totalKeywords : 0;
     
     // Create search intent mapping
-    const searchIntentMapping: { [keyword: string]: 'navigational' | 'informational' | 'commercial' | 'transactional' } = {};
+    type SearchIntent = 'navigational' | 'informational' | 'commercial' | 'transactional';
+    const searchIntentMapping: { [keyword: string]: SearchIntent } = {};
     Object.values(keywords).flat().forEach(kw => {
       searchIntentMapping[kw.keyword] = kw.searchIntent;
     });

@@ -4,12 +4,12 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Target, Globe, Users, AlertCircle, Lightbulb, ChartBar, Zap, Award, Eye } from 'lucide-react';
 
 interface TrafficInsightsConclusionProps {
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export default function TrafficInsightsConclusion({ data }: TrafficInsightsConclusionProps) {
   // Helper function to extract traffic values (handles both number and object formats)
-  const getTrafficValue = (value: any): number => {
+  const getTrafficValue = (value: unknown): number => {
     if (typeof value === 'object' && value?.estimate !== undefined) {
       return value.estimate || 0;
     }
@@ -80,7 +80,6 @@ export default function TrafficInsightsConclusion({ data }: TrafficInsightsConcl
     const recommendations = [];
     const organic = getTrafficValue(data.monthlyOrganicTraffic);
     const paid = getTrafficValue(data.monthlyPaidTraffic);
-    const branded = getTrafficValue(data.brandedTraffic);
     const brandScore = data.brandStrength?.score || 0;
     const industry = data.industry?.primary || '';
     const businessType = data.industry?.b2bVsB2c || '';

@@ -151,7 +151,7 @@ export class RealPageDiscovery {
             return { pages, sitemapUrl };
           }
         }
-      } catch (error) {
+      } catch (_error) {
         console.log(`Could not parse sitemap ${sitemapUrl}:`, error.message);
       }
     }
@@ -184,7 +184,7 @@ export class RealPageDiscovery {
 
           if (allPages.length >= this.maxPages) break;
         }
-      } catch (error) {
+      } catch (_error) {
         console.log(`Could not fetch sitemap ${sitemapUrl}`);
       }
     }
@@ -300,7 +300,7 @@ export class RealPageDiscovery {
 
           pagesToCrawl.push(...newLinks);
         }
-      } catch (error) {
+      } catch (_error) {
         console.log(`Could not crawl ${currentUrl}:`, error.message);
       }
 
@@ -404,7 +404,7 @@ export class RealPageDiscovery {
         internalLinks: [...new Set(internalLinks)] // Remove duplicates
       };
 
-    } catch (error) {
+    } catch (_error) {
       return {
         title: 'Error loading page',
         statusCode: 0,

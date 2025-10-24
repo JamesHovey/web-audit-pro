@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { CreditCalculator } from "@/lib/creditCalculator"
+import { createUsageTracker } from "@/lib/usageTracker"
+import type { AuditRequestBody } from "@/types/api"
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', isUKCompany = false, pages = [url], pageLimit = 50, excludedPaths = [] } = body
+    const body = await request.json() as AuditRequestBody
+    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', pages = [url], pageLimit = 50, excludedPaths = [] } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const userId = (session.user as any).id
+    const userId = (session.user as { id: string }).id
 
     // Calculate estimated credit cost
     const pageCount = pages.length
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
     const isBypassUser = user.username === 'james.hovey'
 
     if (!isBypassUser) {
-      // Check if user has sufficient credits
+      // Check if user has sufficient credits (will deduct actual cost after audit)
       if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
         return NextResponse.json({
           error: "Insufficient credits",
@@ -66,29 +68,19 @@ export async function POST(request: NextRequest) {
         }, { status: 402 }) // 402 Payment Required
       }
 
-      // Deduct credits from user
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          credits: {
-            decrement: creditEstimate.creditsRequired
-          }
-        }
-      })
-
-      console.log(`✅ Deducted ${creditEstimate.creditsRequired} credits from user ${userId}`)
+      console.log(`💰 User has ${user.credits} credits, estimated cost: ${creditEstimate.creditsRequired} credits`)
     } else {
       console.log(`🔓 Credit check bypassed for testing user: ${user.username}`)
     }
 
-    // Create audit record with user ID and credit cost
+    // Create audit record with user ID and estimated cost
     const audit = await prisma.audit.create({
       data: {
         userId,
         url,
         sections: sections,
         status: "pending",
-        creditCost: creditEstimate.creditsRequired,
+        estimatedCost: creditEstimate.creditsRequired,
         // Store additional audit metadata
         results: {
           scope,
@@ -101,6 +93,10 @@ export async function POST(request: NextRequest) {
 
     // Process audit sections sequentially with progress updates
     setTimeout(async () => {
+      // Create usage tracker for this audit
+      const usageTracker = createUsageTracker()
+      usageTracker.startBrowserSession()
+
       try {
         const results: Record<string, unknown> = {}
         let currentSection = 0
@@ -129,21 +125,25 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Process each section sequentially
-        for (const section of sections) {
-          currentSection++
-          console.log(`Processing section ${currentSection}/${totalSections}: ${section}`)
-          
+        // Process sections in parallel for better performance
+        const sectionPromises = sections.map(async (section, index) => {
+          console.log(`Processing section ${index + 1}/${totalSections}: ${section}`)
+
           await updateProgress(section, 'running')
 
           if (section === 'traffic') {
             const { getCostEffectiveTrafficData } = await import('@/lib/costEffectiveTrafficService')
 
-            // Always use getCostEffectiveTrafficData for consistent traffic numbers
-            results.traffic = await getCostEffectiveTrafficData(url, scope, pages)
+            // Map scope values: 'multi' -> 'custom' for traffic service
+            const trafficScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
 
-            results.traffic.scope = scope
-            results.traffic.totalPages = pages.length
+            // Always use getCostEffectiveTrafficData for consistent traffic numbers
+            const trafficData = await getCostEffectiveTrafficData(url, trafficScope, pages)
+            results.traffic = {
+              ...trafficData,
+              scope,
+              totalPages: pages.length
+            }
 
           } else if (section === 'keywords') {
             const { analyzeKeywordsEnhanced } = await import('@/lib/enhancedKeywordService')
@@ -190,7 +190,8 @@ export async function POST(request: NextRequest) {
                     console.log(`✅ Fetched HTML for ${pageUrl}`);
                   }
                 } catch (error) {
-                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, error.message);
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, errorMessage);
                 }
               }
             } else if (scope === 'custom') {
@@ -213,7 +214,8 @@ export async function POST(request: NextRequest) {
                     console.log(`✅ Fetched HTML for ${pageUrl}`);
                   }
                 } catch (error) {
-                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, error.message);
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  console.log(`⚠️ Could not fetch HTML for ${pageUrl}:`, errorMessage);
                 }
               }
             } else {
@@ -239,18 +241,22 @@ export async function POST(request: NextRequest) {
             const mainPageHtml = pageHtmlMap.get(pagesToAnalyze[0]) || '';
 
             console.log('🚀 Using enhanced keyword analysis with real API data only');
+            // Map scope: 'multi' -> 'custom' for keyword service
+            const keywordScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
             results.keywords = await analyzeKeywordsEnhanced(
               url,
               mainPageHtml,
               country,
-              scope,
+              keywordScope,
               pagesToAnalyze,
               pageHtmlMap
             )
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
-            results.technical = await performTechnicalAudit(url, scope, pages)
+            // Map scope: 'multi' -> 'custom' for technical audit
+            const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
+            results.technical = await performTechnicalAudit(url, technicalScope, pages)
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
@@ -274,7 +280,8 @@ export async function POST(request: NextRequest) {
                   console.log('⚠️ Viewport analysis request failed, skipping')
                 }
               } catch (viewportError) {
-                console.log('⚠️ Viewport analysis error, skipping:', viewportError.message)
+                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
+                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
               }
             }
 
@@ -287,7 +294,9 @@ export async function POST(request: NextRequest) {
 
             // First run technical audit to get comprehensive data
             console.log('🔧 Running technical audit...')
-            results.technical = await performTechnicalAudit(url, scope, pages)
+            // Map scope: 'multi' -> 'custom' for technical audit
+            const techScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
+            results.technical = await performTechnicalAudit(url, techScope, pages)
 
             // Run technology stack detection
             console.log('🔍 Running technology stack detection...')
@@ -304,24 +313,27 @@ export async function POST(request: NextRequest) {
                 console.log('Warning: getHostingOrganization failed:', orgError)
               }
 
+              // Cast to allow access to extended properties
+              const techStack = professionalTechStack as unknown as Record<string, unknown>
+
               const baseTechnologyData = {
                 cms: professionalTechStack.cms || 'Not detected',
                 framework: professionalTechStack.framework || 'Not detected',
                 pageBuilder: professionalTechStack.pageBuilder || null,
-                ecommerce: professionalTechStack.ecommerce || null,
+                ecommerce: (techStack.ecommerce as string | null) || null,
                 analytics: professionalTechStack.analytics || 'Not detected',
                 hosting: professionalTechStack.hosting || 'Not detected',
                 cdn: professionalTechStack.cdn || null,
                 organization: hostingOrganization || null,
                 plugins: professionalTechStack.plugins || [],
-                pluginAnalysis: professionalTechStack.pluginAnalysis || null,
-                detectedPlatform: professionalTechStack.detectedPlatform || professionalTechStack.cms,
-                totalPlugins: professionalTechStack.totalPlugins || 0,
+                pluginAnalysis: (techStack.pluginAnalysis as Record<string, unknown> | null) || null,
+                detectedPlatform: (techStack.detectedPlatform as string) || professionalTechStack.cms,
+                totalPlugins: (techStack.totalPlugins as number) || 0,
                 technologies: [
                   'HTML5', 'CSS3', 'JavaScript',
-                  ...(professionalTechStack.other || [])
+                  ...((techStack.other as string[]) || [])
                 ].filter(Boolean),
-                source: professionalTechStack.source || 'fallback',
+                source: (techStack.source as string) || 'fallback',
                 confidence: professionalTechStack.confidence || 'low'
               }
 
@@ -356,9 +368,10 @@ export async function POST(request: NextRequest) {
             console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
 
             // Add plugin data to technical results for recommendations
-            results.technical.plugins = pluginDetection.plugins
-            results.technical.cms = pluginDetection.cms
-            results.technical.pageBuilder = pluginDetection.pageBuilder
+            const technicalResults = results.technical as Record<string, unknown>
+            technicalResults.plugins = pluginDetection.plugins
+            technicalResults.cms = pluginDetection.cms
+            technicalResults.pageBuilder = pluginDetection.pageBuilder
 
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
@@ -420,7 +433,8 @@ export async function POST(request: NextRequest) {
                   console.log('⚠️ Viewport analysis request failed, skipping')
                 }
               } catch (viewportError) {
-                console.log('⚠️ Viewport analysis error, skipping:', viewportError.message)
+                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
+                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
               }
             }
 
@@ -471,8 +485,11 @@ export async function POST(request: NextRequest) {
 
           await updateProgress(section, 'completed')
           console.log(`Completed section: ${section}`)
-        }
-        
+        })
+
+        // Wait for all sections to complete in parallel
+        await Promise.all(sectionPromises)
+
         // Add scope and pages info to results
         const finalResults = {
           ...results,
@@ -511,28 +528,86 @@ export async function POST(request: NextRequest) {
           }))
         }
 
+        // End usage tracking
+        usageTracker.endBrowserSession()
+        const usageMetrics = usageTracker.getMetrics()
+
+        // Calculate actual cost based on usage
+        // For now, use estimates for APIs (can be enhanced later with actual API metrics)
+        const actualCost = CreditCalculator.convertActualCostToCredits(
+          0, // keywordsEverywhereCredits - TODO: track actual usage
+          0, // serperSearches - TODO: track actual usage
+          0, // claudeInputTokens - TODO: track actual usage
+          0, // claudeOutputTokens - TODO: track actual usage
+          usageMetrics.browserMinutes
+        )
+
+        console.log(`📊 Usage metrics: ${Math.round(usageMetrics.browserMinutes * 100) / 100} browser minutes`)
+        console.log(`💰 Actual cost: ${actualCost} credits (estimated was ${creditEstimate.creditsRequired})`)
+
+        // Deduct actual credits from user (unless bypass user)
+        if (!isBypassUser) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              credits: {
+                decrement: actualCost
+              }
+            }
+          })
+          console.log(`✅ Deducted ${actualCost} credits from user ${userId}`)
+        }
+
+        // Update audit with results, actual cost, and usage metrics
         await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeResults,
+            actualCost: actualCost,
+            usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })
       } catch (error) {
         console.error('Error processing audit:', error)
+
+        // End usage tracking even on error
+        usageTracker.endBrowserSession()
+        const usageMetrics = usageTracker.getMetrics()
+
+        // Calculate actual cost (even for failed audits, to track partial usage)
+        const actualCost = CreditCalculator.convertActualCostToCredits(
+          0, 0, 0, 0, usageMetrics.browserMinutes
+        )
+
+        // Deduct actual credits from user (unless bypass user)
+        if (!isBypassUser) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              credits: {
+                decrement: actualCost
+              }
+            }
+          })
+          console.log(`✅ Deducted ${actualCost} credits from user ${userId} (error fallback)`)
+        }
+
         // Fallback to mock data on error
         const { generateMockAuditResults } = await import('@/lib/mockData')
         const mockResults = await generateMockAuditResults(url, sections)
-        
+
         // Ensure the mock results are properly serializable
         const safeMockResults = JSON.parse(JSON.stringify(mockResults))
-        
+
         await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeMockResults,
+            actualCost: actualCost,
+            usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })

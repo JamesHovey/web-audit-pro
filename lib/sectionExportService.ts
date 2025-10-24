@@ -24,7 +24,7 @@ async function loadLogo(): Promise<string | null> {
       reader.onloadend = () => resolve(reader.result as string)
       reader.readAsDataURL(blob)
     })
-  } catch (e) {
+  } catch (_e) {
     console.log('Could not load logo:', e)
     return null
   }
@@ -51,7 +51,7 @@ export async function exportSectionToPDF(
     if (logoDataUrl) {
       try {
         doc.addImage(logoDataUrl, 'WEBP', pageWidth - 50, 10, 40, 40)
-      } catch (e) {
+      } catch (_e) {
         doc.setFontSize(10)
         doc.setTextColor(139, 71, 137)
         doc.text('ROARR!!', pageWidth - 25, 20, { align: 'right' })
@@ -347,7 +347,7 @@ function exportCompetitionSection(doc: jsPDF, data: any, startY: number, checkNe
 }
 
 function exportGenericSection(doc: jsPDF, data: any, startY: number, checkNewPage: (h: number) => boolean) {
-  let yPos = startY
+  const yPos = startY
   checkNewPage(20)
   doc.setFontSize(12)
   doc.setTextColor(0, 0, 0)

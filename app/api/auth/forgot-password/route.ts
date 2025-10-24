@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+interface ForgotPasswordTempRequestBody {
+  username: string;
+}
+
 /**
  * TEMPORARY PASSWORD RECOVERY - FOR TESTING ONLY
  * This endpoint returns user passwords for recovery without email.
@@ -16,7 +20,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as ForgotPasswordTempRequestBody
     const { username } = body
 
     if (!username) {

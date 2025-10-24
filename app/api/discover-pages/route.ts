@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { discoverPages } from '@/lib/pageDiscovery'
+import type { DiscoverPagesRequestBody } from '@/types/api'
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json()
+    const { url } = await request.json() as DiscoverPagesRequestBody
 
     if (!url) {
       return NextResponse.json(

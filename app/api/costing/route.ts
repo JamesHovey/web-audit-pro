@@ -31,11 +31,18 @@ export async function GET() {
 
     // Calculate costing data from audit results
     const auditHistory = audits.map(audit => {
-      const results = audit.results as any
-      
+      const results = audit.results as Record<string, unknown> | null
+
       // Extract credit usage from results
-      const keywordsEverywhereCredits = results?.volumeCreditsUsed || 0
-      const serperSearches = results?.keywordCompetition?.creditsUsed || 0
+      const keywordsEverywhereCredits = (results && typeof results === 'object' && 'volumeCreditsUsed' in results)
+        ? (results.volumeCreditsUsed as number)
+        : 0
+      const keywordCompetition = (results && typeof results === 'object' && 'keywordCompetition' in results)
+        ? results.keywordCompetition as Record<string, unknown>
+        : null
+      const serperSearches = (keywordCompetition && 'creditsUsed' in keywordCompetition)
+        ? (keywordCompetition.creditsUsed as number)
+        : 0
 
       // Calculate costs using the costing service
       const totalCost = costingService.calculateAuditCost(keywordsEverywhereCredits, serperSearches)

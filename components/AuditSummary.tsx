@@ -1,15 +1,14 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, CheckCircle, ChevronRight, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, HelpCircle, ShoppingCart, Check, Lightbulb } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ChevronRight, Zap, TrendingUp, Shield, Search, Code, FileText, Eye, Check, Lightbulb } from 'lucide-react'
 import { generateAuditSummary, SummaryIssue, AuditSummaryResult } from '@/lib/auditSummaryService'
 import { useSynergistBasket } from '@/contexts/SynergistBasketContext'
-import Tooltip from './Tooltip'
 import AffectedPagesModal from './AffectedPagesModal'
 import LargeImagesModal from './LargeImagesModal'
 
 interface AuditSummaryProps {
-  auditResults: any
+  auditResults: Record<string, unknown>
   auditUrl?: string
   onNavigateToSection?: (sectionId: string) => void
   defaultCollapsed?: boolean
@@ -48,36 +47,6 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
   // Generate summary
   const summary: AuditSummaryResult = generateAuditSummary(auditResults, auditUrl)
 
-  if (summary.totalIssues === 0) {
-    return null
-  }
-
-  const handleSeeMore = (sectionId: string, subsectionId?: string) => {
-    if (onNavigateToSection) {
-      // Use the passed callback which will open accordion and scroll
-      onNavigateToSection(sectionId)
-
-      // After opening section, scroll to subsection if provided
-      if (subsectionId) {
-        setTimeout(() => {
-          const subsection = document.querySelector(`[data-subsection="${subsectionId}"]`)
-          if (subsection) {
-            subsection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }, 300) // Wait for accordion to open
-      }
-    } else {
-      // Fallback to just scrolling if callback not provided
-      const targetSelector = subsectionId
-        ? `[data-subsection="${subsectionId}"]`
-        : `[data-section="${sectionId}"]`
-      const element = document.querySelector(targetSelector)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    }
-  }
-
   // Sort and filter issues
   const getSortedAndFilteredIssues = () => {
     let filtered = [...summary.topPriorities]
@@ -110,7 +79,37 @@ export default function AuditSummary({ auditResults, auditUrl, onNavigateToSecti
     if (filteredIssues.length > 0) {
       setExpandedIssue(filteredIssues[0].id)
     }
-  }, [activeTab])
+  }, [activeTab, filteredIssues])
+
+  if (summary.totalIssues === 0) {
+    return null
+  }
+
+  const handleSeeMore = (sectionId: string, subsectionId?: string) => {
+    if (onNavigateToSection) {
+      // Use the passed callback which will open accordion and scroll
+      onNavigateToSection(sectionId)
+
+      // After opening section, scroll to subsection if provided
+      if (subsectionId) {
+        setTimeout(() => {
+          const subsection = document.querySelector(`[data-subsection="${subsectionId}"]`)
+          if (subsection) {
+            subsection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 300) // Wait for accordion to open
+      }
+    } else {
+      // Fallback to just scrolling if callback not provided
+      const targetSelector = subsectionId
+        ? `[data-subsection="${subsectionId}"]`
+        : `[data-section="${sectionId}"]`
+      const element = document.querySelector(targetSelector)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
 
   // Count issues by type
   const criticalCount = summary.topPriorities.filter(i => i.severity === 'critical').length
@@ -280,7 +279,6 @@ const PLUGIN_URLS: { [key: string]: string } = {
 // Helper function to convert plugin names to links
 function renderTextWithPluginLinks(text: string): React.ReactNode {
   const parts: React.ReactNode[] = []
-  let remainingText = text
   let keyCounter = 0
 
   // Find all plugin names in the text
@@ -304,7 +302,7 @@ function renderTextWithPluginLinks(text: string): React.ReactNode {
 
   // Build the result by alternating between text and links
   let currentIndex = 0
-  matches.forEach((match, i) => {
+  matches.forEach((match) => {
     // Add text before the match
     if (match.index > currentIndex) {
       parts.push(text.substring(currentIndex, match.index))
@@ -347,13 +345,13 @@ interface IssueCardProps {
   onSeeMore: () => void
   isInBasket: boolean
   onToggleBasket: () => void
-  detectedCMS?: any
-  detectedPlugins?: any[]
+  detectedCMS?: Record<string, unknown>
+  detectedPlugins?: Record<string, unknown>[]
   onShowAffectedPages?: () => void
   onShowLargeImages?: () => void
 }
 
-function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, onToggleBasket, detectedCMS, detectedPlugins, onShowAffectedPages, onShowLargeImages }: IssueCardProps) {
+function IssueCard({ issue, index, isInBasket, onToggleBasket, detectedCMS, detectedPlugins, onShowAffectedPages, onShowLargeImages }: IssueCardProps) {
   const categoryConfig = CATEGORY_CONFIG[issue.category]
   const severityConfig = SEVERITY_CONFIG[issue.severity]
   const CategoryIcon = categoryConfig.icon
@@ -367,7 +365,9 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
     // Safely extract plugin names - handle various data structures
     let pluginNames: string[] = []
     if (Array.isArray(detectedPlugins)) {
-      pluginNames = detectedPlugins.map((p: any) => (p.name || p).toLowerCase())
+      pluginNames = detectedPlugins.map((p: Record<string, unknown> | string) =>
+        (typeof p === 'string' ? p : (p.name as string || '')).toLowerCase()
+      )
     } else if (detectedPlugins && typeof detectedPlugins === 'object') {
       // Handle case where plugins is an object
       pluginNames = Object.keys(detectedPlugins).map(key => key.toLowerCase())
@@ -376,8 +376,8 @@ function IssueCard({ issue, index, isExpanded, onToggle, onSeeMore, isInBasket, 
     const issueTitle = issue.title.toLowerCase()
     const issueCategory = issue.category
 
-    let recommendations: string[] = []
-    let existingTools: string[] = []
+    const recommendations: string[] = []
+    const existingTools: string[] = []
 
     // Performance and JavaScript issues
     if (issueCategory === 'performance' || issueTitle.includes('javascript') || issueTitle.includes('speed') || issueTitle.includes('loading')) {

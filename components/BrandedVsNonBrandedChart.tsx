@@ -4,8 +4,8 @@ import { HelpCircle, PieChart } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 interface BrandedVsNonBrandedChartProps {
-  brandedKeywords: any[]
-  nonBrandedKeywords: any[]
+  brandedKeywords: Record<string, unknown>[]
+  nonBrandedKeywords: Record<string, unknown>[]
 }
 
 export default function BrandedVsNonBrandedChart({
@@ -106,10 +106,10 @@ export default function BrandedVsNonBrandedChart({
                   <p className="font-medium mb-1">Understanding Search Intent</p>
                   <p className="text-gray-200">
                     <strong>Branded keywords</strong> (like your company name) indicate searchers already know about you.
-                    They're further along in the buyer journey with higher conversion rates.
+                    They&apos;re further along in the buyer journey with higher conversion rates.
                   </p>
                   <p className="text-gray-200 mt-1">
-                    <strong>Business-relevant keywords</strong> capture people who have a need but don't yet know about your solution.
+                    <strong>Business-relevant keywords</strong> capture people who have a need but don&apos;t yet know about your solution.
                     These represent your true growth opportunity.
                   </p>
                 </div>
@@ -118,22 +118,22 @@ export default function BrandedVsNonBrandedChart({
                   <p className="font-medium mb-1">Accurate Performance Assessment</p>
                   <p className="text-gray-200">
                     Strong brand keyword rankings are relatively easy to achieve. But ranking for competitive industry terms?
-                    That's where real SEO work happens.
+                    That&apos;s where real SEO work happens.
                   </p>
                 </div>
 
                 <div>
                   <p className="font-medium mb-1">Resource Allocation</p>
                   <ul className="list-disc list-inside text-gray-200 space-y-1">
-                    <li>Don't waste time optimizing pages that already rank #1 for your brand</li>
+                    <li>Don&apos;t waste time optimizing pages that already rank #1 for your brand</li>
                     <li>If most traffic comes from brand terms, you need more content targeting business keywords</li>
-                    <li>Your visibility for non-brand terms shows market share you're capturing</li>
+                    <li>Your visibility for non-brand terms shows market share you&apos;re capturing</li>
                   </ul>
                 </div>
 
                 <div className="bg-blue-900/30 rounded p-2 mt-2">
                   <p className="text-xs text-gray-200">
-                    <strong>Key Insight:</strong> This distinction separates "demand you've already created" from "demand you're trying to capture."
+                    <strong>Key Insight:</strong> This distinction separates &quot;demand you&apos;ve already created&quot; from &quot;demand you&apos;re trying to capture.&quot;
                   </p>
                 </div>
               </div>

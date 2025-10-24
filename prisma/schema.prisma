@@ -64,16 +64,19 @@ model VerificationToken {
 }
 
 model Audit {
-  id          String   @id @default(cuid())
-  userId      String?
-  url         String
-  status      String   @default("pending") // pending, running, completed, failed
-  sections    Json     // Selected audit sections
-  results     Json?    // Audit results
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  completedAt DateTime?
-  creditCost  Int?     // Credits deducted for this audit
+  id                String   @id @default(cuid())
+  userId            String?
+  url               String
+  status            String   @default("pending") // pending, running, completed, failed
+  sections          Json     // Selected audit sections
+  results           Json?    // Audit results
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  completedAt       DateTime?
+  creditCost        Int?     // DEPRECATED: Use actualCost instead
+  estimatedCost     Int?     // Estimated credits (calculated upfront)
+  actualCost        Int?     // Actual credits charged (calculated after audit)
+  usageMetrics      Json?    // Detailed usage: { browserMinutes, keCredits, serperSearches, claudeTokens }
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 

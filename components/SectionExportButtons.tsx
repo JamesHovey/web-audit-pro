@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 interface SectionExportButtonsProps {
   sectionName: string
-  sectionData: any
+  sectionData: Record<string, unknown>
   auditUrl: string
   className?: string
 }

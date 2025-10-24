@@ -13,7 +13,7 @@ interface Audit {
   id: string
   url: string
   status: string
-  results: any
+  results: Record<string, unknown> | null
   createdAt: string
   updatedAt: string
 }
@@ -175,7 +175,7 @@ export default function AuditPage() {
                         <li><strong>70+:</strong> Excellent authority</li>
                       </ul>
                       <div className="mt-2 p-2 bg-blue-900 rounded text-xs">
-                        <p className="font-medium">How it's calculated:</p>
+                        <p className="font-medium">How it&apos;s calculated:</p>
                         <p>Based on factors like backlink quality, domain age, content quality, and technical SEO.</p>
                       </div>
                     </div>

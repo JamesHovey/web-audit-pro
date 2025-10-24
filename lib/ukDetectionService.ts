@@ -48,7 +48,7 @@ export class UKDetectionService {
           reasoning: `UK content indicators found: ${contentResult.signals.join(', ')}`
         };
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('Content analysis failed, using domain-only detection');
     }
     
@@ -136,7 +136,7 @@ export class UKDetectionService {
       // Analyze content for UK indicators
       return this.analyzeUKContent(content);
       
-    } catch (error) {
+    } catch (_error) {
       console.log(`Quick content analysis failed for ${url}:`, error);
       return { isUK: false, confidence: 'low', signals: ['Content analysis failed'] };
     }

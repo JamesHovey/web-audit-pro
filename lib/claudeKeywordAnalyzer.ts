@@ -112,19 +112,16 @@ export class ClaudeKeywordAnalyzer {
    */
   private extractWebContent(html: string): string {
     // Remove scripts, styles, and navigation
-    let content = html
+    const content = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
       .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-    
-    // Extract text content
-    content = content
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    
+
     // Get key sections (first 3000 characters for Claude)
     return content.substring(0, 3000);
   }
@@ -341,7 +338,7 @@ Be specific and practical in your recommendations based on what this business AC
       const volumeMap = new Map(volumeData.map(v => [v.keyword.toLowerCase(), v.volume]));
       
       // Get rankings from Serper (limited to top keywords to save API credits)
-      let rankingData: Map<string, number> = new Map();
+      const rankingData: Map<string, number> = new Map();
       try {
         const topKeywords = [
           ...claudeAnalysis.brandedKeywords.slice(0, 3), // Limit branded keywords

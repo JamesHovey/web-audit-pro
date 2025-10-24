@@ -99,67 +99,6 @@ export default function NonBrandedKeywordTable({
   const endIndex = startIndex + itemsPerPage
   const currentKeywords = sortedKeywords.slice(startIndex, endIndex)
 
-  if (!keywords || keywords.length === 0 || sortedKeywords.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-black">{contextualTitle}</h4>
-          <Tooltip 
-            content={
-              <div>
-                <p className="font-semibold mb-2">Recommended keywords</p>
-                <p className="mb-2 text-xs">{description}</p>
-                <p className="text-xs"><strong>No keywords found:</strong> No business-specific keywords with sufficient search volume (50-10,000/month) were discovered.</p>
-              </div>
-            }
-            position="bottom"
-          >
-            <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
-          </Tooltip>
-        </div>
-        <div className="border rounded-lg p-8 text-center text-gray-500">
-          <p className="text-sm">No business-specific keywords with sufficient search volume (50-10,000/month) found.</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      // Default sort orders
-      setSortOrder(field === 'position' ? 'asc' : 'desc')
-    }
-    setCurrentPage(1) // Reset to first page when sorting changes
-  }
-  
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return <ChevronsUpDown className="w-4 h-4 text-gray-400" />
-    }
-    return sortOrder === 'asc' 
-      ? <ChevronUp className="w-4 h-4 text-blue-600" />
-      : <ChevronDown className="w-4 h-4 text-blue-600" />
-  }
-
-  const openPageSourceModal = (keyword: string, pageSources: PageSource[]) => {
-    setModalState({
-      isOpen: true,
-      keyword,
-      pageSources
-    })
-  }
-
-  const closePageSourceModal = () => {
-    setModalState({
-      isOpen: false,
-      keyword: '',
-      pageSources: []
-    })
-  }
-
   // Generate realistic page sources for demonstration (until backend provides real data)
   // Use keyword as seed for deterministic "random" values
   const generatePageSources = useCallback((keyword: string): PageSource[] => {
@@ -246,14 +185,75 @@ export default function NonBrandedKeywordTable({
       return cache.get(key)!;
     };
   }, [generatePageSources])
-  
+
+  if (!keywords || keywords.length === 0 || sortedKeywords.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-black">{contextualTitle}</h4>
+          <Tooltip
+            content={
+              <div>
+                <p className="font-semibold mb-2">Recommended keywords</p>
+                <p className="mb-2 text-xs">{description}</p>
+                <p className="text-xs"><strong>No keywords found:</strong> No business-specific keywords with sufficient search volume (50-10,000/month) were discovered.</p>
+              </div>
+            }
+            position="bottom"
+          >
+            <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help transition-colors duration-200" />
+          </Tooltip>
+        </div>
+        <div className="border rounded-lg p-8 text-center text-gray-500">
+          <p className="text-sm">No business-specific keywords with sufficient search volume (50-10,000/month) found.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      // Default sort orders
+      setSortOrder(field === 'position' ? 'asc' : 'desc')
+    }
+    setCurrentPage(1) // Reset to first page when sorting changes
+  }
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ChevronsUpDown className="w-4 h-4 text-gray-400" />
+    }
+    return sortOrder === 'asc'
+      ? <ChevronUp className="w-4 h-4 text-blue-600" />
+      : <ChevronDown className="w-4 h-4 text-blue-600" />
+  }
+
+  const openPageSourceModal = (keyword: string, pageSources: PageSource[]) => {
+    setModalState({
+      isOpen: true,
+      keyword,
+      pageSources
+    })
+  }
+
+  const closePageSourceModal = () => {
+    setModalState({
+      isOpen: false,
+      keyword: '',
+      pageSources: []
+    })
+  }
+
   const getPositionColor = (position: number) => {
     if (position === 0) return 'text-gray-500 bg-gray-50'
     if (position <= 3) return 'text-green-600 bg-green-50'
     if (position <= 10) return 'text-blue-600 bg-blue-50'
     return 'text-orange-600 bg-orange-50'
   }
-  
+
 
   return (
     <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
@@ -273,7 +273,7 @@ export default function NonBrandedKeywordTable({
                   <li>Real ranking positions (when available)</li>
                 </ul>
               </div>
-              <p className="text-xs font-medium text-yellow-300">Note: "Not ranking" means no verified position data available</p>
+              <p className="text-xs font-medium text-yellow-300">Note: &quot;Not ranking&quot; means no verified position data available</p>
             </div>
           }
           position="bottom"
@@ -490,7 +490,7 @@ export default function NonBrandedKeywordTable({
                 <p><strong>Action items to capture more traffic:</strong></p>
                 <ul className="list-disc list-inside ml-2 space-y-1">
                   {sortedKeywords.some(k => !k.position || k.position === 0) && (
-                    <li>Create content targeting keywords where you don't rank yet</li>
+                    <li>Create content targeting keywords where you don&apos;t rank yet</li>
                   )}
                   {sortedKeywords.some(k => k.position && k.position > 10) && (
                     <li>Improve rankings for keywords where you rank on page 2+ (position 11+)</li>
@@ -505,7 +505,7 @@ export default function NonBrandedKeywordTable({
             <>
               <p>
                 <strong>Growth opportunity:</strong> Limited non-branded keyword presence found. 
-                This means you're missing out on potential customers searching for your services.
+                This means you&apos;re missing out on potential customers searching for your services.
               </p>
               <div className="space-y-1">
                 <p><strong>Action items to start capturing organic traffic:</strong></p>

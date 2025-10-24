@@ -317,8 +317,8 @@ export function detectWordPressPlugins(html: string, headers: Record<string, str
       if (lowerHtml.includes(pattern.toLowerCase())) {
         // Determine detection method
         let detectionMethod: DetectedPlugin['detectionMethod'] = 'html';
-        let evidence = pattern;
-        
+        const evidence = pattern;
+
         if (lowerHtml.includes(`<script`) && lowerHtml.includes(pattern.toLowerCase())) {
           detectionMethod = 'script';
         } else if (lowerHtml.includes(`<link`) && lowerHtml.includes(pattern.toLowerCase())) {
@@ -426,7 +426,7 @@ function generatePluginRecommendations(plugins: DetectedPlugin[], categoryMap: R
 }
 
 // Enhanced plugin detection for WordPress sites
-export function enhanceWordPressDetection(existingResult: any, html: string, headers: Record<string, string>): any {
+export function enhanceWordPressDetection(existingResult: { cms?: string; plugins?: string[] | Record<string, unknown[]> }, html: string, headers: Record<string, string>): { cms?: string; plugins?: string[] | Record<string, unknown[]>; detectedPlugins?: unknown[]; categories?: Record<string, unknown[]>; recommendations?: string[] } {
   if (existingResult.cms !== 'WordPress') {
     return existingResult;
   }

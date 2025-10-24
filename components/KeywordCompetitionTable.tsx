@@ -26,10 +26,9 @@ interface KeywordCompetitionTableProps {
   description?: string
 }
 
-export default function KeywordCompetitionTable({ 
-  competitionData, 
-  title = "Keyword Competition Analysis",
-  description = "Competitor websites with the highest keyword overlap based on your Above Fold Keywords"
+export default function KeywordCompetitionTable({
+  competitionData,
+  title = "Keyword Competition Analysis"
 }: KeywordCompetitionTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [expandedCompetitor, setExpandedCompetitor] = useState<string | null>(null)
@@ -220,7 +219,7 @@ export default function KeywordCompetitionTable({
         </div>
         
         <div className="divide-y">
-          {paginatedCompetitors.map((competitor, index) => (
+          {paginatedCompetitors.map((competitor) => (
             <div key={competitor.domain} className="px-4 py-3 hover:bg-gray-50">
               <div className="grid grid-cols-12 gap-4 items-center text-sm">
                 <div className="col-span-3">
@@ -367,9 +366,9 @@ export default function KeywordCompetitionTable({
                   {competitors.some(c => c.authority && competitionData?.targetDomainAuthority && c.authority > competitionData.targetDomainAuthority + 10) && (
                     <li><strong>Authority building:</strong> Several competitors have significantly higher domain authority - focus on building backlinks</li>
                   )}
-                  <li>Monitor these competitors' content and SEO strategies regularly</li>
+                  <li>Monitor these competitors&apos; content and SEO strategies regularly</li>
                   <li>Analyze their top-performing content for keywords you both target</li>
-                  <li>Look for keyword gaps where competitors rank but you don't</li>
+                  <li>Look for keyword gaps where competitors rank but you don&apos;t</li>
                   <li>Create better, more comprehensive content for shared keywords</li>
                   <li>Track position changes monthly to detect competitive threats</li>
                 </ul>

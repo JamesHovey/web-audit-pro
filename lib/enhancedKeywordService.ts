@@ -92,19 +92,19 @@ export class EnhancedKeywordService {
   /**
    * Calculate actual API costs incurred during this audit
    */
-  private calculateActualAPICosts(enhancedKeywords: any, aboveFoldAnalysis: any): {
+  private async calculateActualAPICosts(enhancedKeywords: any, aboveFoldAnalysis: any): Promise<{
     keywordsEverywhereCredits: number,
     serperSearches: number,
     keywordsEverywhereCost: number,
     serperCost: number,
     claudeCost: number,
     totalCost: number
-  } {
+  }> {
     // Get Keywords Everywhere usage from the service
     let keCredits = 0;
     try {
-      const { KeywordsEverywhereService } = require('./keywordsEverywhereService');
-      const keService = new KeywordsEverywhereService();
+      const keModule = await import('./keywordsEverywhereService');
+      const keService = new keModule.KeywordsEverywhereService();
       keCredits = keService.getCreditsUsed() || 0;
     } catch (error) {
       console.warn('Could not get Keywords Everywhere usage:', error);
@@ -115,8 +115,8 @@ export class EnhancedKeywordService {
     try {
       vsSearches = aboveFoldAnalysis?.creditsUsed || 0;
       // Also check if Serper service tracks usage
-      const { SerperService } = require('./serperService');
-      const vsService = new SerperService();
+      const serperModule = await import('./serperService');
+      const vsService = new serperModule.SerperService();
       if (vsService.getCreditsUsed) {
         vsSearches += vsService.getCreditsUsed() || 0;
       }
@@ -320,7 +320,7 @@ export class EnhancedKeywordService {
       }
       
       // Calculate actual API costs from this audit
-      const actualCosts = this.calculateActualAPICosts(enhancedKeywords, aboveFoldAnalysis);
+      const actualCosts = await this.calculateActualAPICosts(enhancedKeywords, aboveFoldAnalysis);
       
       const result: EnhancedKeywordAnalysis = {
         businessDetection,

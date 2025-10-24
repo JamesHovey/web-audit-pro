@@ -1,26 +1,63 @@
 'use client';
 
 import React from 'react';
-import { 
-  Zap, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Smartphone, 
-  Monitor, 
+import {
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Monitor,
   Image as ImageIcon,
   Target,
-  Lightbulb,
   TrendingUp,
-  Shield,
   Settings,
-  Award,
-  Eye,
-  ArrowRight
+  Eye
 } from 'lucide-react';
 
+interface Issue {
+  severity: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  timeToFix: string;
+  expectedImprovement: string;
+}
+
+interface QuickWin {
+  title: string;
+  timeToImplement?: string;
+  timeRequired?: string;
+  impact?: string;
+  expectedImprovement?: string;
+}
+
+interface BusinessImpact {
+  estimatedVisitorLoss: number;
+  userExperienceScore: number;
+  revenueImpact: string;
+}
+
+interface Phase {
+  phase: number;
+  title: string;
+}
+
 interface PerformanceTechnicalConclusionProps {
-  data: any;
+  data: {
+    enhancedWithAI?: boolean;
+    performanceDiagnosis?: {
+      overallHealthScore?: number;
+      primaryIssues?: Issue[];
+      quickWins?: QuickWin[];
+      businessImpact?: BusinessImpact;
+      actionPlan?: Phase[];
+    };
+    technicalSEOIntelligence?: {
+      seoHealthScore?: number;
+      quickSEOWins?: QuickWin[];
+    };
+    imageOptimizationStrategy?: unknown;
+  };
 }
 
 export default function PerformanceTechnicalConclusion({ data }: PerformanceTechnicalConclusionProps) {
@@ -171,9 +208,9 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
           </h4>
           <div className="space-y-3">
             {performanceDiagnosis.primaryIssues
-              .filter((issue: any) => issue.severity === 'critical' || issue.severity === 'important')
+              .filter((issue) => issue.severity === 'critical' || issue.severity === 'important')
               .slice(0, 3)
-              .map((issue: any, index: number) => (
+              .map((issue, index) => (
               <div key={index} className={`p-4 rounded-lg border-l-4 ${
                 issue.severity === 'critical' ? 'bg-red-50 border-red-400' : 'bg-yellow-50 border-yellow-400'
               }`}>
@@ -212,7 +249,7 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
               Performance Quick Wins
             </h4>
             <div className="space-y-2">
-              {performanceDiagnosis.quickWins.slice(0, 3).map((win: any, index: number) => (
+              {performanceDiagnosis.quickWins.slice(0, 3).map((win, index) => (
                 <div key={index} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
@@ -233,7 +270,7 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
               SEO Quick Wins
             </h4>
             <div className="space-y-2">
-              {seoIntelligence.quickSEOWins.slice(0, 3).map((win: any, index: number) => (
+              {seoIntelligence.quickSEOWins.slice(0, 3).map((win, index) => (
                 <div key={index} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
@@ -285,7 +322,7 @@ export default function PerformanceTechnicalConclusion({ data }: PerformanceTech
             Recommended Action Plan
           </h4>
           <div className="space-y-3">
-            {performanceDiagnosis.actionPlan.map((phase: any, index: number) => (
+            {performanceDiagnosis.actionPlan.map((phase, index) => (
               <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
                   {phase.phase}

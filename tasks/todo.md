@@ -175,71 +175,67 @@ Build a comprehensive website audit tool with 6 key sections:
 
 ---
 
-## Current Task: Audit Results Page Improvements
+## Current Task: Fix All Lint Errors
 
-### Overview
-Improve the Audit Results page to make the Audit View section accessible via icon and ensure all Performance & Technical issues appear in the Audit Summary.
+### Summary
+Total Errors: 276 errors to fix (excluding warnings)
 
-### Tasks
+### Tasks by Priority
 
-#### 1. Move Audit View Section to Icon Button
-- [ ] Create an icon button (e.g., eye/visibility icon) to the left of the "Sitemap" button
-- [ ] Move the Audit View section content into a modal/dropdown that opens when the icon is clicked
-- [ ] Make the Audit View section closed/hidden by default
-- [ ] Ensure state management for opening/closing the view selector
+#### 1. Parsing Errors (CRITICAL - 5 files)
+- [ ] components/AboveFoldKeywordTable.tsx (line 38)
+- [ ] components/AuditForm.tsx (line 1863)
+- [ ] components/BrandedKeywordTable.tsx (line 73)
+- [ ] components/LoadingMessages.tsx
+- [ ] components/PageSourceModal.tsx (line 63)
 
-#### 2. Enhance Audit Summary with Performance Issues
-Currently capturing:
-- ✅ Core Web Vitals (LCP, CLS, INP) failures
-- ✅ Large images
-- ✅ Missing meta descriptions
-- ✅ Missing H1 tags
-- ✅ Broken links
+#### 2. React Hooks Violations (3 errors)
+- [ ] components/AuditSummary.tsx (line 108 - conditional useEffect)
+- [ ] components/NonBrandedKeywordTable.tsx (line 165 - conditional useCallback)
+- [ ] components/NonBrandedKeywordTable.tsx (line 239 - conditional useMemo)
 
-Need to verify and add any missing from Performance & Technical section:
-- [ ] Review what other performance metrics are shown in Performance & Technical Audit
-- [ ] Add any missing issues to auditSummaryService.ts
-- [ ] Ensure single-page audit issues are properly extracted
+#### 3. require() imports (3 errors)
+- [ ] components/EnhancedRecommendations.tsx (line 619)
+- [ ] lib/lightningCss.ts (line 106, 118)
 
-#### 3. Issue Prioritization Recommendations
+#### 4. prefer-const violations (8 errors)
+- [ ] lib/businessIntelligenceService.ts (lines 129, 422)
+- [ ] lib/claudeApiService.ts (line 52)
+- [ ] lib/competitorRankingService.ts (line 344)
+- [ ] lib/seoPluginRecommendations.ts (lines 51, 277, 739)
+- [ ] lib/technicalAuditService.ts (lines 238, 239)
+- [ ] lib/pdfService.ts (line 350)
 
-**Current Priority Score Calculation:**
-- Severity (30%): Critical = 100, High = 70, Medium = 40, Low = 20
-- Impact (40%): Max of Core Web Vitals, Search Ranking, Accessibility, UX impact
-- Legal/Compliance Risk (20%): +100 if legal risk
-- Effort vs Benefit (10%): Low effort = 100, Medium = 60, High = 30
-- Quick Win Bonus: +15 points
+#### 5. any types - Components (~13 errors)
+- [ ] components/AuditResults.tsx (lines 883, 3816, 3836)
+- [ ] components/CompetitionAnalysis.tsx (lines 38, 98)
+- [ ] components/EnhancedRecommendations.tsx (line 622)
+- [ ] components/KeywordAnalysisConclusion.tsx (line 132)
+- [ ] components/PerformanceTechnicalConclusion.tsx (lines 18, 169, 171, 210, 231, 283)
+- [ ] components/RecommendedKeywordTable.tsx (line 97)
 
-**Recommended Priority Order:**
-
-**Tier 1 - Critical & Legal (Must Fix)**
-1. Accessibility violations with legal risk (EAA/WCAG compliance)
-2. Critical Core Web Vitals failures (score < 50)
-3. Critical security issues
-
-**Tier 2 - Quick Wins (High ROI)**
-4. Large images (low effort, high impact on performance)
-5. Missing meta descriptions (low effort, high SEO impact)
-6. Missing H1 tags (low effort, high SEO impact)
-7. Broken links
-
-**Tier 3 - High Impact Performance**
-8. High/Medium Core Web Vitals issues (LCP, CLS, INP)
-9. Render-blocking resources
-10. Server response time issues
-
-**Tier 4 - SEO Improvements**
-11. Keyword opportunities
-12. Low organic traffic (long-term strategy)
-13. Content quality issues
-
-**Tier 5 - UX & Content**
-14. User experience improvements
-15. Content recommendations
-16. Design/layout issues
-
-#### 4. Implementation Plan
-- [ ] Update app/audit/[id]/page.tsx to add Audit View icon button
-- [ ] Update components/AuditResults.tsx to make view selector collapsible
-- [ ] Update lib/auditSummaryService.ts to capture all relevant issues
-- [ ] Test on localhost:3000
+#### 6. any types - Lib files (~244 errors)
+- [ ] lib/aboveFoldDiscovery.ts
+- [ ] lib/accessibilityAuditService.ts
+- [ ] lib/accessibilityPluginRecommendations.ts
+- [ ] lib/aiOverviewService.ts
+- [ ] lib/auditSummaryService.ts
+- [ ] lib/auth.ts
+- [ ] lib/browserBacklinkScraper.ts
+- [ ] lib/claudeApiService.ts
+- [ ] lib/competitorRankingService.ts
+- [ ] lib/contentAnalysisService.ts
+- [ ] lib/contentOptimizationService.ts
+- [ ] lib/heatMapService.ts
+- [ ] lib/imageOptimizationService.ts
+- [ ] lib/keywordRankingService.ts
+- [ ] lib/lightningCss.ts
+- [ ] lib/localSeoService.ts
+- [ ] lib/mobileUsabilityService.ts
+- [ ] lib/nlpContentService.ts
+- [ ] lib/pageCacheService.ts
+- [ ] lib/pdfService.ts
+- [ ] lib/performancePluginRecommendations.ts
+- [ ] lib/seoPluginRecommendations.ts
+- [ ] lib/technicalAuditService.ts
+- [ ] lib/userExperienceService.ts

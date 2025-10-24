@@ -443,7 +443,7 @@ export class AboveFoldDiscoveryService {
   /**
    * Extract brand name from content
    */
-  private extractBrandName(html: string): string {
+  private extractBrandName(_html: string): string {
     // Always use domain name as the primary source for brand name
     // This ensures we get the actual company name, not random content words
     const primaryDomain = this.domain.split('.')[0];
@@ -454,7 +454,6 @@ export class AboveFoldDiscoveryService {
    * Get industry-specific keywords based on business type
    */
   private getIndustrySpecificKeywords(businessType?: string, html?: string): string[] {
-    const lowerHtml = (html || '').toLowerCase();
     
     switch (businessType) {
       case 'Food & Hospitality':
@@ -630,7 +629,6 @@ export class AboveFoldDiscoveryService {
     
     // If we found relevant content, generate combinations
     if (keywords.size > 0) {
-      const foundTerms = Array.from(keywords);
       seedTerms.forEach(baseTerm => {
         if (textContent.includes(baseTerm)) {
           seedTerms.forEach(modifier => {

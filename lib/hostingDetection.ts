@@ -272,9 +272,9 @@ function parseBigDataCloudResponse(data: any): Omit<HostingResult, 'source' | 'c
 // Extract clean provider name from organization string
 function extractProviderName(orgString: string): string {
   if (!orgString) return 'Unknown';
-  
+
   // Remove common suffixes and clean up
-  let provider = orgString
+  const provider = orgString
     .replace(/,?\s*(Inc\.?|LLC\.?|Ltd\.?|Corporation|Corp\.?|Limited|Co\.?)$/i, '')
     .replace(/\s+Holdings?$/i, '')
     .replace(/\s+Group$/i, '')

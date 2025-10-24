@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Search, BarChart3, Globe, Zap, Target, TrendingUp, Coffee, Heart, Brain, Dumbbell, Book, Music, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { Search, BarChart3, Globe, Zap, Target, CheckCircle } from 'lucide-react'
 
 const WAITING_ACTIVITIES = [
   "☕ Perfect time to grab a coffee...",
@@ -121,12 +121,7 @@ interface LoadingMessagesProps {
 }
 
 export default function LoadingMessages({ section, className = "", progress, startTime }: LoadingMessagesProps) {
-  const [elapsedTime, setElapsedTime] = useState(0)
   const [currentActivity, setCurrentActivity] = useState(0)
-
-  // Get current section configuration
-  const currentSectionKey = progress?.currentSection || section || 'keywords'
-  const sectionConfig = SECTION_CONFIG[currentSectionKey as keyof typeof SECTION_CONFIG]
   
   // Rotate waiting activities
   useEffect(() => {
@@ -136,79 +131,6 @@ export default function LoadingMessages({ section, className = "", progress, sta
 
     return () => clearInterval(interval)
   }, [])
-
-  // Update elapsed time
-  useEffect(() => {
-    if (startTime) {
-      const timer = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000)
-        setElapsedTime(elapsed)
-      }, 1000)
-
-      return () => clearInterval(timer)
-    }
-  }, [startTime])
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  const calculateProgress = () => {
-    if (!progress) return 0
-    return Math.round((progress.completedSections / progress.totalSections) * 100)
-  }
-
-  const getTotalEstimatedTime = () => {
-    if (!progress) return '2-4 minutes'
-    
-    // Base estimate on actual section count with realistic times
-    const baseTimePerSection = 60 // 1 minute average per section
-    const totalSeconds = progress.totalSections * baseTimePerSection
-    const totalMinutes = Math.ceil(totalSeconds / 60)
-    
-    // Add some buffer for variability
-    const minTime = Math.max(1, totalMinutes - 1)
-    const maxTime = totalMinutes + 2
-    
-    return `${minTime}-${maxTime} minutes`
-  }
-
-  const getRemainingTime = () => {
-    if (!progress) return '2-4 minutes'
-    
-    const remainingSections = progress.totalSections - progress.completedSections
-    if (remainingSections <= 0) return 'Finalizing...'
-    
-    // More realistic remaining time based on actual progress
-    if (remainingSections === 1 && progress.status === 'running') {
-      return 'Less than 1 minute'
-    }
-    
-    const avgTimePerSection = 60 // seconds
-    const remainingSeconds = remainingSections * avgTimePerSection
-    
-    if (remainingSeconds < 60) {
-      return `~${Math.max(30, remainingSeconds)} seconds`
-    }
-    
-    const remainingMinutes = Math.ceil(remainingSeconds / 60)
-    return remainingMinutes === 1 ? '~1 minute' : `~${remainingMinutes} minutes`
-  }
-
-  const getCurrentSectionProgress = () => {
-    if (!progress) return 0
-    
-    // Show progress based on actual status
-    if (progress.status === 'completed') return 100
-    if (progress.status === 'running') {
-      // For running sections, show partial progress
-      return 50 // Show that we're working on it
-    }
-    
-    return 0
-  }
 
   return (
     <div className={`flex flex-col items-center justify-center h-screen px-8 overflow-hidden ${className}`}>

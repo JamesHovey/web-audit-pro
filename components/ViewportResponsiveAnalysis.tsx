@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Monitor, Smartphone, Tablet, AlertTriangle, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, HelpCircle, Code } from 'lucide-react'
+import { Monitor, Smartphone, Tablet, AlertTriangle, XCircle, Info, ChevronDown, ChevronUp, HelpCircle, Code } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 interface ViewportIssue {
@@ -34,7 +34,7 @@ interface ViewportAnalysisData {
   timestamp: string
   overallScore: number
   viewports: ViewportResult[]
-  recommendations: any[]
+  recommendations: Record<string, unknown>[]
   summary: {
     status: string
     score: number
@@ -386,7 +386,7 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
                               <li className="flex items-start">
                                 <span className="font-semibold mr-2 text-blue-600">2.</span>
                                 <span>
-                                  <strong>If missing:</strong> Install a plugin like "Insert Headers and Footers" or "Head, Footer and Post Injections"
+                                  <strong>If missing:</strong> Install a plugin like &quot;Insert Headers and Footers&quot; or &quot;Head, Footer and Post Injections&quot;
                                 </span>
                               </li>
                               <li className="flex items-start">
@@ -407,7 +407,7 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
                               <li className="flex items-start">
                                 <span className="font-semibold mr-2 text-green-600">1.</span>
                                 <span>
-                                  <strong>Open your HTML file</strong> or theme's header.php file
+                                  <strong>Open your HTML file</strong> or theme&apos;s header.php file
                                 </span>
                               </li>
                               <li className="flex items-start">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import puppeteer from 'puppeteer'
+import type { ViewportAuditRequestBody } from '@/types/api'
 
 // Industry standard viewport breakpoints based on 2024 research
 const VIEWPORT_BREAKPOINTS = [
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
   let browser = null
 
   try {
-    const { url } = await request.json()
+    const { url } = await request.json() as ViewportAuditRequestBody
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 })
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 async function analyzeViewportWithScreenshot(
   url: string,
   viewport: typeof VIEWPORT_BREAKPOINTS[0],
-  browser: any
+  browser: Awaited<ReturnType<typeof puppeteer.launch>>
 ): Promise<ViewportAnalysis> {
   const page = await browser.newPage()
 

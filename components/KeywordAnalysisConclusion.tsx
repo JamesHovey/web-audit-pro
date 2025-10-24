@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 interface KeywordAnalysisConclusionProps {
-  analysis: any; // ClaudeKeywordAnalysis
+  analysis: Record<string, unknown>; // ClaudeKeywordAnalysis
 }
 
 export default function KeywordAnalysisConclusion({ analysis }: KeywordAnalysisConclusionProps) {
@@ -129,7 +129,7 @@ export default function KeywordAnalysisConclusion({ analysis }: KeywordAnalysisC
             Top Keyword Opportunities
           </h4>
           <div className="space-y-3">
-            {analysis.recommendedKeywords.slice(0, 5).map((keyword: any, index: number) => (
+            {analysis.recommendedKeywords.slice(0, 5).map((keyword: { keyword: string; priority?: string; volume?: number; reason?: string }, index: number) => (
               <div key={index} className="flex items-start gap-3 p-3 bg-[#27ae60]/5 rounded-lg border border-[#27ae60]/20">
                 <CheckCircle className="w-5 h-5 text-[#27ae60] mt-0.5 flex-shrink-0" />
                 <div className="flex-1">

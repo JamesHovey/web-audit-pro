@@ -108,8 +108,9 @@ export class SerperService {
     try {
       const ranking = await this.getKeywordRankings(keyword, domain);
       return ranking.position;
-    } catch (error: any) {
-      console.warn(`Failed to check position for "${keyword}":`, error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn(`Failed to check position for "${keyword}":`, errorMessage);
       return null;
     }
   }

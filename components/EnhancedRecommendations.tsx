@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
-import { AlertTriangle, Clock, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
+import React from 'react'
+import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
 import Tooltip from './Tooltip'
 import PluginRecommendationTable from './PluginRecommendationTable'
-import { getPluginsByUseCase, isPluginInstalled } from '@/lib/pluginRecommendations'
+import { getPluginsByUseCase } from '@/lib/pluginRecommendations'
+import { getPageBuilderOptimizations } from '@/lib/pluginDetectionService'
 
 interface Recommendation {
   title: string
@@ -40,9 +41,6 @@ export default function EnhancedRecommendations({
   recommendations,
   desktopScore,
   mobileScore,
-  lcpScore,
-  clsScore,
-  inpScore,
   detectedPlugins = [],
   pageBuilder,
   cms,
@@ -619,10 +617,9 @@ export default function EnhancedRecommendations({
               Your site uses <strong>{pageBuilder}</strong>. Here are specific optimization settings you can enable:
             </p>
             {(() => {
-              const { getPageBuilderOptimizations } = require('@/lib/pluginDetectionService')
               const optimizations = getPageBuilderOptimizations(pageBuilder)
-              
-              return optimizations.map((opt: any, index: number) => (
+
+              return optimizations.map((opt: { title: string; description: string; impact: string; steps: string[] }, index: number) => (
                 <details key={index} className="mb-3 last:mb-0">
                   <summary className="cursor-pointer text-blue-700 hover:text-blue-900 font-medium flex items-center gap-2">
                     <svg
@@ -662,7 +659,7 @@ export default function EnhancedRecommendations({
       )}
       
       <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-        💡 <strong>Tip:</strong> Start with "High Impact" and "Easy" fixes first for quick wins. 
+        💡 <strong>Tip:</strong> Start with &quot;High Impact&quot; and &quot;Easy&quot; fixes first for quick wins. 
         Test each change and measure the improvement before moving to harder fixes.
         {detectedPlugins.length > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-200">

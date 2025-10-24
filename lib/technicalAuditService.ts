@@ -65,7 +65,7 @@ interface TechnicalAuditResult {
   httpsStatus: 'secure' | 'insecure';
   discoveryMethod: string;
   sitemapUrl?: string;
-  viewportAnalysis?: any; // ViewportAuditResult from viewportAnalysisService
+  viewportAnalysis?: Record<string, unknown>; // ViewportAuditResult from viewportAnalysisService
   html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
@@ -197,7 +197,7 @@ export async function performTechnicalAudit(
                 html: pageHtml // Store HTML for heading analysis
               };
             }
-          } catch (error) {
+          } catch (_error) {
             console.log(`Could not fetch ${pageUrl}:`, error);
           }
 
@@ -296,7 +296,7 @@ export async function performTechnicalAudit(
             performance = await analyzePagePerformance(page.url, `<html><head><title>${page.title}</title></head><body></body></html>`);
             console.log(`📊 Generating simulated performance for ${page.url} (beyond fetch limit)`);
           }
-        } catch (error) {
+        } catch (_error) {
           console.log(`Could not analyze performance for ${page.url}:`, error.message);
           // Still provide basic performance metrics so page appears in table
           performance = {
@@ -387,7 +387,7 @@ export async function performTechnicalAudit(
           // Add large images from this page to the results
           result.largeImageDetails.push(...pageImages.largeImages);
         }
-      } catch (error) {
+      } catch (_error) {
         console.log(`Could not analyze images for ${page.url}`);
       }
     }
@@ -402,12 +402,12 @@ export async function performTechnicalAudit(
     try {
       result.viewportAnalysis = await analyzeViewportResponsiveness(url);
       console.log(`✅ Viewport analysis complete. Score: ${result.viewportAnalysis.overallScore}/100`);
-    } catch (error) {
+    } catch (_error) {
       console.error('Viewport analysis failed:', error);
       result.viewportAnalysis = null;
     }
     
-  } catch (error) {
+  } catch (_error) {
     console.error('Technical audit error:', error);
   }
   
@@ -515,7 +515,7 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
           largeImages.push(imageData);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       console.log(`Could not check image ${imgSrc}:`, error);
     }
   }
@@ -552,7 +552,7 @@ async function getImageSize(imageUrl: string): Promise<number> {
       const blob = await imageResponse.blob();
       return Math.round(blob.size / 1024);
     }
-  } catch (error) {
+  } catch (_error) {
     console.log(`Could not get size for ${imageUrl}`);
   }
   
@@ -584,7 +584,7 @@ function findAllLinks(html: string, pageUrl: string): string[] {
       }
 
       links.push(linkUrl);
-    } catch (error) {
+    } catch (_error) {
       console.log(`Invalid link found: ${href}`);
     }
   }
@@ -628,7 +628,7 @@ async function checkLinksFor404s(links: string[], sourceUrl: string): Promise<Ar
           linkType: isInternal ? 'internal' : 'external'
         });
       }
-    } catch (error) {
+    } catch (_error) {
       // Network errors might indicate broken links
       console.log(`Could not check link ${link}`);
     }
@@ -656,7 +656,7 @@ async function checkSitemap(baseUrl: URL): Promise<'found' | 'missing'> {
         console.log(`✓ Sitemap found at ${sitemapUrl}`);
         return 'found';
       }
-    } catch (error) {
+    } catch (_error) {
       continue;
     }
   }
@@ -677,7 +677,7 @@ async function checkRobotsTxt(baseUrl: URL): Promise<'found' | 'missing'> {
       console.log(`✓ Robots.txt found at ${robotsUrl}`);
       return 'found';
     }
-  } catch (error) {
+  } catch (_error) {
     console.log('Robots.txt not found');
   }
   
@@ -731,7 +731,7 @@ async function analyzePagePerformance(url: string, html: string): Promise<PagePe
       }
     };
     
-  } catch (error) {
+  } catch (_error) {
     console.error(`Failed to analyze performance for ${url}:`, error);
     // Return default poor performance metrics
     return {

@@ -38,8 +38,7 @@ export default function AboveFoldCompetitorTable({
   const {
     competitors: rawCompetitors = [],
     competitionIntensity = 'low',
-    averageOverlap = 0,
-    keywordClusters = {}
+    averageOverlap = 0
   } = analysis || {};
 
   // First, exclude sortlist.co.uk from all results
@@ -322,8 +321,8 @@ export default function AboveFoldCompetitorTable({
                     <li><strong>Authority gap:</strong> Focus on link building - some competitors have much higher domain authority</li>
                   )}
                   <li>Study the content strategies of top competitors with 60%+ overlap</li>
-                  <li>Identify content gaps where competitors rank but you don't</li>
-                  <li>Create superior content for keywords where you're closely competing</li>
+                  <li>Identify content gaps where competitors rank but you don&apos;t</li>
+                  <li>Create superior content for keywords where you&apos;re closely competing</li>
                   <li>Monitor competitor backlink strategies and replicate successful tactics</li>
                   <li>Set up alerts to track when competitors publish new content</li>
                 </ul>

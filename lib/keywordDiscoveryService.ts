@@ -736,8 +736,8 @@ export class KeywordDiscoveryService {
     console.log(`🏢 Detected business size: ${businessSize} (volume range: ${volumeThresholds.min}-${volumeThresholds.max})`);
     
     const discoveryMethods: string[] = [];
-    let totalCreditsUsed = 0;
-    
+    const totalCreditsUsed = 0;
+
     // 1. Branded keyword discovery (real Google search + API data)
     console.log('🏷️ Discovering real branded keywords...');
     const brandedKeywords = await this.discoverBrandedKeywords(brandName, domain, 'gb');

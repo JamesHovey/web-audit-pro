@@ -48,7 +48,7 @@ function estimateTrafficFromMetrics(metrics: SEOMetrics, domain: string): number
   
   // Backlinks and referring domains - category adjusted
   if (metrics.backlinks && metrics.referringDomains) {
-    let linkMultiplier = siteCategory === 'mega' ? 5 : siteCategory === 'medium' ? 2 : 1;
+    const linkMultiplier = siteCategory === 'mega' ? 5 : siteCategory === 'medium' ? 2 : 1;
     const linkFactor = (metrics.referringDomains * 20 * linkMultiplier) + (metrics.backlinks * 0.1 * linkMultiplier);
     estimatedTraffic += linkFactor;
   }

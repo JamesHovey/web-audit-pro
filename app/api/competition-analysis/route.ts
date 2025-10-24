@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { CompetitionAnalysisRequestBody } from '@/types/api';
 
 function shouldSkipDomain(domain: string): boolean {
   const skipDomains = [
@@ -28,9 +29,14 @@ function estimateAuthority(positions: number[], totalScore: number): number {
   return Math.min(95, Math.max(15, Math.round(authority)));
 }
 
+interface KeywordData {
+  keyword: string;
+  volume?: number;
+}
+
 export async function POST(request: Request) {
   try {
-    const { domain, keywords, country } = await request.json();
+    const { domain, keywords } = await request.json() as CompetitionAnalysisRequestBody & { keywords: KeywordData[] };
 
     if (!domain || !keywords || !Array.isArray(keywords)) {
       return NextResponse.json(
@@ -57,14 +63,14 @@ export async function POST(request: Request) {
 
     const { SerperService } = await import('../../../lib/serperService');
     const serperService = new SerperService();
-    
+
     // Use the provided keywords directly (these are from the website's keyword analysis)
     const keywordsToAnalyze = keywords
-      .filter((k: any) => k.volume && k.volume > 0)
-      .sort((a: any, b: any) => (b.volume || 0) - (a.volume || 0))
+      .filter((k: KeywordData) => k.volume && k.volume > 0)
+      .sort((a: KeywordData, b: KeywordData) => (b.volume || 0) - (a.volume || 0))
       .slice(0, 10); // Top 10 keywords by volume
-    
-    console.log(`🔍 Analyzing competitors for these specific keywords:`, keywordsToAnalyze.map((k: any) => k.keyword));
+
+    console.log(`🔍 Analyzing competitors for these specific keywords:`, keywordsToAnalyze.map((k: KeywordData) => k.keyword));
     
     const competitorMap = new Map<string, {
       keywords: string[];

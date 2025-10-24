@@ -37,7 +37,7 @@ export class TrafficQualityScorer {
   async analyzeTrafficQuality(
     domain: string,
     htmlContent: string,
-    trafficData: any,
+    trafficData: Record<string, unknown>,
     industryType: string = 'general'
   ): Promise<TrafficQualityMetrics | null> {
     if (!this.client) {
@@ -65,7 +65,7 @@ export class TrafficQualityScorer {
   private async performQualityAnalysis(
     domain: string,
     htmlContent: string,
-    trafficData: any,
+    trafficData: Record<string, unknown>,
     industryType: string
   ): Promise<TrafficQualityMetrics | null> {
     const analysisPrompt = this.buildQualityAnalysisPrompt(domain, htmlContent, trafficData, industryType);
@@ -102,7 +102,7 @@ export class TrafficQualityScorer {
   private buildQualityAnalysisPrompt(
     domain: string,
     htmlContent: string,
-    trafficData: any,
+    trafficData: Record<string, unknown>,
     industryType: string
   ): string {
     // Extract key content for analysis
@@ -192,7 +192,25 @@ Return only valid JSON, no additional text.`;
     return extracted.substring(0, 1500);
   }
 
-  private validateAndEnhanceAnalysis(analysis: any): TrafficQualityMetrics {
+  private validateAndEnhanceAnalysis(analysis: {
+    engagementScore?: number;
+    conversionPotential?: number;
+    userExperienceScore?: number;
+    contentRelevanceScore?: number;
+    overallQualityScore?: number;
+    qualityGrade?: string;
+    insights?: {
+      strengths?: string[];
+      weaknesses?: string[];
+      recommendations?: string[];
+    };
+    estimatedMetrics?: {
+      bounceRate?: number;
+      avgSessionDuration?: number;
+      pagesPerSession?: number;
+      returnVisitorRate?: number;
+    };
+  }): TrafficQualityMetrics {
     // Ensure all scores are within valid ranges
     const clampScore = (score: number) => Math.max(0, Math.min(100, score || 0));
     

@@ -1,6 +1,6 @@
 /**
  * Claude Usage Tracking Service
- * Tracks Claude API usage in localStorage for cost monitoring
+ * Tracks Claude API usage in localStorage (browser) or memory (server) for cost monitoring
  */
 
 export interface ClaudeUsageRecord {
@@ -28,6 +28,12 @@ export interface ClaudeUsageSummary {
 
 const STORAGE_KEY = 'claude_api_usage'
 
+// Server-side in-memory storage (when localStorage is not available)
+const serverMemoryStorage = new Map<string, string>()
+
+// Helper to detect if we're in a browser environment
+const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+
 export class ClaudeUsageService {
   /**
    * Track a Claude API request
@@ -53,7 +59,12 @@ export class ClaudeUsageService {
       const existing = this.getAllRecords()
       existing.push(record)
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing))
+      // Use localStorage in browser, memory storage on server
+      if (isBrowser) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing))
+      } else {
+        serverMemoryStorage.set(STORAGE_KEY, JSON.stringify(existing))
+      }
 
       console.log(`📊 Claude usage tracked: ${requestType}, ${inputTokens + outputTokens} tokens, $${cost.toFixed(4)}`)
     } catch (error) {
@@ -66,7 +77,11 @@ export class ClaudeUsageService {
    */
   static getAllRecords(): ClaudeUsageRecord[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEY)
+      // Use localStorage in browser, memory storage on server
+      const data = isBrowser
+        ? localStorage.getItem(STORAGE_KEY)
+        : serverMemoryStorage.get(STORAGE_KEY)
+
       return data ? JSON.parse(data) : []
     } catch (error) {
       console.error('Failed to get Claude usage records:', error)
@@ -139,7 +154,11 @@ export class ClaudeUsageService {
    * Clear all usage data
    */
   static clearUsage(): void {
-    localStorage.removeItem(STORAGE_KEY)
+    if (isBrowser) {
+      localStorage.removeItem(STORAGE_KEY)
+    } else {
+      serverMemoryStorage.delete(STORAGE_KEY)
+    }
     console.log('🧹 Claude usage data cleared')
   }
 

@@ -24,15 +24,15 @@ export function PageDiscoveryModal({ isOpen, onClose, websiteUrl }: PageDiscover
           </h3>
           
           <p className="text-gray-600 mb-4">
-            We're analyzing <span className="font-medium text-gray-800">{websiteUrl}</span> to discover all available pages.
+            We&apos;re analyzing <span className="font-medium text-gray-800">{websiteUrl}</span> to discover all available pages.
           </p>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <p className="text-blue-800 text-sm font-medium mb-2">
               ⏱️ This may take a little while
             </p>
             <p className="text-blue-700 text-xs leading-relaxed">
-              Discovery time depends on website size. We're checking sitemaps, internal links, and common page patterns to give you comprehensive results.
+              Discovery time depends on website size. We&apos;re checking sitemaps, internal links, and common page patterns to give you comprehensive results.
             </p>
           </div>
           

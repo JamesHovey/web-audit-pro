@@ -126,7 +126,7 @@ export class BusinessIntelligenceService {
    */
   private extractTextFromHtml(html: string): string {
     // Remove scripts, styles, and other non-content elements
-    let text = html
+    const text = html
       .replace(/<script[^>]*>.*?<\/script>/gis, '')
       .replace(/<style[^>]*>.*?<\/style>/gis, '')
       .replace(/<nav[^>]*>.*?<\/nav>/gis, '')
@@ -135,7 +135,7 @@ export class BusinessIntelligenceService {
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    
+
     return text;
   }
 
@@ -419,7 +419,7 @@ Focus on keywords that real competitors in this industry would actually rank for
       );
       
       // Combine results: prioritize direct competitors, then add aspirational
-      let allCompetitors = [
+      const allCompetitors = [
         ...directCompetitors.slice(0, 8), // Take up to 8 direct competitors
         ...aspirationalCompetitors.slice(0, 4) // Add up to 4 aspirational competitors
       ];

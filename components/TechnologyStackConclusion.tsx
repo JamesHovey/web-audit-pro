@@ -23,7 +23,7 @@ import { getPluginInfo } from '@/lib/pluginUrlService';
 import Tooltip from './Tooltip';
 
 interface TechnologyStackConclusionProps {
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export default function TechnologyStackConclusion({ data }: TechnologyStackConclusionProps) {
@@ -99,7 +99,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
           content={
             <div>
               <p className="font-semibold mb-2">Technology Intelligence</p>
-              <p className="mb-2">Automated analysis of your website's technology stack and security posture.</p>
+              <p className="mb-2">Automated analysis of your website&apos;s technology stack and security posture.</p>
               <div className="text-xs space-y-1">
                 <p><strong>Stack Health:</strong> Overall technology score and recommendations</p>
                 <p><strong>Performance Impact:</strong> How your tech choices affect site speed</p>
@@ -200,7 +200,7 @@ export default function TechnologyStackConclusion({ data }: TechnologyStackConcl
             content={
               <div>
                 <p className="font-semibold mb-2">Technology Stack Analysis</p>
-                <p className="mb-2">Detailed breakdown of your website's technical architecture and compatibility.</p>
+                <p className="mb-2">Detailed breakdown of your website&apos;s technical architecture and compatibility.</p>
                 <div className="text-xs space-y-1">
                   <p><strong>Architecture Type:</strong> Classification of your technical setup (WordPress, React, etc.)</p>
                   <p><strong>Suitability Rating:</strong> How well your current stack fits your business needs</p>

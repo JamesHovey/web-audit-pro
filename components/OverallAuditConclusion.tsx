@@ -7,21 +7,21 @@ import Tooltip from './Tooltip'
 
 interface OverallAuditConclusionProps {
   results: {
-    brandedKeywordsList?: Array<any>
-    nonBrandedKeywordsList?: Array<any>
-    aboveFoldKeywordsList?: Array<any>
+    brandedKeywordsList?: Array<Record<string, unknown>>
+    nonBrandedKeywordsList?: Array<Record<string, unknown>>
+    aboveFoldKeywordsList?: Array<Record<string, unknown>>
     keywordCompetition?: {
-      competitors: Array<any>
+      competitors: Array<Record<string, unknown>>
       targetDomainAuthority?: number
     }
     aboveFoldCompetitors?: {
-      competitors: Array<any>
+      competitors: Array<Record<string, unknown>>
       competitionIntensity?: string
       targetDomainAuthority?: number
     }
     viewportAnalysis?: {
       overallScore: number
-      globalIssues: Array<any>
+      globalIssues: Array<Record<string, unknown>>
     }
     businessType?: {
       category: string
@@ -33,8 +33,7 @@ interface OverallAuditConclusionProps {
   auditType?: 'page' | 'website' | 'full'
 }
 
-export default function OverallAuditConclusion({ results, domain, auditType = 'website' }: OverallAuditConclusionProps) {
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+export default function OverallAuditConclusion({ results, domain }: OverallAuditConclusionProps) {
   const [claudeConclusions, setClaudeConclusions] = useState<ConclusionResult | null>(null)
   const [loadingConclusions, setLoadingConclusions] = useState(true)
   const [conclusionError, setConclusionError] = useState<string | null>(null)

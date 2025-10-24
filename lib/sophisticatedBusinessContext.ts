@@ -81,7 +81,7 @@ export class SophisticatedBusinessContextService {
         
         console.log(`✅ Google analysis: ${googleAnalysis.entities.length} entities found`);
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('⚠️ Google API unavailable, continuing with other sources');
     }
 
@@ -107,7 +107,7 @@ export class SophisticatedBusinessContextService {
           
           console.log(`✅ Registry lookup: SIC codes ${registryData.sicCodes.join(', ')}`);
         }
-      } catch (error) {
+      } catch (_error) {
         console.log('⚠️ Registry lookup failed, continuing');
       }
     }
@@ -174,7 +174,7 @@ export class SophisticatedBusinessContextService {
       intelligence.sources.push('Industry Knowledge Base');
       
       console.log(`✅ Industry knowledge: ${industryKnowledge.keywords.length} industry terms`);
-    } catch (error) {
+    } catch (_error) {
       console.log('⚠️ Industry knowledge lookup failed');
     }
 
@@ -290,13 +290,13 @@ export class SophisticatedBusinessContextService {
       
       // Extract business-relevant entities
       const businessEntities = data.entities
-        ?.filter((entity: any) => 
-          entity.type === 'ORGANIZATION' || 
-          entity.type === 'WORK_OF_ART' || 
+        ?.filter((entity: { type: string; salience: number; name: string }) =>
+          entity.type === 'ORGANIZATION' ||
+          entity.type === 'WORK_OF_ART' ||
           entity.type === 'EVENT' ||
           entity.salience > 0.1
         )
-        .map((entity: any) => entity.name.toLowerCase())
+        .map((entity: { name: string }) => entity.name.toLowerCase())
         .slice(0, 20) || [];
 
       // Determine business category from entities
@@ -308,7 +308,7 @@ export class SophisticatedBusinessContextService {
         confidence: businessEntities.length > 0 ? 0.7 : 0.3
       };
 
-    } catch (error) {
+    } catch (_error) {
       console.error('Google Natural Language API error:', error);
       return null;
     }
@@ -387,7 +387,7 @@ export class SophisticatedBusinessContextService {
       try {
         const ukData = await this.lookupCompaniesHouse(companyName);
         if (ukData) return ukData;
-      } catch (error) {
+      } catch (_error) {
         console.log('Companies House lookup failed');
       }
     }
@@ -396,7 +396,7 @@ export class SophisticatedBusinessContextService {
     try {
       const openCorpData = await this.lookupOpenCorporates(companyName);
       if (openCorpData) return openCorpData;
-    } catch (error) {
+    } catch (_error) {
       console.log('OpenCorporates lookup failed');
     }
 
@@ -460,7 +460,7 @@ export class SophisticatedBusinessContextService {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       console.error('Companies House lookup error:', error);
       return null;
     }
@@ -504,7 +504,7 @@ export class SophisticatedBusinessContextService {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       console.error('OpenCorporates lookup error:', error);
       return null;
     }
@@ -560,7 +560,7 @@ export class SophisticatedBusinessContextService {
             };
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Silently continue to next path
         continue;
       }
@@ -906,8 +906,8 @@ export class SophisticatedBusinessContextService {
     
     const localTerms: string[] = [];
     let country = 'unknown';
-    let region = 'unknown';
-    
+    const region = 'unknown';
+
     if (domain.includes('.co.uk') || ukTerms.some(term => content.includes(term))) {
       country = 'United Kingdom';
       localTerms.push(...ukTerms.filter(term => content.includes(term)));
@@ -915,7 +915,7 @@ export class SophisticatedBusinessContextService {
       country = 'United States';
       localTerms.push(...usTerms.filter(term => content.includes(term)));
     }
-    
+
     return { country, region, localTerms };
   }
 

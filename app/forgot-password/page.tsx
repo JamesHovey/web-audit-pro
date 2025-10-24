@@ -3,9 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+interface PasswordResult {
+  username: string
+  password: string
+}
+
 export default function ForgotPasswordPage() {
   const [username, setUsername] = useState('')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<PasswordResult | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -32,7 +37,7 @@ export default function ForgotPasswordPage() {
       } else {
         setResult(data)
       }
-    } catch (error) {
+    } catch (_error) {
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -51,7 +56,7 @@ export default function ForgotPasswordPage() {
             <div>
               <h3 className="font-bold text-amber-900 text-sm">⚠️ Testing Mode Only</h3>
               <p className="text-xs text-amber-800 mt-1">
-                This is a temporary password recovery feature. In production, we'll send secure password reset links via email.
+                This is a temporary password recovery feature. In production, we&apos;ll send secure password reset links via email.
               </p>
             </div>
           </div>

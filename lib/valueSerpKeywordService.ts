@@ -85,7 +85,7 @@ export class ValueSerpKeywordService {
         // Small delay between API calls
         await this.sleep(500);
         
-      } catch (error) {
+      } catch (_error) {
         console.error(`Error checking "${keyword}":`, error.message);
       }
     }
@@ -204,7 +204,7 @@ export class ValueSerpKeywordService {
         difficulty: this.estimateDifficulty(keyword)
       };
       
-    } catch (error) {
+    } catch (_error) {
       console.error(`Failed to check ranking for "${keyword}":`, error.message);
       return null;
     }
@@ -428,7 +428,7 @@ export class ValueSerpKeywordService {
       const data: ValueSerpResponse = await response.json();
       
       return data.request_info?.topup_credits_remaining || null;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

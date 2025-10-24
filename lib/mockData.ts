@@ -235,8 +235,8 @@ export async function generateMockAuditResults(url: string, sections: string[]) 
       }
       
       // Use the enhanced hosting detection results
-      let enhancedHosting = professionalTechStack.hosting;
-      let enhancedOrganization = professionalTechStack.organization || hostingOrganization;
+      const enhancedHosting = professionalTechStack.hosting;
+      const enhancedOrganization = professionalTechStack.organization || hostingOrganization;
       
       // Convert professional result to our format
       const baseTechnologyData = {

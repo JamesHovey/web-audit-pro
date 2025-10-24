@@ -49,7 +49,7 @@ export class ClaudeBusinessDetector {
    */
   private extractRelevantContent(html: string): string {
     // Remove HTML tags and extract key content
-    let content = html
+    const content = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]+>/g, ' ')

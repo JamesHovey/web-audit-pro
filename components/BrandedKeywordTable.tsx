@@ -55,7 +55,7 @@ export default function BrandedKeywordTable({
                 <p className="font-semibold mb-2">Long-tail Branded Keywords</p>
                 <p className="mb-2">Keywords that include your company/brand name (includes all branded terms)</p>
                 {hasKeywordsButLowVolume ? (
-                  <p className="text-xs"><strong>Low volume keywords found:</strong> We identified branded keywords for this website, but they don't currently get meaningful search volumes (1+/month).</p>
+                  <p className="text-xs"><strong>Low volume keywords found:</strong> We identified branded keywords for this website, but they don&apos;t currently get meaningful search volumes (1+/month).</p>
                 ) : (
                   <p className="text-xs"><strong>No keywords found:</strong> No branded keywords with sufficient search volume (1+/month) were discovered for this website.</p>
                 )}
@@ -70,7 +70,7 @@ export default function BrandedKeywordTable({
           {hasKeywordsButLowVolume ? (
             <div>
               <p className="text-sm font-medium text-blue-600 mb-2">✓ Branded keywords identified!</p>
-              <p className="text-sm">We found {keywords.length} branded keyword{keywords.length > 1 ? 's' : ''} for your brand, but they don't currently get meaningful search volumes (1+/month).</p>
+              <p className="text-sm">We found {keywords.length} branded keyword{keywords.length > 1 ? 's' : ''} for your brand, but they don&apos;t currently get meaningful search volumes (1+/month).</p>
               <p className="text-xs text-gray-400 mt-2">This often happens with newer brands or niche businesses. Focus on building brand awareness to increase search volume.</p>
             </div>
           ) : (
@@ -307,7 +307,7 @@ export default function BrandedKeywordTable({
                   <li>Increase brand marketing efforts to drive more branded searches</li>
                   <li>Focus on social media and content marketing to build brand recognition</li>
                   <li>Monitor these keywords as your brand grows</li>
-                  <li>Consider local SEO if you're a local business</li>
+                  <li>Consider local SEO if you&apos;re a local business</li>
                 </ul>
               </div>
             </>

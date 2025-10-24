@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import type { BusinessContentRequestBody } from '@/types/api';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -7,7 +8,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   try {
-    const { prompt } = await request.json();
+    const { prompt } = await request.json() as BusinessContentRequestBody;
 
     if (!prompt) {
       return NextResponse.json(

@@ -196,8 +196,8 @@ export default function AboveFoldKeywordTable({
           <div className="grid grid-cols-9 gap-4 text-sm font-medium text-gray-700">
             <div className="col-span-5">
               Keyword & Intent
-              <Tooltip 
-                content="Longtail keywords from your website content that currently rank in Google's top 3 organic positions (1st, 2nd, or 3rd place), with search intent indicators"
+              <Tooltip
+                content="Longtail keywords from your website content that currently rank in Google&apos;s top 3 organic positions (1st, 2nd, or 3rd place), with search intent indicators"
                 position="top"
               >
                 <span className="ml-1 text-gray-400 cursor-help">ⓘ</span>

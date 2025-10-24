@@ -6,17 +6,13 @@ import LoadingMessages from "@/components/LoadingMessages"
 import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe, GripVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from './Tooltip'
-import KeywordTable from './KeywordTable'
 import BrandedKeywordTable from './BrandedKeywordTable'
 import NonBrandedKeywordTable from './NonBrandedKeywordTable'
 import AboveFoldCompetitorTable from './AboveFoldCompetitorTable'
 import KeywordCompetitionTable from './KeywordCompetitionTable'
 import RecommendedKeywordTable from './RecommendedKeywordTable'
 import PaidAdvertisingOpportunities from './PaidAdvertisingOpportunities'
-import { PMWLogo } from './PMWLogo'
 import { PageDetailsModal } from './PageDetailsModal'
-import OverallAuditConclusion from './OverallAuditConclusion'
-import PerformanceTechnicalConclusion from './PerformanceTechnicalConclusion'
 import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import AccessibilityConclusion from './AccessibilityConclusion'
@@ -123,8 +119,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   const [showResults, setShowResults] = useState(audit.status === "completed")
   const [currentQuote, setCurrentQuote] = useState(INSPIRATIONAL_QUOTES[0])
   const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
-  const [showTrafficExplanation, setShowTrafficExplanation] = useState(false)
-  const [showTechnologyExplanation, setShowTechnologyExplanation] = useState(false)
   const [currentView, setCurrentView] = useState<'executive' | 'manager' | 'developer'>(
     (audit.results?.auditView as 'executive' | 'manager' | 'developer') || 'executive'
   )
@@ -240,19 +234,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     }, 100)
   }
 
-  const closeAllSections = () => {
-    setCollapsedSections({
-      traffic: true,
-      performance: true,
-      technology: true,
-      accessibility: true,
-      keywords: true,
-      viewport: true
-    })
-  }
-
-  // Check if all sections are closed
-  const allSectionsClosed = Object.values(collapsedSections).every(val => val === true)
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, sectionId: string) => {
@@ -515,10 +496,14 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                         await exportAuditToPDF(audit);
                         console.log('PDF export completed successfully');
                         alert('PDF exported successfully!');
-                      } catch (error: any) {
+                      } catch (error) {
                         console.error('Error generating audit PDF:', error);
-                        console.error('Error stack:', error.stack);
-                        alert('Error generating PDF report: ' + (error.message || 'Unknown error'));
+                        if (error instanceof Error) {
+                          console.error('Error stack:', error.stack);
+                          alert('Error generating PDF report: ' + error.message);
+                        } else {
+                          alert('Error generating PDF report: Unknown error');
+                        }
                       }
                     })();
                   }}
@@ -767,9 +752,9 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                         content={
                           <div>
                             <p className="font-semibold mb-2">Performance & Technical Audit</p>
-                            <p className="mb-2">Evaluates your website's speed, mobile experience, and technical health.</p>
+                            <p className="mb-2">Evaluates your website&apos;s speed, mobile experience, and technical health.</p>
                             <div className="text-xs space-y-1">
-                              <p><strong>Core Web Vitals:</strong> Google's user experience metrics</p>
+                              <p><strong>Core Web Vitals:</strong> Google&apos;s user experience metrics</p>
                               <p><strong>Page Speed:</strong> How fast your pages load</p>
                               <p><strong>Mobile Performance:</strong> How well your site works on phones</p>
                               <p><strong>SEO Issues:</strong> Technical problems affecting search rankings</p>
@@ -895,7 +880,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             <div className={`mt-4 ${collapsedSections.viewport ? 'hidden' : ''}`}>
               <ViewportResponsiveAnalysis
                 url={audit.url}
-                data={audit?.results?.viewport as any}
+                data={audit?.results?.viewport as Record<string, unknown>}
               />
               <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                 <button
@@ -1286,7 +1271,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     content={
                       <div className="max-w-sm">
                         <p className="font-semibold mb-2">Authority & Backlinks Analysis</p>
-                        <p className="mb-2">We analyze your website's authority and backlink profile.</p>
+                        <p className="mb-2">We analyze your website&apos;s authority and backlink profile.</p>
                         <p className="mb-2"><strong>Metrics evaluated:</strong></p>
                         <ul className="list-disc list-inside text-sm space-y-1">
                           <li>Domain Authority score</li>
@@ -1345,13 +1330,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analysing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  We're conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
+                  We&apos;re conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
                 </p>
                 
                 {/* Inspirational Quote */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
                   <p className="text-center text-gray-700 italic mb-2">
-                    "{currentQuote}"
+                    &quot;{currentQuote}&quot;
                   </p>
                   <p className="text-center text-xs text-gray-500">
                     Background: {currentTheme.name}
@@ -1639,11 +1624,11 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                 <h3 className="text-lg font-semibold text-green-600 mb-3">🎯 What Are Core Web Vitals?</h3>
                 <p className="text-gray-700 mb-2">
-                  Think of them as Google's "report card" for how fast and smooth your website feels to real users. 
+                  Think of them as Google&apos;s &quot;report card&quot; for how fast and smooth your website feels to real users. 
                   Google uses these scores to decide which websites deserve higher search rankings.
                 </p>
                 <p className="text-gray-700">
-                  <strong>Key Point:</strong> These aren't just numbers - they directly impact how much traffic Google sends to your website!
+                  <strong>Key Point:</strong> These aren&apos;t just numbers - they directly impact how much traffic Google sends to your website!
                 </p>
               </div>
 
@@ -1693,11 +1678,11 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-purple-600 mt-0.5">•</span>
-                    <span><strong>A slow homepage won't hurt your blog page rankings</strong> - they're scored independently</span>
+                    <span><strong>A slow homepage won&apos;t hurt your blog page rankings</strong> - they&apos;re scored independently</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-purple-600 mt-0.5">•</span>
-                    <span><strong>Users only care about the page they're on right now</strong> - not your site average</span>
+                    <span><strong>Users only care about the page they&apos;re on right now</strong> - not your site average</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-purple-600 mt-0.5">•</span>
@@ -1728,8 +1713,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <ul className="text-red-700 text-sm mt-1 space-y-1">
                     <li>• Homepage ranks well in Google ✅</li>
                     <li>• Product page gets buried in search results ❌</li>
-                    <li>• You lose sales because customers can't find your products ❌</li>
-                    <li>• The "3.0s average" hides this critical problem! ❌</li>
+                    <li>• You lose sales because customers can&apos;t find your products ❌</li>
+                    <li>• The &quot;3.0s average&quot; hides this critical problem! ❌</li>
                   </ul>
                 </div>
               </div>
@@ -1748,11 +1733,11 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</span>
-                    <span><strong>Fix one page at a time</strong> - Don't try to fix everything at once. Test your changes and measure the results</span>
+                    <span><strong>Fix one page at a time</strong> - Don&apos;t try to fix everything at once. Test your changes and measure the results</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">4</span>
-                    <span><strong>Green scores mean you're winning</strong> - Keep doing what you're doing for those pages!</span>
+                    <span><strong>Green scores mean you&apos;re winning</strong> - Keep doing what you&apos;re doing for those pages!</span>
                   </li>
                 </ol>
               </div>
@@ -1802,7 +1787,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   onClick={() => setShowCoreWebVitalsGuide(false)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Got it, let's optimize! 🚀
+                  Got it, let&apos;s optimize! 🚀
                 </button>
               </div>
             </div>
@@ -1833,8 +1818,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                 <h3 className="text-lg font-semibold text-green-600 mb-3">🔍 What Are Recommended Keywords?</h3>
                 <p className="text-gray-700 mb-2">
-                  These are search terms related to your services or products that <strong>don't include your brand name</strong>. 
-                  They're how potential customers find you when they don't know your business exists yet.
+                  These are search terms related to your services or products that <strong>don&apos;t include your brand name</strong>.
+                  They&apos;re how potential customers find you when they don&apos;t know your business exists yet.
                 </p>
                 <p className="text-gray-700">
                   <strong>Key Point:</strong> These keywords bring you NEW customers, not existing ones who already know your brand!
@@ -1856,14 +1841,14 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">2</span>
                     <div>
                       <h4 className="font-semibold text-gray-800">🏢 Detects Your Industry</h4>
-                      <p className="text-gray-600 text-sm">Figures out if you're a "marketing agency", "law firm", "restaurant", etc. and what services you offer.</p>
+                      <p className="text-gray-600 text-sm">Figures out if you&apos;re a &quot;marketing agency&quot;, &quot;law firm&quot;, &quot;restaurant&quot;, etc. and what services you offer.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">3</span>
                     <div>
                       <h4 className="font-semibold text-gray-800">🔍 Generates Relevant Keywords</h4>
-                      <p className="text-gray-600 text-sm">Creates industry-specific terms like "digital marketing services" or "personal injury lawyer".</p>
+                      <p className="text-gray-600 text-sm">Creates industry-specific terms like &quot;digital marketing services&quot; or &quot;personal injury lawyer&quot;.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -1883,37 +1868,37 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <div className="bg-white p-3 rounded border">
                     <h4 className="font-semibold text-gray-800">🎯 Marketing Agency</h4>
                     <ul className="text-sm text-gray-600 mt-1 space-y-1">
-                      <li>• "digital marketing services"</li>
-                      <li>• "SEO company London"</li>
-                      <li>• "social media marketing"</li>
-                      <li>• "PPC management"</li>
+                      <li>• &quot;digital marketing services&quot;</li>
+                      <li>• &quot;SEO company London&quot;</li>
+                      <li>• &quot;social media marketing&quot;</li>
+                      <li>• &quot;PPC management&quot;</li>
                     </ul>
                   </div>
                   <div className="bg-white p-3 rounded border">
                     <h4 className="font-semibold text-gray-800">⚖️ Law Firm</h4>
                     <ul className="text-sm text-gray-600 mt-1 space-y-1">
-                      <li>• "personal injury lawyer"</li>
-                      <li>• "divorce attorney"</li>
-                      <li>• "employment law"</li>
-                      <li>• "criminal defense"</li>
+                      <li>• &quot;personal injury lawyer&quot;</li>
+                      <li>• &quot;divorce attorney&quot;</li>
+                      <li>• &quot;employment law&quot;</li>
+                      <li>• &quot;criminal defense&quot;</li>
                     </ul>
                   </div>
                   <div className="bg-white p-3 rounded border">
                     <h4 className="font-semibold text-gray-800">📸 Photography</h4>
                     <ul className="text-sm text-gray-600 mt-1 space-y-1">
-                      <li>• "wedding photographer"</li>
-                      <li>• "family portrait photography"</li>
-                      <li>• "corporate headshots"</li>
-                      <li>• "event photography"</li>
+                      <li>• &quot;wedding photographer&quot;</li>
+                      <li>• &quot;family portrait photography&quot;</li>
+                      <li>• &quot;corporate headshots&quot;</li>
+                      <li>• &quot;event photography&quot;</li>
                     </ul>
                   </div>
                   <div className="bg-white p-3 rounded border">
                     <h4 className="font-semibold text-gray-800">🍕 Restaurant</h4>
                     <ul className="text-sm text-gray-600 mt-1 space-y-1">
-                      <li>• "best pizza near me"</li>
-                      <li>• "Italian restaurant"</li>
-                      <li>• "family dining"</li>
-                      <li>• "takeaway food"</li>
+                      <li>• &quot;best pizza near me&quot;</li>
+                      <li>• &quot;Italian restaurant&quot;</li>
+                      <li>• &quot;family dining&quot;</li>
+                      <li>• &quot;takeaway food&quot;</li>
                     </ul>
                   </div>
                 </div>
@@ -1956,7 +1941,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     <ul className="text-sm text-gray-600 mt-1 space-y-1">
                       <li>• Very high competition (0.8+) = very hard to rank</li>
                       <li>• Very low volume (&lt;100/month) = not worth effort</li>
-                      <li>• Not relevant to your business = won't convert</li>
+                      <li>• Not relevant to your business = won&apos;t convert</li>
                     </ul>
                   </div>
                   <div className="bg-white p-3 rounded border">
@@ -1982,7 +1967,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   onClick={() => setShowNonBrandedKeywordsGuide(false)}
                   className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Let's find customers! 🎯
+                  Let&apos;s find customers! 🎯
                 </button>
               </div>
             </div>
@@ -2000,7 +1985,7 @@ function renderSectionResults(
   setInternalLinksModal?: (state: { isOpen: boolean; targetPage: string; links: string[] }) => void,
   showMethodologyExpanded?: {[key: string]: boolean},
   toggleMethodology?: (section: string) => void,
-  setPageModalState?: (state: { isOpen: boolean; title: string; pages: any[]; filterCondition?: (page: any) => boolean }) => void,
+  setPageModalState?: (state: { isOpen: boolean; title: string; pages: Record<string, unknown>[]; filterCondition?: (page: Record<string, unknown>) => boolean }) => void,
   performancePagination?: { currentPage: number; itemsPerPage: number },
   setPerformancePagination?: (state: { currentPage: number; itemsPerPage: number } | ((prev: { currentPage: number; itemsPerPage: number }) => { currentPage: number; itemsPerPage: number })) => void,
   setShowCoreWebVitalsGuide?: (show: boolean) => void,
@@ -2214,7 +2199,7 @@ function renderSectionResults(
                   <h5 className="font-medium mb-2">📊 Traffic Estimation Method</h5>
                 <p className="text-blue-700 leading-relaxed">
                   Our traffic estimates combine real keyword data from Keywords Everywhere API with comprehensive
-                  website analysis. We scrape your site's content, analyze business size indicators (navigation links,
+                  website analysis. We scrape your site&apos;s content, analyze business size indicators (navigation links,
                   content volume), and use real search volume data to calculate branded and organic traffic.
                 </p>
               </div>
@@ -2387,10 +2372,10 @@ function renderSectionResults(
                   content={
                     <div>
                       <p className="font-semibold mb-2">Keyword Intent Types</p>
-                      <p className="mb-2"><strong>Informational:</strong> "How to", "What is", "Guide" - Users seeking information</p>
-                      <p className="mb-2"><strong>Commercial:</strong> "Best", "Review", "Compare" - Users researching purchases</p>
-                      <p className="mb-2"><strong>Transactional:</strong> "Buy", "Price", "Order" - Users ready to purchase</p>
-                      <p><strong>Navigational:</strong> Brand names, "Login" - Users looking for specific sites</p>
+                      <p className="mb-2"><strong>Informational:</strong> &quot;How to&quot;, &quot;What is&quot;, &quot;Guide&quot; - Users seeking information</p>
+                      <p className="mb-2"><strong>Commercial:</strong> &quot;Best&quot;, &quot;Review&quot;, &quot;Compare&quot; - Users researching purchases</p>
+                      <p className="mb-2"><strong>Transactional:</strong> &quot;Buy&quot;, &quot;Price&quot;, &quot;Order&quot; - Users ready to purchase</p>
+                      <p><strong>Navigational:</strong> Brand names, &quot;Login&quot; - Users looking for specific sites</p>
                     </div>
                   }
                 >
@@ -2560,13 +2545,13 @@ function renderSectionResults(
                         <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                        View Keywords with AI Overviews ({results.aiOverviewAnalysis.keywords.filter((k: any) => k.hasAIOverview).length})
+                        View Keywords with AI Overviews ({results.aiOverviewAnalysis.keywords.filter((k: { hasAIOverview?: boolean }) => k.hasAIOverview).length})
                       </div>
                     </summary>
                     <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
                       {results.aiOverviewAnalysis.keywords
-                        .filter((k: any) => k.hasAIOverview)
-                        .map((keyword: any, index: number) => (
+                        .filter((k: { hasAIOverview?: boolean }) => k.hasAIOverview)
+                        .map((keyword: Record<string, unknown>, index: number) => (
                           <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
@@ -2583,7 +2568,7 @@ function renderSectionResults(
                               </div>
                               {keyword.isCitedInAI && (
                                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                                  You're Cited
+                                  You&apos;re Cited
                                 </span>
                               )}
                             </div>
@@ -2691,9 +2676,9 @@ function renderSectionResults(
           pluginsList = pluginsData;
         } else if (typeof pluginsData === 'object' && pluginsData) {
           // Plugin data is categorized - extract all plugin names
-          Object.values(pluginsData).forEach((category: any) => {
+          Object.values(pluginsData).forEach((category: unknown) => {
             if (Array.isArray(category)) {
-              category.forEach((plugin: any) => {
+              category.forEach((plugin: Record<string, unknown>) => {
                 if (typeof plugin === 'string') {
                   pluginsList.push(plugin);
                 } else if (plugin?.name) {
@@ -2711,17 +2696,17 @@ function renderSectionResults(
         <div className="space-y-6">
 
           {/* Core Web Vitals Pass/Fail Summary */}
-          {results.pages && results.pages.some((page: any) => page.performance) && (() => {
-            const pagesWithMetrics = results.pages.filter((page: any) => page.performance);
-            
+          {results.pages && results.pages.some((page: Record<string, unknown>) => page.performance) && (() => {
+            const pagesWithMetrics = results.pages.filter((page: Record<string, unknown>) => page.performance);
+
             // Calculate pass/fail for each page - using Core Web Vitals thresholds
-            const desktopPass = pagesWithMetrics.filter((page: any) => 
+            const desktopPass = pagesWithMetrics.filter((page: Record<string, unknown>) => 
               page.performance.desktop.lcp < 2500 && 
               page.performance.desktop.cls < 0.1 && 
               page.performance.desktop.inp < 200
             ).length;
             
-            const mobilePass = pagesWithMetrics.filter((page: any) => 
+            const mobilePass = pagesWithMetrics.filter((page: Record<string, unknown>) => 
               page.performance.mobile.lcp < 2500 && 
               page.performance.mobile.cls < 0.1 && 
               page.performance.mobile.inp < 200
@@ -2742,7 +2727,7 @@ function renderSectionResults(
                       content={
                         <div>
                           <p className="font-semibold mb-2">Core Web Vitals Summary</p>
-                          <p className="mb-2">Overview of how your pages perform on Google's Core Web Vitals metrics.</p>
+                          <p className="mb-2">Overview of how your pages perform on Google&apos;s Core Web Vitals metrics.</p>
                           <div className="text-xs space-y-1">
                             <p><strong>Pass Criteria:</strong> All 3 metrics must pass (LCP &lt; 2.5s, CLS &lt; 0.1, INP &lt; 200ms)</p>
                             <p><strong>Desktop vs Mobile:</strong> Separate scores for different device types</p>
@@ -2845,7 +2830,7 @@ function renderSectionResults(
           })()}
 
           {/* Summary Performance Data (when per-page data is not available) */}
-          {!results.pages?.some((page: any) => page.performance) && results.performance && results.performance.desktop && results.performance.mobile && (
+          {!results.pages?.some((page: Record<string, unknown>) => page.performance) && results.performance && results.performance.desktop && results.performance.mobile && (
             <div className="bg-white rounded-lg border p-6">
               <div className="flex items-center gap-2 mb-4">
                 <h4 className="font-semibold text-lg">Core Web Vitals Performance</h4>
@@ -2853,7 +2838,7 @@ function renderSectionResults(
                   content={
                     <div>
                       <p className="font-semibold mb-2">Core Web Vitals Performance</p>
-                      <p className="mb-2">Overall performance scores for your website on Google's Core Web Vitals metrics.</p>
+                      <p className="mb-2">Overall performance scores for your website on Google&apos;s Core Web Vitals metrics.</p>
                       <div className="text-xs space-y-1">
                         <p><strong>LCP (Largest Contentful Paint):</strong> How quickly main content loads (&lt; 2.5s = Good)</p>
                         <p><strong>CLS (Cumulative Layout Shift):</strong> Visual stability of page (&lt; 0.1 = Good)</p>
@@ -2991,7 +2976,7 @@ function renderSectionResults(
           )}
 
           {/* Per-Page Performance Metrics Table */}
-          {results.pages && results.pages.some((page: any) => page.performance) && (
+          {results.pages && results.pages.some((page: Record<string, unknown>) => page.performance) && (
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-center gap-2">
@@ -3121,8 +3106,8 @@ function renderSectionResults(
                       {(() => {
                         // Filter and sort pages with performance data
                         const pagesWithPerformance = results.pages
-                          .filter((page: any) => page.performance)
-                          .sort((a: any, b: any) => {
+                          .filter((page: Record<string, unknown>) => page.performance)
+                          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
                             // Sort by worst mobile score first (mobile is typically worse)
                             const aScore = a.performance?.mobile?.score || 0;
                             const bScore = b.performance?.mobile?.score || 0;
@@ -3130,12 +3115,11 @@ function renderSectionResults(
                           });
                         
                         // Calculate pagination
-                        const totalPages = Math.ceil(pagesWithPerformance.length / performancePagination.itemsPerPage);
                         const startIndex = (performancePagination.currentPage - 1) * performancePagination.itemsPerPage;
                         const endIndex = startIndex + performancePagination.itemsPerPage;
                         const currentPageData = pagesWithPerformance.slice(startIndex, endIndex);
                         
-                        return currentPageData.map((page: any, index: number) => {
+                        return currentPageData.map((page: Record<string, unknown>, index: number) => {
                           if (!page.performance) return null;
                           
                           const { desktop, mobile } = page.performance;
@@ -3224,7 +3208,7 @@ function renderSectionResults(
               
               {/* Pagination Controls */}
               {(() => {
-                const pagesWithPerformance = results.pages.filter((page: any) => page.performance);
+                const pagesWithPerformance = results.pages.filter((page: Record<string, unknown>) => page.performance);
                 const totalPages = Math.ceil(pagesWithPerformance.length / performancePagination.itemsPerPage);
                 
                 if (totalPages <= 1) return null;
@@ -3318,7 +3302,7 @@ function renderSectionResults(
                 content={
                   <div>
                     <p className="font-semibold mb-2">Technical Health</p>
-                    <p className="mb-2">Core technical metrics that affect your website's performance and search ranking.</p>
+                    <p className="mb-2">Core technical metrics that affect your website&apos;s performance and search ranking.</p>
                     <div className="text-xs space-y-1">
                       <p><strong>Security Status:</strong> HTTPS, mixed content, and certificate health</p>
                       <p><strong>Mobile Friendly:</strong> How well your site works on mobile devices</p>
@@ -3507,7 +3491,7 @@ function renderSectionResults(
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-orange-200">
-                      {((results.largeImagesList || results.largeImageDetails || []).slice(0, 10) as any[]).map((image: any, index: number) => (
+                      {((results.largeImagesList || results.largeImageDetails || []).slice(0, 10) as Record<string, unknown>[]).map((image: Record<string, unknown>, index: number) => (
                         <tr key={index} className="hover:bg-orange-50">
                           <td className="px-4 py-3">
                             <a 
@@ -3565,7 +3549,7 @@ function renderSectionResults(
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-red-200">
-                      {results.notFoundErrors.map((error: any, index: number) => (
+                      {results.notFoundErrors.map((error: Record<string, unknown>, index: number) => (
                         <tr key={index} className="hover:bg-red-50">
                           <td className="px-4 py-3">
                             <span className="font-mono text-red-600 break-all">
@@ -3627,7 +3611,7 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">⚡ Performance & Technical Analysis Method</h5>
                   <p className="text-blue-700 leading-relaxed">
-                    We use Google's official PageSpeed Insights API to test your site in real Chrome browsers (desktop and mobile).
+                    We use Google&apos;s official PageSpeed Insights API to test your site in real Chrome browsers (desktop and mobile).
                     This captures actual Core Web Vitals from real devices. Advanced analysis then analyzes the results to provide
                     plain-English explanations and prioritized recommendations. We also use Puppeteer to test responsive design
                     across 4 viewport sizes with real screenshots.
@@ -3649,9 +3633,9 @@ function renderSectionResults(
                 <div>
                   <h5 className="font-medium mb-2">🔧 Data Sources & Accuracy</h5>
                   <p className="text-blue-700 leading-relaxed">
-                    Performance data comes directly from Google's PageSpeed Insights API - the same data Google uses for
+                    Performance data comes directly from Google&apos;s PageSpeed Insights API - the same data Google uses for
                     search rankings. Viewport tests use real Chromium browsers via Puppeteer with actual screenshots.
-                    Technical SEO data is gathered by crawling your public sitemap and analyzing each page's HTML structure.
+                    Technical SEO data is gathered by crawling your public sitemap and analyzing each page&apos;s HTML structure.
                     Advanced analysis provides the analysis layer, translating technical metrics into actionable business recommendations.
                   </p>
                 </div>
@@ -3820,7 +3804,7 @@ function renderSectionResults(
           {/* WordPress Plugins */}
           {results.plugins && (() => {
             // Handle both array format and categorized object format
-            let pluginsToDisplay: any[] = [];
+            let pluginsToDisplay: Record<string, unknown>[] = [];
             let isCategorized = false;
 
             if (Array.isArray(results.plugins)) {
@@ -3829,9 +3813,9 @@ function renderSectionResults(
             } else if (typeof results.plugins === 'object') {
               // New format: categorized object
               isCategorized = true;
-              Object.entries(results.plugins).forEach(([category, plugins]: [string, any]) => {
+              Object.entries(results.plugins).forEach(([category, plugins]: [string, unknown]) => {
                 if (Array.isArray(plugins)) {
-                  plugins.forEach((plugin: any) => {
+                  plugins.forEach((plugin: Record<string, unknown>) => {
                     pluginsToDisplay.push({
                       ...plugin,
                       categoryKey: category
@@ -3849,7 +3833,7 @@ function renderSectionResults(
                 {isCategorized ? (
                   // Display plugins grouped by category
                   <div className="space-y-4">
-                    {Object.entries(results.plugins).map(([category, plugins]: [string, any]) => {
+                    {Object.entries(results.plugins).map(([category, plugins]: [string, unknown]) => {
                       if (!Array.isArray(plugins) || plugins.length === 0) return null;
 
                       const categoryLabels: Record<string, string> = {
@@ -3869,7 +3853,7 @@ function renderSectionResults(
                         <div key={category}>
                           <h5 className="text-sm font-medium text-gray-600 mb-2">{categoryLabels[category] || category}</h5>
                           <div className="flex flex-wrap gap-2">
-                            {plugins.map((plugin: any, index: number) => (
+                            {plugins.map((plugin: Record<string, unknown>, index: number) => (
                               <div key={index} className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
                                 <div className="font-medium text-blue-900">{plugin.name}</div>
                                 {plugin.version && plugin.version !== 'N/A' && (
@@ -3885,7 +3869,7 @@ function renderSectionResults(
                 ) : (
                   // Display plugins as simple list
                   <div className="flex flex-wrap gap-2">
-                    {pluginsToDisplay.map((plugin: any, index: number) => (
+                    {pluginsToDisplay.map((plugin: Record<string, unknown>, index: number) => (
                       <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                         {plugin.name}
                       </span>

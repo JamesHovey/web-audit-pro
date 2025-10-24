@@ -57,7 +57,7 @@ export default function PageSourceModal({ isOpen, onClose, keyword, pageSources 
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              "{keyword}"
+              &quot;{keyword}&quot;
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               {pageSources.length} location{pageSources.length !== 1 ? 's' : ''}

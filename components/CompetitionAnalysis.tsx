@@ -1,18 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  TrendingUp, 
-  Target, 
-  Users, 
+import {
+  TrendingUp,
+  Target,
+  Users,
   BarChart3,
   Shield,
   Search,
-  ArrowRight,
-  AlertTriangle,
   Info
 } from 'lucide-react';
-import Tooltip from './Tooltip';
 
 interface CompetitorData {
   domain: string;
@@ -38,7 +35,7 @@ interface CompetitionAnalysisProps {
 export default function CompetitionAnalysis({ targetDomain, keywords }: CompetitionAnalysisProps) {
   const [competitionData, setCompetitionData] = useState<{
     competitors: CompetitorData[];
-    analysis: any;
+    analysis: { message?: string } | null;
     loading: boolean;
   }>({
     competitors: [],
@@ -98,7 +95,16 @@ export default function CompetitionAnalysis({ targetDomain, keywords }: Competit
       console.log('🏆 Competitors found:', rawAnalysis?.competitors?.length || 0);
       
       if (rawAnalysis && rawAnalysis.competitors) {
-        const competitors: CompetitorData[] = rawAnalysis.competitors.map((comp: any) => ({
+        const competitors: CompetitorData[] = rawAnalysis.competitors.map((comp: {
+          domain: string;
+          overlapCount?: number;
+          sharedKeywords?: string[];
+          overlapPercentage?: number;
+          authority?: number;
+          competitorType?: string;
+          strengths?: string[];
+          aspirationalNote?: string;
+        }) => ({
           domain: comp.domain,
           sharedKeywords: comp.overlapCount || comp.sharedKeywords?.length || 0,
           overlapPercentage: comp.overlapPercentage || 0,
@@ -350,7 +356,7 @@ export default function CompetitionAnalysis({ targetDomain, keywords }: Competit
           {avgOverlap < 30 ? (
             <>
               <p><strong>Low Competition Opportunity:</strong> Limited keyword overlap suggests you can rank for unique terms.</p>
-              <p>Focus on the shared keywords where competitors rank well, and develop content for gaps they're missing.</p>
+              <p>Focus on the shared keywords where competitors rank well, and develop content for gaps they&apos;re missing.</p>
             </>
           ) : avgOverlap < 60 ? (
             <>

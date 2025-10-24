@@ -1,0 +1,64 @@
+/**
+ * Type definitions for API request and response bodies
+ */
+
+export interface AuditRequestBody {
+  url: string;
+  sections: string[];
+  scope?: 'single' | 'multi' | 'all' | 'custom';
+  auditView?: 'executive' | 'technical';
+  country?: string;
+  isUKCompany?: boolean;
+  pages?: string[];
+  pageLimit?: number;
+  excludedPaths?: string[];
+}
+
+export interface BusinessContentRequestBody {
+  prompt: string;
+}
+
+export interface ViewportAuditRequestBody {
+  url: string;
+  auditId: string;
+}
+
+export interface CompetitionAnalysisRequestBody {
+  url: string;
+  country?: string;
+  businessContext?: unknown;
+}
+
+export interface CostingRequestBody {
+  sections: string[];
+  scope?: 'single' | 'multi';
+  pageCount?: number;
+}
+
+export interface DomainAuthorityRequestBody {
+  domain: string;
+}
+
+export interface ForgotPasswordRequestBody {
+  email: string;
+}
+
+export interface LoginRequestBody {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequestBody {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface ResetPasswordRequestBody {
+  token: string;
+  password: string;
+}
+
+export interface DiscoverPagesRequestBody {
+  url: string;
+}

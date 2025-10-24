@@ -12,7 +12,7 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user as { name?: string | null; email?: string | null; image?: string | null }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }} suppressHydrationWarning>

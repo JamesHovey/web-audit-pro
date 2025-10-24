@@ -235,7 +235,43 @@ Return only valid JSON, no additional text.`;
     return indicators.join('\n');
   }
 
-  private validateAndEnhanceAnalysis(analysis: any, currentTraffic: number): TechnicalSEOImpact {
+  private validateAndEnhanceAnalysis(analysis: {
+    overallImpactScore?: number;
+    trafficImpactPercentage?: number;
+    criticalIssues?: Array<{
+      issue?: string;
+      severity?: string;
+      trafficImpact?: number;
+      description?: string;
+      recommendation?: string;
+      estimatedFixTime?: string;
+    }>;
+    coreWebVitals?: {
+      score?: number;
+      issues?: string[];
+      trafficImpact?: number;
+      recommendations?: string[];
+    };
+    mobileOptimization?: {
+      score?: number;
+      trafficImpact?: number;
+      issues?: string[];
+      recommendations?: string[];
+    };
+    indexingHealth?: {
+      score?: number;
+      estimatedIndexablePages?: number;
+      potentialTrafficGain?: number;
+      recommendations?: string[];
+    };
+    prioritizedFixes?: Array<{
+      title?: string;
+      impact?: string;
+      effort?: string;
+      expectedGain?: number;
+      timeToImplement?: string;
+    }>;
+  }, currentTraffic: number): TechnicalSEOImpact {
     const clampScore = (score: number) => Math.max(0, Math.min(100, score || 0));
     const clampPercentage = (percent: number, max: number = 50) => Math.max(0, Math.min(max, percent || 0));
     
@@ -246,8 +282,8 @@ Return only valid JSON, no additional text.`;
       overallImpactScore: clampScore(analysis.overallImpactScore),
       trafficImpactPercentage,
       estimatedTrafficLoss,
-      criticalIssues: Array.isArray(analysis.criticalIssues) 
-        ? analysis.criticalIssues.slice(0, 5).map((issue: any) => ({
+      criticalIssues: Array.isArray(analysis.criticalIssues)
+        ? analysis.criticalIssues.slice(0, 5).map((issue) => ({
             issue: issue.issue || 'Technical issue identified',
             severity: ['critical', 'high', 'medium', 'low'].includes(issue.severity) ? issue.severity : 'medium',
             trafficImpact: clampPercentage(issue.trafficImpact, 30),
@@ -275,7 +311,7 @@ Return only valid JSON, no additional text.`;
         recommendations: Array.isArray(analysis.indexingHealth?.recommendations) ? analysis.indexingHealth.recommendations.slice(0, 3) : []
       },
       prioritizedFixes: Array.isArray(analysis.prioritizedFixes)
-        ? analysis.prioritizedFixes.slice(0, 5).map((fix: any) => ({
+        ? analysis.prioritizedFixes.slice(0, 5).map((fix) => ({
             title: fix.title || 'Technical improvement',
             impact: ['high', 'medium', 'low'].includes(fix.impact) ? fix.impact : 'medium',
             effort: ['easy', 'moderate', 'complex'].includes(fix.effort) ? fix.effort : 'moderate',
