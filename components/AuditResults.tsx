@@ -615,17 +615,17 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             </div>
           )}
 
-          {/* Audit Summary - FIRST SECTION */}
-          {audit.results && (
+          {/* Audit Summary - REMOVED PER USER REQUEST */}
+          {/* {audit.results && (
             <AuditSummary
               auditResults={audit.results}
               onNavigateToSection={openSectionAndScroll}
               defaultCollapsed={currentView === 'developer'}
             />
-          )}
+          )} */}
 
-          {/* Traffic Section - Full Width */}
-          {audit?.sections?.includes('traffic') && (
+          {/* Traffic Section - HIDDEN PER USER REQUEST */}
+          {/* {audit?.sections?.includes('traffic') && (
             <div
               className={`card-pmw transition-all ${
                 collapsedSections.traffic ? 'cursor-move hover:shadow-lg' : ''
@@ -717,7 +717,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Technology Stack - Full Width */}
           {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
@@ -2695,6 +2695,26 @@ function renderSectionResults(
       return (
         <div className="space-y-6">
 
+          {/* Enhanced Recommendations - MOVED TO FIRST POSITION PER USER REQUEST */}
+          <EnhancedRecommendations
+            recommendations={results.recommendations || []}
+            desktopScore={results.desktop?.score}
+            mobileScore={results.mobile?.score}
+            lcpScore={results.desktop?.lcp || results.mobile?.lcp}
+            clsScore={results.desktop?.cls || results.mobile?.cls}
+            inpScore={results.desktop?.inp || results.mobile?.inp}
+            detectedPlugins={pluginsList || []}
+            pageBuilder={pageBuilderName}
+            cms={results.cms}
+            technicalIssues={{
+              missingH1Tags: results.issues?.missingH1Tags,
+              missingMetaTitles: results.issues?.missingMetaTitles,
+              missingMetaDescriptions: results.issues?.missingMetaDescriptions,
+              largeImages: results.largeImages || results.issues?.largeImages,
+              http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
+            }}
+          />
+
           {/* Core Web Vitals Pass/Fail Summary */}
           {results.pages && results.pages.some((page: Record<string, unknown>) => page.performance) && (() => {
             const pagesWithMetrics = results.pages.filter((page: Record<string, unknown>) => page.performance);
@@ -3294,8 +3314,8 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* Technical Audit Section */}
-          <div>
+          {/* Technical Audit Section - HIDDEN PER USER REQUEST (merged into Enhanced Recommendations above) */}
+          {/* <div>
             <div className="flex items-center gap-2 mb-3">
               <h4 className="font-semibold text-lg">Technical Health</h4>
               <Tooltip 
@@ -3450,9 +3470,10 @@ function renderSectionResults(
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
-          {/* Enhanced Recommendations */}
+          {/* Enhanced Recommendations - ALREADY MOVED TO TOP, COMMENTING OUT DUPLICATE */}
+          {/*
           <EnhancedRecommendations
             recommendations={results.recommendations || []}
             desktopScore={results.desktop?.score}
@@ -3470,7 +3491,7 @@ function renderSectionResults(
               largeImages: results.largeImages || results.issues?.largeImages,
               http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
             }}
-          />
+          /> */}
 
           {/* Large Images Table */}
           {(() => {
