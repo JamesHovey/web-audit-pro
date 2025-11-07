@@ -14,7 +14,7 @@
 
 export interface PerformanceIssue {
   id: string;
-  category: 'javascript-errors' | 'mobile-ux' | 'accessibility' | 'security' | 'forms' | 'trust' | 'performance' | 'seo';
+  category: 'javascript-errors' | 'mobile-ux' | 'accessibility' | 'security' | 'forms' | 'trust' | 'performance' | 'seo' | 'analytics' | 'browser-compatibility';
   severity: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   description: string;
@@ -53,6 +53,8 @@ export async function analyzeUniversalPerformance(
   issues.push(...detectMissingTrustSignals(htmlContent));
   issues.push(...detectPerformanceBottlenecks(htmlContent, headers));
   issues.push(...detectSEOIssues(htmlContent, headers));
+  issues.push(...detectAnalyticsTracking(htmlContent));
+  issues.push(...detectBrowserCompatibility(htmlContent));
 
   // Categorize by severity
   const criticalIssues = issues.filter(i => i.severity === 'critical');
@@ -568,6 +570,232 @@ function detectSEOIssues(html: string, headers: Record<string, string>): Perform
       conversionImpact: 'minor',
       fix: 'Use only one H1 tag per page for main heading',
       evidence: [`Found ${h1Tags.length} H1 tags`]
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Detect analytics and tracking implementation issues
+ */
+function detectAnalyticsTracking(html: string): PerformanceIssue[] {
+  const issues: PerformanceIssue[] = [];
+
+  // Check for Google Analytics
+  const hasGA4 = /gtag\(|googletagmanager\.com\/gtag\/js\?id=G-|analytics\.google\.com/i.test(html);
+  const hasUA = /google-analytics\.com\/analytics\.js|ga\('create'/i.test(html);
+  const hasAnyGA = hasGA4 || hasUA;
+
+  if (!hasAnyGA) {
+    issues.push({
+      id: 'analytics-missing-ga',
+      category: 'analytics',
+      severity: 'high',
+      title: 'No Google Analytics Detected',
+      description: 'Google Analytics tracking code not found on this page',
+      impact: 'Cannot track visitor behavior, conversions, or traffic sources',
+      conversionImpact: 'hurts-usability',
+      fix: 'Install Google Analytics 4 (GA4) or Universal Analytics tracking code in <head> section',
+      evidence: ['No GA tracking code found']
+    });
+  } else if (hasUA && !hasGA4) {
+    issues.push({
+      id: 'analytics-outdated-ga',
+      category: 'analytics',
+      severity: 'medium',
+      title: 'Using Outdated Google Analytics (Universal Analytics)',
+      description: 'Site uses old Universal Analytics (UA) which stopped collecting data July 1, 2023',
+      impact: 'Data collection has stopped, losing valuable visitor insights',
+      conversionImpact: 'hurts-usability',
+      fix: 'Migrate to Google Analytics 4 (GA4) immediately',
+      evidence: ['Universal Analytics code detected', 'No GA4 code found']
+    });
+  }
+
+  // Check for Facebook Pixel
+  const hasFBPixel = /connect\.facebook\.net\/.*\/fbevents\.js|fbq\(/i.test(html);
+  if (!hasFBPixel) {
+    issues.push({
+      id: 'analytics-missing-fb-pixel',
+      category: 'analytics',
+      severity: 'medium',
+      title: 'No Facebook Pixel Detected',
+      description: 'Facebook Pixel tracking not found',
+      impact: 'Cannot track Facebook ad conversions or build retargeting audiences',
+      conversionImpact: 'minor',
+      fix: 'Install Facebook Pixel if running Facebook/Instagram ads',
+      evidence: ['No Facebook Pixel code found']
+    });
+  }
+
+  // Check for Google Tag Manager
+  const hasGTM = /googletagmanager\.com\/gtm\.js/i.test(html);
+
+  // Check for multiple tracking scripts (overhead)
+  const trackingScripts: string[] = [];
+  if (hasGA4) trackingScripts.push('Google Analytics 4');
+  if (hasUA) trackingScripts.push('Universal Analytics');
+  if (hasFBPixel) trackingScripts.push('Facebook Pixel');
+  if (hasGTM) trackingScripts.push('Google Tag Manager');
+
+  // Check for other analytics
+  if (/hotjar\.com/i.test(html)) trackingScripts.push('Hotjar');
+  if (/mouseflow\.com/i.test(html)) trackingScripts.push('Mouseflow');
+  if (/clarity\.ms/i.test(html)) trackingScripts.push('Microsoft Clarity');
+  if (/mixpanel\.com/i.test(html)) trackingScripts.push('Mixpanel');
+
+  if (trackingScripts.length > 4) {
+    issues.push({
+      id: 'analytics-too-many',
+      category: 'analytics',
+      severity: 'medium',
+      title: 'Too Many Tracking Scripts',
+      description: `Site has ${trackingScripts.length} different tracking scripts: ${trackingScripts.join(', ')}`,
+      impact: 'Slows page load time and may impact user experience',
+      conversionImpact: 'slows-site',
+      fix: 'Consolidate tracking through Google Tag Manager to reduce script overhead',
+      evidence: trackingScripts
+    });
+  }
+
+  // Check for proper GTM implementation (if GTM exists)
+  if (hasGTM) {
+    const hasGTMNoscript = /<noscript[^>]*>[\s\S]*?googletagmanager\.com\/ns\.html[\s\S]*?<\/noscript>/i.test(html);
+    if (!hasGTMNoscript) {
+      issues.push({
+        id: 'analytics-gtm-noscript-missing',
+        category: 'analytics',
+        severity: 'low',
+        title: 'Google Tag Manager Missing <noscript> Fallback',
+        description: 'GTM <noscript> tag not found in <body>',
+        impact: 'Tracking fails for users with JavaScript disabled',
+        conversionImpact: 'minor',
+        fix: 'Add GTM <noscript> tag immediately after opening <body> tag',
+        evidence: ['GTM found but no <noscript> fallback']
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Detect browser compatibility issues
+ */
+function detectBrowserCompatibility(html: string): PerformanceIssue[] {
+  const issues: PerformanceIssue[] = [];
+
+  // Check for modern ES6+ JavaScript without transpilation
+  const scriptContent = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi)?.join(' ') || '';
+
+  // Check for arrow functions, let/const, template literals (not transpiled)
+  const hasModernJS = /=>\s*{|const\s+\w+|let\s+\w+|`[^`]*\${/i.test(scriptContent);
+  const hasBabelPolyfill = /babel-polyfill|@babel\/polyfill|core-js/i.test(html);
+
+  if (hasModernJS && !hasBabelPolyfill) {
+    issues.push({
+      id: 'browser-compat-modern-js',
+      category: 'browser-compatibility',
+      severity: 'medium',
+      title: 'Modern JavaScript Without Polyfills',
+      description: 'Site uses ES6+ JavaScript features that may not work in older browsers',
+      impact: 'Site may break for users on Internet Explorer 11 and older browsers (5-10% of users)',
+      conversionImpact: 'blocks-conversions',
+      fix: 'Use Babel to transpile modern JavaScript or add polyfills for older browsers',
+      evidence: ['ES6+ features detected', 'No Babel/polyfill found']
+    });
+  }
+
+  // Check for CSS Grid/Flexbox without fallbacks
+  const styleContent = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi)?.join(' ') || '';
+  const hasGrid = /display:\s*grid/i.test(styleContent);
+  const hasFlex = /display:\s*flex/i.test(styleContent);
+
+  if ((hasGrid || hasFlex) && !/@supports/i.test(styleContent)) {
+    issues.push({
+      id: 'browser-compat-modern-css',
+      category: 'browser-compatibility',
+      severity: 'low',
+      title: 'Modern CSS Without Feature Detection',
+      description: 'Site uses Grid/Flexbox without @supports feature queries',
+      impact: 'Layout may break in older browsers without proper fallbacks',
+      conversionImpact: 'hurts-usability',
+      fix: 'Add @supports feature queries with fallback layouts for older browsers',
+      evidence: ['Grid/Flexbox detected', 'No @supports queries found']
+    });
+  }
+
+  // Check for vendor prefixes
+  const missingPrefixes = [];
+  if (/transform:|transition:|animation:/i.test(styleContent)) {
+    const hasWebkitPrefix = /-webkit-/i.test(styleContent);
+    if (!hasWebkitPrefix) {
+      missingPrefixes.push('-webkit-');
+    }
+  }
+
+  if (missingPrefixes.length > 0 && /transform:|transition:|animation:/i.test(styleContent)) {
+    issues.push({
+      id: 'browser-compat-prefixes',
+      category: 'browser-compatibility',
+      severity: 'low',
+      title: 'Missing CSS Vendor Prefixes',
+      description: 'CSS animations/transforms may not work in some browsers',
+      impact: 'Visual effects may not work in Safari and older Chrome versions',
+      conversionImpact: 'minor',
+      fix: 'Use Autoprefixer or add vendor prefixes manually (-webkit-, -moz-, -ms-, -o-)',
+      evidence: ['CSS transforms/animations without prefixes']
+    });
+  }
+
+  // Check for unsupported HTML5 elements
+  const hasHTML5Elements = /<(article|aside|details|figcaption|figure|footer|header|main|mark|nav|section|summary|time)/i.test(html);
+  const hasHTML5Shiv = /html5shiv|html5shim/i.test(html);
+
+  if (hasHTML5Elements && !hasHTML5Shiv) {
+    issues.push({
+      id: 'browser-compat-html5',
+      category: 'browser-compatibility',
+      severity: 'low',
+      title: 'HTML5 Elements Without IE Fallback',
+      description: 'Site uses HTML5 semantic elements without html5shiv for IE support',
+      impact: 'Layout may break in Internet Explorer 8 and below',
+      conversionImpact: 'minor',
+      fix: 'Add html5shiv polyfill for IE8 support or use <div> for older browser compatibility',
+      evidence: ['HTML5 semantic elements found', 'No html5shiv detected']
+    });
+  }
+
+  // Check for viewport meta tag (mobile compatibility)
+  const hasViewportMeta = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html);
+  if (!hasViewportMeta) {
+    issues.push({
+      id: 'browser-compat-no-viewport',
+      category: 'browser-compatibility',
+      severity: 'critical',
+      title: 'Missing Viewport Meta Tag',
+      description: 'Page lacks viewport meta tag for mobile browsers',
+      impact: 'Site displays incorrectly on mobile devices (60%+ of traffic)',
+      conversionImpact: 'blocks-conversions',
+      fix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> in <head>',
+      evidence: ['No viewport meta tag found']
+    });
+  }
+
+  // Check for charset declaration
+  const hasCharset = /<meta[^>]*charset=["']?utf-8["']?[^>]*>/i.test(html);
+  if (!hasCharset) {
+    issues.push({
+      id: 'browser-compat-no-charset',
+      category: 'browser-compatibility',
+      severity: 'medium',
+      title: 'Missing Character Encoding Declaration',
+      description: 'Page lacks UTF-8 charset declaration',
+      impact: 'Special characters may display incorrectly in some browsers',
+      conversionImpact: 'minor',
+      fix: 'Add <meta charset="UTF-8"> as first element in <head>',
+      evidence: ['No charset declaration found']
     });
   }
 
