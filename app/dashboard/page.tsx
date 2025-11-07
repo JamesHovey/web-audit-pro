@@ -15,11 +15,13 @@ export default async function DashboardPage() {
   const user = session.user as { name?: string | null; email?: string | null; image?: string | null }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }} suppressHydrationWarning>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--pmw-soft-bg)' }} suppressHydrationWarning>
       <Navigation />
       <UserHeader user={user} />
-      <div className="container-pmw pb-4">
-        <AuditForm />
+      <div className="flex-1 flex items-center justify-center px-4 pb-8">
+        <div className="w-full max-w-4xl">
+          <AuditForm />
+        </div>
       </div>
     </div>
   )
