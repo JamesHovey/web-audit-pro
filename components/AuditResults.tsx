@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import LoadingMessages from "@/components/LoadingMessages"
-import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe, GripVertical } from 'lucide-react'
+import { HelpCircle, ArrowLeft, ChevronDown, ChevronRight, Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Tooltip from './Tooltip'
 import BrandedKeywordTable from './BrandedKeywordTable'
@@ -124,7 +124,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   )
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
     traffic: true,
-    performance: true,
+    performance: false,  // Open by default to show Performance & Technical Audit
     technology: true,
     accessibility: true,
     keywords: false,  // Always expanded for keyword audits
@@ -170,7 +170,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     'accessibility',
     'keywords'
   ])
-  const [draggedSection, setDraggedSection] = useState<string | null>(null)
 
   useEffect(() => {
     setIsHydrated(true)
@@ -232,46 +231,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
         element.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
     }, 100)
-  }
-
-
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, sectionId: string) => {
-    // Only allow dragging if section is collapsed
-    if (!collapsedSections[sectionId]) {
-      e.preventDefault()
-      return
-    }
-    setDraggedSection(sectionId)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const handleDrop = (e: React.DragEvent, targetSectionId: string) => {
-    e.preventDefault()
-
-    if (!draggedSection || draggedSection === targetSectionId) {
-      return
-    }
-
-    const newOrder = [...sectionOrder]
-    const draggedIndex = newOrder.indexOf(draggedSection)
-    const targetIndex = newOrder.indexOf(targetSectionId)
-
-    // Remove dragged item and insert at target position
-    newOrder.splice(draggedIndex, 1)
-    newOrder.splice(targetIndex, 0, draggedSection)
-
-    setSectionOrder(newOrder)
-    setDraggedSection(null)
-  }
-
-  const handleDragEnd = () => {
-    setDraggedSection(null)
   }
 
   const toggleMethodology = (section: string) => {
@@ -627,15 +586,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
           {/* Traffic Section - Full Width */}
           {audit?.sections?.includes('traffic') && (
             <div
-              className={`card-pmw transition-all ${
-                collapsedSections.traffic ? 'cursor-move hover:shadow-lg' : ''
-              } ${draggedSection === 'traffic' ? 'opacity-50 scale-95' : ''}`}
+              className="card-pmw"
               data-section="traffic"
-              draggable={collapsedSections.traffic}
-              onDragStart={(e) => handleDragStart(e, 'traffic')}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, 'traffic')}
-              onDragEnd={handleDragEnd}
             >
               <div className="p-6">
                 <div
@@ -643,14 +595,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   onClick={() => toggleSection('traffic')}
                 >
                   <div className="flex items-center gap-2">
-                    {collapsedSections.traffic && (
-                      <div
-                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <GripVertical className="w-5 h-5" />
-                      </div>
-                    )}
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                       {SECTION_LABELS.traffic}
                       <Tooltip
@@ -722,15 +666,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
           {/* Technology Stack - Full Width */}
           {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
             <div
-              className={`card-pmw transition-all ${
-                collapsedSections.performance ? 'cursor-move hover:shadow-lg' : ''
-              } ${draggedSection === 'performance' ? 'opacity-50 scale-95' : ''}`}
+              className="card-pmw"
               data-section="performance"
-              draggable={collapsedSections.performance}
-              onDragStart={(e) => handleDragStart(e, 'performance')}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, 'performance')}
-              onDragEnd={handleDragEnd}
             >
               <div className="p-6">
                 <div
@@ -738,14 +675,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   onClick={() => toggleSection('performance')}
                 >
                   <div className="flex items-center gap-2">
-                    {collapsedSections.performance && (
-                      <div
-                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <GripVertical className="w-5 h-5" />
-                      </div>
-                    )}
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                       Performance & Technical Audit
                       <Tooltip
@@ -829,15 +758,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Viewport Responsiveness Analysis - Full Width */}
       {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
         <div
-          className={`card-pmw transition-all ${
-            collapsedSections.viewport ? 'cursor-move hover:shadow-lg' : ''
-          } ${draggedSection === 'viewport' ? 'opacity-50 scale-95' : ''}`}
+          className="card-pmw"
           data-section="viewport"
-          draggable={collapsedSections.viewport}
-          onDragStart={(e) => handleDragStart(e, 'viewport')}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, 'viewport')}
-          onDragEnd={handleDragEnd}
         >
           <div className="p-6">
             <div
@@ -845,14 +767,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               onClick={() => toggleSection('viewport')}
             >
               <div className="flex items-center gap-2">
-                {collapsedSections.viewport && (
-                  <div
-                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <GripVertical className="w-5 h-5" />
-                  </div>
-                )}
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   Viewport Responsiveness
                 </h3>
@@ -901,15 +815,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Technology Stack - Full Width */}
       {audit?.sections?.includes('technology') && (
         <div
-          className={`card-pmw transition-all ${
-            collapsedSections.technology ? 'cursor-move hover:shadow-lg' : ''
-          } ${draggedSection === 'technology' ? 'opacity-50 scale-95' : ''}`}
+          className="card-pmw"
           data-section="technology"
-          draggable={collapsedSections.technology}
-          onDragStart={(e) => handleDragStart(e, 'technology')}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, 'technology')}
-          onDragEnd={handleDragEnd}
         >
           <div className="p-6">
             <div
@@ -917,14 +824,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               onClick={() => toggleSection('technology')}
             >
               <div className="flex items-center gap-2">
-                {collapsedSections.technology && (
-                  <div
-                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <GripVertical className="w-5 h-5" />
-                  </div>
-                )}
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   {SECTION_LABELS.technology}
                   <Tooltip
@@ -999,15 +898,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Accessibility - Full Width */}
       {audit?.sections?.includes('accessibility') && (
         <div
-          className={`card-pmw transition-all ${
-            collapsedSections.accessibility ? 'cursor-move hover:shadow-lg' : ''
-          } ${draggedSection === 'accessibility' ? 'opacity-50 scale-95' : ''}`}
+          className="card-pmw"
           data-section="accessibility"
-          draggable={collapsedSections.accessibility}
-          onDragStart={(e) => handleDragStart(e, 'accessibility')}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, 'accessibility')}
-          onDragEnd={handleDragEnd}
         >
           <div className="p-6">
             <div
@@ -1015,14 +907,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               onClick={() => toggleSection('accessibility')}
             >
               <div className="flex items-center gap-2">
-                {collapsedSections.accessibility && (
-                  <div
-                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <GripVertical className="w-5 h-5" />
-                  </div>
-                )}
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   {SECTION_LABELS.accessibility}
                   <Tooltip
@@ -1098,15 +982,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Keywords - Full Width */}
           {audit?.sections?.includes('keywords') && (
         <div
-          className={`card-pmw mb-6 transition-all ${
-            collapsedSections.keywords ? 'cursor-move hover:shadow-lg' : ''
-          } ${draggedSection === 'keywords' ? 'opacity-50 scale-95' : ''}`}
+          className="card-pmw mb-6"
           data-section="keywords"
-          draggable={collapsedSections.keywords}
-          onDragStart={(e) => handleDragStart(e, 'keywords')}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, 'keywords')}
-          onDragEnd={handleDragEnd}
         >
           <div className="p-6">
             <div
@@ -1114,14 +991,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
               onClick={() => toggleSection('keywords')}
             >
               <div className="flex items-center gap-2 flex-1">
-                {collapsedSections.keywords && (
-                  <div
-                    className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <GripVertical className="w-5 h-5" />
-                  </div>
-                )}
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
