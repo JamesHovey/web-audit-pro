@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { Navigation } from "@/components/Navigation"
-import UserHeader from "@/components/UserHeader"
 import SitemapContent from "@/components/SitemapContent"
 
 export default async function SitemapPage({
@@ -16,15 +15,14 @@ export default async function SitemapPage({
     redirect('/login')
   }
 
-  const user = session.user as { name?: string | null; email?: string | null; image?: string | null; username?: string }
+  const user = session.user as { username?: string }
 
   const domain = searchParams.domain
 
   if (!domain) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-        <Navigation />
-        <UserHeader user={user} />
+        <Navigation user={user} />
         <div className="container-pmw pb-4">
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
@@ -37,8 +35,7 @@ export default async function SitemapPage({
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--pmw-soft-bg)' }}>
-      <Navigation />
-      <UserHeader user={user} />
+      <Navigation user={user} />
       <div className="container-pmw pb-4">
         <SitemapContent domain={domain} />
       </div>
