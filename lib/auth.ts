@@ -60,21 +60,10 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // Only set user data on initial sign in
       if (user) {
         token.id = user.id
         token.username = (user as any).username
-      }
-
-      // Refresh user data on each request
-      if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { username: true }
-        })
-
-        if (dbUser) {
-          token.username = dbUser.username
-        }
       }
 
       return token
