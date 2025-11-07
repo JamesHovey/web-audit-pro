@@ -12,6 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
+const CACHE_VERSION = 'v2' // Increment to invalidate old caches
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
@@ -19,7 +20,7 @@ const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
  */
 function getCacheKey(url: string): string {
   const cleanUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
-  return `${CACHE_KEY_PREFIX}${cleanUrl}`
+  return `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${cleanUrl}`
 }
 
 /**

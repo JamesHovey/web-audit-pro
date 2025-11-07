@@ -231,11 +231,21 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
       urlMatches.forEach(urlBlock => {
         const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
         if (locMatch) {
-          const url = locMatch[1].trim();
+          let url = locMatch[1].trim();
+
+          // Normalize URL using URL constructor to fix malformed URLs
+          try {
+            const urlObj = new URL(url);
+            url = urlObj.href; // Use normalized URL
+          } catch (e) {
+            console.log(`    Invalid URL in sitemap: ${url}`);
+            return; // Skip invalid URLs
+          }
+
           if (isValidPageUrl(url, baseUrl)) {
             // Extract last modified date if available
             const lastModMatch = urlBlock.match(/<lastmod>(.*?)<\/lastmod>/);
-            
+
             pages.push({
               url,
               title: getPageTitleFromUrl(url),
@@ -252,7 +262,17 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
       if (locMatches && locMatches.length > 0) {
         console.log(`    Found ${locMatches.length} <loc> tags`);
         locMatches.forEach(match => {
-          const url = match.replace(/<\/?loc>/g, '').trim();
+          let url = match.replace(/<\/?loc>/g, '').trim();
+
+          // Normalize URL using URL constructor to fix malformed URLs
+          try {
+            const urlObj = new URL(url);
+            url = urlObj.href; // Use normalized URL
+          } catch (e) {
+            console.log(`    Invalid URL in sitemap: ${url}`);
+            return; // Skip invalid URLs
+          }
+
           if (isValidPageUrl(url, baseUrl)) {
             pages.push({
               url,
@@ -269,8 +289,20 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
         if (cdataMatches) {
           console.log(`    Found ${cdataMatches.length} CDATA sections`);
           cdataMatches.forEach(match => {
-            const url = match.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-            if (url.startsWith('http') && isValidPageUrl(url, baseUrl)) {
+            let url = match.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+
+            if (!url.startsWith('http')) return; // Skip non-HTTP URLs
+
+            // Normalize URL using URL constructor to fix malformed URLs
+            try {
+              const urlObj = new URL(url);
+              url = urlObj.href; // Use normalized URL
+            } catch (e) {
+              console.log(`    Invalid URL in CDATA: ${url}`);
+              return; // Skip invalid URLs
+            }
+
+            if (isValidPageUrl(url, baseUrl)) {
               pages.push({
                 url,
                 title: getPageTitleFromUrl(url),
