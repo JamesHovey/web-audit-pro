@@ -18,8 +18,16 @@ interface PageDiscoveryResult {
 
 // Discover pages from multiple sources with deep crawling
 export async function discoverPages(baseUrl: string, maxPages: number = 100): Promise<PageDiscoveryResult> {
-  const cleanUrl = baseUrl.replace(/\/$/, '');
-  const domain = new URL(cleanUrl).hostname;
+  // Ensure URL has protocol
+  let normalizedBaseUrl = baseUrl;
+  if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
+    normalizedBaseUrl = `https://${normalizedBaseUrl}`;
+  }
+
+  // Remove trailing slash and validate
+  const cleanUrl = normalizedBaseUrl.replace(/\/$/, '');
+  const baseUrlObj = new URL(cleanUrl);
+  const domain = baseUrlObj.hostname;
   
   console.log(`\n=== ENHANCED PAGE DISCOVERY FOR ${domain} ===`);
   console.log(`Target: ${maxPages} pages maximum`);
@@ -312,21 +320,32 @@ async function discoverFromHomepage(baseUrl: string): Promise<DiscoveredPage[]> 
     linkMatches.forEach(match => {
       const hrefMatch = match.match(/href=["']([^"']+)["']/i);
       const textMatch = match.match(/>([^<]+)</);
-      
+
       if (!hrefMatch) return;
-      
-      let url = hrefMatch[1].trim();
+
+      let href = hrefMatch[1].trim();
       const linkText = textMatch ? textMatch[1].trim() : '';
-      
-      // Convert relative URLs to absolute
-      if (url.startsWith('/')) {
-        url = baseUrl + url;
-      } else if (url.startsWith('./')) {
-        url = baseUrl + url.substring(1);
-      } else if (!url.startsWith('http')) {
-        return; // Skip non-HTTP links
+
+      // Skip anchor links, mailto, tel
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
       }
-      
+
+      // Convert relative URLs to absolute using URL constructor
+      let url: string;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          // Already absolute URL
+          url = new URL(href).href;
+        } else {
+          // Relative URL - use URL constructor to resolve against base
+          url = new URL(href, baseUrl).href;
+        }
+      } catch {
+        // Invalid URL, skip
+        return;
+      }
+
       if (isValidPageUrl(url, baseUrl) && !uniqueUrls.has(url)) {
         uniqueUrls.add(url);
         pages.push({
@@ -521,29 +540,40 @@ async function extractLinksFromPage(pageUrl: string, baseUrl: string): Promise<D
     linkMatches.forEach(match => {
       const hrefMatch = match.match(/href=["']([^"']+)["']/i);
       if (!hrefMatch) return;
-      
-      let url = hrefMatch[1].trim();
-      
-      // Convert relative URLs to absolute
-      if (url.startsWith('/')) {
-        url = baseUrl + url;
-      } else if (url.startsWith('./')) {
-        url = baseUrl + url.substring(1);
-      } else if (!url.startsWith('http')) {
-        return; // Skip other types
+
+      let href = hrefMatch[1].trim();
+
+      // Skip anchor links, mailto, tel
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
       }
-      
+
+      // Convert relative URLs to absolute using URL constructor
+      let url: string;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          // Already absolute URL
+          url = new URL(href).href;
+        } else {
+          // Relative URL - use URL constructor to resolve against base
+          url = new URL(href, baseUrl).href;
+        }
+      } catch {
+        // Invalid URL, skip
+        return;
+      }
+
       if (isValidPageUrl(url, baseUrl) && !uniqueUrls.has(url)) {
         uniqueUrls.add(url);
-        
+
         // Try to get a better title from the link text
         const linkTextMatch = match.match(/>([^<]+)</);
         const linkText = linkTextMatch ? linkTextMatch[1].trim() : '';
-        
+
         pages.push({
           url,
-          title: linkText && linkText.length > 2 && linkText.length < 100 
-            ? linkText 
+          title: linkText && linkText.length > 2 && linkText.length < 100
+            ? linkText
             : getPageTitleFromUrl(url),
           source: 'internal-link'
         });
