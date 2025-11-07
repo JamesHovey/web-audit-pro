@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { ExternalLink, Download } from 'lucide-react'
-import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths, clearExpiredCaches } from "@/lib/pageDiscoveryCache"
+import { ExternalLink, Download, RefreshCw } from 'lucide-react'
+import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths, clearExpiredCaches, clearPageDiscoveryCache } from "@/lib/pageDiscoveryCache"
 
 interface DiscoveredPage {
   url: string;
@@ -77,14 +77,28 @@ export default function SitemapContent({ domain }: { domain: string }) {
     }
   }
 
-  const fetchSitemapData = async () => {
+  const fetchSitemapData = async (forceRefresh = false) => {
     if (!domain) return;
 
-    // Check cache first
+    // Check cache first (unless force refresh)
     const urlToDiscover = domain.startsWith('http') ? domain : `https://${domain}`
-    const cached = getCachedPageDiscovery(urlToDiscover)
+    const cached = !forceRefresh ? getCachedPageDiscovery(urlToDiscover) : null
 
     if (cached) {
+      console.log('📦 Using cached sitemap data for:', urlToDiscover)
+
+      // Check for malformed URLs in cache and warn user
+      const malformedUrls = cached.pages.filter(page =>
+        page.url.includes('/http:') || page.url.includes('/https:')
+      )
+
+      if (malformedUrls.length > 0) {
+        console.warn(`⚠️ Found ${malformedUrls.length} malformed URLs in cache. Click "Force Refresh" to fetch fresh data.`)
+        malformedUrls.slice(0, 3).forEach(page => {
+          console.warn(`  - ${page.url}`)
+        })
+      }
+
       // Use cached data
       const result: PageDiscoveryResult = {
         pages: cached.pages.map(page => ({
@@ -109,6 +123,8 @@ export default function SitemapContent({ domain }: { domain: string }) {
       setIsLoading(false)
       return // Skip API call
     }
+
+    console.log('🔄 Fetching fresh sitemap data for:', urlToDiscover)
 
     // No cache, proceed with API call
     try {
@@ -139,6 +155,16 @@ export default function SitemapContent({ domain }: { domain: string }) {
       setIsLoading(false);
     }
   };
+
+  const handleForceRefresh = () => {
+    // Clear cache for this domain
+    const urlToDiscover = domain.startsWith('http') ? domain : `https://${domain}`
+    clearPageDiscoveryCache(urlToDiscover)
+    console.log('🗑️ Cache cleared, fetching fresh data...')
+
+    // Fetch fresh data
+    fetchSitemapData(true)
+  }
 
   const exportToCSV = () => {
     if (!sitemapData || !sitemapData.pages) return;
@@ -198,6 +224,15 @@ export default function SitemapContent({ domain }: { domain: string }) {
             </div>
 
             <div className="flex items-center space-x-2">
+              <button
+                onClick={handleForceRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 transition-colors"
+                title="Clear cache and fetch fresh sitemap data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Force Refresh</span>
+              </button>
               <button
                 onClick={exportToCSV}
                 disabled={!sitemapData || isLoading}
