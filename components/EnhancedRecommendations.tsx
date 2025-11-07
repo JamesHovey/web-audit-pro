@@ -440,6 +440,28 @@ export default function EnhancedRecommendations({
 
   const enhancedRecs = sortedRecs.slice(0, 10)
 
+  // Calculate summary statistics
+  const totalIssues = enhancedRecs.length
+  const highPriorityCount = enhancedRecs.filter(r => r.impact === 'High').length
+  const quickWinsCount = enhancedRecs.filter(r => r.effort === 'Easy').length
+
+  // Get unique categories from recommendations
+  const uniqueCategories = Array.from(new Set(enhancedRecs.map(r => {
+    // Determine category based on recommendation type
+    if (r.title.toLowerCase().includes('image') || r.title.toLowerCase().includes('photo')) {
+      return 'Images'
+    } else if (r.title.toLowerCase().includes('css') || r.title.toLowerCase().includes('javascript') || r.title.toLowerCase().includes('code')) {
+      return 'Code'
+    } else if (r.title.toLowerCase().includes('server') || r.title.toLowerCase().includes('caching') || r.title.toLowerCase().includes('compression')) {
+      return 'Server'
+    } else if (r.title.toLowerCase().includes('h1') || r.title.toLowerCase().includes('meta') || r.title.toLowerCase().includes('seo')) {
+      return 'SEO'
+    } else {
+      return 'Performance'
+    }
+  })))
+  const categoriesCount = uniqueCategories.length
+
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case 'High': return 'bg-red-100 text-red-700 border-red-200'
@@ -485,7 +507,89 @@ export default function EnhancedRecommendations({
           Based on PageSpeed Insights data
         </div>
       </div>
-      
+
+      {/* 4-Column Summary Statistics */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Total Issues */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <span className="text-sm font-medium text-gray-600">Total Issues</span>
+            <Tooltip
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Total Issues</p>
+                  <p>The total number of performance and technical issues identified that need attention. These include both quick fixes and more complex improvements.</p>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+            </Tooltip>
+          </div>
+          <div className="text-3xl font-bold text-gray-900">{totalIssues}</div>
+        </div>
+
+        {/* High Priority */}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <span className="text-sm font-medium text-red-700">High Priority</span>
+            <Tooltip
+              content={
+                <div>
+                  <p className="font-semibold mb-2">High Priority</p>
+                  <p>Issues with <strong>High Impact</strong> that will significantly improve your website's speed and user experience. These should be addressed first for maximum benefit.</p>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-red-400 hover:text-red-600 cursor-help" />
+            </Tooltip>
+          </div>
+          <div className="text-3xl font-bold text-red-700">{highPriorityCount}</div>
+        </div>
+
+        {/* Quick Wins */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <span className="text-sm font-medium text-green-700">Quick Wins</span>
+            <Tooltip
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Quick Wins</p>
+                  <p>Issues that are <strong>Easy</strong> to fix and can be resolved quickly. Start here for fast improvements that build momentum toward better performance.</p>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-green-400 hover:text-green-600 cursor-help" />
+            </Tooltip>
+          </div>
+          <div className="text-3xl font-bold text-green-700">{quickWinsCount}</div>
+        </div>
+
+        {/* Categories */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <span className="text-sm font-medium text-blue-700">Categories</span>
+            <Tooltip
+              content={
+                <div>
+                  <p className="font-semibold mb-2">Categories</p>
+                  <p>The number of different issue categories found. Issues are grouped into: <strong>Images</strong>, <strong>Code</strong> (CSS/JS), <strong>Server</strong> (hosting/caching), <strong>SEO</strong> (meta tags/headings), and <strong>Performance</strong> (general optimizations).</p>
+                </div>
+              }
+              position="top"
+            >
+              <HelpCircle className="h-4 w-4 text-blue-400 hover:text-blue-600 cursor-help" />
+            </Tooltip>
+          </div>
+          <div className="text-3xl font-bold text-blue-700 mb-1">{categoriesCount}</div>
+          <div className="text-xs text-blue-600 font-medium">
+            {uniqueCategories.join(', ')}
+          </div>
+        </div>
+      </div>
+
       {/* Performance Score Summary */}
       {(desktopScore || mobileScore) && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
