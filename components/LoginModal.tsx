@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -11,7 +10,6 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
-  const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -32,9 +30,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
       if (result?.error) {
         setError('Invalid username or password')
       } else if (result?.ok) {
-        onClose()
-        router.push('/dashboard')
-        router.refresh()
+        // Use full page reload to ensure session is properly loaded
+        window.location.href = '/dashboard'
       }
     } catch (_error) {
       setError('An error occurred. Please try again.')
@@ -113,12 +110,12 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
           </form>
 
           <div className="mt-4 text-center">
-            <button
-              onClick={() => router.push('/forgot-password')}
+            <a
+              href="/forgot-password"
               className="text-sm text-[#42499c] hover:underline"
             >
               Forgot your password?
-            </button>
+            </a>
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
