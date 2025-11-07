@@ -81,6 +81,17 @@ export function Navigation({ auditIssues = [], pageTitle, user }: NavigationProp
                 </span>
               )}
 
+              {/* Saved Audits - Always visible when logged in */}
+              {user?.username && (
+                <button
+                  onClick={() => setShowSavedAuditsModal(true)}
+                  className="flex items-center justify-center p-2 rounded transition-all duration-200 group"
+                  title="Saved Audits"
+                >
+                  <Clock className="w-5 h-5 text-white group-hover:text-[#ef86ce] transition-colors" />
+                </button>
+              )}
+
               {/* Logout Button */}
               {user?.username && (
                 <button
@@ -88,17 +99,6 @@ export function Navigation({ auditIssues = [], pageTitle, user }: NavigationProp
                   className="text-white hover:text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
                 >
                   Logout
-                </button>
-              )}
-
-              {/* Saved Audits */}
-              {hasSavedAudits && (
-                <button
-                  onClick={() => setShowSavedAuditsModal(true)}
-                  className="flex items-center justify-center p-2 rounded transition-all duration-200 group"
-                  title="Saved Audits"
-                >
-                  <Clock className="w-5 h-5 text-white group-hover:text-[#ef86ce] transition-colors" />
                 </button>
               )}
 
