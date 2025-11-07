@@ -34,53 +34,13 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as { id: string }).id
 
-    // Calculate estimated credit cost
-    const pageCount = pages.length
-    const creditEstimate = CreditCalculator.estimateAuditCost(
-      scope as 'single' | 'custom' | 'all',
-      pageCount,
-      sections
-    )
-
-    console.log(`💰 Audit estimate: ${creditEstimate.creditsRequired} credits for ${pageCount} pages`)
-
-    // Get current user credits
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { credits: true, username: true }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Bypass credit checks for testing user
-    const isBypassUser = user.username === 'james.hovey'
-
-    if (!isBypassUser) {
-      // Check if user has sufficient credits (will deduct actual cost after audit)
-      if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
-        return NextResponse.json({
-          error: "Insufficient credits",
-          required: creditEstimate.creditsRequired,
-          available: user.credits,
-          shortfall: creditEstimate.creditsRequired - user.credits
-        }, { status: 402 }) // 402 Payment Required
-      }
-
-      console.log(`💰 User has ${user.credits} credits, estimated cost: ${creditEstimate.creditsRequired} credits`)
-    } else {
-      console.log(`🔓 Credit check bypassed for testing user: ${user.username}`)
-    }
-
-    // Create audit record with user ID and estimated cost
+    // Create audit record with user ID
     const audit = await prisma.audit.create({
       data: {
         userId,
         url,
         sections: sections,
         status: "pending",
-        estimatedCost: creditEstimate.creditsRequired,
         // Store additional audit metadata
         results: {
           scope,
@@ -532,39 +492,14 @@ export async function POST(request: NextRequest) {
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
 
-        // Calculate actual cost based on usage
-        // For now, use estimates for APIs (can be enhanced later with actual API metrics)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, // keywordsEverywhereCredits - TODO: track actual usage
-          0, // serperSearches - TODO: track actual usage
-          0, // claudeInputTokens - TODO: track actual usage
-          0, // claudeOutputTokens - TODO: track actual usage
-          usageMetrics.browserMinutes
-        )
-
         console.log(`📊 Usage metrics: ${Math.round(usageMetrics.browserMinutes * 100) / 100} browser minutes`)
-        console.log(`💰 Actual cost: ${actualCost} credits (estimated was ${creditEstimate.creditsRequired})`)
 
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId}`)
-        }
-
-        // Update audit with results, actual cost, and usage metrics
+        // Update audit with results and usage metrics
         await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
@@ -575,24 +510,6 @@ export async function POST(request: NextRequest) {
         // End usage tracking even on error
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
-
-        // Calculate actual cost (even for failed audits, to track partial usage)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, 0, 0, 0, usageMetrics.browserMinutes
-        )
-
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId} (error fallback)`)
-        }
 
         // Fallback to mock data on error
         const { generateMockAuditResults } = await import('@/lib/mockData')
@@ -606,7 +523,6 @@ export async function POST(request: NextRequest) {
           data: {
             status: "completed",
             results: safeMockResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
