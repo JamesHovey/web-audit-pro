@@ -287,7 +287,20 @@ export default function CompetitionAnalysis({ targetDomain, keywords }: Competit
                     {competitor.domain}
                   </a>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>DA: <span className={`font-medium ${getDAColor(competitor.domainAuthority)}`}>{competitor.domainAuthority}</span></span>
+                    <span className="flex items-center gap-1">
+                      DA: <span className={`font-medium ${getDAColor(competitor.domainAuthority)}`}>{competitor.domainAuthority}</span>
+                      <span className="group relative inline-flex">
+                        <Info className="w-3 h-3 text-gray-400 cursor-help" />
+                        <span className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg z-10">
+                          <strong>OpenPageRank Score</strong><br/>
+                          This score is based on Google's original PageRank algorithm using link authority.<br/><br/>
+                          <strong>Why it differs from SEMrush:</strong><br/>
+                          • OpenPageRank: Link-based authority metric (0-100)<br/>
+                          • SEMrush Authority Score: Combines traffic, backlinks, visibility & other factors<br/><br/>
+                          Both are valid but use different algorithms and data sources.
+                        </span>
+                      </span>
+                    </span>
                     <span>•</span>
                     <span>{competitor.sharedKeywords} shared keywords</span>
                   </div>
