@@ -3315,7 +3315,8 @@ function renderSectionResults(
           )}
 
           {/* Technical Audit Section - HIDDEN PER USER REQUEST (merged into Enhanced Recommendations above) */}
-          {/* <div>
+          {/*
+          <div>
             <div className="flex items-center gap-2 mb-3">
               <h4 className="font-semibold text-lg">Technical Health</h4>
               <Tooltip 
@@ -3470,7 +3471,8 @@ function renderSectionResults(
                 </div>
               </div>
             </div>
-          </div> */}
+          </div>
+          */}
 
           {/* Enhanced Recommendations - ALREADY MOVED TO TOP, COMMENTING OUT DUPLICATE */}
           {/*
