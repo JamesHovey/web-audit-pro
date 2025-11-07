@@ -48,7 +48,6 @@ model User {
   image             String?
   password          String
   plaintextPassword String?   // TESTING ONLY - Remove in production
-  credits           Int       @default(100) // Free credits on signup
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   accounts          Account[]
@@ -74,9 +73,6 @@ model Audit {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   completedAt       DateTime?
-  creditCost        Int?     // DEPRECATED: Use actualCost instead
-  estimatedCost     Int?     // Estimated credits (calculated upfront)
-  actualCost        Int?     // Actual credits charged (calculated after audit)
   usageMetrics      Json?    // Detailed usage: { browserMinutes, keCredits, serperSearches, claudeTokens }
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
