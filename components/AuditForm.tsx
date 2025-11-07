@@ -139,7 +139,7 @@ const COUNTRIES = [
 export function AuditForm() {
   const router = useRouter()
   const [url, setUrl] = useState("")
-  const [selectedSections, setSelectedSections] = useState<string[]>([]) // Default to nothing selected
+  const [selectedSections, setSelectedSections] = useState<string[]>(['performance']) // Auto-select performance audit
   const [auditScope, setAuditScope] = useState<AuditScope>('single')
   const [auditView, setAuditView] = useState<'executive' | 'manager' | 'developer'>('executive') // Default to executive view
   const [country, setCountry] = useState('gb') // Default to United Kingdom
@@ -694,13 +694,6 @@ export function AuditForm() {
 
     if (!isValidUrl) {
       setError("Please enter a valid website URL (e.g., example.com)")
-      setShowErrorTooltip(true)
-      setTimeout(() => setShowErrorTooltip(false), 4000)
-      return
-    }
-
-    if (selectedSections.length === 0) {
-      setError("Please choose one or more audit sections first. Select the analyses you'd like to include in your website audit.")
       setShowErrorTooltip(true)
       setTimeout(() => setShowErrorTooltip(false), 4000)
       return
@@ -1448,104 +1441,6 @@ export function AuditForm() {
           </div>
         )}
 
-        {/* Section Selection */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Audit Sections ({selectedSections.length} selected)
-            </label>
-            <button
-              type="button"
-              onClick={handleSelectAll}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {(() => {
-                const phase1Sections = AUDIT_SECTIONS.filter(section => section.phase !== 2);
-                const allPhase1Selected = phase1Sections.every(section => selectedSections.includes(section.id));
-                return allPhase1Selected ? 'Unselect All' : 'Select All';
-              })()}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {AUDIT_SECTIONS.map((section, index) => {
-              const isFirstPhase2 = section.phase === 2 && (index === 0 || AUDIT_SECTIONS[index - 1]?.phase !== 2)
-
-              return (
-                <React.Fragment key={section.id}>
-                  {isFirstPhase2 && (
-                    <div className="col-span-1 md:col-span-3 flex items-center my-4">
-                      <div className="flex-grow border-t border-gray-300"></div>
-                      <span className="px-4 text-sm font-medium text-gray-600">Phase 2</span>
-                      <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-                  )}
-                  <div
-                    className={`border rounded-lg p-4 transition-colors ${
-                      selectedSections.includes(section.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        id={section.id}
-                        checked={selectedSections.includes(section.id)}
-                        onChange={() => handleSectionToggle(section.id)}
-                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <label htmlFor={section.id} className="font-medium text-gray-900 cursor-pointer flex items-center gap-2">
-                              {section.label}
-                              {section.phase === 2 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ef86ce] text-white">
-                                  Phase 2
-                                </span>
-                              )}
-                            </label>
-                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                          </div>
-
-                          {/* Inline Country Selection for Keywords Section */}
-                          {section.id === 'keywords' && selectedSections.includes('keywords') && (
-                            <div className="ml-4 min-w-0 flex-shrink-0">
-                              <label htmlFor={`${section.id}-country`} className="block text-xs font-medium text-gray-700 mb-1">
-                                Target Country
-                              </label>
-                              <div className="relative">
-                                <select
-                                  id={`${section.id}-country`}
-                                  value={country}
-                                  onChange={(e) => setCountry(e.target.value)}
-                                  className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
-                                  disabled={isLoading}
-                                >
-                                  {COUNTRIES.map((c) => (
-                                    <option key={c.code} value={c.code}>
-                                      {c.flag} {c.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <div className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </React.Fragment>
-              )
-            })}
-          </div>
-        </div>
-
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1558,12 +1453,8 @@ export function AuditForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none ${
-              selectedSections.length > 0
-                ? 'bg-[#42499c] hover:bg-[#353f85] text-white font-medium py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200'
-                : 'btn-pmw-primary'
-            }`}
-            style={selectedSections.length > 0 ? { borderRadius: '20px' } : {}}
+            className="w-full justify-center bg-[#42499c] hover:bg-[#353f85] text-white font-medium py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+            style={{ borderRadius: '20px' }}
           >
             {isLoading ? (
               <>
@@ -1608,7 +1499,7 @@ export function AuditForm() {
               Analysing Website
             </h2>
             <p className="text-gray-600 mb-6">
-              We&apos;re conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}.
+              We&apos;re conducting a comprehensive Performance & Technical Audit.
             </p>
 
             {/* Rotating Comment */}
