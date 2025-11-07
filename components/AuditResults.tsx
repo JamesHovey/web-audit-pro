@@ -2715,6 +2715,241 @@ function renderSectionResults(
             }}
           />
 
+          {/* Conversion Analysis Section */}
+          {results.conversionAnalysis && (
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-gray-900">Conversion Optimization</h3>
+                  <Tooltip
+                    content={
+                      <div className="space-y-2">
+                        <p className="font-medium">Conversion-Focused Analysis</p>
+                        <p>This section identifies issues that directly impact your ability to convert visitors into customers:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-sm">
+                          <li><strong>JavaScript Errors:</strong> Broken forms/checkout</li>
+                          <li><strong>Mobile Usability:</strong> 60%+ of traffic is mobile</li>
+                          <li><strong>Accessibility:</strong> Legal compliance + better UX</li>
+                          <li><strong>Security:</strong> Trust signals for visitors</li>
+                          <li><strong>Forms:</strong> Friction in conversion process</li>
+                        </ul>
+                      </div>
+                    }
+                    position="right"
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </div>
+
+                {/* Conversion Score */}
+                <div className="text-center">
+                  <div className={`text-4xl font-bold ${
+                    results.conversionAnalysis.conversionScore >= 80 ? 'text-green-600' :
+                    results.conversionAnalysis.conversionScore >= 60 ? 'text-yellow-600' :
+                    results.conversionAnalysis.conversionScore >= 40 ? 'text-orange-600' :
+                    'text-red-600'
+                  }`}>
+                    {results.conversionAnalysis.conversionScore}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Conversion Score</div>
+                  <div className="text-xs text-gray-500">out of 100</div>
+                </div>
+              </div>
+
+              {/* Issues Summary */}
+              {results.conversionAnalysis.totalIssues > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-red-600">{results.conversionAnalysis.criticalIssues?.length || 0}</div>
+                    <div className="text-sm text-red-700 mt-1">Critical</div>
+                    <div className="text-xs text-red-600">Blocks conversions</div>
+                  </div>
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-orange-600">{results.conversionAnalysis.highPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-orange-700 mt-1">High Priority</div>
+                    <div className="text-xs text-orange-600">Reduces trust</div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-yellow-600">{results.conversionAnalysis.mediumPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-yellow-700 mt-1">Medium</div>
+                    <div className="text-xs text-yellow-600">Hurts usability</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-600">{results.conversionAnalysis.lowPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-blue-700 mt-1">Low</div>
+                    <div className="text-xs text-blue-600">Minor impact</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Critical Issues */}
+              {results.conversionAnalysis.criticalIssues && results.conversionAnalysis.criticalIssues.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-red-600 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Critical Issues (Fix Immediately)
+                  </h4>
+                  <div className="space-y-3">
+                    {results.conversionAnalysis.criticalIssues.map((issue: any, index: number) => (
+                      <div key={index} className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-600 text-white">
+                              {issue.category || 'CRITICAL'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-red-900">{issue.title}</h5>
+                            <p className="text-sm text-red-700 mt-1">{issue.description}</p>
+                            {issue.recommendation && (
+                              <p className="text-sm text-red-600 mt-2">
+                                <strong>Fix:</strong> {issue.recommendation}
+                              </p>
+                            )}
+                            {issue.impact && (
+                              <div className="mt-2 inline-flex items-center text-xs text-red-800 bg-red-100 px-2 py-1 rounded">
+                                💥 Impact: {issue.impact}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* High Priority Issues */}
+              {results.conversionAnalysis.highPriorityIssues && results.conversionAnalysis.highPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-orange-600 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    High Priority Issues
+                  </h4>
+                  <div className="space-y-3">
+                    {results.conversionAnalysis.highPriorityIssues.map((issue: any, index: number) => (
+                      <div key={index} className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-500 text-white">
+                              {issue.category || 'HIGH'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-orange-900">{issue.title}</h5>
+                            <p className="text-sm text-orange-700 mt-1">{issue.description}</p>
+                            {issue.recommendation && (
+                              <p className="text-sm text-orange-600 mt-2">
+                                <strong>Fix:</strong> {issue.recommendation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Medium Priority Issues */}
+              {results.conversionAnalysis.mediumPriorityIssues && results.conversionAnalysis.mediumPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <h4 className="text-lg font-semibold text-yellow-600 mb-3 flex items-center gap-2 inline-flex">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Medium Priority Issues ({results.conversionAnalysis.mediumPriorityIssues.length})
+                      </h4>
+                    </summary>
+                    <div className="space-y-2 mt-3">
+                      {results.conversionAnalysis.mediumPriorityIssues.map((issue: any, index: number) => (
+                        <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                          <div className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-400 text-yellow-900">
+                              {issue.category || 'MEDIUM'}
+                            </span>
+                            <div className="flex-1">
+                              <h5 className="font-medium text-yellow-900 text-sm">{issue.title}</h5>
+                              <p className="text-xs text-yellow-700 mt-1">{issue.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+
+              {/* Low Priority Issues */}
+              {results.conversionAnalysis.lowPriorityIssues && results.conversionAnalysis.lowPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <h4 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2 inline-flex">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Low Priority Issues ({results.conversionAnalysis.lowPriorityIssues.length})
+                      </h4>
+                    </summary>
+                    <div className="space-y-2 mt-3">
+                      {results.conversionAnalysis.lowPriorityIssues.map((issue: any, index: number) => (
+                        <div key={index} className="bg-blue-50 border-l-4 border-blue-300 p-3 rounded">
+                          <div className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-300 text-blue-900">
+                              {issue.category || 'LOW'}
+                            </span>
+                            <div className="flex-1">
+                              <h5 className="font-medium text-blue-900 text-sm">{issue.title}</h5>
+                              <p className="text-xs text-blue-700 mt-1">{issue.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {results.conversionAnalysis.recommendations && results.conversionAnalysis.recommendations.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Quick Wins
+                  </h4>
+                  <ul className="space-y-2">
+                    {results.conversionAnalysis.recommendations.map((rec: string, index: number) => (
+                      <li key={index} className="text-sm text-green-800 flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* No Issues Found */}
+              {results.conversionAnalysis.totalIssues === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <h4 className="text-xl font-bold text-green-900 mb-2">Excellent! 🎉</h4>
+                  <p className="text-green-700">No major conversion issues detected. Your site is optimized for conversions.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Core Web Vitals Pass/Fail Summary */}
           {results.pages && results.pages.some((page: Record<string, unknown>) => page.performance) && (() => {
             const pagesWithMetrics = results.pages.filter((page: Record<string, unknown>) => page.performance);
