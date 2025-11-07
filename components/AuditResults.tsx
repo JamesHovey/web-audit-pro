@@ -3471,8 +3471,7 @@ function renderSectionResults(
                 </div>
               </div>
             </div>
-          </div>
-          */}
+          </div> */}
 
           {/* Enhanced Recommendations - ALREADY MOVED TO TOP, COMMENTING OUT DUPLICATE */}
           {/*
