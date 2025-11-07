@@ -371,6 +371,47 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // Run Universal Performance & Conversion Detection (NEW!)
+            if (htmlContent) {
+              try {
+                console.log('🎯 Running universal performance & conversion analysis...')
+                const { analyzeUniversalPerformance } = await import('@/lib/universalPerformanceDetection')
+
+                // Get response headers (reconstruct from fetch if needed)
+                let responseHeaders: Record<string, string> = {}
+                try {
+                  const normalizedUrl = url.startsWith('http') ? url : `https://${url}`
+                  const headResponse = await fetch(normalizedUrl, {
+                    method: 'HEAD',
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                    signal: AbortSignal.timeout(5000)
+                  })
+                  headResponse.headers.forEach((value, key) => {
+                    responseHeaders[key] = value
+                  })
+                } catch (headerError) {
+                  console.log('⚠️ Could not fetch headers for universal analysis, using empty headers')
+                }
+
+                const universalAnalysis = await analyzeUniversalPerformance(htmlContent, responseHeaders, url)
+
+                // Add to results
+                results.conversionAnalysis = {
+                  conversionScore: universalAnalysis.conversionScore,
+                  totalIssues: universalAnalysis.totalIssuesFound,
+                  criticalIssues: universalAnalysis.criticalIssues,
+                  highPriorityIssues: universalAnalysis.highPriorityIssues,
+                  mediumPriorityIssues: universalAnalysis.mediumPriorityIssues,
+                  lowPriorityIssues: universalAnalysis.lowPriorityIssues,
+                  recommendations: universalAnalysis.recommendations
+                }
+
+                console.log(`✅ Universal performance analysis completed: Conversion Score ${universalAnalysis.conversionScore}/100, ${universalAnalysis.totalIssuesFound} issues found`)
+              } catch (universalError) {
+                console.log('⚠️ Universal performance analysis failed, continuing without it:', universalError instanceof Error ? universalError.message : String(universalError))
+              }
+            }
+
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
               try {
