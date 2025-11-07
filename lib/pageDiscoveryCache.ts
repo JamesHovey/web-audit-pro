@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v2' // Increment to invalidate old caches
+const CACHE_VERSION = 'v3' // Increment to invalidate old caches
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**

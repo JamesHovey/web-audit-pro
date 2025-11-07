@@ -233,9 +233,22 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
         if (locMatch) {
           let url = locMatch[1].trim();
 
+          // Skip malformed URLs where another URL was concatenated into the path
+          if (url.includes('/http:') || url.includes('/https:')) {
+            console.log(`    Skipping malformed URL (concatenated): ${url}`);
+            return;
+          }
+
           // Normalize URL using URL constructor to fix malformed URLs
           try {
             const urlObj = new URL(url);
+
+            // Additional check: pathname shouldn't contain protocol strings
+            if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+              console.log(`    Skipping URL with protocol in pathname: ${url}`);
+              return;
+            }
+
             url = urlObj.href; // Use normalized URL
           } catch (e) {
             console.log(`    Invalid URL in sitemap: ${url}`);
@@ -264,9 +277,22 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
         locMatches.forEach(match => {
           let url = match.replace(/<\/?loc>/g, '').trim();
 
+          // Skip malformed URLs where another URL was concatenated into the path
+          if (url.includes('/http:') || url.includes('/https:')) {
+            console.log(`    Skipping malformed URL (concatenated): ${url}`);
+            return;
+          }
+
           // Normalize URL using URL constructor to fix malformed URLs
           try {
             const urlObj = new URL(url);
+
+            // Additional check: pathname shouldn't contain protocol strings
+            if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+              console.log(`    Skipping URL with protocol in pathname: ${url}`);
+              return;
+            }
+
             url = urlObj.href; // Use normalized URL
           } catch (e) {
             console.log(`    Invalid URL in sitemap: ${url}`);
@@ -293,9 +319,22 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
 
             if (!url.startsWith('http')) return; // Skip non-HTTP URLs
 
+            // Skip malformed URLs where another URL was concatenated into the path
+            if (url.includes('/http:') || url.includes('/https:')) {
+              console.log(`    Skipping malformed URL (concatenated): ${url}`);
+              return;
+            }
+
             // Normalize URL using URL constructor to fix malformed URLs
             try {
               const urlObj = new URL(url);
+
+              // Additional check: pathname shouldn't contain protocol strings
+              if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+                console.log(`    Skipping URL with protocol in pathname: ${url}`);
+                return;
+              }
+
               url = urlObj.href; // Use normalized URL
             } catch (e) {
               console.log(`    Invalid URL in CDATA: ${url}`);
