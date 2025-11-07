@@ -1,13 +1,16 @@
 /**
- * Hybrid Plugin Detection System
+ * Universal Hybrid Detection System
+ * Multi-platform support: WordPress, Drupal, Joomla, Shopify, Magento, and custom sites
+ *
  * Combines fast pattern matching with AI-powered detection
  *
  * Detection Flow:
- * 1. Layer 1: Fast pattern matching for common plugins (instant, free)
- * 2. Layer 2: Claude AI for unknown/complex plugins (intelligent, minimal cost)
+ * 1. Layer 1: Fast pattern matching for known extensions/modules/apps (instant, free)
+ * 2. Layer 2: Claude AI for unknown/complex cases (intelligent, minimal cost)
  * 3. Layer 3: Merge and deduplicate results
  */
 
+import { detectByPatterns, DetectedExtension, UNIVERSAL_SIGNATURES } from './universalSignatures';
 import { detectPluginsByPatterns, DetectedPlugin, PLUGIN_SIGNATURES } from './pluginSignatures';
 import { detectPluginsWithClaude, PlatformAnalysis } from './claudePluginDetection';
 
@@ -39,13 +42,23 @@ export async function detectPluginsHybrid(
   console.log(`🔄 Starting hybrid plugin detection for ${url} (${platform})`);
 
   // ============================================
-  // LAYER 1: FAST PATTERN MATCHING
+  // LAYER 1: UNIVERSAL PATTERN MATCHING
   // ============================================
   const patternStartTime = Date.now();
-  const patternPlugins = detectPluginsByPatterns(htmlContent, headers);
+
+  // Try universal signatures first (works for all platforms)
+  let patternPlugins: any[];
+  try {
+    patternPlugins = detectByPatterns(htmlContent, headers, platform);
+  } catch (error) {
+    // Fallback to WordPress-specific detection if universal fails
+    console.warn('Universal detection failed, falling back to WordPress detection:', error);
+    patternPlugins = detectPluginsByPatterns(htmlContent, headers);
+  }
+
   patternMatchTimeMs = Date.now() - patternStartTime;
 
-  console.log(`✅ Pattern matching complete: ${patternPlugins.length} plugins detected in ${patternMatchTimeMs}ms`);
+  console.log(`✅ Pattern matching complete: ${patternPlugins.length} extensions detected in ${patternMatchTimeMs}ms`);
 
   // Count high-confidence pattern matches
   const highConfidencePatternMatches = patternPlugins.filter(p => p.confidence === 'high').length;
@@ -136,69 +149,132 @@ export async function detectPluginsHybrid(
 }
 
 /**
- * Decision logic for whether to invoke Claude AI
+ * Universal Decision Logic: Should we invoke Claude AI?
+ * Platform-aware logic for WordPress, Drupal, Joomla, Shopify, Magento, and custom sites
  */
 function decideShouldUseAI(
-  patternPlugins: DetectedPlugin[],
+  patternPlugins: any[],
   platform: string,
   htmlContent: string
 ): { use: boolean; reason: string } {
   // Count high-confidence matches
   const highConfidenceCount = patternPlugins.filter(p => p.confidence === 'high').length;
+  const platformLower = platform.toLowerCase();
 
-  // For WordPress sites with fewer than 5 high-confidence plugins, use AI
-  if (platform === 'WordPress' && highConfidenceCount < 5) {
+  // ============================================
+  // RULE 1: No extensions detected at all → Use AI
+  // ============================================
+  if (patternPlugins.length === 0) {
     return {
       use: true,
-      reason: `Only ${highConfidenceCount} high-confidence plugins detected, AI can find more`
+      reason: 'No extensions detected via patterns, AI analysis required'
     };
   }
 
-  // For WordPress sites with no pattern matches at all, definitely use AI
-  if (platform === 'WordPress' && patternPlugins.length === 0) {
+  // ============================================
+  // RULE 2: Static/Custom sites → Always use AI
+  // ============================================
+  if (platformLower.includes('static') || platformLower.includes('custom') || platformLower.includes('unknown')) {
     return {
       use: true,
-      reason: 'No plugins detected via patterns, AI analysis required'
+      reason: `Custom/static site detected, AI can analyze performance issues directly from code`
     };
   }
 
-  // For non-WordPress platforms, always use AI (less pattern coverage)
-  if (platform !== 'WordPress' && platform !== 'Static Website') {
+  // ============================================
+  // RULE 3: Platform-specific thresholds
+  // ============================================
+
+  // WordPress - Good pattern coverage, higher threshold
+  if (platformLower.includes('wordpress')) {
+    if (highConfidenceCount >= 5) {
+      return {
+        use: false,
+        reason: `${highConfidenceCount} high-confidence WordPress plugins detected, pattern matching sufficient`
+      };
+    }
+    if (highConfidenceCount < 3) {
+      return {
+        use: true,
+        reason: `Only ${highConfidenceCount} high-confidence WordPress plugins detected, AI can find more`
+      };
+    }
+  }
+
+  // Drupal, Joomla - Moderate pattern coverage
+  if (platformLower.includes('drupal') || platformLower.includes('joomla')) {
+    if (highConfidenceCount >= 3) {
+      return {
+        use: false,
+        reason: `${highConfidenceCount} high-confidence ${platform} modules detected, pattern matching sufficient`
+      };
+    }
     return {
       use: true,
-      reason: `Non-WordPress platform (${platform}), AI provides better coverage`
+      reason: `${platform} site with low pattern matches, AI provides better module detection`
     };
   }
 
-  // Check if the HTML is very large (complex site), might need AI
+  // Shopify, Magento, PrestaShop - E-commerce platforms
+  if (platformLower.includes('shopify') || platformLower.includes('magento') || platformLower.includes('prestashop')) {
+    if (highConfidenceCount >= 3) {
+      return {
+        use: false,
+        reason: `${highConfidenceCount} ${platform} apps detected, pattern matching sufficient`
+      };
+    }
+    return {
+      use: true,
+      reason: `${platform} store with few detected apps, AI can identify more`
+    };
+  }
+
+  // Wix, Squarespace, Webflow - Hosted platforms (less extensible)
+  if (platformLower.includes('wix') || platformLower.includes('squarespace') || platformLower.includes('webflow')) {
+    if (patternPlugins.length >= 2) {
+      return {
+        use: false,
+        reason: `${platform} detected with integrations, pattern matching sufficient`
+      };
+    }
+    return {
+      use: true,
+      reason: `${platform} site, AI can analyze built-in features and performance`
+    };
+  }
+
+  // ============================================
+  // RULE 4: Large/complex sites with few matches
+  // ============================================
   const htmlSizeKB = htmlContent.length / 1024;
   if (htmlSizeKB > 500 && highConfidenceCount < 3) {
     return {
       use: true,
-      reason: `Large HTML (${Math.round(htmlSizeKB)}KB) with few plugins detected, AI might find more`
+      reason: `Large HTML (${Math.round(htmlSizeKB)}KB) with few extensions detected, AI might find more`
     };
   }
 
-  // If we have good pattern matches, skip AI
-  if (highConfidenceCount >= 5) {
+  // ============================================
+  // RULE 5: Default fallback based on confidence
+  // ============================================
+  if (highConfidenceCount >= 4) {
     return {
       use: false,
-      reason: `${highConfidenceCount} high-confidence plugins detected, pattern matching sufficient`
+      reason: `${highConfidenceCount} high-confidence extensions detected, pattern matching sufficient`
     };
   }
 
-  // Default: use pattern matching only for WordPress with some matches
-  if (patternPlugins.length >= 3) {
+  if (patternPlugins.length >= 5) {
     return {
       use: false,
-      reason: `${patternPlugins.length} plugins detected via patterns, sufficient for WordPress`
+      reason: `${patternPlugins.length} total extensions detected, sufficient coverage`
     };
   }
 
-  // Edge case: use AI as backup
+  // When in doubt, use AI for best results
   return {
     use: true,
-    reason: 'Low pattern match confidence, AI backup recommended'
+    reason: 'Low pattern match confidence, AI recommended for comprehensive analysis'
   };
 }
 
