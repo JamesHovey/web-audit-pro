@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { ExternalLink, Download } from 'lucide-react'
-import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths } from "@/lib/pageDiscoveryCache"
+import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths, clearExpiredCaches } from "@/lib/pageDiscoveryCache"
 
 interface DiscoveredPage {
   url: string;
@@ -31,6 +31,9 @@ export default function SitemapContent({ domain }: { domain: string }) {
   const [excludedPaths, setExcludedPaths] = useState<string[]>([]);
 
   useEffect(() => {
+    // Clear old cache versions on mount
+    clearExpiredCaches();
+
     if (domain) {
       fetchSitemapData();
     } else {
