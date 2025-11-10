@@ -289,24 +289,10 @@ export default function EnhancedRecommendations({
     
     if (lowerRec.includes('unused javascript') || lowerRec.includes('remove unused javascript')) {
       const baseInstructions = cms === 'WordPress' ? [
-        '🚀 RECOMMENDED: Install WP Rocket (Premium) - solves multiple issues:',
-        '   • Minifies and combines JavaScript files',
-        '   • Defers JavaScript loading',
-        '   • Delays JavaScript execution until user interaction',
-        '   • Includes caching, lazy loading, and CSS optimization',
-        '   • One plugin replaces 3-4 separate plugins',
-        '   • Cost: $59/year (saves money vs multiple plugins)',
-        '   • Setup: Install → Enable "Load JavaScript deferred" → Enable "Delay JavaScript execution"',
-        '',
-        'FREE ALTERNATIVES (require multiple plugins):',
-        'Autoptimize (Free): Enable "Optimize JavaScript Code" and configure exclusions',
-        'Asset CleanUp (Free): Disable unused JavaScript files on specific pages',
-        'Flying Scripts (Free): Delay JavaScript execution on specific pages',
-        '',
-        'ADDITIONAL STEPS:',
+        'Install a performance optimisation plugin (see recommended plugins below)',
         'Identify unused JavaScript using Chrome DevTools → Coverage tab',
         'Remove unnecessary third-party scripts (analytics, chat widgets not in use)',
-        'Review plugins - deactivate unused ones as they add JavaScript',
+        'Review installed plugins - deactivate unused ones as they add JavaScript',
         'Consider replacing heavy plugins with lighter alternatives',
         'Test thoroughly after making changes to ensure functionality'
       ] : [
@@ -325,7 +311,7 @@ export default function EnhancedRecommendations({
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
         details: cms === 'WordPress'
-          ? 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimization plus caching, lazy loading, and more - reducing the number of plugins needed.'
+          ? 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimisation plus caching, lazy loading, and more - reducing the number of plugins needed.'
           : 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
         useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
@@ -338,10 +324,10 @@ export default function EnhancedRecommendations({
         '   • Automatically generates critical CSS',
         '   • Defers JavaScript loading',
         '   • Minifies and combines CSS/JS files',
-        '   • Also includes: caching, lazy loading, database optimization',
+        '   • Also includes: caching, lazy loading, database optimisation',
         '   • One plugin solves multiple issues',
-        '   • Cost: $59/year (saves money vs multiple plugins)',
-        '   • Setup: Install WP Rocket → File Optimization settings configured automatically',
+        '   • Cost: £59/year (saves money vs multiple plugins)',
+        '   • Setup: Install WP Rocket → File Optimisation settings configured automatically',
         '',
         'FREE ALTERNATIVES (require manual configuration):',
         'Autoptimize (Free): Aggregate and minify CSS/JS files',
@@ -556,14 +542,14 @@ export default function EnhancedRecommendations({
         'Cloudflare (Free + Paid): Best all-around CDN with free plan, DDoS protection, SSL',
         '  • Setup: Sign up → Add site → Update nameservers → Enable CDN',
         '  • Free plan includes: CDN, SSL, DDoS protection, firewall',
-        '  • Paid plans ($20/month+): Better performance, more features',
+        '  • Paid plans (£20/month+): Better performance, more features',
         '',
-        'WP Rocket + RocketCDN ($8.99/month): WordPress-optimized CDN',
+        'WP Rocket + RocketCDN (£8.99/month): WordPress-optimised CDN',
         '  • Seamless integration with WP Rocket',
         '  • Designed specifically for WordPress',
         '  • Easy setup via WP Rocket dashboard',
         '',
-        'Bunny CDN ($1/month+): Budget-friendly, fast performance',
+        'Bunny CDN (£1/month+): Budget-friendly, fast performance',
         '  • Pay-as-you-go pricing',
         '  • Excellent performance',
         '  • Requires manual configuration',
