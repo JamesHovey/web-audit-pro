@@ -278,20 +278,33 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('unused javascript') || lowerRec.includes('remove unused javascript')) {
-      const baseInstructions = [
-        'Audit JavaScript files for unused code',
+      const baseInstructions = cms === 'WordPress' ? [
+        'Install a performance optimization plugin (see recommended plugins below)',
+        'Identify unused JavaScript using Chrome DevTools → Coverage tab',
+        'Remove unnecessary third-party scripts (analytics, chat widgets not in use)',
+        'WP Rocket: Enable "Load JavaScript deferred" and "Delay JavaScript execution"',
+        'Autoptimize: Enable "Optimize JavaScript Code" and configure exclusions if needed',
+        'Asset CleanUp: Disable unused JavaScript files on specific pages',
+        'Review plugins - deactivate unused ones as they add JavaScript',
+        'Consider replacing heavy plugins with lighter alternatives',
+        'Test thoroughly after making changes to ensure functionality'
+      ] : [
+        'Audit JavaScript files for unused code using Chrome DevTools → Coverage tab',
         'Remove unnecessary third-party scripts',
         'Use code splitting to load JS only when needed',
-        'Minify and compress remaining JavaScript'
+        'Minify and compress remaining JavaScript',
+        'Consider using a bundler like Webpack or Rollup',
+        'Implement tree-shaking to remove dead code'
       ]
-      
+
       return {
         title: 'Remove Unused JavaScript',
         description: 'JavaScript files contain code that\'s not being executed',
         impact: 'High',
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
-        details: 'Unused JavaScript blocks the browser and wastes bandwidth',
+        details: 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
+        useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
       }
     }
@@ -313,25 +326,72 @@ export default function EnhancedRecommendations({
       }
     }
     
-    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer'))) {
-      const baseInstructions = [
-        'Add loading="lazy" to img tags',
-        'Use intersection observer for custom lazy loading',
-        'Prioritize above-the-fold images',
-        'Consider using modern image formats'
+    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
+      const baseInstructions = cms === 'WordPress' ? [
+        'Install a lazy loading plugin (see recommended plugins below)',
+        'WP Rocket (Premium): Enable "LazyLoad for images" in Media settings - automatically adds lazy loading',
+        'Smush (Free): Enable "Lazy Load" in the Lazy Load tab',
+        'a3 Lazy Load (Free): Install and activate - works automatically with default settings',
+        'Jetpack (Free): Enable "Speed up image load times" in Performance settings',
+        'Alternative: Add loading="lazy" to images manually in your theme',
+        'Exclude above-the-fold images from lazy loading (first 2-3 images)',
+        'Test on mobile devices to ensure images load properly when scrolling',
+        'WordPress 5.5+ has native lazy loading - ensure it\'s not disabled by your theme'
+      ] : [
+        'Add loading="lazy" attribute to img tags below the fold',
+        'Example: <img src="image.jpg" loading="lazy" alt="Description">',
+        'Use Intersection Observer API for custom lazy loading',
+        'Prioritize above-the-fold images (don\'t lazy load them)',
+        'Consider using modern image formats like WebP',
+        'JavaScript libraries: lazysizes, lozad.js, or vanilla-lazyload',
+        'Ensure images have width/height attributes to prevent layout shifts'
       ]
-      
+
       return {
-        title: 'Lazy Load Images',
+        title: 'Implement Lazy Loading for Images',
         description: 'Images below the fold are loading immediately, wasting bandwidth',
         impact: 'Medium',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Loading images only when needed improves initial page load',
+        details: 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
+        useCase: 'lazy-loading',
         howTo: getPluginSpecificInstructions(baseInstructions, 'images')
       }
     }
     
+    if (lowerRec.includes('mobile') && lowerRec.includes('image')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        'Use responsive images with srcset (WordPress does this automatically for uploaded images)',
+        'Install an image optimization plugin that serves appropriately sized images:',
+        'WP Rocket: Enable "Imagify" integration for automatic WebP and responsive images',
+        'Smush: Automatically generates multiple image sizes for different devices',
+        'ShortPixel: Enable "Responsive Images" and "Adaptive Images" features',
+        'Ensure your theme uses wp_get_attachment_image() for proper responsive images',
+        'Test images load correctly on mobile using Chrome DevTools → Device Mode',
+        'Verify images don\'t exceed mobile viewport width',
+        'Consider using WebP format with fallbacks for better compression on mobile'
+      ] : [
+        'Use responsive images with srcset and sizes attributes',
+        'Example: <img srcset="small.jpg 480w, medium.jpg 768w, large.jpg 1200w" sizes="(max-width: 768px) 100vw, 50vw" src="medium.jpg" alt="Description">',
+        'Serve appropriately sized images for different screen sizes',
+        'Use picture element for art direction (different images for mobile vs desktop)',
+        'Implement WebP format with JPEG/PNG fallbacks',
+        'Consider using a CDN with automatic image resizing (Cloudinary, Imgix)',
+        'Test on actual mobile devices, not just browser emulation'
+      ]
+
+      return {
+        title: 'Optimize Images for Mobile Devices',
+        description: 'Serve appropriately sized images for mobile screens to save bandwidth',
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Image className="w-4 h-4" />,
+        details: 'Mobile devices don\'t need full desktop-sized images. Serving smaller images saves bandwidth and improves load times on mobile connections.',
+        useCase: 'large-images',
+        howTo: baseInstructions
+      }
+    }
+
     if (lowerRec.includes('webp') || lowerRec.includes('next-gen') || lowerRec.includes('image format')) {
       return {
         title: 'Use Modern Image Formats',

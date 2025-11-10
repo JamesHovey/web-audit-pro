@@ -124,7 +124,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   )
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
     traffic: true,
-    performance: true,
+    performance: false,  // Open by default to show performance insights immediately
     technology: true,
     accessibility: true,
     keywords: false,  // Always expanded for keyword audits
