@@ -770,7 +770,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
       )}
 
       {/* Technology Stack - Full Width */}
-      {audit?.sections?.includes('technology') && (
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
         <div
           className={`card-pmw transition-all ${
             collapsedSections.technology ? 'cursor-move hover:shadow-lg' : ''

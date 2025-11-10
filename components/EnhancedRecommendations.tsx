@@ -333,19 +333,45 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('render-blocking') || lowerRec.includes('blocking resources')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🚀 RECOMMENDED: Install WP Rocket (Premium) - comprehensive solution for blocking resources:',
+        '   • Automatically generates critical CSS',
+        '   • Defers JavaScript loading',
+        '   • Minifies and combines CSS/JS files',
+        '   • Also includes: caching, lazy loading, database optimization',
+        '   • One plugin solves multiple issues',
+        '   • Cost: $59/year (saves money vs multiple plugins)',
+        '   • Setup: Install WP Rocket → File Optimization settings configured automatically',
+        '',
+        'FREE ALTERNATIVES (require manual configuration):',
+        'Autoptimize (Free): Aggregate and minify CSS/JS files',
+        'Async JavaScript (Free): Defer JavaScript execution',
+        'Critical CSS (Free): Generate and inline critical CSS',
+        '',
+        'MANUAL STEPS:',
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources'
+      ] : [
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources',
+        'Consider using a build tool to optimize resource loading'
+      ]
+
       return {
         title: 'Fix Render-Blocking Resources',
         description: 'CSS and JS files are preventing your page from displaying quickly',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <AlertTriangle className="w-4 h-4" />,
-        details: 'Critical resources must load before the page can be displayed',
-        howTo: [
-          'Inline critical CSS in the HTML head',
-          'Load non-critical CSS asynchronously',
-          'Defer non-essential JavaScript',
-          'Use resource hints like preload for critical resources'
-        ]
+        details: cms === 'WordPress'
+          ? 'Critical resources must load before the page can be displayed. WP Rocket automatically handles this complex optimization, including critical CSS generation and resource deferral.'
+          : 'Critical resources must load before the page can be displayed. This requires technical optimization of how CSS and JavaScript are loaded.',
+        useCase: cms === 'WordPress' ? 'javascript-optimization' : undefined,
+        howTo: baseInstructions
       }
     }
     
@@ -641,57 +667,9 @@ export default function EnhancedRecommendations({
                     <div className="mt-2 p-3 bg-gray-50 rounded">
                       <p className="text-gray-700 mb-3">{rec.details}</p>
 
-                      {/* Regular Steps */}
-                      <div className="space-y-2 mb-4">
-                        <div className="font-medium text-gray-800">Steps:</div>
-                        {rec.howTo
-                          .filter(step => {
-                            // Filter out plugin-specific steps since they're shown in PluginRecommendationTable
-                            const lower = step.toLowerCase()
-                            return !(
-                              lower.includes('install') && lower.includes('plugin') ||
-                              lower.includes('yoast') ||
-                              lower.includes('rank math') ||
-                              lower.includes('imagify') ||
-                              lower.includes('shortpixel') ||
-                              lower.includes('ewww') ||
-                              lower.includes('wp rocket') ||
-                              lower.includes('autoptimize') ||
-                              lower.includes('w3 total cache')
-                            )
-                          })
-                          .map((step, stepIndex) => (
-                            <div key={stepIndex} className="flex items-start gap-2">
-                              <span className="text-blue-500 text-xs mt-1">•</span>
-                              <span className="text-gray-700">{step}</span>
-                            </div>
-                          ))}
-                      </div>
-
-                      {/* Plugin Recommendation Tables */}
-                      {rec.useCase && cms === 'WordPress' && (
-                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-6">
-                          {/* Currently Installed Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="installed"
-                          />
-
-                          {/* Recommended Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="recommended"
-                          />
-                        </div>
-                      )}
-
-                      {/* Large Images Table - Show inside "Optimize Large Images" recommendation */}
+                      {/* Large Images Table - Show at TOP of "Optimise Large Images" recommendation */}
                       {rec.title.includes('Large Image') && largeImagesList.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-300">
+                        <div className="mb-4 pb-4 border-b border-gray-300">
                           <h5 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimisation</h5>
                           <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
                             <div className="overflow-x-auto">
@@ -744,6 +722,54 @@ export default function EnhancedRecommendations({
                           <p className="text-xs text-gray-600 mt-2">
                             💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
                           </p>
+                        </div>
+                      )}
+
+                      {/* Regular Steps */}
+                      <div className="space-y-2 mb-4">
+                        <div className="font-medium text-gray-800">Steps:</div>
+                        {rec.howTo
+                          .filter(step => {
+                            // Filter out plugin-specific steps since they're shown in PluginRecommendationTable
+                            const lower = step.toLowerCase()
+                            return !(
+                              lower.includes('install') && lower.includes('plugin') ||
+                              lower.includes('yoast') ||
+                              lower.includes('rank math') ||
+                              lower.includes('imagify') ||
+                              lower.includes('shortpixel') ||
+                              lower.includes('ewww') ||
+                              lower.includes('wp rocket') ||
+                              lower.includes('autoptimize') ||
+                              lower.includes('w3 total cache')
+                            )
+                          })
+                          .map((step, stepIndex) => (
+                            <div key={stepIndex} className="flex items-start gap-2">
+                              <span className="text-blue-500 text-xs mt-1">•</span>
+                              <span className="text-gray-700">{step}</span>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Plugin Recommendation Tables */}
+                      {rec.useCase && cms === 'WordPress' && (
+                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-6">
+                          {/* Currently Installed Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="installed"
+                          />
+
+                          {/* Recommended Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="recommended"
+                          />
                         </div>
                       )}
                     </div>
