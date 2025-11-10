@@ -304,6 +304,8 @@ export default function EnhancedRecommendations({
         'Implement tree-shaking to remove dead code'
       ]
 
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Remove Unused JavaScript',
         description: 'JavaScript files contain code that\'s not being executed',
@@ -311,7 +313,9 @@ export default function EnhancedRecommendations({
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
         details: cms === 'WordPress'
-          ? 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimisation plus caching, lazy loading, and more - reducing the number of plugins needed.'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Minify JavaScript files"\n4. Enable "Combine JavaScript files" \n5. Enable "Load JavaScript deferred"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nUnused JavaScript blocks the browser and wastes bandwidth. WP Rocket will optimize your JavaScript automatically with these settings.'
+            : 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimisation plus caching, lazy loading, and more - reducing the number of plugins needed.'
           : 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
         useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
@@ -347,6 +351,8 @@ export default function EnhancedRecommendations({
         'Consider using a build tool to optimize resource loading'
       ]
 
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Fix Render-Blocking Resources',
         description: 'CSS and JS files are preventing your page from displaying quickly',
@@ -354,7 +360,9 @@ export default function EnhancedRecommendations({
         effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <AlertTriangle className="w-4 h-4" />,
         details: cms === 'WordPress'
-          ? 'Critical resources must load before the page can be displayed. WP Rocket automatically handles this complex optimization, including critical CSS generation and resource deferral.'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Optimize CSS delivery" - WP Rocket will automatically generate critical CSS\n4. Enable "Load JavaScript deferred" to defer JavaScript loading\n5. Under "CSS Files", enable "Minify CSS files" and "Combine CSS files"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nRender-blocking resources prevent your page from displaying quickly. WP Rocket automatically handles this complex optimization.'
+            : 'Critical resources must load before the page can be displayed. WP Rocket automatically handles this complex optimization, including critical CSS generation and resource deferral.'
           : 'Critical resources must load before the page can be displayed. This requires technical optimization of how CSS and JavaScript are loaded.',
         useCase: cms === 'WordPress' ? 'javascript-optimization' : undefined,
         howTo: baseInstructions
@@ -524,6 +532,8 @@ export default function EnhancedRecommendations({
         'Consider serverless architecture for dynamic content'
       ]
 
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Improve Server Response Time (TTFB)',
         description: 'Your server takes too long to respond to requests, delaying page load',
@@ -531,7 +541,9 @@ export default function EnhancedRecommendations({
         effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <Server className="w-4 h-4" />,
         details: cms === 'WordPress'
-          ? 'Server response time (Time to First Byte - TTFB) is how long it takes for your server to start sending data. This is the foundation of page speed - if your server is slow, everything else is delayed. For WordPress, caching plugins can dramatically improve this.'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "Cache" tab\n3. Ensure "Enable caching for mobile devices" is enabled\n4. Click the "File Optimization" tab and enable minification options\n5. Click the "Database" tab and enable "Post Cleanup" and "Database Cleanup"\n6. Go to the "Preload" tab and enable "Preload Cache" to build the cache automatically\n7. Click "Save Changes"\n8. Clear the cache and test your site\n\nServer response time (TTFB) is how long it takes for your server to start sending data. WP Rocket\'s caching will dramatically improve this by serving cached pages instead of generating them on each request.'
+            : 'Server response time (Time to First Byte - TTFB) is how long it takes for your server to start sending data. This is the foundation of page speed - if your server is slow, everything else is delayed. For WordPress, caching plugins can dramatically improve this.'
           : 'Server response time (Time to First Byte - TTFB) measures how long it takes for your server to respond to requests. Slow TTFB delays everything on your page. Typical causes: slow hosting, unoptimised database queries, lack of caching, or heavy server-side processing.',
         useCase: cms === 'WordPress' ? 'caching' : undefined,
         howTo: baseInstructions
