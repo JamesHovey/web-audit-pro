@@ -188,9 +188,29 @@ async function analyzeViewport(url: string, viewport: typeof VIEWPORT_BREAKPOINT
     const analysis = analyzeHtmlForResponsiveness(html, viewport)
 
     return analysis
-  } catch {
-    // Fallback to simulation if fetch fails
-    return simulateViewportAnalysis(url, viewport)
+  } catch (error) {
+    // Return empty analysis if fetch fails - no simulation
+    console.log(`Failed to analyze ${viewport.name}: ${error}`)
+    return {
+      viewport: viewport.name,
+      width: viewport.width,
+      height: viewport.height,
+      issues: [{
+        viewport: viewport.name,
+        type: 'warning',
+        issue: 'Unable to analyze viewport',
+        recommendation: 'Analysis failed due to connection issues. Try again later.',
+        impact: 'Could not determine responsive design status'
+      }],
+      score: 0,
+      hasHorizontalScroll: false,
+      hasBrokenLayout: false,
+      hasTextOverflow: false,
+      hasImageOverflow: false,
+      hasNavigationIssues: false,
+      fontSizeIssues: false,
+      touchTargetIssues: false
+    }
   }
 }
 
@@ -287,101 +307,6 @@ function analyzeHtmlForResponsiveness(html: string, viewport: typeof VIEWPORT_BR
     hasNavigationIssues: false,
     fontSizeIssues: smallFontMatches.length > 0,
     touchTargetIssues: false
-  }
-}
-
-async function simulateViewportAnalysis(url: string, viewport: typeof VIEWPORT_BREAKPOINTS[0]): Promise<ViewportAnalysis> {
-  // This is a simulation for now - in production, integrate with Puppeteer or Playwright
-  const issues: ViewportIssue[] = []
-  const isMobile = viewport.width < 768
-  const isTablet = viewport.width >= 768 && viewport.width < 1024
-  
-  // Simulate common responsive issues based on viewport
-  if (isMobile) {
-    // Mobile-specific checks
-    if (Math.random() > 0.7) {
-      issues.push({
-        viewport: viewport.name,
-        type: 'critical',
-        issue: 'Horizontal scrolling detected',
-        element: 'main content container',
-        recommendation: 'Set max-width: 100% and overflow-x: hidden on the body element. Check for fixed-width elements.',
-        impact: 'Users must scroll horizontally to see content, leading to poor user experience'
-      })
-    }
-    
-    if (Math.random() > 0.6) {
-      issues.push({
-        viewport: viewport.name,
-        type: 'warning',
-        issue: 'Font size too small for mobile reading',
-        element: 'body text',
-        recommendation: 'Increase base font size to minimum 16px for mobile devices',
-        impact: 'Text is difficult to read without zooming'
-      })
-    }
-
-    if (Math.random() > 0.5) {
-      issues.push({
-        viewport: viewport.name,
-        type: 'warning',
-        issue: 'Touch targets too small',
-        element: 'navigation links',
-        recommendation: 'Ensure all clickable elements are at least 44x44px with adequate spacing',
-        impact: 'Users may have difficulty tapping small buttons and links'
-      })
-    }
-  }
-  
-  if (isTablet) {
-    // Tablet-specific checks
-    if (Math.random() > 0.6) {
-      issues.push({
-        viewport: viewport.name,
-        type: 'warning',
-        issue: 'Layout not optimized for tablet',
-        element: 'content grid',
-        recommendation: 'Consider 2-column layout for tablets instead of single column or full desktop layout',
-        impact: 'Content appears stretched or cramped on tablet screens'
-      })
-    }
-  }
-  
-  // Desktop checks
-  if (viewport.width >= 1024) {
-    if (Math.random() > 0.7) {
-      issues.push({
-        viewport: viewport.name,
-        type: 'info',
-        issue: 'Content width not constrained',
-        element: 'main container',
-        recommendation: 'Consider setting max-width (e.g., 1200px) for better readability on wide screens',
-        impact: 'Text lines may be too long for comfortable reading'
-      })
-    }
-  }
-  
-  // Calculate score based on issues
-  let score = 100
-  issues.forEach(issue => {
-    if (issue.type === 'critical') score -= 20
-    else if (issue.type === 'warning') score -= 10
-    else score -= 5
-  })
-  
-  return {
-    viewport: viewport.name,
-    width: viewport.width,
-    height: viewport.height,
-    issues,
-    score: Math.max(0, score),
-    hasHorizontalScroll: issues.some(i => i.issue.includes('Horizontal scrolling')),
-    hasBrokenLayout: issues.some(i => i.issue.includes('Layout')),
-    hasTextOverflow: issues.some(i => i.issue.includes('overflow')),
-    hasImageOverflow: issues.some(i => i.issue.includes('Image')),
-    hasNavigationIssues: issues.some(i => i.element?.includes('navigation')),
-    fontSizeIssues: issues.some(i => i.issue.includes('Font size')),
-    touchTargetIssues: issues.some(i => i.issue.includes('Touch targets'))
   }
 }
 
