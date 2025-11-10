@@ -179,14 +179,14 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   // Update collapsed sections when view changes
   useEffect(() => {
     if (currentView === 'executive') {
-      // Collapse all sections except summary and keywords
+      // Collapse all sections except summary, keywords, performance, and viewport
       setCollapsedSections({
         traffic: true,
-        performance: true,
+        performance: false, // Open to show performance insights
         technology: true,
         accessibility: true,
         keywords: false, // Always expanded for keyword audits
-        viewport: true
+        viewport: false  // Open to show responsive analysis
       })
     } else if (currentView === 'manager') {
       // Expand key sections, collapse detailed sections
@@ -196,7 +196,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
         technology: true,
         accessibility: false,
         keywords: false, // Always expanded for keyword audits
-        viewport: true
+        viewport: false  // Open for managers
       })
     } else if (currentView === 'developer') {
       // Expand everything

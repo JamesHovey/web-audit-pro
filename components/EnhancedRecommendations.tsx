@@ -145,14 +145,15 @@ export default function EnhancedRecommendations({
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       techRecs.push({
         title: 'Optimize Large Images',
-        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site`,
+        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimization" table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Large images significantly impact page load time and user experience',
+        details: 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimization and where they appear.',
         useCase: 'large-images',
         howTo: cms === 'WordPress' ? [
-          'Install an image optimization plugin:',
+          '📋 Check the "Large Images Need Optimization" table below to see which images need fixing',
+          'Install an image optimization plugin (see recommended plugins below):',
           'Recommended: Imagify, ShortPixel, or EWWW Image Optimizer (all have free tiers)',
           'These plugins automatically compress images on upload',
           'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimize images"',
@@ -160,8 +161,10 @@ export default function EnhancedRecommendations({
           'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
           'For existing images: Use the bulk optimizer in the plugin',
           'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          'Target: Keep images under 200KB, preferably under 100KB',
+          '✅ After optimization, re-run the audit to verify improvements'
         ] : [
+          '📋 Check the "Large Images Need Optimization" table below to see which images need fixing',
           'Compress images before uploading to your site',
           'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
           'Convert to modern formats: WebP or AVIF',
@@ -169,7 +172,8 @@ export default function EnhancedRecommendations({
           'Use responsive images with srcset attribute',
           'For e-commerce: Shopify has built-in image optimization',
           'For Wix/Squarespace: Use their built-in image optimization tools',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          'Target: Keep images under 200KB, preferably under 100KB',
+          '✅ After optimization, re-run the audit to verify improvements'
         ]
       })
     }
@@ -279,12 +283,23 @@ export default function EnhancedRecommendations({
     
     if (lowerRec.includes('unused javascript') || lowerRec.includes('remove unused javascript')) {
       const baseInstructions = cms === 'WordPress' ? [
-        'Install a performance optimization plugin (see recommended plugins below)',
+        '🚀 RECOMMENDED: Install WP Rocket (Premium) - solves multiple issues:',
+        '   • Minifies and combines JavaScript files',
+        '   • Defers JavaScript loading',
+        '   • Delays JavaScript execution until user interaction',
+        '   • Includes caching, lazy loading, and CSS optimization',
+        '   • One plugin replaces 3-4 separate plugins',
+        '   • Cost: $59/year (saves money vs multiple plugins)',
+        '   • Setup: Install → Enable "Load JavaScript deferred" → Enable "Delay JavaScript execution"',
+        '',
+        'FREE ALTERNATIVES (require multiple plugins):',
+        'Autoptimize (Free): Enable "Optimize JavaScript Code" and configure exclusions',
+        'Asset CleanUp (Free): Disable unused JavaScript files on specific pages',
+        'Flying Scripts (Free): Delay JavaScript execution on specific pages',
+        '',
+        'ADDITIONAL STEPS:',
         'Identify unused JavaScript using Chrome DevTools → Coverage tab',
         'Remove unnecessary third-party scripts (analytics, chat widgets not in use)',
-        'WP Rocket: Enable "Load JavaScript deferred" and "Delay JavaScript execution"',
-        'Autoptimize: Enable "Optimize JavaScript Code" and configure exclusions if needed',
-        'Asset CleanUp: Disable unused JavaScript files on specific pages',
         'Review plugins - deactivate unused ones as they add JavaScript',
         'Consider replacing heavy plugins with lighter alternatives',
         'Test thoroughly after making changes to ensure functionality'
@@ -303,7 +318,9 @@ export default function EnhancedRecommendations({
         impact: 'High',
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
-        details: 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
+        details: cms === 'WordPress'
+          ? 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimization plus caching, lazy loading, and more - reducing the number of plugins needed.'
+          : 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
         useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
       }
@@ -328,15 +345,21 @@ export default function EnhancedRecommendations({
     
     if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
       const baseInstructions = cms === 'WordPress' ? [
-        'Install a lazy loading plugin (see recommended plugins below)',
-        'WP Rocket (Premium): Enable "LazyLoad for images" in Media settings - automatically adds lazy loading',
+        '🚀 BEST OPTION: WP Rocket (Premium) includes lazy loading plus many other optimizations',
+        '   • Handles lazy loading for images, iframes, and videos',
+        '   • Also includes: JS/CSS optimization, caching, minification',
+        '   • Setup: Install WP Rocket → Enable "LazyLoad for images" in Media settings',
+        '',
+        'FREE ALTERNATIVES (if not using WP Rocket):',
         'Smush (Free): Enable "Lazy Load" in the Lazy Load tab',
         'a3 Lazy Load (Free): Install and activate - works automatically with default settings',
         'Jetpack (Free): Enable "Speed up image load times" in Performance settings',
-        'Alternative: Add loading="lazy" to images manually in your theme',
+        'WordPress 5.5+ has native lazy loading built-in (check it\'s not disabled)',
+        '',
+        'MANUAL OPTION:',
+        'Add loading="lazy" to images manually in your theme',
         'Exclude above-the-fold images from lazy loading (first 2-3 images)',
-        'Test on mobile devices to ensure images load properly when scrolling',
-        'WordPress 5.5+ has native lazy loading - ensure it\'s not disabled by your theme'
+        'Test on mobile devices to ensure images load properly when scrolling'
       ] : [
         'Add loading="lazy" attribute to img tags below the fold',
         'Example: <img src="image.jpg" loading="lazy" alt="Description">',
@@ -353,7 +376,9 @@ export default function EnhancedRecommendations({
         impact: 'Medium',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
+        details: cms === 'WordPress'
+          ? 'Lazy loading defers loading of offscreen images until users scroll near them. If you use WP Rocket for JavaScript optimization, it also includes lazy loading - no need for separate plugins.'
+          : 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
         useCase: 'lazy-loading',
         howTo: getPluginSpecificInstructions(baseInstructions, 'images')
       }
