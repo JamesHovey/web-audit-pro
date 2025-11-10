@@ -37,7 +37,6 @@ interface Audit {
 
 interface AuditResultsProps {
   audit: Audit
-  showViewSelector?: boolean
 }
 
 const INSPIRATIONAL_QUOTES = [
@@ -111,7 +110,7 @@ const SECTION_LABELS = {
   accessibility: "Accessibility"
 }
 
-export function AuditResults({ audit: initialAudit, showViewSelector = false }: AuditResultsProps) {
+export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const router = useRouter()
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
@@ -119,16 +118,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   const [showResults, setShowResults] = useState(audit.status === "completed")
   const [currentQuote, setCurrentQuote] = useState(INSPIRATIONAL_QUOTES[0])
   const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
-  const [currentView, setCurrentView] = useState<'executive' | 'manager' | 'developer'>(
-    (audit.results?.auditView as 'executive' | 'manager' | 'developer') || 'executive'
-  )
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
-    traffic: true,
-    performance: false,  // Open by default to show performance insights immediately
-    technology: true,
-    accessibility: true,
-    keywords: false,  // Always expanded for keyword audits
-    viewport: false  // Always expanded so it runs automatically
+    traffic: false,      // Open by default
+    performance: false,  // Open by default
+    technology: false,   // Open by default
+    accessibility: false, // Open by default
+    keywords: false,     // Open by default
+    viewport: false      // Open by default
   })
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
   const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
@@ -175,41 +171,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
-
-  // Update collapsed sections when view changes
-  useEffect(() => {
-    if (currentView === 'executive') {
-      // Collapse all sections except summary, keywords, performance, and viewport
-      setCollapsedSections({
-        traffic: true,
-        performance: false, // Open to show performance insights
-        technology: true,
-        accessibility: true,
-        keywords: false, // Always expanded for keyword audits
-        viewport: false  // Open to show responsive analysis
-      })
-    } else if (currentView === 'manager') {
-      // Expand key sections, collapse detailed sections
-      setCollapsedSections({
-        traffic: false,
-        performance: false,
-        technology: true,
-        accessibility: false,
-        keywords: false, // Always expanded for keyword audits
-        viewport: false  // Open for managers
-      })
-    } else if (currentView === 'developer') {
-      // Expand everything
-      setCollapsedSections({
-        traffic: false,
-        performance: false,
-        technology: false,
-        accessibility: false,
-        keywords: false, // Always expanded for keyword audits
-        viewport: false
-      })
-    }
-  }, [currentView])
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({
@@ -525,96 +486,6 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Only show results when audit is complete */}
       {showResults ? (
         <>
-          {/* View Switcher */}
-          {showViewSelector && (
-            <div className="card-pmw mb-6">
-              <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Audit View</h3>
-                  <p className="text-sm text-gray-600">Choose your preferred level of detail</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Executive View */}
-                <button
-                  onClick={() => setCurrentView('executive')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'executive'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Executive View</h4>
-                    {currentView === 'executive' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Summary only - perfect for presentations</p>
-                </button>
-
-                {/* Manager View */}
-                <button
-                  onClick={() => setCurrentView('manager')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'manager'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Manager View</h4>
-                    {currentView === 'manager' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Key insights + priority issues</p>
-                </button>
-
-                {/* Developer View */}
-                <button
-                  onClick={() => setCurrentView('developer')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'developer'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Developer View</h4>
-                    {currentView === 'developer' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Full technical details</p>
-                </button>
-              </div>
-              </div>
-            </div>
-          )}
-
           {/* Audit Summary - REMOVED PER USER REQUEST */}
           {/* {audit.results && (
             <AuditSummary
