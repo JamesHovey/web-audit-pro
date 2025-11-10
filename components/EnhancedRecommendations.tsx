@@ -484,19 +484,137 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('server response') || lowerRec.includes('response time')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🚀 QUICK WINS (WordPress):',
+        'Install WP Rocket (Premium): Includes page caching, database optimization, and CDN integration',
+        'W3 Total Cache (Free): Page caching and minification',
+        'LiteSpeed Cache (Free): High-performance caching if using LiteSpeed hosting',
+        'WP Super Cache (Free): Simple page caching by Automattic',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Enable page caching (stores HTML to avoid regenerating pages)',
+        'Enable object caching (Redis/Memcached for database queries)',
+        'Optimise database queries (use Query Monitor plugin to find slow queries)',
+        'Upgrade hosting plan (shared hosting is often slow under load)',
+        'Consider managed WordPress hosting (WP Engine, Kinsta, Flywheel)',
+        'Enable opcode caching (OPcache for PHP)',
+        '',
+        '☁️ CDN & INFRASTRUCTURE:',
+        'Use a Content Delivery Network (see "Use a CDN" recommendation)',
+        'Enable Cloudflare (free CDN and security)',
+        'Upgrade to PHP 8.0+ (significantly faster than PHP 7.x)',
+        'Use HTTP/2 or HTTP/3 (faster protocol)',
+        '',
+        '⚠️ IF STILL SLOW:',
+        'Check server resources (CPU, RAM, disk I/O)',
+        'Review plugin overhead (disable unnecessary plugins)',
+        'Consider dedicated or VPS hosting',
+        'Hire a performance consultant for deep optimization'
+      ] : [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Upgrade to faster hosting (VPS or dedicated server)',
+        'Enable server-side caching (Varnish, Redis)',
+        'Optimise database queries and indexes',
+        'Use a Content Delivery Network (CDN)',
+        'Enable HTTP/2 or HTTP/3',
+        'Optimise server configuration (Nginx, Apache)',
+        'Consider serverless architecture for dynamic content'
+      ]
+
       return {
-        title: 'Improve Server Response Time',
-        description: 'Your server takes too long to respond to requests',
+        title: 'Improve Server Response Time (TTFB)',
+        description: 'Your server takes too long to respond to requests, delaying page load',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <Server className="w-4 h-4" />,
-        details: 'Slow server response delays everything else on your page',
-        howTo: [
-          'Upgrade to faster hosting',
-          'Enable caching on your server',
-          'Optimize database queries',
-          'Use a Content Delivery Network (CDN)'
-        ]
+        details: cms === 'WordPress'
+          ? 'Server response time (Time to First Byte - TTFB) is how long it takes for your server to start sending data. This is the foundation of page speed - if your server is slow, everything else is delayed. For WordPress, caching plugins can dramatically improve this.'
+          : 'Server response time (Time to First Byte - TTFB) measures how long it takes for your server to respond to requests. Slow TTFB delays everything on your page. Typical causes: slow hosting, unoptimised database queries, lack of caching, or heavy server-side processing.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
+      }
+    }
+
+    if (lowerRec.includes('cdn') || lowerRec.includes('content delivery network')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        'Benefits: Faster global load times, reduced server load, better reliability',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around CDN with free plan, DDoS protection, SSL',
+        '  • Setup: Sign up → Add site → Update nameservers → Enable CDN',
+        '  • Free plan includes: CDN, SSL, DDoS protection, firewall',
+        '  • Paid plans ($20/month+): Better performance, more features',
+        '',
+        'WP Rocket + RocketCDN ($8.99/month): WordPress-optimized CDN',
+        '  • Seamless integration with WP Rocket',
+        '  • Designed specifically for WordPress',
+        '  • Easy setup via WP Rocket dashboard',
+        '',
+        'Bunny CDN ($1/month+): Budget-friendly, fast performance',
+        '  • Pay-as-you-go pricing',
+        '  • Excellent performance',
+        '  • Requires manual configuration',
+        '',
+        'StackPath (Paid): Enterprise-grade CDN',
+        '  • Advanced features and security',
+        '  • Best for high-traffic sites',
+        '',
+        '📦 WORDPRESS PLUGINS FOR CDN:',
+        'WP Rocket: Built-in CDN integration',
+        'Cloudflare Plugin: Official Cloudflare integration',
+        'CDN Enabler: Simple CDN integration for any provider',
+        'W3 Total Cache: Supports multiple CDN providers',
+        '',
+        '⚙️ SETUP STEPS:',
+        '1. Choose CDN provider (Cloudflare recommended for beginners)',
+        '2. Create account and add your domain',
+        '3. Update DNS settings or install plugin',
+        '4. Test CDN is working (check browser network tab)',
+        '5. Configure caching rules if needed'
+      ] : [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around, easy setup',
+        'Bunny CDN: Budget-friendly, excellent performance',
+        'Amazon CloudFront: Integrates with AWS services',
+        'Fastly: Enterprise-grade, advanced features',
+        '',
+        '⚙️ SETUP STEPS:',
+        'Sign up for CDN provider',
+        'Add your domain to CDN',
+        'Update DNS settings to point to CDN',
+        'Configure caching rules',
+        'Test CDN is working properly',
+        'Monitor performance improvements'
+      ]
+
+      return {
+        title: 'Use a Content Delivery Network (CDN)',
+        description: 'Serve static assets from servers closer to your users worldwide',
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Server className="w-4 h-4" />,
+        details: cms === 'WordPress'
+          ? 'A CDN dramatically improves global load times by serving your site from multiple locations worldwide. Cloudflare offers a generous free plan with easy setup. For WordPress sites, WP Rocket includes seamless CDN integration.'
+          : 'A CDN caches and serves your static assets (images, CSS, JS) from servers geographically close to your users, dramatically reducing load times globally. Essential for international audiences.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
       }
     }
     

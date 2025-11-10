@@ -552,7 +552,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                         auditUrl={audit.url}
                       />
                     </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('traffic')}>
+                  <button
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSection('traffic')
+                    }}
+                  >
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.traffic ? '' : 'rotate-180'}`}
                       fill="none"
@@ -646,7 +652,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                         auditUrl={audit.url}
                       />
                     </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('performance')}>
+                  <button
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSection('performance')
+                    }}
+                  >
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.performance ? '' : 'rotate-180'}`}
                       fill="none"
@@ -736,7 +748,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('viewport')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('viewport')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.viewport ? '' : 'rotate-180'}`}
                   fill="none"
@@ -825,7 +843,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('technology')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('technology')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.technology ? '' : 'rotate-180'}`}
                   fill="none"
@@ -924,7 +948,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('accessibility')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('accessibility')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.accessibility ? '' : 'rotate-180'}`}
                   fill="none"
@@ -1040,7 +1070,13 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 )}
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4" onClick={() => toggleSection('keywords')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors ml-4"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('keywords')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.keywords ? '' : 'rotate-180'}`}
                   fill="none"
