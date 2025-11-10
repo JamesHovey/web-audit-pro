@@ -403,17 +403,24 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('mobile') && lowerRec.includes('image')) {
-      const baseInstructions = cms === 'WordPress' ? [
-        'Use responsive images with srcset (WordPress does this automatically for uploaded images)',
-        'Install an image optimisation plugin that serves appropriately sized images:',
-        'WP Rocket: Enable "Imagify" integration for automatic WebP and responsive images',
-        'Smush: Automatically generates multiple image sizes for different devices',
-        'ShortPixel: Enable "Responsive Images" and "Adaptive Images" features',
-        'Ensure your theme uses wp_get_attachment_image() for proper responsive images',
-        'Test images load correctly on mobile using Chrome DevTools → Device Mode',
-        'Verify images don\'t exceed mobile viewport width',
-        'Consider using WebP format with fallbacks for better compression on mobile'
-      ] : [
+      // CMSs that automatically handle responsive images - skip this recommendation
+      const cmsWithAutoResponsiveImages = ['WordPress', 'Shopify', 'Wix', 'Squarespace', 'Webflow', 'Drupal'];
+
+      if (cms && cmsWithAutoResponsiveImages.some(autoCms => cms.toLowerCase().includes(autoCms.toLowerCase()))) {
+        // CMS handles this automatically, skip recommendation
+        return {
+          title: '', // Empty title will be filtered out
+          description: '',
+          impact: 'Low' as 'Low',
+          effort: 'Easy' as 'Easy',
+          icon: <Image className="w-4 h-4" />,
+          details: '',
+          howTo: []
+        }
+      }
+
+      // Only show for custom sites without automatic responsive images
+      const baseInstructions = [
         'Use responsive images with srcset and sizes attributes',
         'Example: <img srcset="small.jpg 480w, medium.jpg 768w, large.jpg 1200w" sizes="(max-width: 768px) 100vw, 50vw" src="medium.jpg" alt="Description">',
         'Serve appropriately sized images for different screen sizes',
@@ -648,8 +655,11 @@ export default function EnhancedRecommendations({
   // Combine and prioritize: Technical SEO issues first (High impact), then performance recommendations
   const allRecs = [...technicalRecs, ...performanceRecs]
 
+  // Filter out recommendations with empty titles (skipped recommendations)
+  const validRecs = allRecs.filter(rec => rec.title && rec.title.trim() !== '')
+
   // Deduplicate by title (keep first occurrence)
-  const deduplicatedRecs = allRecs.filter((rec, index, self) =>
+  const deduplicatedRecs = validRecs.filter((rec, index, self) =>
     index === self.findIndex((r) => r.title === rec.title)
   )
 
