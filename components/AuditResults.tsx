@@ -13,7 +13,6 @@ import KeywordCompetitionTable from './KeywordCompetitionTable'
 import RecommendedKeywordTable from './RecommendedKeywordTable'
 import PaidAdvertisingOpportunities from './PaidAdvertisingOpportunities'
 import { PageDetailsModal } from './PageDetailsModal'
-import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import AccessibilityConclusion from './AccessibilityConclusion'
 import AccessibilityResults from './AccessibilityResults'
@@ -867,12 +866,6 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   <LoadingMessages section="technology" />
                 ) : (
                   renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
-                )}
-                {/* Enhanced Technology Conclusion */}
-                {audit.status === "completed" && audit?.results?.technology && (
-                  <TechnologyStackConclusion
-                    data={audit?.results?.technology}
-                  />
                 )}
                 <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                   <button
@@ -3913,7 +3906,6 @@ function renderSectionResults(
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
                   <li><strong>CMS & Platform:</strong> WordPress, Shopify, Webflow, Squarespace, Wix, and 100+ others</li>
                   <li><strong>Advanced analysis Plugin Detection:</strong> Identifies plugins by category (security, performance, SEO, etc.)</li>
-                  <li><strong>Technology Intelligence:</strong> Advanced analysis provides business impact analysis and recommendations</li>
                   <li><strong>Analytics & Marketing:</strong> Google Analytics, Tag Manager, Facebook Pixel, and tracking scripts</li>
                   <li><strong>Hosting & CDN:</strong> WHOIS data, IP geolocation, and Cloudflare bypass attempts</li>
                   <li><strong>Page Builders:</strong> Elementor, WPBakery, Divi, and other visual builders</li>
