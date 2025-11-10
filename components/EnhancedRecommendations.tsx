@@ -35,6 +35,11 @@ interface EnhancedRecommendationsProps {
     largeImages?: number
     http404Errors?: number
   }
+  largeImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    sizeKB: number
+  }>
 }
 
 export default function EnhancedRecommendations({
@@ -44,7 +49,8 @@ export default function EnhancedRecommendations({
   detectedPlugins = [],
   pageBuilder,
   cms,
-  technicalIssues
+  technicalIssues,
+  largeImagesList = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -144,36 +150,36 @@ export default function EnhancedRecommendations({
     // Large Images
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       techRecs.push({
-        title: 'Optimize Large Images',
-        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimization" table below for specific images.`,
+        title: 'Optimise Large Images',
+        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimisation" table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimization and where they appear.',
+        details: 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
         useCase: 'large-images',
         howTo: cms === 'WordPress' ? [
-          '📋 Check the "Large Images Need Optimization" table below to see which images need fixing',
-          'Install an image optimization plugin (see recommended plugins below):',
-          'Recommended: Imagify, ShortPixel, or EWWW Image Optimizer (all have free tiers)',
+          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
+          'Install an image optimisation plugin (see recommended plugins below):',
+          'Recommended: Imagify, ShortPixel, or EWWW Image Optimiser (all have free tiers)',
           'These plugins automatically compress images on upload',
-          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimize images"',
-          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimize on upload"',
+          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimise images"',
+          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimise on upload"',
           'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
-          'For existing images: Use the bulk optimizer in the plugin',
+          'For existing images: Use the bulk optimiser in the plugin',
           'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
           'Target: Keep images under 200KB, preferably under 100KB',
-          '✅ After optimization, re-run the audit to verify improvements'
+          '✅ After optimisation, re-run the audit to verify improvements'
         ] : [
-          '📋 Check the "Large Images Need Optimization" table below to see which images need fixing',
+          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
           'Compress images before uploading to your site',
           'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
           'Convert to modern formats: WebP or AVIF',
           'Set appropriate dimensions - don\'t upload larger than needed',
           'Use responsive images with srcset attribute',
-          'For e-commerce: Shopify has built-in image optimization',
-          'For Wix/Squarespace: Use their built-in image optimization tools',
+          'For e-commerce: Shopify has built-in image optimisation',
+          'For Wix/Squarespace: Use their built-in image optimisation tools',
           'Target: Keep images under 200KB, preferably under 100KB',
-          '✅ After optimization, re-run the audit to verify improvements'
+          '✅ After optimisation, re-run the audit to verify improvements'
         ]
       })
     }
@@ -387,7 +393,7 @@ export default function EnhancedRecommendations({
     if (lowerRec.includes('mobile') && lowerRec.includes('image')) {
       const baseInstructions = cms === 'WordPress' ? [
         'Use responsive images with srcset (WordPress does this automatically for uploaded images)',
-        'Install an image optimization plugin that serves appropriately sized images:',
+        'Install an image optimisation plugin that serves appropriately sized images:',
         'WP Rocket: Enable "Imagify" integration for automatic WebP and responsive images',
         'Smush: Automatically generates multiple image sizes for different devices',
         'ShortPixel: Enable "Responsive Images" and "Adaptive Images" features',
@@ -406,7 +412,7 @@ export default function EnhancedRecommendations({
       ]
 
       return {
-        title: 'Optimize Images for Mobile Devices',
+        title: 'Optimise Images for Mobile Devices',
         description: 'Serve appropriately sized images for mobile screens to save bandwidth',
         impact: 'Medium',
         effort: 'Easy',
@@ -680,6 +686,64 @@ export default function EnhancedRecommendations({
                             issueType={rec.useCase}
                             mode="recommended"
                           />
+                        </div>
+                      )}
+
+                      {/* Large Images Table - Show inside "Optimize Large Images" recommendation */}
+                      {rec.title.includes('Large Image') && largeImagesList.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimisation</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {largeImagesList.slice(0, 10).map((image, imageIndex) => (
+                                    <tr key={imageIndex} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={image.imageUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                                        >
+                                          {image.imageUrl.split('/').pop() || image.imageUrl}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Tooltip content={image.pageUrl}>
+                                          <a
+                                            href={image.pageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                          >
+                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
+                                          </a>
+                                        </Tooltip>
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-medium text-red-600">
+                                        {(image.sizeKB || 0).toLocaleString()}KB
+                                      </td>
+                                      <td className="px-4 py-3 text-gray-600">
+                                        {image.sizeKB > 500 ? 'Optimise urgently' : 'Compress image'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
+                          </p>
                         </div>
                       )}
                     </div>

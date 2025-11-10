@@ -1201,7 +1201,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analysing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  We&apos;re conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
+                  We&apos;re conducting a comprehensive audit of {audit?.sections?.length || 0} {audit?.sections?.length === 1 ? 'section' : 'sections'}.
                 </p>
                 
                 {/* Inspirational Quote */}
@@ -2584,6 +2584,7 @@ function renderSectionResults(
               largeImages: results.largeImages || results.issues?.largeImages,
               http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
             }}
+            largeImagesList={results.largeImagesList || results.largeImageDetails || []}
           />
 
           {/* Conversion Analysis Section */}
@@ -3441,66 +3442,7 @@ function renderSectionResults(
             }}
           /> */}
 
-          {/* Large Images Table */}
-          {(() => {
-            const largeImages = results.largeImagesList || results.largeImageDetails || [];
-            return Array.isArray(largeImages) && largeImages.length > 0;
-          })() && (
-            <div id="large-images-table" data-subsection="image-optimization">
-              <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-orange-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
-                        <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-orange-200">
-                      {((results.largeImagesList || results.largeImageDetails || []).slice(0, 10) as Record<string, unknown>[]).map((image: Record<string, unknown>, index: number) => (
-                        <tr key={index} className="hover:bg-orange-50">
-                          <td className="px-4 py-3">
-                            <a 
-                              href={image.imageUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline break-all"
-                            >
-                              {image.imageUrl.split('/').pop() || image.imageUrl}
-                            </a>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Tooltip content={image.pageUrl}>
-                              <a 
-                                href={image.pageUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline"
-                              >
-                                {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
-                              </a>
-                            </Tooltip>
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-red-600">
-                            {(image.sizeKB || 0).toLocaleString()}KB
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {image.sizeKB > 500 ? 'Optimize urgently' : 'Compress image'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
-              </p>
-            </div>
-          )}
+          {/* Large Images Table - MOVED TO EnhancedRecommendations component */}
 
           {/* 404 Errors Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
