@@ -74,6 +74,43 @@ export default function EnhancedRecommendations({
 
     // Missing H1 Tags
     if (technicalIssues?.missingH1Tags && technicalIssues.missingH1Tags > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+
+      let h1Steps: string[]
+      if (hasYoast || hasRankMath) {
+        h1Steps = [
+          hasYoast ? '✅ Yoast SEO can help you check for H1 tags' : '✅ Rank Math can help you check for H1 tags',
+          '1. Edit the page missing an H1 tag',
+          '2. Add a clear, descriptive heading at the very top of your page content',
+          '3. Select the text and format it as "Heading 1" (H1) using the block editor',
+          '4. Make sure it\'s unique and describes the page content',
+          '5. Include your primary keyword if relevant',
+          hasYoast ? '6. Yoast SEO will show a green checkmark if H1 is properly set' : '6. Rank Math will validate your H1 in the SEO analysis',
+          '7. Update/Publish the page',
+          '',
+          '💡 Pro Tip: Most WordPress themes automatically convert your page title into an H1',
+          '   Check your theme settings to see if this is already happening!'
+        ]
+      } else {
+        h1Steps = [
+          '1. Edit the page missing an H1 tag',
+          '2. Add a clear, descriptive heading at the top of the page content',
+          '3. Ensure it uses the H1 heading format (usually "Heading 1" in the editor)',
+          '4. Make the H1 unique and descriptive of the page content',
+          '5. Include your primary keyword if relevant',
+          '',
+          '💡 WordPress Tip: Most themes automatically make the page title an H1',
+          '   Check Theme → Customize → Typography settings',
+          '',
+          '📦 Consider installing an SEO plugin (see recommendations below) to:',
+          '   • Automatically check for missing H1 tags',
+          '   • Provide SEO analysis and warnings',
+          '   • See real-time optimization tips'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing H1 Tags',
         description: `${technicalIssues.missingH1Tags} page(s) are missing H1 tags, which are critical for SEO`,
@@ -82,16 +119,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'H1 tags help search engines understand the main topic of your pages and improve accessibility',
         useCase: 'h1-tags',
-        howTo: cms === 'WordPress' ? [
-          'Edit each page in WordPress editor',
-          'Add a clear, descriptive heading at the top of the page content',
-          'Ensure it uses the H1 heading format (usually "Heading 1" in the editor)',
-          'Make the H1 unique and descriptive of the page content',
-          'Include your primary keyword if relevant',
-          'WordPress: Most themes automatically make the page title an H1. Check Theme → Customize → Typography settings',
-          'Yoast SEO plugin: Will warn you if H1 is missing in the SEO analysis',
-          'Rank Math plugin: Provides H1 tag analysis in the content editor'
-        ] : [
+        howTo: cms === 'WordPress' ? h1Steps : [
           'Add a clear, descriptive <h1> tag at the top of each page',
           'Ensure each page has exactly one H1 tag',
           'Make the H1 unique and descriptive of the page content',
@@ -104,6 +132,73 @@ export default function EnhancedRecommendations({
 
     // Missing Meta Titles
     if (technicalIssues?.missingMetaTitles && technicalIssues.missingMetaTitles > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasAIOSEO = detectedPlugins.some(p => p.toLowerCase().includes('all in one seo'))
+
+      let metaTitleSteps: string[]
+
+      if (hasYoast) {
+        metaTitleSteps = [
+          '✅ You have Yoast SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to the "Yoast SEO" meta box',
+          '3. Click "Edit snippet" if collapsed',
+          '4. Fill in the "SEO title" field (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling for searchers',
+          '7. Yoast shows how it appears in Google search results',
+          '8. Update/Publish the page',
+          '💡 Tip: Yoast shows title length with color coding (green = perfect length)'
+        ]
+      } else if (hasRankMath) {
+        metaTitleSteps = [
+          '✅ You have Rank Math installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to the "Rank Math" meta box',
+          '3. Click "Edit Snippet"',
+          '4. Fill in the "SEO Title" field (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling for searchers',
+          '7. View the real-time Google SERP preview',
+          '8. Update/Publish the page',
+          '💡 Tip: Rank Math scores your title and shows optimization suggestions'
+        ]
+      } else if (hasAIOSEO) {
+        metaTitleSteps = [
+          '✅ You have All in One SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to "AIOSEO Settings"',
+          '3. Find the "Post Title" field under "General" tab',
+          '4. Fill in a compelling title (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling',
+          '7. Check the Google search preview',
+          '8. Update/Publish the page',
+          '💡 Tip: AIOSEO provides TruSEO score for your title'
+        ]
+      } else {
+        metaTitleSteps = [
+          '⚠️ You don\'t have an SEO plugin installed yet',
+          '📦 Install a free SEO plugin to make this easy:',
+          '   • Yoast SEO (most popular, beginner-friendly)',
+          '   • Rank Math (feature-rich, advanced)',
+          '   • All in One SEO (good for e-commerce)',
+          '',
+          'After installing, follow these steps:',
+          '1. Edit the page/post needing a meta title',
+          '2. Find the SEO plugin meta box (below editor)',
+          '3. Fill in the "SEO Title" or "Meta Title" field',
+          '4. Keep it 50-60 characters',
+          '5. Include primary keyword near the beginning',
+          '6. Make each title unique and compelling',
+          '7. Update/Publish the page',
+          '',
+          '💡 See "Recommended Plugins" below to compare options'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing Meta Titles',
         description: `${technicalIssues.missingMetaTitles} page(s) lack meta titles, hurting search visibility`,
@@ -112,16 +207,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'Meta titles appear in search results and browser tabs, and are one of the most important SEO elements',
         useCase: 'meta-titles',
-        howTo: cms === 'WordPress' ? [
-          'Install an SEO plugin: Yoast SEO, Rank Math, or All in One SEO',
-          'Edit each page/post and find the SEO section below the editor',
-          'Add a compelling title (50-60 characters recommended)',
-          'Include your primary keyword near the beginning',
-          'Make each title unique and descriptive',
-          'Yoast SEO: Edit the "SEO title" field in the Yoast meta box',
-          'Rank Math: Use the "SEO Title" field in Rank Math meta box',
-          'Preview how it will look in search results using the plugin preview'
-        ] : [
+        howTo: cms === 'WordPress' ? metaTitleSteps : [
           'Add <title> tag in the <head> section of each page',
           'Keep titles between 50-60 characters',
           'Include primary keyword near the beginning',
@@ -134,6 +220,75 @@ export default function EnhancedRecommendations({
 
     // Missing Meta Descriptions
     if (technicalIssues?.missingMetaDescriptions && technicalIssues.missingMetaDescriptions > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasAIOSEO = detectedPlugins.some(p => p.toLowerCase().includes('all in one seo'))
+
+      let wordpressSteps: string[]
+
+      if (hasYoast) {
+        wordpressSteps = [
+          '✅ You have Yoast SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "Yoast SEO" meta box',
+          '3. Click "Edit snippet" if collapsed',
+          '4. Fill in the "Meta description" field (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. Yoast shows a preview of how it appears in search results',
+          '8. Update/Publish the page',
+          '💡 Tip: Yoast color-codes the length (green = good, orange = too short/long)'
+        ]
+      } else if (hasRankMath) {
+        wordpressSteps = [
+          '✅ You have Rank Math installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "Rank Math" meta box',
+          '3. Click on the "Edit Snippet" button',
+          '4. Fill in the "Description" field (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. Rank Math shows real-time Google SERP preview',
+          '8. Update/Publish the page',
+          '💡 Tip: Rank Math scores your description and gives optimization suggestions'
+        ]
+      } else if (hasAIOSEO) {
+        wordpressSteps = [
+          '✅ You have All in One SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "AIOSEO Settings" section',
+          '3. Find the "Meta Description" field under "General" tab',
+          '4. Fill in the description (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. AIOSEO shows a Google search preview',
+          '8. Update/Publish the page',
+          '💡 Tip: AIOSEO provides a TruSEO score for your meta description'
+        ]
+      } else {
+        // No SEO plugin detected - recommend installing one
+        wordpressSteps = [
+          '⚠️ You don\'t have an SEO plugin installed yet',
+          '📦 Install a free SEO plugin to make this easy:',
+          '   • Yoast SEO (most popular, beginner-friendly)',
+          '   • Rank Math (feature-rich, advanced)',
+          '   • All in One SEO (good for e-commerce)',
+          '',
+          'After installing, follow these general steps:',
+          '1. Edit the page/post needing a meta description',
+          '2. Find the SEO plugin meta box (usually below editor)',
+          '3. Fill in the "Meta Description" field',
+          '4. Keep it 150-160 characters',
+          '5. Include relevant keywords naturally',
+          '6. Make it compelling with a call-to-action',
+          '7. Make each description unique',
+          '8. Update/Publish the page',
+          '',
+          '💡 See "Recommended Plugins" below to compare options'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing Meta Descriptions',
         description: `${technicalIssues.missingMetaDescriptions} page(s) need meta descriptions for better search previews`,
@@ -142,16 +297,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'Meta descriptions appear in search results and influence click-through rates',
         useCase: 'meta-descriptions',
-        howTo: cms === 'WordPress' ? [
-          'Use your SEO plugin to add meta descriptions',
-          'Write compelling descriptions (150-160 characters)',
-          'Include relevant keywords naturally',
-          'Make each description unique and actionable',
-          'Add a call-to-action if appropriate',
-          'Yoast SEO: Edit the "Meta description" field',
-          'Rank Math: Use the "Description" field in the meta box',
-          'All in One SEO: Fill in the "Meta Description" field'
-        ] : [
+        howTo: cms === 'WordPress' ? wordpressSteps : [
           'Add <meta name="description"> tag in the <head> section',
           'Keep descriptions between 150-160 characters',
           'Include relevant keywords naturally',
