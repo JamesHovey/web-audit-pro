@@ -35,6 +35,12 @@ interface EnhancedRecommendationsProps {
     largeImages?: number
     http404Errors?: number
   }
+  issuePages?: {
+    missingH1Tags?: string[]
+    missingMetaTitles?: string[]
+    missingMetaDescriptions?: string[]
+    httpErrors?: string[]
+  }
   largeImagesList?: Array<{
     imageUrl: string
     pageUrl: string
@@ -50,6 +56,7 @@ export default function EnhancedRecommendations({
   pageBuilder,
   cms,
   technicalIssues,
+  issuePages,
   largeImagesList = []
 }: EnhancedRecommendationsProps) {
   
@@ -848,6 +855,88 @@ export default function EnhancedRecommendations({
                           <p className="text-xs text-gray-600 mt-2">
                             💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
                           </p>
+                        </div>
+                      )}
+
+                      {/* Pages With Issues - Show for technical SEO issues */}
+                      {rec.title.includes('Missing H1 Tags') && issuePages?.missingH1Tags && issuePages.missingH1Tags.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing H1 Tags</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingH1Tags.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingH1Tags.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Titles') && issuePages?.missingMetaTitles && issuePages.missingMetaTitles.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Titles</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaTitles.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaTitles.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Descriptions') && issuePages?.missingMetaDescriptions && issuePages.missingMetaDescriptions.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Descriptions</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaDescriptions.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaDescriptions.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
                         </div>
                       )}
 

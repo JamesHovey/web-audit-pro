@@ -55,6 +55,12 @@ interface TechnicalAuditResult {
     missingH1Tags: number;
     httpErrors: number;
   };
+  issuePages?: {
+    missingMetaTitles?: string[];
+    missingMetaDescriptions?: string[];
+    missingH1Tags?: string[];
+    httpErrors?: string[];
+  };
   notFoundErrors: Array<{
     brokenUrl: string;
     sourceUrl: string;
@@ -360,11 +366,24 @@ export async function performTechnicalAudit(
       console.log(`✅ Aggregate metrics calculated from ${pagesWithMetrics.length} pages`);
     }
     
-    // Count issues across all discovered pages
-    result.issues.missingMetaTitles = pageDiscovery.pages.filter(p => !p.hasTitle).length;
-    result.issues.missingMetaDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription).length;
-    result.issues.missingH1Tags = pageDiscovery.pages.filter(p => !p.hasH1).length;
-    result.issues.httpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400).length;
+    // Count issues across all discovered pages and collect page URLs
+    const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
+    const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
+    const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400);
+
+    result.issues.missingMetaTitles = pagesWithMissingTitles.length;
+    result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
+    result.issues.missingH1Tags = pagesWithMissingH1.length;
+    result.issues.httpErrors = pagesWithHttpErrors.length;
+
+    // Store page URLs for each issue type (limit to 20 pages per issue type for performance)
+    result.issuePages = {
+      missingMetaTitles: pagesWithMissingTitles.slice(0, 20).map(p => p.url),
+      missingMetaDescriptions: pagesWithMissingDescriptions.slice(0, 20).map(p => p.url),
+      missingH1Tags: pagesWithMissingH1.slice(0, 20).map(p => p.url),
+      httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
+    };
     
     // 8. Analyze images from discovered pages (check up to 10 pages for performance)
     console.log('🖼️ Analyzing images across discovered pages...');

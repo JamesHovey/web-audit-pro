@@ -39,20 +39,16 @@ export default function AuditPage() {
   const getAuditTitle = () => {
     if (!audit?.results) return 'Audit Results'
 
-    // Check if we have accessibility results with multiple pages
-    const hasMultiplePages = audit.results.accessibility?.pages &&
-                             Array.isArray(audit.results.accessibility.pages) &&
-                             audit.results.accessibility.pages.length > 1
+    // Check the scope from results
+    const results = audit.results as any
+    const scope = results?.scope
+    const totalPages = results?.totalPages || 1
 
-    // Check if it's a full site audit (sitemap with many pages)
-    const sitemapPages = audit.results.sitemap?.pages?.length || 0
-    const isFullAudit = sitemapPages > 10 // Consider it a full audit if more than 10 pages
-
-    // Determine audit type
-    if (hasMultiplePages && !isFullAudit) {
-      return 'Selected pages audit results'
-    } else if (isFullAudit || sitemapPages > 1) {
-      return 'Full audit results'
+    // Determine audit type based on scope
+    if (scope === 'all') {
+      return `All Discoverable Pages audit results${totalPages > 1 ? ` (${totalPages} pages)` : ''}`
+    } else if (scope === 'custom' || scope === 'multi') {
+      return `Specific Pages audit results (${totalPages} ${totalPages === 1 ? 'page' : 'pages'})`
     } else {
       return 'Single page audit results'
     }

@@ -2613,6 +2613,7 @@ function renderSectionResults(
               largeImages: results.largeImages || results.issues?.largeImages,
               http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
             }}
+            issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
           />
 
