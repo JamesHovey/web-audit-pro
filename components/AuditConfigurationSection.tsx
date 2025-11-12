@@ -28,6 +28,9 @@ const TIME_PER_PAGE = {
   technical: 1, // Technical issues (always included)
 }
 
+// Parallel processing configuration
+const CONCURRENT_PAGES = 3; // Process 3 pages at a time (Railway free tier safe)
+
 export default function AuditConfigurationSection({
   pageCount,
   auditScope,
@@ -39,18 +42,22 @@ export default function AuditConfigurationSection({
 
   // Calculate estimated time whenever configuration or page count changes
   useEffect(() => {
-    let totalSeconds = 0
+    let totalSecondsPerPage = 0
 
     // Always include technical issues
-    totalSeconds += TIME_PER_PAGE.technical * pageCount
+    totalSecondsPerPage += TIME_PER_PAGE.technical
 
     // Add time for selected components
-    if (configuration.enableLighthouse) totalSeconds += TIME_PER_PAGE.lighthouse * pageCount
-    if (configuration.enableAccessibility) totalSeconds += TIME_PER_PAGE.accessibility * pageCount
-    if (configuration.enableImageOptimization) totalSeconds += TIME_PER_PAGE.imageOptimization * pageCount
-    if (configuration.enableSEO) totalSeconds += TIME_PER_PAGE.seo * pageCount
+    if (configuration.enableLighthouse) totalSecondsPerPage += TIME_PER_PAGE.lighthouse
+    if (configuration.enableAccessibility) totalSecondsPerPage += TIME_PER_PAGE.accessibility
+    if (configuration.enableImageOptimization) totalSecondsPerPage += TIME_PER_PAGE.imageOptimization
+    if (configuration.enableSEO) totalSecondsPerPage += TIME_PER_PAGE.seo
 
+    // Calculate total time with parallel processing
+    // Formula: (total_pages * time_per_page) / concurrent_pages
+    const totalSeconds = (pageCount * totalSecondsPerPage) / CONCURRENT_PAGES
     const minutes = Math.ceil(totalSeconds / 60)
+
     setEstimatedMinutes(minutes)
     onEstimatedTimeChange(minutes)
 
@@ -309,18 +316,28 @@ export default function AuditConfigurationSection({
       {/* Estimated Time & Email Notification */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-900">Estimated Time:</span>
+          <span className="text-sm font-medium text-blue-900">Estimated Time (First Audit):</span>
           <span className="text-lg font-bold text-blue-700">{formatTime(estimatedMinutes)}</span>
         </div>
 
-        <p className="text-xs text-blue-700">
-          For {pageCount} page{pageCount !== 1 ? 's' : ''}
-          {auditScope === 'single'
-            ? ' (single page audit)'
-            : auditScope === 'all'
-              ? ' (all discoverable pages)'
-              : ' (selected pages)'}
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-blue-700">
+            For {pageCount} page{pageCount !== 1 ? 's' : ''}
+            {auditScope === 'single'
+              ? ' (single page audit)'
+              : auditScope === 'all'
+                ? ' (all discoverable pages)'
+                : ' (selected pages)'}
+          </p>
+          {pageCount > 1 && (
+            <p className="text-xs text-blue-600 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              Parallel processing (3 pages at a time) • Repeat audits 70-90% faster (24hr cache)
+            </p>
+          )}
+        </div>
 
         {/* Email Notification - Show for estimates > 2 minutes */}
         {estimatedMinutes > 2 && (
