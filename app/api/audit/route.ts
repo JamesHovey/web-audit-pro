@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { CreditCalculator } from "@/lib/creditCalculator"
 import { createUsageTracker } from "@/lib/usageTracker"
+import { sendAuditCompletionEmail } from "@/lib/emailService"
 import type { AuditRequestBody } from "@/types/api"
 
 export async function POST(request: NextRequest) {
@@ -50,6 +51,31 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // Create progress update function
+    const updateProgress = async (stage: string, current: number, total: number, message: string) => {
+      try {
+        await prisma.audit.update({
+          where: { id: audit.id },
+          data: {
+            results: {
+              ...(audit.results as object || {}),
+              progress: {
+                stage,
+                current,
+                total,
+                message,
+                percentage: total > 0 ? Math.round((current / total) * 100) : 0,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+        console.log(`📊 Progress: ${message} (${current}/${total})`);
+      } catch (error) {
+        console.error('Failed to update progress:', error);
+      }
+    };
 
     // Process audit sections sequentially with progress updates
     setTimeout(async () => {
@@ -216,7 +242,7 @@ export async function POST(request: NextRequest) {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, technicalScope, pages)
+            results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
 
             // Run viewport responsiveness analysis (if not already done)
             if (!results.viewport) {
@@ -256,7 +282,7 @@ export async function POST(request: NextRequest) {
             console.log('🔧 Running technical audit...')
             // Map scope: 'multi' -> 'custom' for technical audit
             const techScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, techScope, pages)
+            results.technical = await performTechnicalAudit(url, techScope, pages, updateProgress)
 
             // Run technology stack detection
             console.log('🔍 Running technology stack detection...')
@@ -536,7 +562,7 @@ export async function POST(request: NextRequest) {
         console.log(`📊 Usage metrics: ${Math.round(usageMetrics.browserMinutes * 100) / 100} browser minutes`)
 
         // Update audit with results and usage metrics
-        await prisma.audit.update({
+        const completedAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
@@ -545,6 +571,29 @@ export async function POST(request: NextRequest) {
             completedAt: new Date()
           }
         })
+
+        // Send email notification
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: pages.length,
+              completedAt: completedAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          // Log but don't fail the audit if email fails
+          console.error('Failed to send completion email:', emailError)
+        }
       } catch (error) {
         console.error('Error processing audit:', error)
 
@@ -559,7 +608,7 @@ export async function POST(request: NextRequest) {
         // Ensure the mock results are properly serializable
         const safeMockResults = JSON.parse(JSON.stringify(mockResults))
 
-        await prisma.audit.update({
+        const fallbackAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
@@ -568,6 +617,28 @@ export async function POST(request: NextRequest) {
             completedAt: new Date()
           }
         })
+
+        // Send email notification even on fallback
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: pages.length,
+              completedAt: fallbackAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          console.error('Failed to send completion email:', emailError)
+        }
       }
     }, 5000) // Increased to 5 seconds to allow for API calls
     

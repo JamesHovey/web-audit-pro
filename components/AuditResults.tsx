@@ -1243,19 +1243,20 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   </p>
                 </div>
                 
-                {audit.results?._progress && (
+                {audit.results?.progress && (
                   <div className="mb-6">
                     <p className="text-sm text-gray-600 mb-2 text-center">
-                      Processing: <span className="font-semibold">
-                        {SECTION_LABELS[audit.results._progress.currentSection as keyof typeof SECTION_LABELS] || audit.results._progress.currentSection}
-                      </span> ({audit.results._progress.completedSections}/{audit.results._progress.totalSections})
+                      <span className="font-semibold">{audit.results.progress.message}</span>
                     </p>
+                    {audit.results.progress.total > 0 && (
+                      <p className="text-xs text-gray-500 mb-2 text-center">
+                        {audit.results.progress.current} of {audit.results.progress.total}
+                      </p>
+                    )}
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ 
-                          width: `${(audit.results._progress.completedSections / audit.results._progress.totalSections) * 100}%` 
-                        }}
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${audit.results.progress.percentage}%` }}
                       ></div>
                     </div>
                   </div>

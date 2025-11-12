@@ -82,10 +82,14 @@ interface TechnicalAuditResult {
   html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
+// Progress callback type
+export type ProgressCallback = (stage: string, current: number, total: number, message: string) => Promise<void>;
+
 export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
-  specifiedPages: string[] = [url]
+  specifiedPages: string[] = [url],
+  onProgress?: ProgressCallback
 ): Promise<TechnicalAuditResult> {
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
 
@@ -240,13 +244,16 @@ export async function performTechnicalAudit(
     } else {
       // scope === 'all' - discover all pages
       console.log('🔍 Discovering all website pages...');
+      if (onProgress) await onProgress('discovering_pages', 0, 100, 'Discovering website pages...');
       pageDiscovery = await discoverRealPages(url);
+      if (onProgress) await onProgress('discovering_pages', 100, 100, `Found ${pageDiscovery.totalPages} pages`);
     }
 
     result.totalPages = pageDiscovery.totalPages;
-    
+
     // Add performance metrics to ALL pages (limit detailed analysis but provide metrics for all)
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
+    if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
     const maxDetailedAnalysis = 20; // Only fetch HTML for first 20 pages (for performance)
     const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
     
@@ -411,7 +418,12 @@ export async function performTechnicalAudit(
     const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, pageLimit);
     console.log(`📊 Analyzing images on ${pagesToCheck.length} pages (scope: ${scope}, limit: ${pageLimit})`);
 
-    for (const page of pagesToCheck) {
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', 0, pagesToCheck.length, 'Analyzing images across pages...');
+    }
+
+    for (let i = 0; i < pagesToCheck.length; i++) {
+      const page = pagesToCheck[i];
       if (page.url === url) continue; // Skip main page (already analyzed)
 
       try {
@@ -432,9 +444,18 @@ export async function performTechnicalAudit(
             result.legacyFormatImages.push(...pageImages.legacyFormatImages);
           }
         }
+
+        // Report progress every 5 pages
+        if (onProgress && (i + 1) % 5 === 0) {
+          await onProgress('analyzing_images', i + 1, pagesToCheck.length, `Analyzed images on ${i + 1} of ${pagesToCheck.length} pages`);
+        }
       } catch (_error) {
         console.log(`Could not analyze images for ${page.url}`);
       }
+    }
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', pagesToCheck.length, pagesToCheck.length, 'Image analysis complete');
     }
 
     // Sort all large images by size and limit to top 20
