@@ -102,6 +102,14 @@ export async function POST(request: NextRequest) {
         let currentSection = 0
         const totalSections = sections.length
 
+        // Memory monitoring helper
+        const logMemoryUsage = (label: string) => {
+          const memUsage = process.memoryUsage()
+          console.log(`💾 [${label}] Memory: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB used / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB total`)
+        }
+
+        logMemoryUsage('Audit Start')
+
         // Helper function to update progress
         const updateProgress = async (sectionName: string, status: 'running' | 'completed') => {
           try {
@@ -125,8 +133,10 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Process sections in parallel for better performance
-        const sectionPromises = sections.map(async (section, index) => {
+        // Process sections SEQUENTIALLY to reduce memory spikes
+        // Changed from parallel to sequential processing
+        for (let index = 0; index < sections.length; index++) {
+          const section = sections[index]
           console.log(`Processing section ${index + 1}/${totalSections}: ${section}`)
 
           await updateProgress(section, 'running')
@@ -170,12 +180,13 @@ export async function POST(request: NextRequest) {
                 console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
               }
 
-              // Apply page limit (null = unlimited, otherwise use the specified limit)
-              const effectiveLimit = pageLimit === null ? filteredPages.length : pageLimit;
+              // Apply page limit with memory-conscious cap (max 100 pages to prevent OOM)
+              const memoryLimit = 100;
+              const effectiveLimit = pageLimit === null ? Math.min(filteredPages.length, memoryLimit) : Math.min(pageLimit, memoryLimit);
               pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages${pageLimit === null ? ' (unlimited)' : ` (limited to ${pageLimit})`}`);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages (memory limit: ${memoryLimit})`);
 
-              // Fetch HTML for each page
+              // Fetch HTML for each page (with memory limit)
               for (const pageUrl of pagesToAnalyze) {
                 try {
                   const normalizedUrl = pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`;
@@ -186,8 +197,10 @@ export async function POST(request: NextRequest) {
                   });
                   if (response.ok) {
                     const html = await response.text();
-                    pageHtmlMap.set(pageUrl, html);
-                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                    // Only store HTML up to 500KB per page to prevent memory bloat
+                    const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                    pageHtmlMap.set(pageUrl, truncatedHtml);
+                    console.log(`✅ Fetched HTML for ${pageUrl} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                   }
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -195,9 +208,10 @@ export async function POST(request: NextRequest) {
                 }
               }
             } else if (scope === 'custom') {
-              // For custom scope, use the specified pages
-              pagesToAnalyze = pages;
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages`);
+              // For custom scope, use the specified pages (with memory limit)
+              const memoryLimit = 100;
+              pagesToAnalyze = pages.slice(0, memoryLimit);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages (memory limit: ${memoryLimit})`);
 
               // Fetch HTML for each specified page
               for (const pageUrl of pagesToAnalyze) {
@@ -210,8 +224,10 @@ export async function POST(request: NextRequest) {
                   });
                   if (response.ok) {
                     const html = await response.text();
-                    pageHtmlMap.set(pageUrl, html);
-                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                    // Only store HTML up to 500KB per page to prevent memory bloat
+                    const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                    pageHtmlMap.set(pageUrl, truncatedHtml);
+                    console.log(`✅ Fetched HTML for ${pageUrl} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                   }
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -230,7 +246,10 @@ export async function POST(request: NextRequest) {
                 });
                 if (response.ok) {
                   const html = await response.text();
-                  pageHtmlMap.set(mainPage, html);
+                  // Only store HTML up to 500KB to prevent memory bloat
+                  const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                  pageHtmlMap.set(mainPage, truncatedHtml);
+                  console.log(`✅ Fetched HTML for ${mainPage} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                 }
               } catch (error) {
                 console.log('Could not fetch HTML content for keyword analysis:', error);
@@ -252,38 +271,19 @@ export async function POST(request: NextRequest) {
               pageHtmlMap
             )
 
+            // Clear HTML content from memory after keyword analysis
+            pageHtmlMap.clear()
+            console.log('🧹 Cleared HTML content cache to free memory')
+
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
             results.technical = await performTechnicalAudit(url, technicalScope, pages)
 
-            // Run viewport responsiveness analysis (if not already done)
-            if (!results.viewport) {
-              try {
-                console.log('📱 Running viewport responsiveness analysis...')
-                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url })
-                })
-
-                if (viewportResponse.ok) {
-                  const contentType = viewportResponse.headers.get('content-type')
-                  if (contentType && contentType.includes('application/json')) {
-                    results.viewport = await viewportResponse.json()
-                    console.log('✅ Viewport analysis completed')
-                  } else {
-                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
-                  }
-                } else {
-                  console.log('⚠️ Viewport analysis request failed, skipping')
-                }
-              } catch (viewportError) {
-                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
-                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
-              }
-            }
+            // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
+            // It was frequently failing and consuming resources
+            console.log('📱 Viewport analysis skipped (disabled for memory optimization)')
 
           } else if (section === 'performance') {
             // Enhanced performance analysis with Claude AI + Technology Stack Detection
@@ -411,32 +411,9 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Run viewport responsiveness analysis (if not already done)
-            if (!results.viewport) {
-              try {
-                console.log('📱 Running viewport responsiveness analysis...')
-                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url })
-                })
-
-                if (viewportResponse.ok) {
-                  const contentType = viewportResponse.headers.get('content-type')
-                  if (contentType && contentType.includes('application/json')) {
-                    results.viewport = await viewportResponse.json()
-                    console.log('✅ Viewport analysis completed')
-                  } else {
-                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
-                  }
-                } else {
-                  console.log('⚠️ Viewport analysis request failed, skipping')
-                }
-              } catch (viewportError) {
-                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
-                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
-              }
-            }
+            // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
+            // It was frequently failing and consuming resources
+            console.log('📱 Viewport analysis skipped (disabled for memory optimization)')
 
           } else if (section === 'accessibility') {
             // Website Accessibility Audit
@@ -484,11 +461,20 @@ export async function POST(request: NextRequest) {
           }
 
           await updateProgress(section, 'completed')
-          console.log(`Completed section: ${section}`)
-        })
+          currentSection++
 
-        // Wait for all sections to complete in parallel
-        await Promise.all(sectionPromises)
+          // Log memory after each section and force garbage collection
+          logMemoryUsage(`After ${section}`)
+          if (global.gc) {
+            global.gc()
+            logMemoryUsage(`After ${section} (post-GC)`)
+          }
+
+          console.log(`✅ Completed section ${index + 1}/${totalSections}: ${section}`)
+        }
+
+        // All sections completed sequentially
+        logMemoryUsage('All Sections Complete')
 
         // Add scope and pages info to results
         const finalResults = {
