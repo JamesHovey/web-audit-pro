@@ -308,39 +308,76 @@ export default function EnhancedRecommendations({
       })
     }
 
-    // Large Images
+    // Large Images and Modern Formats (Combined)
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
+      // Check if we also have legacy format images
+      const hasLegacyFormats = legacyFormatImagesList && legacyFormatImagesList.length > 0
+
       techRecs.push({
-        title: 'Optimise Large Images',
-        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimisation" table below for specific images.`,
+        title: 'Optimise Images',
+        description: hasLegacyFormats
+          ? `${technicalIssues.largeImages} large image(s) + ${legacyFormatImagesList.length} image(s) using legacy formats are slowing down your site. See tables below for details.`
+          : `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimisation" table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
-        useCase: 'large-images',
+        details: hasLegacyFormats
+          ? 'Large images and legacy formats (JPEG/PNG) significantly impact page load time. Modern formats like WebP reduce file sizes by 25-50% while maintaining quality. The tables below show which images need optimization.'
+          : 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
+        useCase: 'image-optimization',
         howTo: cms === 'WordPress' ? [
-          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
-          'Install an image optimisation plugin (see recommended plugins below):',
-          'Recommended: Imagify, ShortPixel, or EWWW Image Optimiser (all have free tiers)',
-          'These plugins automatically compress images on upload',
-          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimise images"',
-          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimise on upload"',
-          'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
-          'For existing images: Use the bulk optimiser in the plugin',
-          'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
-          'Target: Keep images under 200KB, preferably under 100KB',
-          '✅ After optimisation, re-run the audit to verify improvements'
+          '📋 Check the tables below to see which images need fixing',
+          '',
+          '🎯 BEST SOLUTION - Install an image optimization plugin:',
+          '   • Imagify: Compresses images AND converts to WebP automatically',
+          '   • ShortPixel: 100 free images/month + WebP conversion',
+          '   • EWWW: Unlimited local compression + WebP support',
+          '',
+          '⚙️ SETUP STEPS (using Imagify as example):',
+          '1. Install and activate the plugin',
+          '2. Go to Settings → Choose "Normal" compression level',
+          '3. Enable "Convert images to WebP format"',
+          '4. Enable "Auto-optimize images on upload" for future images',
+          '5. Click "Bulk Optimization" to compress existing images',
+          '6. For ShortPixel: Similar steps, but need free API key (100 images/month)',
+          '7. For EWWW: Enable "Compress images on upload" and "Convert to WebP"',
+          '',
+          '✅ RESULTS: This fixes BOTH issues:',
+          '   • Compresses large images (reduces file size by 40-70%)',
+          '   • Converts JPEG/PNG to WebP (additional 25-35% smaller)',
+          '   • Automatically handles future uploads',
+          '',
+          '🔄 Alternative - Manual compression:',
+          '   • Use TinyPNG.com or Squoosh.app before uploading',
+          '   • Convert to WebP manually using online converters',
+          '   • Target: Keep images under 100KB when possible',
+          '',
+          '💡 After optimization, re-run the audit to verify improvements'
         ] : [
-          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
-          'Compress images before uploading to your site',
-          'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
-          'Convert to modern formats: WebP or AVIF',
-          'Set appropriate dimensions - don\'t upload larger than needed',
-          'Use responsive images with srcset attribute',
-          'For e-commerce: Shopify has built-in image optimisation',
-          'For Wix/Squarespace: Use their built-in image optimisation tools',
-          'Target: Keep images under 200KB, preferably under 100KB',
-          '✅ After optimisation, re-run the audit to verify improvements'
+          '📋 Check the tables below to see which images need fixing',
+          '',
+          '🎯 TWO ISSUES TO FIX:',
+          '1. Large file sizes (over 100KB)',
+          '2. Legacy formats (JPEG/PNG instead of WebP/AVIF)',
+          '',
+          '🛠️ SOLUTIONS:',
+          'Compress images before uploading:',
+          '   • Use TinyPNG.com, Squoosh.app, or ImageOptim',
+          '   • Target: Keep images under 100KB',
+          '',
+          'Convert to modern formats:',
+          '   • Convert JPEG/PNG to WebP or AVIF',
+          '   • WebP reduces file size by 25-50% with same quality',
+          '   • Use Squoosh.app for conversion',
+          '',
+          'Set appropriate dimensions:',
+          '   • Don\'t upload images larger than needed',
+          '   • Use responsive images with srcset attribute',
+          '',
+          'For Shopify: Built-in image optimization available',
+          'For Wix/Squarespace: Use built-in tools',
+          '',
+          '✅ After optimization, re-run the audit to verify improvements'
         ]
       })
     }
@@ -612,19 +649,15 @@ export default function EnhancedRecommendations({
     }
 
     if (lowerRec.includes('webp') || lowerRec.includes('next-gen') || lowerRec.includes('image format')) {
+      // Skip this - now handled in the combined "Optimise Images" recommendation
       return {
-        title: 'Use Modern Image Formats',
-        description: 'Convert images to WebP or AVIF for better compression',
-        impact: 'Medium',
-        effort: 'Easy',
+        title: '', // Empty title will be filtered out
+        description: '',
+        impact: 'Medium' as 'Medium',
+        effort: 'Easy' as 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Modern formats reduce file size by 25-50% with same quality',
-        howTo: [
-          'Convert JPEG/PNG to WebP format',
-          'Use picture element with fallbacks',
-          'Set up automatic conversion on your server',
-          'Test image quality after conversion'
-        ]
+        details: '',
+        howTo: []
       }
     }
     
@@ -954,8 +987,8 @@ export default function EnhancedRecommendations({
                     <div className="mt-2 p-3 bg-gray-50 rounded">
                       <p className="text-gray-700 mb-3">{rec.details}</p>
 
-                      {/* Large Images Table - Show at TOP of "Optimise Large Images" recommendation */}
-                      {rec.title.includes('Large Image') && largeImagesList.length > 0 && (
+                      {/* Large Images Table - Show at TOP of "Optimise Images" recommendation */}
+                      {(rec.title === 'Optimise Images' || rec.title.includes('Large Image')) && largeImagesList.length > 0 && (
                         <div className="mb-4 pb-4 border-b border-gray-300">
                           <h5 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimisation</h5>
                           <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
@@ -1012,8 +1045,8 @@ export default function EnhancedRecommendations({
                         </div>
                       )}
 
-                      {/* Legacy Format Images Table - Show for "Use Modern Image Formats" recommendation */}
-                      {(rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && legacyFormatImagesList.length > 0 && (
+                      {/* Legacy Format Images Table - Show for "Optimise Images" recommendation */}
+                      {(rec.title === 'Optimise Images' || rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && legacyFormatImagesList.length > 0 && (
                         <div className="mb-4 pb-4 border-b border-gray-300">
                           <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Using Legacy Formats</h5>
                           <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
