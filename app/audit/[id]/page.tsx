@@ -7,7 +7,8 @@ import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { exportAuditToPDF } from "@/lib/pdfExportService"
 import { generateAuditSummary } from "@/lib/auditSummaryService"
-import { Trash2, Loader } from "lucide-react"
+import { Trash2, Loader, Clock } from "lucide-react"
+import SavedAuditsModal from "@/components/SavedAuditsModal"
 
 interface Audit {
   id: string
@@ -25,7 +26,7 @@ export default function AuditPage() {
   const [audit, setAudit] = useState<Audit | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showViewSelector, setShowViewSelector] = useState(false)
+  const [showSavedAuditsModal, setShowSavedAuditsModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   // Generate audit summary to get issues for Synergist basket
@@ -194,16 +195,13 @@ export default function AuditPage() {
             
             {/* Action buttons - inline on the right */}
             <div className="ml-auto flex items-center gap-2">
-              {/* Audit View Selector Button */}
+              {/* Saved Audits Button */}
               <button
-                onClick={() => setShowViewSelector(!showViewSelector)}
+                onClick={() => setShowSavedAuditsModal(true)}
                 className="inline-flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium transition-colors"
-                title="Change Audit View"
+                title="Saved Audits"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+                <Clock className="w-5 h-5" />
               </button>
 
               <button
@@ -256,9 +254,15 @@ export default function AuditPage() {
             </div>
           </div>
         </div>
-        
-        <AuditResults audit={audit} showViewSelector={showViewSelector} />
+
+        <AuditResults audit={audit} />
       </div>
+
+      {/* Saved Audits Modal */}
+      <SavedAuditsModal
+        isOpen={showSavedAuditsModal}
+        onClose={() => setShowSavedAuditsModal(false)}
+      />
     </div>
   )
 }
