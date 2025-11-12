@@ -404,9 +404,8 @@ export async function performTechnicalAudit(
           html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
         };
       }
-    )
     );
-    
+
     // All pages now have performance data
     result.pages = pagesWithPerformance;
     result.sitemapStatus = pageDiscovery.sitemapStatus;
