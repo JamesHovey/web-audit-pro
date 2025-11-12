@@ -10,7 +10,24 @@ import type { AuditRequestBody } from "@/types/api"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as AuditRequestBody
-    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', pages = [url], pageLimit = 50, excludedPaths = [] } = body
+    const {
+      url,
+      sections,
+      scope = 'single',
+      auditView = 'executive',
+      country = 'gb',
+      pages = [url],
+      pageLimit = 50,
+      excludedPaths = [],
+      auditConfiguration = {
+        enableLighthouse: true,
+        enableAccessibility: true,
+        enableImageOptimization: true,
+        enableSEO: true,
+        enableEmail: false
+      },
+      enableEmailNotification = false
+    } = body
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -47,7 +64,9 @@ export async function POST(request: NextRequest) {
           scope,
           auditView, // Store the selected audit view
           pages,
-          totalPages: pages.length
+          totalPages: pages.length,
+          auditConfiguration, // Store audit configuration
+          enableEmailNotification // Store email preference
         }
       }
     })
