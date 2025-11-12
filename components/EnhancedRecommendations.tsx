@@ -46,6 +46,13 @@ interface EnhancedRecommendationsProps {
     pageUrl: string
     sizeKB: number
   }>
+  legacyFormatImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    currentFormat: string
+    suggestedFormat: string
+    sizeKB: number
+  }>
 }
 
 export default function EnhancedRecommendations({
@@ -57,7 +64,8 @@ export default function EnhancedRecommendations({
   cms,
   technicalIssues,
   issuePages,
-  largeImagesList = []
+  largeImagesList = [],
+  legacyFormatImagesList = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -854,6 +862,73 @@ export default function EnhancedRecommendations({
                           </div>
                           <p className="text-xs text-gray-600 mt-2">
                             💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Legacy Format Images Table - Show for "Use Modern Image Formats" recommendation */}
+                      {(rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && legacyFormatImagesList.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Using Legacy Formats</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Format</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Suggested Format</th>
+                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {legacyFormatImagesList.slice(0, 20).map((image, imageIndex) => (
+                                    <tr key={imageIndex} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={image.imageUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                                        >
+                                          {image.imageUrl.split('/').pop() || image.imageUrl}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Tooltip content={image.pageUrl}>
+                                          <a
+                                            href={image.pageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                          >
+                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                                          </a>
+                                        </Tooltip>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                          {image.currentFormat}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                          {image.suggestedFormat}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-medium text-gray-700">
+                                        {(image.sizeKB || 0).toLocaleString()}KB
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Converting to WebP can reduce file sizes by 25-35% without visible quality loss. Most modern browsers support WebP.
+                            {legacyFormatImagesList.length > 20 && ` Showing top 20 of ${legacyFormatImagesList.length} legacy format images.`}
                           </p>
                         </div>
                       )}

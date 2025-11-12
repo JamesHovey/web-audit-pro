@@ -49,6 +49,13 @@ interface TechnicalAuditResult {
     pageUrl: string;
     sizeKB: number;
   }>;
+  legacyFormatImages?: Array<{
+    imageUrl: string;
+    pageUrl: string;
+    currentFormat: string;
+    suggestedFormat: string;
+    sizeKB: number;
+  }>;
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -92,6 +99,7 @@ export async function performTechnicalAudit(
     pages: [],
     largeImages: 0,
     largeImageDetails: [],
+    legacyFormatImages: [],
     issues: {
       missingMetaTitles: 0,
       missingMetaDescriptions: 0,
@@ -135,6 +143,7 @@ export async function performTechnicalAudit(
     // 3. Find and analyze all images from main page
     const mainPageImages = await findAndAnalyzeImages(html, url);
     result.largeImageDetails = mainPageImages.largeImages;
+    result.legacyFormatImages = mainPageImages.legacyFormatImages;
     
     // 4. Find and check all links for 404s
     const links = findAllLinks(html, url);
@@ -385,36 +394,60 @@ export async function performTechnicalAudit(
       httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
     };
     
-    // 8. Analyze images from discovered pages (check up to 10 pages for performance)
+    // 8. Analyze images from discovered pages with scope-based limits
     console.log('🖼️ Analyzing images across discovered pages...');
-    // For single page, don't analyze additional pages (already analyzed main page)
-    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, 10);
+
+    // Determine how many pages to analyze based on scope
+    let pageLimit = 0;
+    if (scope === 'single') {
+      pageLimit = 0; // Already analyzed main page
+    } else if (scope === 'all') {
+      pageLimit = 50; // Scan up to 50 pages for all discoverable pages
+    } else if (scope === 'custom' || scope === 'multi') {
+      // For custom/multi, analyze all specified pages
+      pageLimit = specifiedPages.length;
+    }
+
+    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, pageLimit);
+    console.log(`📊 Analyzing images on ${pagesToCheck.length} pages (scope: ${scope}, limit: ${pageLimit})`);
 
     for (const page of pagesToCheck) {
       if (page.url === url) continue; // Skip main page (already analyzed)
-      
+
       try {
         const pageResponse = await fetch(page.url, {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
           signal: AbortSignal.timeout(10000)
         });
-        
+
         if (pageResponse.ok) {
           const pageHtml = await pageResponse.text();
           const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
-          
+
           // Add large images from this page to the results
           result.largeImageDetails.push(...pageImages.largeImages);
+
+          // Add legacy format images from this page
+          if (result.legacyFormatImages) {
+            result.legacyFormatImages.push(...pageImages.legacyFormatImages);
+          }
         }
       } catch (_error) {
         console.log(`Could not analyze images for ${page.url}`);
       }
     }
-    
+
     // Sort all large images by size and limit to top 20
     result.largeImageDetails.sort((a, b) => b.sizeKB - a.sizeKB);
     result.largeImageDetails = result.largeImageDetails.slice(0, 20);
     result.largeImages = result.largeImageDetails.length;
+
+    // Sort all legacy format images by size and limit to top 50
+    if (result.legacyFormatImages) {
+      result.legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+      result.legacyFormatImages = result.legacyFormatImages.slice(0, 50);
+      console.log(`📸 Found ${result.legacyFormatImages.length} images using legacy formats`);
+    }
     
     // 9. Analyze viewport responsiveness
     console.log('📱 Analyzing viewport responsiveness...');
@@ -493,10 +526,42 @@ function hasH1Tag(html: string): boolean {
   return false;
 }
 
+// Analyze image format and suggest modern alternatives
+function analyzeImageFormat(imageUrl: string): {
+  currentFormat: string;
+  isModern: boolean;
+  suggestedFormat: string;
+} {
+  const url = imageUrl.toLowerCase();
+
+  // Modern formats - no conversion needed
+  if (url.match(/\.(webp|avif|jxl)(\?|$|#)/)) {
+    return { currentFormat: 'Modern (WebP/AVIF)', isModern: true, suggestedFormat: 'N/A' };
+  }
+
+  // Legacy formats - should be converted
+  if (url.match(/\.(jpe?g)(\?|$|#)/)) {
+    return { currentFormat: 'JPEG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.png(\?|$|#)/)) {
+    return { currentFormat: 'PNG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.gif(\?|$|#)/)) {
+    return { currentFormat: 'GIF', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.bmp(\?|$|#)/)) {
+    return { currentFormat: 'BMP', isModern: false, suggestedFormat: 'WebP' };
+  }
+
+  // Unknown format or no extension
+  return { currentFormat: 'Unknown', isModern: true, suggestedFormat: 'N/A' };
+}
+
 async function findAndAnalyzeImages(html: string, pageUrl: string) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
+  const legacyFormatImages: Array<{ imageUrl: string; pageUrl: string; currentFormat: string; suggestedFormat: string; sizeKB: number }> = [];
 
   let match;
   const checkedUrls = new Set<string>();
@@ -533,6 +598,18 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
         if (sizeKB > 100) {
           largeImages.push(imageData);
         }
+
+        // Check image format and track legacy formats (prioritize larger images >100KB)
+        const formatAnalysis = analyzeImageFormat(imageUrl);
+        if (!formatAnalysis.isModern && sizeKB > 100) {
+          legacyFormatImages.push({
+            imageUrl,
+            pageUrl,
+            currentFormat: formatAnalysis.currentFormat,
+            suggestedFormat: formatAnalysis.suggestedFormat,
+            sizeKB
+          });
+        }
       }
     } catch (_error) {
       console.log(`Could not check image ${imgSrc}:`, error);
@@ -542,7 +619,10 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
 
-  return { images, largeImages };
+  // Sort legacy format images by size (largest first)
+  legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+
+  return { images, largeImages, legacyFormatImages };
 }
 
 async function getImageSize(imageUrl: string): Promise<number> {

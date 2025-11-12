@@ -2615,6 +2615,7 @@ function renderSectionResults(
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
+            legacyFormatImagesList={results.legacyFormatImages || []}
           />
 
           {/* Conversion Analysis Section */}
