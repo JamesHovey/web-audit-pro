@@ -10,8 +10,10 @@ export interface AuditRequestBody {
   country?: string;
   isUKCompany?: boolean;
   pages?: string[];
-  pageLimit?: number;
+  pageLimit?: number | null; // Max pages to analyze (null = use smart default based on tier)
   excludedPaths?: string[];
+  maxPagesPerSection?: number; // Override per-section page limits (keywords, technical, etc.)
+  useSmartSampling?: boolean; // Enable intelligent page selection (default: true)
 }
 
 export interface BusinessContentRequestBody {

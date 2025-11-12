@@ -9,7 +9,24 @@ import type { AuditRequestBody } from "@/types/api"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as AuditRequestBody
-    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', pages = [url], pageLimit = 50, excludedPaths = [] } = body
+    const {
+      url,
+      sections,
+      scope = 'single',
+      auditView = 'executive',
+      country = 'gb',
+      pages = [url],
+      pageLimit = null, // null = use smart default
+      excludedPaths = [],
+      maxPagesPerSection,
+      useSmartSampling = true // Enable smart sampling by default
+    } = body
+
+    // Smart defaults for page limits (optimized for Pro tier with 8GB RAM)
+    const defaultMaxPages = 250 // Up from 100 - safe for Pro tier
+    const effectiveMaxPages = maxPagesPerSection ?? (pageLimit === null ? defaultMaxPages : pageLimit)
+
+    console.log(`📊 Audit configuration: maxPages=${effectiveMaxPages}, smartSampling=${useSmartSampling}, scope=${scope}`)
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -157,6 +174,7 @@ export async function POST(request: NextRequest) {
 
           } else if (section === 'keywords') {
             const { analyzeKeywordsEnhanced } = await import('@/lib/enhancedKeywordService')
+            const { selectSmartSample, toPageInfo } = await import('@/lib/smartPageSampling')
 
             // For 'all' scope, discover and analyze all pages
             let pagesToAnalyze = [url];
@@ -167,24 +185,32 @@ export async function POST(request: NextRequest) {
               const { discoverRealPages } = await import('@/lib/realPageDiscovery');
               const pageDiscovery = await discoverRealPages(url);
 
-              // Filter out excluded paths
-              let filteredPages = pageDiscovery.pages;
-              if (excludedPaths.length > 0) {
-                const initialCount = filteredPages.length;
-                filteredPages = filteredPages.filter(page => {
-                  const pageUrl = new URL(page.url);
-                  const pathname = pageUrl.pathname;
-                  // Check if the pathname starts with any excluded path
-                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+              // Apply smart sampling or simple limit
+              let selectedPages = pageDiscovery.pages;
+
+              if (useSmartSampling && selectedPages.length > effectiveMaxPages) {
+                console.log(`🧠 Using smart sampling to select ${effectiveMaxPages} most important pages from ${selectedPages.length} discovered pages`);
+                const pageInfoList = toPageInfo(selectedPages);
+                const sampledPages = selectSmartSample(pageInfoList, {
+                  maxPages: effectiveMaxPages,
+                  excludePatterns: excludedPaths
                 });
-                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
+                pagesToAnalyze = sampledPages.map(p => p.url);
+              } else {
+                // Simple filtering for excluded paths
+                if (excludedPaths.length > 0) {
+                  const initialCount = selectedPages.length;
+                  selectedPages = selectedPages.filter(page => {
+                    const pageUrl = new URL(page.url);
+                    const pathname = pageUrl.pathname;
+                    return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                  });
+                  console.log(`🚫 Filtered out ${initialCount - selectedPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
+                }
+                pagesToAnalyze = selectedPages.slice(0, effectiveMaxPages).map(p => p.url);
               }
 
-              // Apply page limit with memory-conscious cap (max 100 pages to prevent OOM)
-              const memoryLimit = 100;
-              const effectiveLimit = pageLimit === null ? Math.min(filteredPages.length, memoryLimit) : Math.min(pageLimit, memoryLimit);
-              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages (memory limit: ${memoryLimit})`);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages (max: ${effectiveMaxPages})`);
 
               // Fetch HTML for each page (with memory limit)
               for (const pageUrl of pagesToAnalyze) {
@@ -208,10 +234,9 @@ export async function POST(request: NextRequest) {
                 }
               }
             } else if (scope === 'custom') {
-              // For custom scope, use the specified pages (with memory limit)
-              const memoryLimit = 100;
-              pagesToAnalyze = pages.slice(0, memoryLimit);
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages (memory limit: ${memoryLimit})`);
+              // For custom scope, use the specified pages (with configurable limit)
+              pagesToAnalyze = pages.slice(0, effectiveMaxPages);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages (max: ${effectiveMaxPages})`);
 
               // Fetch HTML for each specified page
               for (const pageUrl of pagesToAnalyze) {
@@ -422,6 +447,9 @@ export async function POST(request: NextRequest) {
             console.log('♿ Running accessibility audit...')
 
             // For 'all' scope, discover and analyze pages (limit for performance)
+            // Accessibility testing is resource-intensive, so use lower limits
+            const { selectSmartSample, toPageInfo } = await import('@/lib/smartPageSampling')
+            const accessibilityMaxPages = Math.min(effectiveMaxPages, 25) // Cap at 25 for accessibility
             let pagesToAnalyze = [url];
 
             if (scope === 'all') {
@@ -429,25 +457,35 @@ export async function POST(request: NextRequest) {
               const { discoverRealPages } = await import('@/lib/realPageDiscovery');
               const pageDiscovery = await discoverRealPages(url);
 
-              // Filter out excluded paths
-              let filteredPages = pageDiscovery.pages;
-              if (excludedPaths.length > 0) {
-                const initialCount = filteredPages.length;
-                filteredPages = filteredPages.filter(page => {
-                  const pageUrl = new URL(page.url);
-                  const pathname = pageUrl.pathname;
-                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+              // Apply smart sampling for accessibility
+              let selectedPages = pageDiscovery.pages;
+
+              if (useSmartSampling && selectedPages.length > accessibilityMaxPages) {
+                console.log(`🧠 Using smart sampling to select ${accessibilityMaxPages} most important pages from ${selectedPages.length} for accessibility audit`);
+                const pageInfoList = toPageInfo(selectedPages);
+                const sampledPages = selectSmartSample(pageInfoList, {
+                  maxPages: accessibilityMaxPages,
+                  excludePatterns: excludedPaths
                 });
-                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths`);
+                pagesToAnalyze = sampledPages.map(p => p.url);
+              } else {
+                // Simple filtering
+                if (excludedPaths.length > 0) {
+                  const initialCount = selectedPages.length;
+                  selectedPages = selectedPages.filter(page => {
+                    const pageUrl = new URL(page.url);
+                    const pathname = pageUrl.pathname;
+                    return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                  });
+                  console.log(`🚫 Filtered out ${initialCount - selectedPages.length} pages based on excluded paths`);
+                }
+                pagesToAnalyze = selectedPages.slice(0, accessibilityMaxPages).map(p => p.url);
               }
 
-              // Limit to 10 pages for accessibility testing (can be resource-intensive)
-              const effectiveLimit = Math.min(pageLimit === null ? 10 : pageLimit, 10);
-              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
-              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} pages (max 10 for performance)`);
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} pages (max: ${accessibilityMaxPages})`);
             } else if (scope === 'custom') {
-              pagesToAnalyze = pages.slice(0, 10); // Limit custom pages too
-              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} custom pages`);
+              pagesToAnalyze = pages.slice(0, accessibilityMaxPages);
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} custom pages (max: ${accessibilityMaxPages})`);
             }
 
             results.accessibility = await performAccessibilityAudit(url, scope, pagesToAnalyze)
