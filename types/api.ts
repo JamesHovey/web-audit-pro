@@ -2,6 +2,14 @@
  * Type definitions for API request and response bodies
  */
 
+export interface AuditConfiguration {
+  enableLighthouse: boolean;
+  enableAccessibility: boolean;
+  enableImageOptimization: boolean;
+  enableSEO: boolean;
+  enableEmail: boolean;
+}
+
 export interface AuditRequestBody {
   url: string;
   sections: string[];
@@ -14,6 +22,8 @@ export interface AuditRequestBody {
   excludedPaths?: string[];
   maxPagesPerSection?: number; // Override per-section page limits (keywords, technical, etc.)
   useSmartSampling?: boolean; // Enable intelligent page selection (default: true)
+  auditConfiguration?: AuditConfiguration;
+  enableEmailNotification?: boolean;
 }
 
 export interface BusinessContentRequestBody {

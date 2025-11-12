@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { CreditCalculator } from "@/lib/creditCalculator"
 import { createUsageTracker } from "@/lib/usageTracker"
+import { sendAuditCompletionEmail } from "@/lib/emailService"
 import type { AuditRequestBody } from "@/types/api"
 
 export async function POST(request: NextRequest) {
@@ -19,7 +20,15 @@ export async function POST(request: NextRequest) {
       pageLimit = null, // null = use smart default
       excludedPaths = [],
       maxPagesPerSection,
-      useSmartSampling = true // Enable smart sampling by default
+      useSmartSampling = true, // Enable smart sampling by default
+      auditConfiguration = {
+        enableLighthouse: true,
+        enableAccessibility: true,
+        enableImageOptimization: true,
+        enableSEO: true,
+        enableEmail: false
+      },
+      enableEmailNotification = false
     } = body
 
     // Smart defaults for page limits (optimized for Pro tier with 8GB RAM)
@@ -51,62 +60,49 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as { id: string }).id
 
-    // Calculate estimated credit cost
-    const pageCount = pages.length
-    const creditEstimate = CreditCalculator.estimateAuditCost(
-      scope as 'single' | 'custom' | 'all',
-      pageCount,
-      sections
-    )
-
-    console.log(`💰 Audit estimate: ${creditEstimate.creditsRequired} credits for ${pageCount} pages`)
-
-    // Get current user credits
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { credits: true, username: true }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Bypass credit checks for testing user
-    const isBypassUser = user.username === 'james.hovey'
-
-    if (!isBypassUser) {
-      // Check if user has sufficient credits (will deduct actual cost after audit)
-      if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
-        return NextResponse.json({
-          error: "Insufficient credits",
-          required: creditEstimate.creditsRequired,
-          available: user.credits,
-          shortfall: creditEstimate.creditsRequired - user.credits
-        }, { status: 402 }) // 402 Payment Required
-      }
-
-      console.log(`💰 User has ${user.credits} credits, estimated cost: ${creditEstimate.creditsRequired} credits`)
-    } else {
-      console.log(`🔓 Credit check bypassed for testing user: ${user.username}`)
-    }
-
-    // Create audit record with user ID and estimated cost
+    // Create audit record with user ID
     const audit = await prisma.audit.create({
       data: {
         userId,
         url,
         sections: sections,
         status: "pending",
-        estimatedCost: creditEstimate.creditsRequired,
         // Store additional audit metadata
         results: {
           scope,
           auditView, // Store the selected audit view
           pages,
-          totalPages: pages.length
+          totalPages: pages.length,
+          auditConfiguration, // Store audit configuration
+          enableEmailNotification // Store email preference
         }
       }
     })
+
+    // Create progress update function
+    const updateProgress = async (stage: string, current: number, total: number, message: string) => {
+      try {
+        await prisma.audit.update({
+          where: { id: audit.id },
+          data: {
+            results: {
+              ...(audit.results as object || {}),
+              progress: {
+                stage,
+                current,
+                total,
+                message,
+                percentage: total > 0 ? Math.round((current / total) * 100) : 0,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+        console.log(`📊 Progress: ${message} (${current}/${total})`);
+      } catch (error) {
+        console.error('Failed to update progress:', error);
+      }
+    };
 
     // Process audit sections sequentially with progress updates
     setTimeout(async () => {
@@ -304,7 +300,7 @@ export async function POST(request: NextRequest) {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, technicalScope, pages)
+            results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
 
             // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
             // It was frequently failing and consuming resources
@@ -321,7 +317,7 @@ export async function POST(request: NextRequest) {
             console.log('🔧 Running technical audit...')
             // Map scope: 'multi' -> 'custom' for technical audit
             const techScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, techScope, pages)
+            results.technical = await performTechnicalAudit(url, techScope, pages, updateProgress)
 
             // Run technology stack detection
             console.log('🔍 Running technology stack detection...')
@@ -433,6 +429,47 @@ export async function POST(request: NextRequest) {
                 console.log('✅ Claude technology analysis completed')
               } catch (claudeError) {
                 console.log('⚠️ Claude technology analysis failed, continuing without it:', claudeError.message)
+              }
+            }
+
+            // Run Universal Performance & Conversion Detection (NEW from Friday session!)
+            if (htmlContent) {
+              try {
+                console.log('🎯 Running universal performance & conversion analysis...')
+                const { analyzeUniversalPerformance } = await import('@/lib/universalPerformanceDetection')
+
+                // Get response headers (reconstruct from fetch if needed)
+                let responseHeaders: Record<string, string> = {}
+                try {
+                  const normalizedUrl = url.startsWith('http') ? url : `https://${url}`
+                  const headResponse = await fetch(normalizedUrl, {
+                    method: 'HEAD',
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                    signal: AbortSignal.timeout(5000)
+                  })
+                  headResponse.headers.forEach((value, key) => {
+                    responseHeaders[key] = value
+                  })
+                } catch (headerError) {
+                  console.log('⚠️ Could not fetch headers for universal analysis, using empty headers')
+                }
+
+                const universalAnalysis = await analyzeUniversalPerformance(htmlContent, responseHeaders, url)
+
+                // Add to results
+                results.conversionAnalysis = {
+                  conversionScore: universalAnalysis.conversionScore,
+                  totalIssues: universalAnalysis.totalIssuesFound,
+                  criticalIssues: universalAnalysis.criticalIssues,
+                  highPriorityIssues: universalAnalysis.highPriorityIssues,
+                  mediumPriorityIssues: universalAnalysis.mediumPriorityIssues,
+                  lowPriorityIssues: universalAnalysis.lowPriorityIssues,
+                  recommendations: universalAnalysis.recommendations
+                }
+
+                console.log(`✅ Universal performance analysis completed: Conversion Score ${universalAnalysis.conversionScore}/100, ${universalAnalysis.totalIssuesFound} issues found`)
+              } catch (universalError) {
+                console.log('⚠️ Universal performance analysis failed, continuing without it:', universalError instanceof Error ? universalError.message : String(universalError))
               }
             }
 
@@ -556,67 +593,47 @@ export async function POST(request: NextRequest) {
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
 
-        // Calculate actual cost based on usage
-        // For now, use estimates for APIs (can be enhanced later with actual API metrics)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, // keywordsEverywhereCredits - TODO: track actual usage
-          0, // serperSearches - TODO: track actual usage
-          0, // claudeInputTokens - TODO: track actual usage
-          0, // claudeOutputTokens - TODO: track actual usage
-          usageMetrics.browserMinutes
-        )
-
         console.log(`📊 Usage metrics: ${Math.round(usageMetrics.browserMinutes * 100) / 100} browser minutes`)
-        console.log(`💰 Actual cost: ${actualCost} credits (estimated was ${creditEstimate.creditsRequired})`)
 
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId}`)
-        }
-
-        // Update audit with results, actual cost, and usage metrics
-        await prisma.audit.update({
+        // Update audit with results and usage metrics
+        const completedAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })
+
+        // Send email notification
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: pages.length,
+              completedAt: completedAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          // Log but don't fail the audit if email fails
+          console.error('Failed to send completion email:', emailError)
+        }
       } catch (error) {
         console.error('Error processing audit:', error)
 
         // End usage tracking even on error
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
-
-        // Calculate actual cost (even for failed audits, to track partial usage)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, 0, 0, 0, usageMetrics.browserMinutes
-        )
-
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId} (error fallback)`)
-        }
 
         // Fallback to mock data on error
         const { generateMockAuditResults } = await import('@/lib/mockData')
@@ -625,16 +642,37 @@ export async function POST(request: NextRequest) {
         // Ensure the mock results are properly serializable
         const safeMockResults = JSON.parse(JSON.stringify(mockResults))
 
-        await prisma.audit.update({
+        const fallbackAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeMockResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })
+
+        // Send email notification even on fallback
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: pages.length,
+              completedAt: fallbackAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          console.error('Failed to send completion email:', emailError)
+        }
       }
     }, 5000) // Increased to 5 seconds to allow for API calls
     

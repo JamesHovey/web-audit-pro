@@ -35,6 +35,24 @@ interface EnhancedRecommendationsProps {
     largeImages?: number
     http404Errors?: number
   }
+  issuePages?: {
+    missingH1Tags?: string[]
+    missingMetaTitles?: string[]
+    missingMetaDescriptions?: string[]
+    httpErrors?: string[]
+  }
+  largeImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    sizeKB: number
+  }>
+  legacyFormatImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    currentFormat: string
+    suggestedFormat: string
+    sizeKB: number
+  }>
 }
 
 export default function EnhancedRecommendations({
@@ -44,7 +62,10 @@ export default function EnhancedRecommendations({
   detectedPlugins = [],
   pageBuilder,
   cms,
-  technicalIssues
+  technicalIssues,
+  issuePages,
+  largeImagesList = [],
+  legacyFormatImagesList = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -144,32 +165,36 @@ export default function EnhancedRecommendations({
     // Large Images
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       techRecs.push({
-        title: 'Optimize Large Images',
-        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site`,
+        title: 'Optimise Large Images',
+        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimisation" table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Large images significantly impact page load time and user experience',
+        details: 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
         useCase: 'large-images',
         howTo: cms === 'WordPress' ? [
-          'Install an image optimization plugin:',
-          'Recommended: Imagify, ShortPixel, or EWWW Image Optimizer (all have free tiers)',
+          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
+          'Install an image optimisation plugin (see recommended plugins below):',
+          'Recommended: Imagify, ShortPixel, or EWWW Image Optimiser (all have free tiers)',
           'These plugins automatically compress images on upload',
-          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimize images"',
-          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimize on upload"',
+          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimise images"',
+          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimise on upload"',
           'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
-          'For existing images: Use the bulk optimizer in the plugin',
+          'For existing images: Use the bulk optimiser in the plugin',
           'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          'Target: Keep images under 200KB, preferably under 100KB',
+          '✅ After optimisation, re-run the audit to verify improvements'
         ] : [
+          '📋 Check the "Large Images Need Optimisation" table below to see which images need fixing',
           'Compress images before uploading to your site',
           'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
           'Convert to modern formats: WebP or AVIF',
           'Set appropriate dimensions - don\'t upload larger than needed',
           'Use responsive images with srcset attribute',
-          'For e-commerce: Shopify has built-in image optimization',
-          'For Wix/Squarespace: Use their built-in image optimization tools',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          'For e-commerce: Shopify has built-in image optimisation',
+          'For Wix/Squarespace: Use their built-in image optimisation tools',
+          'Target: Keep images under 200KB, preferably under 100KB',
+          '✅ After optimisation, re-run the audit to verify improvements'
         ]
       })
     }
@@ -278,60 +303,168 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('unused javascript') || lowerRec.includes('remove unused javascript')) {
-      const baseInstructions = [
-        'Audit JavaScript files for unused code',
+      const baseInstructions = cms === 'WordPress' ? [
+        'Install a performance optimisation plugin (see recommended plugins below)',
+        'Identify unused JavaScript using Chrome DevTools → Coverage tab',
+        'Remove unnecessary third-party scripts (analytics, chat widgets not in use)',
+        'Review installed plugins - deactivate unused ones as they add JavaScript',
+        'Consider replacing heavy plugins with lighter alternatives',
+        'Test thoroughly after making changes to ensure functionality'
+      ] : [
+        'Audit JavaScript files for unused code using Chrome DevTools → Coverage tab',
         'Remove unnecessary third-party scripts',
         'Use code splitting to load JS only when needed',
-        'Minify and compress remaining JavaScript'
+        'Minify and compress remaining JavaScript',
+        'Consider using a bundler like Webpack or Rollup',
+        'Implement tree-shaking to remove dead code'
       ]
-      
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Remove Unused JavaScript',
         description: 'JavaScript files contain code that\'s not being executed',
         impact: 'High',
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
-        details: 'Unused JavaScript blocks the browser and wastes bandwidth',
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Minify JavaScript files"\n4. Enable "Combine JavaScript files" \n5. Enable "Load JavaScript deferred"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nUnused JavaScript blocks the browser and wastes bandwidth. WP Rocket will optimize your JavaScript automatically with these settings.'
+            : 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimisation plus caching, lazy loading, and more - reducing the number of plugins needed.'
+          : 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
+        useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
       }
     }
     
     if (lowerRec.includes('render-blocking') || lowerRec.includes('blocking resources')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🚀 RECOMMENDED: Install WP Rocket (Premium) - comprehensive solution for blocking resources:',
+        '   • Automatically generates critical CSS',
+        '   • Defers JavaScript loading',
+        '   • Minifies and combines CSS/JS files',
+        '   • Also includes: caching, lazy loading, database optimisation',
+        '   • One plugin solves multiple issues',
+        '   • Cost: £59/year (saves money vs multiple plugins)',
+        '   • Setup: Install WP Rocket → File Optimisation settings configured automatically',
+        '',
+        'FREE ALTERNATIVES (require manual configuration):',
+        'Autoptimize (Free): Aggregate and minify CSS/JS files',
+        'Async JavaScript (Free): Defer JavaScript execution',
+        'Critical CSS (Free): Generate and inline critical CSS',
+        '',
+        'MANUAL STEPS:',
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources'
+      ] : [
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources',
+        'Consider using a build tool to optimize resource loading'
+      ]
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Fix Render-Blocking Resources',
         description: 'CSS and JS files are preventing your page from displaying quickly',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <AlertTriangle className="w-4 h-4" />,
-        details: 'Critical resources must load before the page can be displayed',
-        howTo: [
-          'Inline critical CSS in the HTML head',
-          'Load non-critical CSS asynchronously',
-          'Defer non-essential JavaScript',
-          'Use resource hints like preload for critical resources'
-        ]
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Optimize CSS delivery" - WP Rocket will automatically generate critical CSS\n4. Enable "Load JavaScript deferred" to defer JavaScript loading\n5. Under "CSS Files", enable "Minify CSS files" and "Combine CSS files"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nRender-blocking resources prevent your page from displaying quickly. WP Rocket automatically handles this complex optimization.'
+            : 'Critical resources must load before the page can be displayed. WP Rocket automatically handles this complex optimization, including critical CSS generation and resource deferral.'
+          : 'Critical resources must load before the page can be displayed. This requires technical optimization of how CSS and JavaScript are loaded.',
+        useCase: cms === 'WordPress' ? 'javascript-optimization' : undefined,
+        howTo: baseInstructions
       }
     }
     
-    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer'))) {
-      const baseInstructions = [
-        'Add loading="lazy" to img tags',
-        'Use intersection observer for custom lazy loading',
-        'Prioritize above-the-fold images',
-        'Consider using modern image formats'
+    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🚀 BEST OPTION: WP Rocket (Premium) includes lazy loading plus many other optimizations',
+        '   • Handles lazy loading for images, iframes, and videos',
+        '   • Also includes: JS/CSS optimization, caching, minification',
+        '   • Setup: Install WP Rocket → Enable "LazyLoad for images" in Media settings',
+        '',
+        'FREE ALTERNATIVES (if not using WP Rocket):',
+        'Smush (Free): Enable "Lazy Load" in the Lazy Load tab',
+        'a3 Lazy Load (Free): Install and activate - works automatically with default settings',
+        'Jetpack (Free): Enable "Speed up image load times" in Performance settings',
+        'WordPress 5.5+ has native lazy loading built-in (check it\'s not disabled)',
+        '',
+        'MANUAL OPTION:',
+        'Add loading="lazy" to images manually in your theme',
+        'Exclude above-the-fold images from lazy loading (first 2-3 images)',
+        'Test on mobile devices to ensure images load properly when scrolling'
+      ] : [
+        'Add loading="lazy" attribute to img tags below the fold',
+        'Example: <img src="image.jpg" loading="lazy" alt="Description">',
+        'Use Intersection Observer API for custom lazy loading',
+        'Prioritize above-the-fold images (don\'t lazy load them)',
+        'Consider using modern image formats like WebP',
+        'JavaScript libraries: lazysizes, lozad.js, or vanilla-lazyload',
+        'Ensure images have width/height attributes to prevent layout shifts'
       ]
-      
+
       return {
-        title: 'Lazy Load Images',
+        title: 'Implement Lazy Loading for Images',
         description: 'Images below the fold are loading immediately, wasting bandwidth',
         impact: 'Medium',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Loading images only when needed improves initial page load',
+        details: cms === 'WordPress'
+          ? 'Lazy loading defers loading of offscreen images until users scroll near them. If you use WP Rocket for JavaScript optimization, it also includes lazy loading - no need for separate plugins.'
+          : 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
+        useCase: 'lazy-loading',
         howTo: getPluginSpecificInstructions(baseInstructions, 'images')
       }
     }
     
+    if (lowerRec.includes('mobile') && lowerRec.includes('image')) {
+      // CMSs that automatically handle responsive images - skip this recommendation
+      const cmsWithAutoResponsiveImages = ['WordPress', 'Shopify', 'Wix', 'Squarespace', 'Webflow', 'Drupal'];
+
+      if (cms && cmsWithAutoResponsiveImages.some(autoCms => cms.toLowerCase().includes(autoCms.toLowerCase()))) {
+        // CMS handles this automatically, skip recommendation
+        return {
+          title: '', // Empty title will be filtered out
+          description: '',
+          impact: 'Low' as 'Low',
+          effort: 'Easy' as 'Easy',
+          icon: <Image className="w-4 h-4" />,
+          details: '',
+          howTo: []
+        }
+      }
+
+      // Only show for custom sites without automatic responsive images
+      const baseInstructions = [
+        'Use responsive images with srcset and sizes attributes',
+        'Example: <img srcset="small.jpg 480w, medium.jpg 768w, large.jpg 1200w" sizes="(max-width: 768px) 100vw, 50vw" src="medium.jpg" alt="Description">',
+        'Serve appropriately sized images for different screen sizes',
+        'Use picture element for art direction (different images for mobile vs desktop)',
+        'Implement WebP format with JPEG/PNG fallbacks',
+        'Consider using a CDN with automatic image resizing (Cloudinary, Imgix)',
+        'Test on actual mobile devices, not just browser emulation'
+      ]
+
+      return {
+        title: 'Optimise Images for Mobile Devices',
+        description: 'Serve appropriately sized images for mobile screens to save bandwidth',
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Image className="w-4 h-4" />,
+        details: 'Mobile devices don\'t need full desktop-sized images. Serving smaller images saves bandwidth and improves load times on mobile connections.',
+        useCase: 'large-images',
+        howTo: baseInstructions
+      }
+    }
+
     if (lowerRec.includes('webp') || lowerRec.includes('next-gen') || lowerRec.includes('image format')) {
       return {
         title: 'Use Modern Image Formats',
@@ -367,19 +500,141 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('server response') || lowerRec.includes('response time')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🚀 QUICK WINS (WordPress):',
+        'Install WP Rocket (Premium): Includes page caching, database optimization, and CDN integration',
+        'W3 Total Cache (Free): Page caching and minification',
+        'LiteSpeed Cache (Free): High-performance caching if using LiteSpeed hosting',
+        'WP Super Cache (Free): Simple page caching by Automattic',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Enable page caching (stores HTML to avoid regenerating pages)',
+        'Enable object caching (Redis/Memcached for database queries)',
+        'Optimise database queries (use Query Monitor plugin to find slow queries)',
+        'Upgrade hosting plan (shared hosting is often slow under load)',
+        'Consider managed WordPress hosting (WP Engine, Kinsta, Flywheel)',
+        'Enable opcode caching (OPcache for PHP)',
+        '',
+        '☁️ CDN & INFRASTRUCTURE:',
+        'Use a Content Delivery Network (see "Use a CDN" recommendation)',
+        'Enable Cloudflare (free CDN and security)',
+        'Upgrade to PHP 8.0+ (significantly faster than PHP 7.x)',
+        'Use HTTP/2 or HTTP/3 (faster protocol)',
+        '',
+        '⚠️ IF STILL SLOW:',
+        'Check server resources (CPU, RAM, disk I/O)',
+        'Review plugin overhead (disable unnecessary plugins)',
+        'Consider dedicated or VPS hosting',
+        'Hire a performance consultant for deep optimization'
+      ] : [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Upgrade to faster hosting (VPS or dedicated server)',
+        'Enable server-side caching (Varnish, Redis)',
+        'Optimise database queries and indexes',
+        'Use a Content Delivery Network (CDN)',
+        'Enable HTTP/2 or HTTP/3',
+        'Optimise server configuration (Nginx, Apache)',
+        'Consider serverless architecture for dynamic content'
+      ]
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
-        title: 'Improve Server Response Time',
-        description: 'Your server takes too long to respond to requests',
+        title: 'Improve Server Response Time (TTFB)',
+        description: 'Your server takes too long to respond to requests, delaying page load',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <Server className="w-4 h-4" />,
-        details: 'Slow server response delays everything else on your page',
-        howTo: [
-          'Upgrade to faster hosting',
-          'Enable caching on your server',
-          'Optimize database queries',
-          'Use a Content Delivery Network (CDN)'
-        ]
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "Cache" tab\n3. Ensure "Enable caching for mobile devices" is enabled\n4. Click the "File Optimization" tab and enable minification options\n5. Click the "Database" tab and enable "Post Cleanup" and "Database Cleanup"\n6. Go to the "Preload" tab and enable "Preload Cache" to build the cache automatically\n7. Click "Save Changes"\n8. Clear the cache and test your site\n\nServer response time (TTFB) is how long it takes for your server to start sending data. WP Rocket\'s caching will dramatically improve this by serving cached pages instead of generating them on each request.'
+            : 'Server response time (Time to First Byte - TTFB) is how long it takes for your server to start sending data. This is the foundation of page speed - if your server is slow, everything else is delayed. For WordPress, caching plugins can dramatically improve this.'
+          : 'Server response time (Time to First Byte - TTFB) measures how long it takes for your server to respond to requests. Slow TTFB delays everything on your page. Typical causes: slow hosting, unoptimised database queries, lack of caching, or heavy server-side processing.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
+      }
+    }
+
+    if (lowerRec.includes('cdn') || lowerRec.includes('content delivery network')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        'Benefits: Faster global load times, reduced server load, better reliability',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around CDN with free plan, DDoS protection, SSL',
+        '  • Setup: Sign up → Add site → Update nameservers → Enable CDN',
+        '  • Free plan includes: CDN, SSL, DDoS protection, firewall',
+        '  • Paid plans (£20/month+): Better performance, more features',
+        '',
+        'WP Rocket + RocketCDN (£8.99/month): WordPress-optimised CDN',
+        '  • Seamless integration with WP Rocket',
+        '  • Designed specifically for WordPress',
+        '  • Easy setup via WP Rocket dashboard',
+        '',
+        'Bunny CDN (£1/month+): Budget-friendly, fast performance',
+        '  • Pay-as-you-go pricing',
+        '  • Excellent performance',
+        '  • Requires manual configuration',
+        '',
+        'StackPath (Paid): Enterprise-grade CDN',
+        '  • Advanced features and security',
+        '  • Best for high-traffic sites',
+        '',
+        '📦 WORDPRESS PLUGINS FOR CDN:',
+        'WP Rocket: Built-in CDN integration',
+        'Cloudflare Plugin: Official Cloudflare integration',
+        'CDN Enabler: Simple CDN integration for any provider',
+        'W3 Total Cache: Supports multiple CDN providers',
+        '',
+        '⚙️ SETUP STEPS:',
+        '1. Choose CDN provider (Cloudflare recommended for beginners)',
+        '2. Create account and add your domain',
+        '3. Update DNS settings or install plugin',
+        '4. Test CDN is working (check browser network tab)',
+        '5. Configure caching rules if needed'
+      ] : [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around, easy setup',
+        'Bunny CDN: Budget-friendly, excellent performance',
+        'Amazon CloudFront: Integrates with AWS services',
+        'Fastly: Enterprise-grade, advanced features',
+        '',
+        '⚙️ SETUP STEPS:',
+        'Sign up for CDN provider',
+        'Add your domain to CDN',
+        'Update DNS settings to point to CDN',
+        'Configure caching rules',
+        'Test CDN is working properly',
+        'Monitor performance improvements'
+      ]
+
+      return {
+        title: 'Use a Content Delivery Network (CDN)',
+        description: 'Serve static assets from servers closer to your users worldwide',
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Server className="w-4 h-4" />,
+        details: cms === 'WordPress'
+          ? 'A CDN dramatically improves global load times by serving your site from multiple locations worldwide. Cloudflare offers a generous free plan with easy setup. For WordPress sites, WP Rocket includes seamless CDN integration.'
+          : 'A CDN caches and serves your static assets (images, CSS, JS) from servers geographically close to your users, dramatically reducing load times globally. Essential for international audiences.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
       }
     }
     
@@ -427,8 +682,11 @@ export default function EnhancedRecommendations({
   // Combine and prioritize: Technical SEO issues first (High impact), then performance recommendations
   const allRecs = [...technicalRecs, ...performanceRecs]
 
+  // Filter out recommendations with empty titles (skipped recommendations)
+  const validRecs = allRecs.filter(rec => rec.title && rec.title.trim() !== '')
+
   // Deduplicate by title (keep first occurrence)
-  const deduplicatedRecs = allRecs.filter((rec, index, self) =>
+  const deduplicatedRecs = validRecs.filter((rec, index, self) =>
     index === self.findIndex((r) => r.title === rec.title)
   )
 
@@ -549,6 +807,213 @@ export default function EnhancedRecommendations({
                     </summary>
                     <div className="mt-2 p-3 bg-gray-50 rounded">
                       <p className="text-gray-700 mb-3">{rec.details}</p>
+
+                      {/* Large Images Table - Show at TOP of "Optimise Large Images" recommendation */}
+                      {rec.title.includes('Large Image') && largeImagesList.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimisation</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {largeImagesList.slice(0, 10).map((image, imageIndex) => (
+                                    <tr key={imageIndex} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={image.imageUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                                        >
+                                          {image.imageUrl.split('/').pop() || image.imageUrl}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Tooltip content={image.pageUrl}>
+                                          <a
+                                            href={image.pageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                          >
+                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
+                                          </a>
+                                        </Tooltip>
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-medium text-red-600">
+                                        {(image.sizeKB || 0).toLocaleString()}KB
+                                      </td>
+                                      <td className="px-4 py-3 text-gray-600">
+                                        {image.sizeKB > 500 ? 'Optimise urgently' : 'Compress image'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Legacy Format Images Table - Show for "Use Modern Image Formats" recommendation */}
+                      {(rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && legacyFormatImagesList.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Using Legacy Formats</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Format</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Suggested Format</th>
+                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {legacyFormatImagesList.slice(0, 20).map((image, imageIndex) => (
+                                    <tr key={imageIndex} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={image.imageUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                                        >
+                                          {image.imageUrl.split('/').pop() || image.imageUrl}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Tooltip content={image.pageUrl}>
+                                          <a
+                                            href={image.pageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline"
+                                          >
+                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                                          </a>
+                                        </Tooltip>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                          {image.currentFormat}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                          {image.suggestedFormat}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-medium text-gray-700">
+                                        {(image.sizeKB || 0).toLocaleString()}KB
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Converting to WebP can reduce file sizes by 25-35% without visible quality loss. Most modern browsers support WebP.
+                            {legacyFormatImagesList.length > 20 && ` Showing top 20 of ${legacyFormatImagesList.length} legacy format images.`}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Pages With Issues - Show for technical SEO issues */}
+                      {rec.title.includes('Missing H1 Tags') && issuePages?.missingH1Tags && issuePages.missingH1Tags.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing H1 Tags</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingH1Tags.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingH1Tags.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Titles') && issuePages?.missingMetaTitles && issuePages.missingMetaTitles.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Titles</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaTitles.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaTitles.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Descriptions') && issuePages?.missingMetaDescriptions && issuePages.missingMetaDescriptions.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Descriptions</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaDescriptions.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaDescriptions.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Regular Steps */}
                       <div className="space-y-2 mb-4">

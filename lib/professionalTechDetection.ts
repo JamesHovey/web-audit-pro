@@ -2,7 +2,7 @@
 // Using direct website analysis for cost-effective, accurate technology detection
 
 import { detectHostingProvider } from './enhancedHostingDetection';
-import { detectUniversalPlugins } from './claudePluginDetection';
+import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
 
 interface TechStackResult {
   cms?: string;
@@ -87,35 +87,50 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
     
     const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
     
-    // Universal Claude-powered plugin detection for all CMS platforms
-    console.log('🧠 Running Claude-powered universal plugin detection...');
+    // Hybrid Plugin Detection (Pattern Matching + AI)
+    console.log('🔄 Running hybrid plugin detection (Pattern + AI)...');
     try {
-      const pluginAnalysis = await detectUniversalPlugins(html, headers, cleanUrl, result.cms);
-      
-      // Enhance the result with Claude plugin analysis
-      result.pluginAnalysis = pluginAnalysis;
-      result.detectedPlatform = pluginAnalysis.platform;
-      
-      // Update plugins with categorized results
-      if (pluginAnalysis.totalPluginsDetected > 0) {
-        result.plugins = pluginAnalysis.pluginsByCategory;
-        result.totalPlugins = pluginAnalysis.totalPluginsDetected;
-        
-        // Update specific fields based on detected plugins
-        const ecommercePlugins = pluginAnalysis.pluginsByCategory.ecommerce;
-        if (ecommercePlugins && ecommercePlugins.length > 0) {
-          result.ecommerce = ecommercePlugins[0].name;
+      const platform = result.cms || 'WordPress'; // Default to WordPress if not detected
+      const hybridResult = await detectPluginsHybrid(platform, html, headers, cleanUrl);
+
+      // Log detection summary
+      console.log(generateDetectionSummary(hybridResult));
+
+      // Enhance the result with hybrid detection
+      result.pluginAnalysis = hybridResult.platformAnalysis;
+      result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
+      result.totalPlugins = hybridResult.totalPluginsDetected;
+
+      // Categorize plugins for easy access
+      const categorized: Record<string, any[]> = {};
+      for (const plugin of hybridResult.detectedPlugins) {
+        const category = plugin.category || 'other';
+        if (!categorized[category]) {
+          categorized[category] = [];
         }
-        
-        const pageBuilders = pluginAnalysis.pluginsByCategory['page-builder'];
-        if (pageBuilders && pageBuilders.length > 0) {
-          result.pageBuilder = pageBuilders[0].name;
-        }
+        categorized[category].push(plugin);
       }
-      
-      console.log(`✅ Claude plugin analysis complete: ${pluginAnalysis.totalPluginsDetected} plugins detected for ${pluginAnalysis.platform}`);
+
+      result.plugins = categorized;
+
+      // Update specific fields based on detected plugins
+      const ecommercePlugins = categorized.ecommerce;
+      if (ecommercePlugins && ecommercePlugins.length > 0) {
+        result.ecommerce = ecommercePlugins[0].name;
+      }
+
+      const pageBuilders = categorized['page-builder'];
+      if (pageBuilders && pageBuilders.length > 0) {
+        result.pageBuilder = pageBuilders[0].name;
+      }
+
+      // Check for missing essential plugins
+      const missingEssentials = checkMissingEssentials(platform, hybridResult.detectedPlugins);
+      result.missingEssentials = missingEssentials;
+
+      console.log(`✅ Hybrid plugin detection complete: ${hybridResult.totalPluginsDetected} plugins detected via ${hybridResult.detectionMethod}`);
     } catch (error) {
-      console.error('Claude plugin detection failed, continuing with basic detection:', error);
+      console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
     }
     
     return result;

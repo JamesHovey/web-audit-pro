@@ -27,14 +27,25 @@ export async function GET(_request: NextRequest) {
         status: true,
         createdAt: true,
         completedAt: true,
-        sections: true
+        sections: true,
+        results: true // Include results to get scope and totalPages
       },
       take: 50 // Limit to last 50 audits
     })
 
+    // Extract scope and totalPages from results for each audit
+    const auditsWithScope = audits.map(audit => {
+      const results = audit.results as any
+      return {
+        ...audit,
+        scope: results?.scope || 'single',
+        totalPages: results?.totalPages || 1
+      }
+    })
+
     return NextResponse.json({
-      audits,
-      total: audits.length
+      audits: auditsWithScope,
+      total: auditsWithScope.length
     })
 
   } catch (error) {

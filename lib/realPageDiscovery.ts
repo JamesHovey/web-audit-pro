@@ -76,7 +76,7 @@ interface PageDiscoveryResult {
 }
 
 export class RealPageDiscovery {
-  private maxPages = 50; // Limit to avoid overwhelming servers
+  private maxPages = 50; // Limit for crawling only (not sitemap parsing)
   private timeout = 10000; // 10 second timeout per request
   private visitedUrls = new Set<string>();
   private foundPages: DiscoveredPage[] = [];
@@ -164,12 +164,15 @@ export class RealPageDiscovery {
     const sitemapUrls: string[] = [];
     let match;
 
-    while ((match = sitemapRegex.exec(xml)) !== null && sitemapUrls.length < 10) {
+    // Remove limit - parse all child sitemaps in sitemap index
+    while ((match = sitemapRegex.exec(xml)) !== null) {
       sitemapUrls.push(match[1]);
     }
 
+    console.log(`📑 Found ${sitemapUrls.length} child sitemaps in sitemap index`);
     const allPages: DiscoveredPage[] = [];
 
+    // Process all child sitemaps (removed page limit)
     for (const sitemapUrl of sitemapUrls) {
       try {
         const response = await fetch(sitemapUrl, {
@@ -181,15 +184,15 @@ export class RealPageDiscovery {
           const sitemapXml = await response.text();
           const pages = await this.parseSitemapUrls(sitemapXml, sitemapUrl);
           allPages.push(...pages);
-
-          if (allPages.length >= this.maxPages) break;
+          console.log(`   ✓ Parsed ${pages.length} pages from ${sitemapUrl.split('/').pop()}, total: ${allPages.length}`);
         }
       } catch (_error) {
         console.log(`Could not fetch sitemap ${sitemapUrl}`);
       }
     }
 
-    return allPages.slice(0, this.maxPages);
+    console.log(`✅ Total pages discovered from all sitemaps: ${allPages.length}`);
+    return allPages; // Return all pages, no limit
   }
 
   private async parseSitemapUrls(xml: string, sitemapUrl: string): Promise<DiscoveredPage[]> {
@@ -197,7 +200,8 @@ export class RealPageDiscovery {
     const pages: DiscoveredPage[] = [];
     let match;
 
-    while ((match = urlPattern.exec(xml)) !== null && pages.length < this.maxPages) {
+    // Remove limit - parse all URLs from sitemap (not just first 50)
+    while ((match = urlPattern.exec(xml)) !== null) {
       const urlBlock = match[1];
 
       const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);

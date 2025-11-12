@@ -1,6 +1,31 @@
 // Real technical audit service that analyzes actual website data
 import { discoverRealPages } from './realPageDiscovery';
 import { analyzeViewportResponsiveness } from './viewportAnalysisService';
+import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
+
+/**
+ * Process items in parallel chunks to avoid overwhelming the server
+ * @param items - Array of items to process
+ * @param chunkSize - Number of items to process in parallel
+ * @param processor - Async function to process each item
+ */
+async function processInChunks<T, R>(
+  items: T[],
+  chunkSize: number,
+  processor: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    const chunkResults = await Promise.all(
+      chunk.map((item, chunkIndex) => processor(item, i + chunkIndex))
+    );
+    results.push(...chunkResults);
+  }
+
+  return results;
+}
 
 interface PagePerformanceMetrics {
   desktop: {
@@ -49,11 +74,24 @@ interface TechnicalAuditResult {
     pageUrl: string;
     sizeKB: number;
   }>;
+  legacyFormatImages?: Array<{
+    imageUrl: string;
+    pageUrl: string;
+    currentFormat: string;
+    suggestedFormat: string;
+    sizeKB: number;
+  }>;
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
     missingH1Tags: number;
     httpErrors: number;
+  };
+  issuePages?: {
+    missingMetaTitles?: string[];
+    missingMetaDescriptions?: string[];
+    missingH1Tags?: string[];
+    httpErrors?: string[];
   };
   notFoundErrors: Array<{
     brokenUrl: string;
@@ -69,10 +107,14 @@ interface TechnicalAuditResult {
   html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
+// Progress callback type
+export type ProgressCallback = (stage: string, current: number, total: number, message: string) => Promise<void>;
+
 export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
-  specifiedPages: string[] = [url]
+  specifiedPages: string[] = [url],
+  onProgress?: ProgressCallback
 ): Promise<TechnicalAuditResult> {
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
 
@@ -86,6 +128,7 @@ export async function performTechnicalAudit(
     pages: [],
     largeImages: 0,
     largeImageDetails: [],
+    legacyFormatImages: [],
     issues: {
       missingMetaTitles: 0,
       missingMetaDescriptions: 0,
@@ -129,6 +172,7 @@ export async function performTechnicalAudit(
     // 3. Find and analyze all images from main page
     const mainPageImages = await findAndAnalyzeImages(html, url);
     result.largeImageDetails = mainPageImages.largeImages;
+    result.legacyFormatImages = mainPageImages.legacyFormatImages;
     
     // 4. Find and check all links for 404s
     const links = findAllLinks(html, url);
@@ -225,20 +269,49 @@ export async function performTechnicalAudit(
     } else {
       // scope === 'all' - discover all pages
       console.log('🔍 Discovering all website pages...');
+      if (onProgress) await onProgress('discovering_pages', 0, 100, 'Discovering website pages...');
       pageDiscovery = await discoverRealPages(url);
+      if (onProgress) await onProgress('discovering_pages', 100, 100, `Found ${pageDiscovery.totalPages} pages`);
     }
 
     result.totalPages = pageDiscovery.totalPages;
-    
-    // Add performance metrics to ALL pages (limit detailed analysis but provide metrics for all)
+
+    // Clear expired cache entries before starting
+    clearExpiredCache();
+
+    // Add performance metrics to ALL pages with parallel chunked processing
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
+    if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
     const maxDetailedAnalysis = 20; // Only fetch HTML for first 20 pages (for performance)
     const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
-    
-    const pagesWithPerformance = await Promise.all(
-      pagesToAnalyze.map(async (page, index) => {
+
+    // Process pages in chunks of 3 (safe for Railway free tier)
+    const CONCURRENT_PAGES = 3;
+    console.log(`⚡ Processing pages in parallel (${CONCURRENT_PAGES} at a time)`);
+
+    const pagesWithPerformance = await processInChunks(
+      pagesToAnalyze,
+      CONCURRENT_PAGES,
+      async (page, index) => {
         let performance: PagePerformanceMetrics | undefined;
         let pageHtml: string | undefined = undefined;
+
+        // Check cache first
+        const cached = getCachedPageData(page.url);
+        if (cached && cached.lighthouse) {
+          console.log(`⚡ Using cached data for ${page.url}`);
+          return {
+            url: page.url,
+            title: page.title,
+            statusCode: page.statusCode,
+            hasTitle: page.hasTitle,
+            hasDescription: page.hasDescription,
+            hasH1: page.hasH1,
+            imageCount: page.imageCount,
+            performance: cached.lighthouse,
+            html: pageHtml
+          };
+        }
 
         try {
           // Only do detailed HTML fetching for first N pages to avoid timeouts
@@ -297,12 +370,26 @@ export async function performTechnicalAudit(
             console.log(`📊 Generating simulated performance for ${page.url} (beyond fetch limit)`);
           }
         } catch (_error) {
-          console.log(`Could not analyze performance for ${page.url}:`, error.message);
+          console.log(`Could not analyze performance for ${page.url}:`, _error instanceof Error ? _error.message : String(_error));
           // Still provide basic performance metrics so page appears in table
           performance = {
             desktop: { lcp: 3500, cls: 0.15, inp: 300, score: 40 },
             mobile: { lcp: 5000, cls: 0.25, inp: 450, score: 25 }
           };
+        }
+
+        // Cache the performance data for future audits
+        if (performance) {
+          setCachedPageData(page.url, {
+            lighthouse: performance,
+            metadata: {
+              title: page.title,
+              description: page.hasDescription ? 'Present' : 'Missing',
+              hasH1: page.hasH1,
+              imageCount: page.imageCount,
+              statusCode: page.statusCode
+            }
+          });
         }
 
         return {
@@ -316,9 +403,9 @@ export async function performTechnicalAudit(
           performance,
           html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
         };
-      })
+      }
     );
-    
+
     // All pages now have performance data
     result.pages = pagesWithPerformance;
     result.sitemapStatus = pageDiscovery.sitemapStatus;
@@ -360,42 +447,126 @@ export async function performTechnicalAudit(
       console.log(`✅ Aggregate metrics calculated from ${pagesWithMetrics.length} pages`);
     }
     
-    // Count issues across all discovered pages
-    result.issues.missingMetaTitles = pageDiscovery.pages.filter(p => !p.hasTitle).length;
-    result.issues.missingMetaDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription).length;
-    result.issues.missingH1Tags = pageDiscovery.pages.filter(p => !p.hasH1).length;
-    result.issues.httpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400).length;
-    
-    // 8. Analyze images from discovered pages (check up to 10 pages for performance)
-    console.log('🖼️ Analyzing images across discovered pages...');
-    // For single page, don't analyze additional pages (already analyzed main page)
-    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, 10);
+    // Count issues across all discovered pages and collect page URLs
+    const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
+    const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
+    const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400);
 
-    for (const page of pagesToCheck) {
-      if (page.url === url) continue; // Skip main page (already analyzed)
-      
-      try {
-        const pageResponse = await fetch(page.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (pageResponse.ok) {
-          const pageHtml = await pageResponse.text();
-          const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
-          
-          // Add large images from this page to the results
-          result.largeImageDetails.push(...pageImages.largeImages);
-        }
-      } catch (_error) {
-        console.log(`Could not analyze images for ${page.url}`);
-      }
-    }
+    result.issues.missingMetaTitles = pagesWithMissingTitles.length;
+    result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
+    result.issues.missingH1Tags = pagesWithMissingH1.length;
+    result.issues.httpErrors = pagesWithHttpErrors.length;
+
+    // Store page URLs for each issue type (limit to 20 pages per issue type for performance)
+    result.issuePages = {
+      missingMetaTitles: pagesWithMissingTitles.slice(0, 20).map(p => p.url),
+      missingMetaDescriptions: pagesWithMissingDescriptions.slice(0, 20).map(p => p.url),
+      missingH1Tags: pagesWithMissingH1.slice(0, 20).map(p => p.url),
+      httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
+    };
     
+    // 8. Analyze images from discovered pages with scope-based limits
+    console.log('🖼️ Analyzing images across discovered pages...');
+
+    // Determine how many pages to analyze based on scope
+    let pageLimit = 0;
+    if (scope === 'single') {
+      pageLimit = 0; // Already analyzed main page
+    } else if (scope === 'all') {
+      pageLimit = 50; // Scan up to 50 pages for all discoverable pages
+    } else if (scope === 'custom' || scope === 'multi') {
+      // For custom/multi, analyze all specified pages
+      pageLimit = specifiedPages.length;
+    }
+
+    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, pageLimit);
+    console.log(`📊 Analyzing images on ${pagesToCheck.length} pages (scope: ${scope}, limit: ${pageLimit})`);
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', 0, pagesToCheck.length, 'Analyzing images across pages...');
+    }
+
+    // Process images in parallel chunks
+    const imagePagesToProcess = pagesToCheck.filter(page => page.url !== url); // Skip main page
+    console.log(`⚡ Analyzing images on ${imagePagesToProcess.length} pages in parallel`);
+
+    await processInChunks(
+      imagePagesToProcess,
+      CONCURRENT_PAGES, // Same concurrency as metadata analysis
+      async (page, i) => {
+        try {
+          // Check cache for page HTML
+          const cached = getCachedPageData(page.url);
+          let pageHtml: string | undefined;
+
+          if (cached && cached.images) {
+            console.log(`⚡ Using cached image data for ${page.url}`);
+            // Add cached images to results
+            if (cached.images.length > 0) {
+              const largeImages = cached.images.filter(img => img.sizeKB > 100);
+              result.largeImageDetails.push(...largeImages.map(img => ({
+                imageUrl: img.url,
+                pageUrl: page.url,
+                sizeKB: img.sizeKB
+              })));
+            }
+            return;
+          }
+
+          // Fetch page HTML if not cached
+          const pageResponse = await fetch(page.url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            signal: AbortSignal.timeout(10000)
+          });
+
+          if (pageResponse.ok) {
+            pageHtml = await pageResponse.text();
+            const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
+
+            // Cache image data
+            setCachedPageData(page.url, {
+              images: pageImages.largeImages.map(img => ({
+                url: img.imageUrl,
+                sizeKB: img.sizeKB,
+                format: 'unknown'
+              }))
+            });
+
+            // Add large images from this page to the results
+          result.largeImageDetails.push(...pageImages.largeImages);
+
+            // Add legacy format images from this page
+            if (result.legacyFormatImages) {
+              result.legacyFormatImages.push(...pageImages.legacyFormatImages);
+            }
+          }
+
+          // Report progress every 5 pages
+          if (onProgress && (i + 1) % 5 === 0) {
+            await onProgress('analyzing_images', i + 1, imagePagesToProcess.length, `Analyzed images on ${i + 1} of ${imagePagesToProcess.length} pages`);
+          }
+        } catch (_error) {
+          console.log(`Could not analyze images for ${page.url}`);
+        }
+      }
+    );
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', pagesToCheck.length, pagesToCheck.length, 'Image analysis complete');
+    }
+
     // Sort all large images by size and limit to top 20
     result.largeImageDetails.sort((a, b) => b.sizeKB - a.sizeKB);
     result.largeImageDetails = result.largeImageDetails.slice(0, 20);
     result.largeImages = result.largeImageDetails.length;
+
+    // Sort all legacy format images by size and limit to top 50
+    if (result.legacyFormatImages) {
+      result.legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+      result.legacyFormatImages = result.legacyFormatImages.slice(0, 50);
+      console.log(`📸 Found ${result.legacyFormatImages.length} images using legacy formats`);
+    }
     
     // 9. Analyze viewport responsiveness
     console.log('📱 Analyzing viewport responsiveness...');
@@ -474,10 +645,42 @@ function hasH1Tag(html: string): boolean {
   return false;
 }
 
+// Analyze image format and suggest modern alternatives
+function analyzeImageFormat(imageUrl: string): {
+  currentFormat: string;
+  isModern: boolean;
+  suggestedFormat: string;
+} {
+  const url = imageUrl.toLowerCase();
+
+  // Modern formats - no conversion needed
+  if (url.match(/\.(webp|avif|jxl)(\?|$|#)/)) {
+    return { currentFormat: 'Modern (WebP/AVIF)', isModern: true, suggestedFormat: 'N/A' };
+  }
+
+  // Legacy formats - should be converted
+  if (url.match(/\.(jpe?g)(\?|$|#)/)) {
+    return { currentFormat: 'JPEG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.png(\?|$|#)/)) {
+    return { currentFormat: 'PNG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.gif(\?|$|#)/)) {
+    return { currentFormat: 'GIF', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.bmp(\?|$|#)/)) {
+    return { currentFormat: 'BMP', isModern: false, suggestedFormat: 'WebP' };
+  }
+
+  // Unknown format or no extension
+  return { currentFormat: 'Unknown', isModern: true, suggestedFormat: 'N/A' };
+}
+
 async function findAndAnalyzeImages(html: string, pageUrl: string) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
+  const legacyFormatImages: Array<{ imageUrl: string; pageUrl: string; currentFormat: string; suggestedFormat: string; sizeKB: number }> = [];
 
   let match;
   const checkedUrls = new Set<string>();
@@ -514,6 +717,18 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
         if (sizeKB > 100) {
           largeImages.push(imageData);
         }
+
+        // Check image format and track legacy formats (prioritize larger images >100KB)
+        const formatAnalysis = analyzeImageFormat(imageUrl);
+        if (!formatAnalysis.isModern && sizeKB > 100) {
+          legacyFormatImages.push({
+            imageUrl,
+            pageUrl,
+            currentFormat: formatAnalysis.currentFormat,
+            suggestedFormat: formatAnalysis.suggestedFormat,
+            sizeKB
+          });
+        }
       }
     } catch (_error) {
       console.log(`Could not check image ${imgSrc}:`, error);
@@ -523,7 +738,10 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
 
-  return { images, largeImages };
+  // Sort legacy format images by size (largest first)
+  legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+
+  return { images, largeImages, legacyFormatImages };
 }
 
 async function getImageSize(imageUrl: string): Promise<number> {

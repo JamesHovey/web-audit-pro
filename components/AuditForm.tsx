@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Tooltip from "@/components/Tooltip"
 import { ukDetectionService, UKDetectionResult } from "@/lib/ukDetectionService"
 import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths, clearExpiredCaches } from "@/lib/pageDiscoveryCache"
+import AuditConfigurationSection, { AuditConfiguration } from "@/components/AuditConfigurationSection"
 
 const AUDIT_SECTIONS = [
   {
@@ -19,23 +20,24 @@ const AUDIT_SECTIONS = [
     label: "Performance & Technical Audit",
     description: "Core Web Vitals, technical SEO health, image optimization, site structure analysis, and technology stack detection"
   },
-  {
-    id: "keywords",
-    label: "Keywords",
-    description: "Branded and non-branded keyword analysis with competitive intelligence"
-  },
-  {
-    id: "accessibility",
-    label: "Accessibility",
-    description: "WCAG 2.2 Level AA compliance testing for UK/EAA requirements with actionable fixes",
-    phase: 2
-  },
-  {
-    id: "backlinks",
-    label: "Backlinks",
-    description: "Possible merger with Keywords.",
-    phase: 2
-  }
+  // Hidden sections - can be re-enabled later
+  // {
+  //   id: "keywords",
+  //   label: "Keywords",
+  //   description: "Branded and non-branded keyword analysis with competitive intelligence"
+  // },
+  // {
+  //   id: "accessibility",
+  //   label: "Accessibility",
+  //   description: "WCAG 2.2 Level AA compliance testing for UK/EAA requirements with actionable fixes",
+  //   phase: 2
+  // },
+  // {
+  //   id: "backlinks",
+  //   label: "Backlinks",
+  //   description: "Possible merger with Keywords.",
+  //   phase: 2
+  // }
 ]
 
 type AuditScope = 'single' | 'all' | 'custom'
@@ -138,7 +140,7 @@ const COUNTRIES = [
 export function AuditForm() {
   const router = useRouter()
   const [url, setUrl] = useState("")
-  const [selectedSections, setSelectedSections] = useState<string[]>([]) // Default to nothing selected
+  const [selectedSections, setSelectedSections] = useState<string[]>(['performance']) // Auto-select performance audit
   const [auditScope, setAuditScope] = useState<AuditScope>('single')
   const [auditView, setAuditView] = useState<'executive' | 'manager' | 'developer'>('executive') // Default to executive view
   const [country, setCountry] = useState('gb') // Default to United Kingdom
@@ -169,6 +171,14 @@ export function AuditForm() {
   const [confirmCost, setConfirmCost] = useState(false)
   const [domainAuthority, setDomainAuthority] = useState<number | null>(null)
   const [isDomainAuthorityLoading, setIsDomainAuthorityLoading] = useState(false)
+  const [auditConfiguration, setAuditConfiguration] = useState<AuditConfiguration>({
+    enableLighthouse: true,
+    enableAccessibility: true,
+    enableImageOptimization: true,
+    enableSEO: true,
+    enableEmail: false
+  })
+  const [estimatedAuditMinutes, setEstimatedAuditMinutes] = useState(0)
 
   // Helper function to check if a URL should be excluded
   const isPathExcluded = (url: string): boolean => {
@@ -698,13 +708,6 @@ export function AuditForm() {
       return
     }
 
-    if (selectedSections.length === 0) {
-      setError("Please choose one or more audit sections first. Select the analyses you'd like to include in your website audit.")
-      setShowErrorTooltip(true)
-      setTimeout(() => setShowErrorTooltip(false), 4000)
-      return
-    }
-
     // Show loading immediately for instant feedback
     setIsLoading(true)
     setError("")
@@ -733,7 +736,10 @@ export function AuditForm() {
           excludedPaths: auditScope === 'all' && excludedPaths.length > 0 ? excludedPaths : undefined, // Only send excluded paths for 'all' scope
           pages: auditScope === 'custom'
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
-            : [urlToAudit] // For both 'single' and 'all' scopes, just send the main URL
+            : [urlToAudit], // For both 'single' and 'all' scopes, just send the main URL
+          // Audit configuration
+          auditConfiguration: auditConfiguration,
+          enableEmailNotification: auditConfiguration.enableEmail
         }),
       })
 
@@ -1447,246 +1453,22 @@ export function AuditForm() {
           </div>
         )}
 
-        {/* Section Selection */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Audit Sections ({selectedSections.length} selected)
-            </label>
-            <button
-              type="button"
-              onClick={handleSelectAll}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {(() => {
-                const phase1Sections = AUDIT_SECTIONS.filter(section => section.phase !== 2);
-                const allPhase1Selected = phase1Sections.every(section => selectedSections.includes(section.id));
-                return allPhase1Selected ? 'Unselect All' : 'Select All';
-              })()}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {AUDIT_SECTIONS.map((section, index) => {
-              const isFirstPhase2 = section.phase === 2 && (index === 0 || AUDIT_SECTIONS[index - 1]?.phase !== 2)
-
-              return (
-                <React.Fragment key={section.id}>
-                  {isFirstPhase2 && (
-                    <div className="col-span-1 md:col-span-3 flex items-center my-4">
-                      <div className="flex-grow border-t border-gray-300"></div>
-                      <span className="px-4 text-sm font-medium text-gray-600">Phase 2</span>
-                      <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-                  )}
-                  <div
-                    className={`border rounded-lg p-4 transition-colors ${
-                      selectedSections.includes(section.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        id={section.id}
-                        checked={selectedSections.includes(section.id)}
-                        onChange={() => handleSectionToggle(section.id)}
-                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <label htmlFor={section.id} className="font-medium text-gray-900 cursor-pointer flex items-center gap-2">
-                              {section.label}
-                              {section.phase === 2 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ef86ce] text-white">
-                                  Phase 2
-                                </span>
-                              )}
-                            </label>
-                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                          </div>
-
-                          {/* Inline Country Selection for Keywords Section */}
-                          {section.id === 'keywords' && selectedSections.includes('keywords') && (
-                            <div className="ml-4 min-w-0 flex-shrink-0">
-                              <label htmlFor={`${section.id}-country`} className="block text-xs font-medium text-gray-700 mb-1">
-                                Target Country
-                              </label>
-                              <div className="relative">
-                                <select
-                                  id={`${section.id}-country`}
-                                  value={country}
-                                  onChange={(e) => setCountry(e.target.value)}
-                                  className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
-                                  disabled={isLoading}
-                                >
-                                  {COUNTRIES.map((c) => (
-                                    <option key={c.code} value={c.code}>
-                                      {c.flag} {c.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <div className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </React.Fragment>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Audit Views */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-4">
-            Audit View
-          </label>
-          <p className="text-sm text-gray-600 mb-4">
-            Choose how you want to view the audit results. You can change this later.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Executive View */}
-            <button
-              type="button"
-              onClick={() => setAuditView('executive')}
-              className={`relative p-6 border-2 rounded-lg transition-all text-left ${
-                auditView === 'executive'
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <h4 className="font-semibold text-gray-900">Executive View</h4>
-                </div>
-                {auditView === 'executive' && (
-                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Clean, high-level summary perfect for presenting to clients and stakeholders.
-              </p>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Summary only</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <span>All details collapsed</span>
-                </div>
-              </div>
-            </button>
-
-            {/* Manager View */}
-            <button
-              type="button"
-              onClick={() => setAuditView('manager')}
-              className={`relative p-6 border-2 rounded-lg transition-all text-left ${
-                auditView === 'manager'
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                  <h4 className="font-semibold text-gray-900">Manager View</h4>
-                </div>
-                {auditView === 'manager' && (
-                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Balanced view with key insights and priority issues for task delegation.
-              </p>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Summary + key sections</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                  </svg>
-                  <span>Top issues expanded</span>
-                </div>
-              </div>
-            </button>
-
-            {/* Developer View */}
-            <button
-              type="button"
-              onClick={() => setAuditView('developer')}
-              className={`relative p-6 border-2 rounded-lg transition-all text-left ${
-                auditView === 'developer'
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                  <h4 className="font-semibold text-gray-900">Developer View</h4>
-                </div>
-                {auditView === 'developer' && (
-                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Complete technical breakdown with all details for implementing fixes.
-              </p>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Everything expanded</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  <span>Full technical details</span>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
+        {/* Audit Configuration Section */}
+        {isValidUrl && selectedSections.includes('performance') && (
+          <AuditConfigurationSection
+            pageCount={
+              auditScope === 'single'
+                ? 1
+                : auditScope === 'all'
+                  ? (pageLimit !== null && allPagesCount !== null ? Math.min(pageLimit, allPagesCount) : (allPagesCount || 50))
+                  : discoveredPages.filter(p => p.selected).length || 1
+            }
+            auditScope={auditScope}
+            configuration={auditConfiguration}
+            onChange={setAuditConfiguration}
+            onEstimatedTimeChange={setEstimatedAuditMinutes}
+          />
+        )}
 
         {/* Error Message */}
         {error && (
@@ -1695,127 +1477,13 @@ export function AuditForm() {
           </div>
         )}
 
-        {/* Estimated Cost Section */}
-        {isValidUrl && estimatedCost.total > 0 && (
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
-                <text x="12" y="16" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">£</text>
-              </svg>
-              <h3 className="text-lg font-semibold text-gray-900">Estimated Audit Cost</h3>
-            </div>
-
-            {/* Page Count Display */}
-            <div className="mb-3 p-2 bg-blue-100 rounded border border-blue-200">
-              <p className="text-sm text-blue-900">
-                <strong>Pages to audit:</strong> {(() => {
-                  if (auditScope === 'single') {
-                    return '1 page'
-                  } else if (auditScope === 'custom' && discoveredPages.length > 0) {
-                    const count = discoveredPages.filter(p => p.selected && !isPathExcluded(p.url)).length
-                    return `${count.toLocaleString()} ${count === 1 ? 'page' : 'pages'}`
-                  } else if (auditScope === 'all') {
-                    const filteredCount = getFilteredPageCount('all')
-                    const effectiveCount = filteredCount || allPagesCount || 50
-                    const count = pageLimit !== null ? Math.min(pageLimit, effectiveCount) : effectiveCount
-                    return `${count.toLocaleString()} ${count === 1 ? 'page' : 'pages'}`
-                  }
-                  return '1 page'
-                })()}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {/* Cost Breakdown */}
-              <div className="space-y-2">
-                {selectedSections.map((sectionId) => {
-                  const section = AUDIT_SECTIONS.find(s => s.id === sectionId)
-                  // Calculate cost for this section
-                  let sectionCost = estimatedCost.claude / selectedSections.length
-
-                  // For keywords section, include API costs
-                  if (sectionId === 'keywords') {
-                    sectionCost += estimatedCost.keywordsEverywhere + estimatedCost.serper
-                  }
-
-                  return (
-                    <div key={sectionId} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700">{section?.label}</span>
-                      <span className="font-semibold text-gray-900">{formatCost(sectionCost)}</span>
-                    </div>
-                  )
-                })}
-
-                <div className="border-t border-blue-300 pt-3 mt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900 text-base">Customer Price (with 100% markup)</span>
-                    <div className="text-right">
-                      <span className="font-bold text-2xl text-blue-600">{formatCost(estimatedCost.total)}</span>
-                      <div className="text-sm text-gray-700 mt-1">
-                        ({estimatedCost.creditsRequired} credits required)
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-blue-200 bg-green-50 -mx-4 px-4 py-2 rounded">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700">Your Actual API Cost:</span>
-                      <span className="font-semibold text-green-700">{formatCost(estimatedCost.total / 2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-gray-700">Your Profit (100% markup):</span>
-                      <span className="font-bold text-green-600">{formatCost(estimatedCost.total / 2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Info message */}
-              <div className="mt-4 p-3 bg-blue-100 rounded border border-blue-200">
-                <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> {selectedSections.includes('keywords')
-                    ? 'Costs vary based on selected sections and page count. Keywords section uses paid APIs.'
-                    : 'Without keywords section, costs are significantly lower and based primarily on automated analysis.'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Cost Confirmation Checkbox */}
-        {isValidUrl && estimatedCost.total > 0 && (
-          <div className="bg-white border-2 border-[#42499c] rounded-lg p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={confirmCost}
-                onChange={(e) => setConfirmCost(e.target.checked)}
-                className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <div className="flex-1">
-                <span className="text-sm font-semibold text-gray-900">
-                  I understand this audit will cost {formatCost(estimatedCost.total)} ({estimatedCost.creditsRequired} credits) and confirm I want to proceed
-                </span>
-                <p className="text-xs text-gray-600 mt-1">
-                  Credits will be deducted from your account when the audit starts.
-                </p>
-              </div>
-            </label>
-          </div>
-        )}
-
         {/* Submit Button */}
         <div className="relative">
           <button
             type="submit"
-            disabled={isLoading || (estimatedCost.total > 0 && !confirmCost)}
-            className={`w-full justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none ${
-              selectedSections.length > 0
-                ? 'bg-[#42499c] hover:bg-[#353f85] text-white font-medium py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200'
-                : 'btn-pmw-primary'
-            }`}
-            style={selectedSections.length > 0 ? { borderRadius: '20px' } : {}}
+            disabled={isLoading}
+            className="w-full justify-center bg-[#42499c] hover:bg-[#353f85] text-white font-medium py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+            style={{ borderRadius: '20px' }}
           >
             {isLoading ? (
               <>
@@ -1860,7 +1528,7 @@ export function AuditForm() {
               Analysing Website
             </h2>
             <p className="text-gray-600 mb-6">
-              We&apos;re conducting a comprehensive audit of {selectedSections.length} {selectedSections.length === 1 ? 'section' : 'sections'}.
+              We&apos;re conducting a comprehensive Performance & Technical Audit.
             </p>
 
             {/* Rotating Comment */}
