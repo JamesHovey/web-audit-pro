@@ -189,7 +189,7 @@ export default function AuditConfigurationSection({
                     <p className="font-medium">Image Optimization Analysis</p>
                     <p>Analyzes your images to find optimization opportunities:</p>
                     <ul className="list-disc pl-4 space-y-1 text-sm">
-                      <li><strong>File Sizes:</strong> Identifies oversized images (>100KB)</li>
+                      <li><strong>File Sizes:</strong> Identifies oversized images (&gt;100KB)</li>
                       <li><strong>Modern Formats:</strong> Finds JPEG/PNG that should be WebP</li>
                       <li><strong>Lazy Loading:</strong> Checks if images load only when needed</li>
                       <li><strong>Responsive Images:</strong> Verifies different sizes for devices</li>
