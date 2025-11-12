@@ -216,7 +216,11 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
         {analysisData.viewports.some(v => v.issues.length > 0) && (
           <div className="flex justify-end">
             <button
-              onClick={() => setAllExpanded(!allExpanded)}
+              onClick={() => {
+                const newExpandedState = !allExpanded
+                setAllExpanded(newExpandedState)
+                setExpandedViewport(null) // Clear individual selection when toggling all
+              }}
               className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
             >
               {allExpanded ? 'Hide All Issues' : 'Show All Issues'}
@@ -269,7 +273,16 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
 
             <div
               className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => setExpandedViewport(expandedViewport === viewport.viewport ? null : viewport.viewport)}
+              onClick={() => {
+                // If allExpanded is active, turn it off and expand this specific viewport
+                if (allExpanded) {
+                  setAllExpanded(false)
+                  setExpandedViewport(viewport.viewport)
+                } else {
+                  // Normal toggle behavior for individual viewport
+                  setExpandedViewport(expandedViewport === viewport.viewport ? null : viewport.viewport)
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -284,7 +297,7 @@ export default function ViewportResponsiveAnalysis({ url, data }: ViewportRespon
                       {viewport.score}/100
                     </div>
                   )}
-                  {expandedViewport === viewport.viewport ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {(expandedViewport === viewport.viewport || allExpanded) ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
               </div>
 

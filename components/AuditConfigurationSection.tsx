@@ -72,8 +72,8 @@ export default function AuditConfigurationSection({
   }
 
   const formatTime = (minutes: number) => {
-    if (minutes < 1) return '< 1 min'
-    if (minutes < 60) return `~${minutes} min${minutes > 1 ? 's' : ''}`
+    if (minutes <= 1) return 'less than a minute'
+    if (minutes < 60) return `~${minutes} mins`
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return `~${hours}h ${mins}m`
