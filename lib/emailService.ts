@@ -1,11 +1,21 @@
 import { Resend } from 'resend'
 
-// Initialize Resend with API key from environment
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 // Email configuration
 const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@example.com'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+// Lazy initialization of Resend client
+let resendClient: Resend | null = null
+
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendClient
+}
 
 export interface AuditCompletionEmailData {
   userEmail: string
@@ -21,15 +31,16 @@ export interface AuditCompletionEmailData {
  * Send audit completion notification email
  */
 export async function sendAuditCompletionEmail(data: AuditCompletionEmailData): Promise<boolean> {
-  // Skip if no API key is configured
-  if (!process.env.RESEND_API_KEY) {
-    console.log('📧 Email notification skipped: RESEND_API_KEY not configured')
-    return false
-  }
-
   // Skip if no user email
   if (!data.userEmail) {
     console.log('📧 Email notification skipped: No user email provided')
+    return false
+  }
+
+  // Get Resend client (lazy initialization)
+  const resend = getResendClient()
+  if (!resend) {
+    console.log('📧 Email notification skipped: RESEND_API_KEY not configured')
     return false
   }
 
@@ -142,7 +153,9 @@ This is an automated notification from Web Audit Pro.
  * Send test email to verify configuration
  */
 export async function sendTestEmail(toEmail: string): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) {
+  // Get Resend client (lazy initialization)
+  const resend = getResendClient()
+  if (!resend) {
     console.log('📧 Test email skipped: RESEND_API_KEY not configured')
     return false
   }
