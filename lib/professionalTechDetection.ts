@@ -2,7 +2,12 @@
 // Using direct website analysis for cost-effective, accurate technology detection
 
 import { detectHostingProvider } from './enhancedHostingDetection';
-import { detectUniversalPlugins } from './claudePluginDetection';
+import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
+import { detectDrupalModules } from './cms-detection/drupalModuleDetection';
+import { detectJoomlaExtensions } from './cms-detection/joomlaExtensionDetection';
+import { detectShopifyApps } from './cms-detection/shopifyAppDetection';
+import { detectMagentoExtensions } from './cms-detection/magentoExtensionDetection';
+import { detectPrestashopModules } from './cms-detection/prestashopModuleDetection';
 
 interface TechStackResult {
   cms?: string;
@@ -87,35 +92,168 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
     
     const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
     
-    // Universal Claude-powered plugin detection for all CMS platforms
-    console.log('🧠 Running Claude-powered universal plugin detection...');
-    try {
-      const pluginAnalysis = await detectUniversalPlugins(html, headers, cleanUrl, result.cms);
-      
-      // Enhance the result with Claude plugin analysis
-      result.pluginAnalysis = pluginAnalysis;
-      result.detectedPlatform = pluginAnalysis.platform;
-      
-      // Update plugins with categorized results
-      if (pluginAnalysis.totalPluginsDetected > 0) {
-        result.plugins = pluginAnalysis.pluginsByCategory;
-        result.totalPlugins = pluginAnalysis.totalPluginsDetected;
-        
+    // Hybrid Plugin Detection (Pattern Matching + AI) - Only for WordPress
+    if (result.cms === 'WordPress') {
+      console.log('🔄 Running hybrid plugin detection for WordPress (Pattern + AI)...');
+      try {
+        const platform = result.cms;
+        const hybridResult = await detectPluginsHybrid(platform, html, headers, cleanUrl);
+
+        // Log detection summary
+        console.log(generateDetectionSummary(hybridResult));
+
+        // Enhance the result with hybrid detection
+        result.pluginAnalysis = hybridResult.platformAnalysis;
+        result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
+        result.totalPlugins = hybridResult.totalPluginsDetected;
+
+        // Categorize plugins for easy access
+        const categorized: Record<string, any[]> = {};
+        for (const plugin of hybridResult.detectedPlugins) {
+          const category = plugin.category || 'other';
+          if (!categorized[category]) {
+            categorized[category] = [];
+          }
+          categorized[category].push(plugin);
+        }
+
+        result.plugins = categorized;
+
         // Update specific fields based on detected plugins
-        const ecommercePlugins = pluginAnalysis.pluginsByCategory.ecommerce;
+        const ecommercePlugins = categorized.ecommerce;
         if (ecommercePlugins && ecommercePlugins.length > 0) {
           result.ecommerce = ecommercePlugins[0].name;
         }
-        
-        const pageBuilders = pluginAnalysis.pluginsByCategory['page-builder'];
+
+        const pageBuilders = categorized['page-builder'];
         if (pageBuilders && pageBuilders.length > 0) {
           result.pageBuilder = pageBuilders[0].name;
         }
+
+        // Check for missing essential plugins
+        const missingEssentials = checkMissingEssentials(platform, hybridResult.detectedPlugins);
+        result.missingEssentials = missingEssentials;
+
+        console.log(`✅ Hybrid plugin detection complete: ${hybridResult.totalPluginsDetected} plugins detected via ${hybridResult.detectionMethod}`);
+      } catch (error) {
+        console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
-      
-      console.log(`✅ Claude plugin analysis complete: ${pluginAnalysis.totalPluginsDetected} plugins detected for ${pluginAnalysis.platform}`);
-    } catch (error) {
-      console.error('Claude plugin detection failed, continuing with basic detection:', error);
+    } else if (result.cms === 'Drupal') {
+      // Drupal Module Detection
+      console.log('🔄 Running Drupal module detection...');
+      try {
+        const drupalResult = detectDrupalModules(html, headers);
+
+        // Enhance the result with Drupal module detection
+        result.pluginAnalysis = {
+          platform: 'Drupal',
+          totalPluginsDetected: drupalResult.totalModules,
+          pluginsByCategory: drupalResult.modulesByCategory,
+          securityAssessment: {
+            vulnerablePlugins: drupalResult.securityRisks.map(m => ({
+              name: m.displayName,
+              severity: m.security?.severity || 'low',
+              cve: undefined
+            })),
+            riskLevel: drupalResult.securityRisks.length > 0 ? 'medium' : 'low'
+          },
+          performanceAssessment: {
+            heavyPlugins: drupalResult.performanceImpact.map(m => m.displayName),
+            overallImpact: drupalResult.performanceImpact.length > 2 ? 'high' :
+                           drupalResult.performanceImpact.length > 0 ? 'medium' : 'low'
+          },
+          recommendations: drupalResult.recommendations
+        };
+
+        result.totalPlugins = drupalResult.totalModules;
+        result.plugins = drupalResult.modulesByCategory;
+
+        console.log(`✅ Drupal module detection complete: ${drupalResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('Drupal module detection failed:', error);
+      }
+    } else if (result.cms === 'Joomla') {
+      // Joomla Extension Detection
+      console.log('🔄 Running Joomla extension detection...');
+      try {
+        const joomlaResult = detectJoomlaExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Joomla',
+          totalPluginsDetected: joomlaResult.totalExtensions,
+          pluginsByCategory: joomlaResult.extensionsByCategory,
+          recommendations: joomlaResult.recommendations
+        };
+
+        result.totalPlugins = joomlaResult.totalExtensions;
+        result.plugins = joomlaResult.extensionsByCategory;
+
+        console.log(`✅ Joomla extension detection complete: ${joomlaResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Joomla extension detection failed:', error);
+      }
+    } else if (result.cms === 'Shopify') {
+      // Shopify App Detection
+      console.log('🔄 Running Shopify app detection...');
+      try {
+        const shopifyResult = detectShopifyApps(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Shopify',
+          totalPluginsDetected: shopifyResult.totalApps,
+          pluginsByCategory: shopifyResult.appsByCategory,
+          recommendations: shopifyResult.recommendations
+        };
+
+        result.totalPlugins = shopifyResult.totalApps;
+        result.plugins = shopifyResult.appsByCategory;
+
+        console.log(`✅ Shopify app detection complete: ${shopifyResult.totalApps} apps detected`);
+      } catch (error) {
+        console.error('Shopify app detection failed:', error);
+      }
+    } else if (result.cms === 'Magento') {
+      // Magento Extension Detection
+      console.log('🔄 Running Magento extension detection...');
+      try {
+        const magentoResult = detectMagentoExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Magento',
+          totalPluginsDetected: magentoResult.totalExtensions,
+          pluginsByCategory: magentoResult.extensionsByCategory,
+          recommendations: magentoResult.recommendations
+        };
+
+        result.totalPlugins = magentoResult.totalExtensions;
+        result.plugins = magentoResult.extensionsByCategory;
+
+        console.log(`✅ Magento extension detection complete: ${magentoResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Magento extension detection failed:', error);
+      }
+    } else if (result.cms === 'PrestaShop') {
+      // PrestaShop Module Detection
+      console.log('🔄 Running PrestaShop module detection...');
+      try {
+        const prestashopResult = detectPrestashopModules(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'PrestaShop',
+          totalPluginsDetected: prestashopResult.totalModules,
+          pluginsByCategory: prestashopResult.modulesByCategory,
+          recommendations: prestashopResult.recommendations
+        };
+
+        result.totalPlugins = prestashopResult.totalModules;
+        result.plugins = prestashopResult.modulesByCategory;
+
+        console.log(`✅ PrestaShop module detection complete: ${prestashopResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('PrestaShop module detection failed:', error);
+      }
+    } else {
+      console.log(`⏭️  Skipping extension detection - CMS is ${result.cms || 'Unknown'} (extension detection available for WordPress, Drupal, Joomla, Shopify, Magento, PrestaShop)`);
     }
     
     return result;
@@ -152,6 +290,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Joomla';
       } else if (generator.toLowerCase().includes('shopify')) {
         result.cms = 'Shopify';
+      } else if (generator.toLowerCase().includes('magento')) {
+        result.cms = 'Magento';
+      } else if (generator.toLowerCase().includes('prestashop')) {
+        result.cms = 'PrestaShop';
       } else if (generator.toLowerCase().includes('wix')) {
         result.cms = 'Wix';
       } else if (generator.toLowerCase().includes('squarespace')) {
@@ -169,6 +311,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Joomla';
       } else if (lowerHtml.includes('shopify') && (lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify-analytics'))) {
         result.cms = 'Shopify';
+      } else if (lowerHtml.includes('mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento') || lowerHtml.includes('magento')) {
+        result.cms = 'Magento';
+      } else if (lowerHtml.includes('prestashop') || lowerHtml.includes('/modules/blockwishlist/') || lowerHtml.includes('/modules/blockcart/') || lowerHtml.includes('/themes/classic/') || lowerHtml.includes('/modules/ps_')) {
+        result.cms = 'PrestaShop';
       } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
         result.cms = 'Squarespace';
       } else if (lowerHtml.includes('wix.com') || lowerHtml.includes('wixstatic.com')) {

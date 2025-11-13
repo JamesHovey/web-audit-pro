@@ -102,7 +102,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
           </div>
 
           <p className="text-gray-600 mb-6 text-sm">
-            Get 100 free credits to start auditing
+            Start auditing websites for free
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,25 +172,25 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
 
           {/* Signup Benefits */}
           <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <h3 className="font-semibold text-green-900 text-sm mb-2">✨ You&apos;ll receive:</h3>
+            <h3 className="font-semibold text-green-900 text-sm mb-2">✨ You&apos;ll get access to:</h3>
             <ul className="space-y-1 text-xs text-green-800">
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                100 free audit credits
+                Unlimited website audits
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                Access to all SEO features
+                Performance & traffic insights
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                PDF report exports
+                Save and export reports
               </li>
             </ul>
           </div>

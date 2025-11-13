@@ -138,12 +138,6 @@ body {
   padding: 25px;
   box-shadow: var(--pmw-shadow);
   border: 1px solid var(--pmw-border);
-  transition: all 0.3s ease;
-}
-
-.card-pmw:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* PMW Typography */

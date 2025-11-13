@@ -3,6 +3,8 @@
  * Discovers actual pages using sitemaps, robots.txt, and intelligent crawling
  */
 
+import { BrowserService } from './cloudflare-browser';
+
 // More robust H1 detection that handles various edge cases
 function hasH1Tag(html: string): boolean {
   // Remove comments and CDATA sections first
@@ -76,7 +78,7 @@ interface PageDiscoveryResult {
 }
 
 export class RealPageDiscovery {
-  private maxPages = 50; // Limit to avoid overwhelming servers
+  private maxPages = 50; // Limit for crawling only (not sitemap parsing)
   private timeout = 10000; // 10 second timeout per request
   private visitedUrls = new Set<string>();
   private foundPages: DiscoveredPage[] = [];
@@ -164,12 +166,15 @@ export class RealPageDiscovery {
     const sitemapUrls: string[] = [];
     let match;
 
-    while ((match = sitemapRegex.exec(xml)) !== null && sitemapUrls.length < 10) {
+    // Remove limit - parse all child sitemaps in sitemap index
+    while ((match = sitemapRegex.exec(xml)) !== null) {
       sitemapUrls.push(match[1]);
     }
 
+    console.log(`📑 Found ${sitemapUrls.length} child sitemaps in sitemap index`);
     const allPages: DiscoveredPage[] = [];
 
+    // Process all child sitemaps (removed page limit)
     for (const sitemapUrl of sitemapUrls) {
       try {
         const response = await fetch(sitemapUrl, {
@@ -181,15 +186,15 @@ export class RealPageDiscovery {
           const sitemapXml = await response.text();
           const pages = await this.parseSitemapUrls(sitemapXml, sitemapUrl);
           allPages.push(...pages);
-
-          if (allPages.length >= this.maxPages) break;
+          console.log(`   ✓ Parsed ${pages.length} pages from ${sitemapUrl.split('/').pop()}, total: ${allPages.length}`);
         }
       } catch (_error) {
         console.log(`Could not fetch sitemap ${sitemapUrl}`);
       }
     }
 
-    return allPages.slice(0, this.maxPages);
+    console.log(`✅ Total pages discovered from all sitemaps: ${allPages.length}`);
+    return allPages; // Return all pages, no limit
   }
 
   private async parseSitemapUrls(xml: string, sitemapUrl: string): Promise<DiscoveredPage[]> {
@@ -197,7 +202,8 @@ export class RealPageDiscovery {
     const pages: DiscoveredPage[] = [];
     let match;
 
-    while ((match = urlPattern.exec(xml)) !== null && pages.length < this.maxPages) {
+    // Remove limit - parse all URLs from sitemap (not just first 50)
+    while ((match = urlPattern.exec(xml)) !== null) {
       const urlBlock = match[1];
 
       const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
@@ -271,8 +277,10 @@ export class RealPageDiscovery {
       console.log(`🕷️ Crawling page: ${currentUrl}`);
 
       try {
-        const pageAnalysis = await this.analyzePage(currentUrl);
-        
+        // Use browser rendering for the first page to handle JavaScript-rendered content
+        const useBrowser = currentDepth === 0;
+        const pageAnalysis = await this.analyzePage(currentUrl, useBrowser);
+
         if (pageAnalysis.statusCode === 200) {
           foundPages.push({
             url: currentUrl,
@@ -314,7 +322,7 @@ export class RealPageDiscovery {
     return { pages: foundPages, depth: currentDepth };
   }
 
-  private async analyzePage(url: string): Promise<{
+  private async analyzePage(url: string, useBrowser: boolean = false): Promise<{
     title: string;
     statusCode: number;
     hasTitle: boolean;
@@ -325,26 +333,73 @@ export class RealPageDiscovery {
     internalLinks: string[];
   }> {
     try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(this.timeout)
-      });
+      let html: string;
+      let statusCode: number = 200;
 
-      if (!response.ok) {
-        return {
-          title: 'Error loading page',
-          statusCode: response.status,
-          hasTitle: false,
-          hasDescription: false,
-          hasH1: false,
-          imageCount: 0,
-          linkCount: 0,
-          internalLinks: []
-        };
+      if (useBrowser) {
+        // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
+        try {
+          console.log(`🌐 Using browser rendering for: ${url}`);
+          const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+            await BrowserService.goto(page, url);
+
+            // Wait a moment for JavaScript to execute
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const renderedHtml = await page.content();
+            return renderedHtml;
+          });
+
+          html = browserResult;
+        } catch (browserError) {
+          console.warn('Browser rendering failed, falling back to fetch:', browserError);
+          // Fallback to simple fetch
+          const response = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            redirect: 'follow',
+            signal: AbortSignal.timeout(this.timeout)
+          });
+
+          if (!response.ok) {
+            return {
+              title: 'Error loading page',
+              statusCode: response.status,
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0,
+              internalLinks: []
+            };
+          }
+
+          html = await response.text();
+          statusCode = response.status;
+        }
+      } else {
+        // Use simple fetch for speed (default for discovered pages)
+        const response = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(this.timeout)
+        });
+
+        if (!response.ok) {
+          return {
+            title: 'Error loading page',
+            statusCode: response.status,
+            hasTitle: false,
+            hasDescription: false,
+            hasH1: false,
+            imageCount: 0,
+            linkCount: 0,
+            internalLinks: []
+          };
+        }
+
+        html = await response.text();
+        statusCode = response.status;
       }
-
-      const html = await response.text();
       const baseUrl = new URL(url);
 
       // Extract title

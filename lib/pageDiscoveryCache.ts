@@ -12,6 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
+const CACHE_VERSION = 'v3' // Increment to invalidate old caches
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
@@ -19,7 +20,7 @@ const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
  */
 function getCacheKey(url: string): string {
   const cleanUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
-  return `${CACHE_KEY_PREFIX}${cleanUrl}`
+  return `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${cleanUrl}`
 }
 
 /**
@@ -103,7 +104,7 @@ export function clearPageDiscoveryCache(url: string): void {
 }
 
 /**
- * Clear all expired caches
+ * Clear all expired caches and old version caches
  */
 export function clearExpiredCaches(): void {
   if (typeof window === 'undefined') return
@@ -114,6 +115,14 @@ export function clearExpiredCaches(): void {
 
     keys.forEach(key => {
       if (key.startsWith(CACHE_KEY_PREFIX)) {
+        // Remove old version caches (anything without the current version)
+        if (!key.includes(`${CACHE_VERSION}_`)) {
+          console.log(`🗑️ Removing old cache version: ${key}`)
+          localStorage.removeItem(key)
+          return
+        }
+
+        // Remove expired caches
         try {
           const data = JSON.parse(localStorage.getItem(key) || '')
           if (now - data.timestamp > CACHE_DURATION) {

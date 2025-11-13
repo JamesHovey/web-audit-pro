@@ -94,6 +94,7 @@ export class UKDetectionService {
   
   /**
    * Quick content analysis with timeout
+   * Note: This only works server-side due to CORS restrictions
    */
   private async quickContentAnalysis(url: string): Promise<{
     isUK: boolean;
@@ -101,9 +102,18 @@ export class UKDetectionService {
     signals: string[];
   }> {
     const signals: string[] = [];
-    
+
+    // Skip content analysis in browser environment (CORS restrictions)
+    if (typeof window !== 'undefined') {
+      return {
+        isUK: false,
+        confidence: 'low',
+        signals: ['Content analysis skipped (browser environment)']
+      };
+    }
+
     try {
-      // Quick fetch with short timeout
+      // Quick fetch with short timeout (server-side only)
       const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
       const response = await fetch(normalizedUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
