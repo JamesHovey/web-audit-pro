@@ -4,7 +4,7 @@
 
 export interface AuditConfiguration {
   enableLighthouse: boolean;
-  enableAccessibility: boolean;
+  enableViewport: boolean;
   enableImageOptimization: boolean;
   enableSEO: boolean;
   enableEmail: boolean;

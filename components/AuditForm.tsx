@@ -173,7 +173,7 @@ export function AuditForm() {
   const [isDomainAuthorityLoading, setIsDomainAuthorityLoading] = useState(false)
   const [auditConfiguration, setAuditConfiguration] = useState<AuditConfiguration>({
     enableLighthouse: true,
-    enableAccessibility: true,
+    enableViewport: false,
     enableImageOptimization: true,
     enableSEO: true,
     enableEmail: false

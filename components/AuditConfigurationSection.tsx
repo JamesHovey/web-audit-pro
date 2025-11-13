@@ -5,7 +5,7 @@ import Tooltip from './Tooltip'
 
 export interface AuditConfiguration {
   enableLighthouse: boolean
-  enableAccessibility: boolean
+  enableViewport: boolean
   enableImageOptimization: boolean
   enableSEO: boolean
   enableEmail: boolean
@@ -22,7 +22,7 @@ interface AuditConfigurationSectionProps {
 // Time estimates per page in seconds
 const TIME_PER_PAGE = {
   lighthouse: 8, // Performance analysis with Lighthouse
-  accessibility: 4, // Accessibility scan with pa11y
+  viewport: 6, // Viewport responsiveness (per sampled page, ~5-10 pages tested)
   imageOptimization: 2, // Image analysis
   seo: 1, // SEO & metadata
   technical: 1, // Technical issues (always included)
@@ -49,7 +49,7 @@ export default function AuditConfigurationSection({
 
     // Add time for selected components
     if (configuration.enableLighthouse) totalSecondsPerPage += TIME_PER_PAGE.lighthouse
-    if (configuration.enableAccessibility) totalSecondsPerPage += TIME_PER_PAGE.accessibility
+    if (configuration.enableViewport) totalSecondsPerPage += TIME_PER_PAGE.viewport
     if (configuration.enableImageOptimization) totalSecondsPerPage += TIME_PER_PAGE.imageOptimization
     if (configuration.enableSEO) totalSecondsPerPage += TIME_PER_PAGE.seo
 
@@ -134,33 +134,34 @@ export default function AuditConfigurationSection({
           </div>
         </label>
 
-        {/* Accessibility Scan */}
+        {/* Viewport Responsiveness */}
         <label className="flex items-start gap-3 cursor-pointer group">
           <input
             type="checkbox"
-            checked={configuration.enableAccessibility}
-            onChange={() => handleToggle('enableAccessibility')}
+            checked={configuration.enableViewport}
+            onChange={() => handleToggle('enableViewport')}
             className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900">Accessibility Scan</span>
-              <span className="text-xs text-gray-500">+{TIME_PER_PAGE.accessibility}s/page</span>
+              <span className="text-sm font-medium text-gray-900">Viewport Responsiveness</span>
+              <span className="text-xs text-gray-500">+{TIME_PER_PAGE.viewport}s/page</span>
               <Tooltip
                 content={
                   <div className="space-y-2">
-                    <p className="font-medium">Accessibility Scan (pa11y)</p>
-                    <p>Tests your site for accessibility issues and WCAG compliance:</p>
+                    <p className="font-medium">Viewport Responsiveness Analysis</p>
+                    <p>Tests how your site looks and functions across different devices:</p>
                     <ul className="list-disc pl-4 space-y-1 text-sm">
-                      <li><strong>WCAG Compliance:</strong> Level A and AA standards</li>
-                      <li><strong>Screen Readers:</strong> Checks for screen reader compatibility</li>
-                      <li><strong>Keyboard Navigation:</strong> Ensures keyboard-only access works</li>
-                      <li><strong>Color Contrast:</strong> Verifies text is readable for everyone</li>
-                      <li><strong>Alt Text:</strong> Checks images have descriptive text</li>
+                      <li><strong>Mobile:</strong> iPhone/Android phones (360px width)</li>
+                      <li><strong>Tablet:</strong> iPad and tablets (768px width)</li>
+                      <li><strong>Desktop:</strong> Standard laptops (1366px width)</li>
+                      <li><strong>Wide Desktop:</strong> Large monitors (1920px width)</li>
+                      <li><strong>Real Screenshots:</strong> Visual capture of each viewport</li>
+                      <li><strong>Issue Detection:</strong> Horizontal scroll, layout breaks, small text</li>
                     </ul>
                     <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
-                      <p className="font-medium">Important:</p>
-                      <p>Accessibility is essential for inclusive design and legal compliance (UK Equality Act 2010).</p>
+                      <p className="font-medium">Smart Sampling:</p>
+                      <p>Tests 5-10 representative pages to efficiently identify responsive design issues across your site.</p>
                     </div>
                   </div>
                 }
@@ -173,7 +174,7 @@ export default function AuditConfigurationSection({
               </Tooltip>
             </div>
             <p className="text-xs text-gray-600 mt-1">
-              WCAG 2.2 compliance testing for screen readers, keyboard navigation, and color contrast
+              Mobile, tablet, and desktop testing with screenshots and responsive design analysis
             </p>
           </div>
         </label>
@@ -267,50 +268,6 @@ export default function AuditConfigurationSection({
           </div>
         </label>
 
-        {/* Technical Issues (Always Included) */}
-        <div className="flex items-start gap-3 opacity-75">
-          <input
-            type="checkbox"
-            checked={true}
-            disabled={true}
-            className="mt-1 h-5 w-5 text-gray-400 border-gray-300 rounded cursor-not-allowed"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Technical Issues</span>
-              <span className="text-xs text-gray-500">+{TIME_PER_PAGE.technical}s/page</span>
-              <Tooltip
-                content={
-                  <div className="space-y-2">
-                    <p className="font-medium">Technical Issues (Always Included)</p>
-                    <p>Core technical health checks that are always performed:</p>
-                    <ul className="list-disc pl-4 space-y-1 text-sm">
-                      <li><strong>Page Discovery:</strong> Finds all pages via sitemap/crawling</li>
-                      <li><strong>Technology Stack:</strong> Detects CMS, frameworks, plugins</li>
-                      <li><strong>Broken Links:</strong> Identifies 404s and redirect chains</li>
-                      <li><strong>Mobile Friendliness:</strong> Responsive design checks</li>
-                      <li><strong>SSL/HTTPS:</strong> Security certificate validation</li>
-                      <li><strong>Page Structure:</strong> HTML validity and best practices</li>
-                    </ul>
-                    <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
-                      <p className="font-medium">Always On:</p>
-                      <p>These checks are essential and cannot be disabled as they form the foundation of every audit.</p>
-                    </div>
-                  </div>
-                }
-                position="right"
-              >
-                <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="9.5" />
-                  <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Tooltip>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Page discovery, technology detection, broken links, and mobile friendliness (always included)
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Estimated Time & Email Notification */}
