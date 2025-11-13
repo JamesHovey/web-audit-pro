@@ -18,6 +18,399 @@ interface QuickTechInfo {
   loading?: boolean
 }
 
+// Comprehensive CMS detection patterns for top 50+ CMS platforms
+interface CMSPattern {
+  name: string
+  patterns: {
+    meta?: string[]
+    html?: string[]
+    headers?: string[]
+    scripts?: string[]
+    paths?: string[]
+  }
+}
+
+const CMS_PATTERNS: CMSPattern[] = [
+  {
+    name: 'WordPress',
+    patterns: {
+      meta: ['wordpress'],
+      html: ['/wp-content/', '/wp-includes/', 'wp-emoji', 'wp-json'],
+      paths: ['/wp-admin/', '/wp-login.php']
+    }
+  },
+  {
+    name: 'Shopify',
+    patterns: {
+      meta: ['shopify'],
+      html: ['cdn.shopify.com', 'shopify-analytics', 'shopify.theme'],
+      headers: ['x-shopify-stage']
+    }
+  },
+  {
+    name: 'Wix',
+    patterns: {
+      meta: ['wix.com'],
+      html: ['wix.com', 'wixstatic.com', 'parastorage.com', 'wix-code-public']
+    }
+  },
+  {
+    name: 'Squarespace',
+    patterns: {
+      meta: ['squarespace'],
+      html: ['squarespace.com', 'squarespace-cdn', 'sqsp.net', 'squarespace.config']
+    }
+  },
+  {
+    name: 'Joomla',
+    patterns: {
+      meta: ['joomla'],
+      html: ['/media/jui/', '/media/system/js/', 'joomla.javascript'],
+      paths: ['/components/com_']
+    }
+  },
+  {
+    name: 'Drupal',
+    patterns: {
+      meta: ['drupal'],
+      html: ['/sites/default/files/', 'drupal.js', 'drupal-settings-json', 'drupal.settings', '/core/misc/drupal.js'],
+      paths: ['/core/themes/', '/sites/all/']
+    }
+  },
+  {
+    name: 'Magento',
+    patterns: {
+      meta: ['magento'],
+      html: ['mage/cookies.js', '/skin/frontend/', 'magento', '/static/frontend/'],
+      paths: ['/magento_version']
+    }
+  },
+  {
+    name: 'PrestaShop',
+    patterns: {
+      meta: ['prestashop'],
+      html: ['prestashop', '/modules/'],
+      paths: ['/themes/']
+    }
+  },
+  {
+    name: 'OpenCart',
+    patterns: {
+      meta: ['opencart'],
+      html: ['catalog/view/javascript/common.js', 'route=product/product'],
+      paths: ['/catalog/view/theme/']
+    }
+  },
+  {
+    name: 'Webflow',
+    patterns: {
+      meta: ['webflow'],
+      html: ['webflow.com', 'webflow.js', 'wf-loading']
+    }
+  },
+  {
+    name: 'Ghost',
+    patterns: {
+      meta: ['ghost'],
+      html: ['ghost-', '/ghost/api/', '/content/images/'],
+      paths: ['/ghost/']
+    }
+  },
+  {
+    name: 'TYPO3',
+    patterns: {
+      meta: ['typo3'],
+      html: ['typo3', 'typo3conf', 'typo3temp'],
+      paths: ['/typo3conf/', '/typo3temp/']
+    }
+  },
+  {
+    name: 'Contentful',
+    patterns: {
+      html: ['contentful.com', 'cdn.contentful.com']
+    }
+  },
+  {
+    name: 'Craft CMS',
+    patterns: {
+      html: ['craftcms', 'craft.js'],
+      paths: ['/cpresources/']
+    }
+  },
+  {
+    name: 'Kentico',
+    patterns: {
+      meta: ['kentico'],
+      html: ['kentico', '/cmspages/', '/getattachment/']
+    }
+  },
+  {
+    name: 'Umbraco',
+    patterns: {
+      meta: ['umbraco'],
+      html: ['umbraco', '/umbraco/'],
+      paths: ['/umbraco/']
+    }
+  },
+  {
+    name: 'Concrete5',
+    patterns: {
+      meta: ['concrete5'],
+      html: ['concrete5', '/concrete/'],
+      paths: ['/concrete/']
+    }
+  },
+  {
+    name: 'DNN Platform',
+    patterns: {
+      meta: ['dotnetnuke', 'dnn'],
+      html: ['dnnvariable', 'dotnetnuke', '/desktopmodules/']
+    }
+  },
+  {
+    name: 'Sitefinity',
+    patterns: {
+      html: ['sitefinity', 'telerik.sitefinity', '/sitefinity/']
+    }
+  },
+  {
+    name: 'Weebly',
+    patterns: {
+      html: ['weebly.com', 'weeblycloud.com', '_weeblyeditorinlinestylesheet']
+    }
+  },
+  {
+    name: 'BigCommerce',
+    patterns: {
+      html: ['bigcommerce.com', 'cdn.bcapp.dev'],
+      headers: ['x-bc-storefront-type']
+    }
+  },
+  {
+    name: 'HubSpot CMS',
+    patterns: {
+      html: ['hubspot.com', 'hs-scripts.com', 'hubspot.net', '_hsp']
+    }
+  },
+  {
+    name: 'Adobe Experience Manager',
+    patterns: {
+      html: ['/etc/clientlibs/', '/etc.clientlibs/', 'aem-', 'cq-'],
+      paths: ['/content/dam/']
+    }
+  },
+  {
+    name: 'Sitecore',
+    patterns: {
+      html: ['sitecore', '/sitecore/'],
+      paths: ['/sitecore/']
+    }
+  },
+  {
+    name: 'ModX',
+    patterns: {
+      meta: ['modx'],
+      html: ['modx', '/assets/components/']
+    }
+  },
+  {
+    name: 'Expression Engine',
+    patterns: {
+      html: ['expressionengine', '/themes/ee/']
+    }
+  },
+  {
+    name: 'SilverStripe',
+    patterns: {
+      meta: ['silverstripe'],
+      html: ['silverstripe', '/framework/']
+    }
+  },
+  {
+    name: 'Textpattern',
+    patterns: {
+      meta: ['textpattern'],
+      html: ['textpattern']
+    }
+  },
+  {
+    name: 'October CMS',
+    patterns: {
+      html: ['october', '/modules/system/assets/']
+    }
+  },
+  {
+    name: 'Grav',
+    patterns: {
+      meta: ['grav'],
+      html: ['grav']
+    }
+  },
+  {
+    name: 'Jekyll',
+    patterns: {
+      meta: ['jekyll'],
+      html: ['jekyll']
+    }
+  },
+  {
+    name: 'Hugo',
+    patterns: {
+      meta: ['hugo'],
+      html: ['hugo']
+    }
+  },
+  {
+    name: 'Gatsby',
+    patterns: {
+      meta: ['gatsby'],
+      html: ['gatsby', '___gatsby', 'gatsby-']
+    }
+  },
+  {
+    name: 'Strapi',
+    patterns: {
+      html: ['strapi', '/api/']
+    }
+  },
+  {
+    name: 'Sanity',
+    patterns: {
+      html: ['sanity.io', 'cdn.sanity.io']
+    }
+  },
+  {
+    name: 'Prismic',
+    patterns: {
+      html: ['prismic.io', 'cdn.prismic.io']
+    }
+  },
+  {
+    name: 'Storyblok',
+    patterns: {
+      html: ['storyblok.com', 'a.storyblok.com']
+    }
+  },
+  {
+    name: 'Blogger',
+    patterns: {
+      html: ['blogger.com', 'blogspot.com', 'blogger-']
+    }
+  },
+  {
+    name: 'Medium',
+    patterns: {
+      html: ['medium.com', 'cdn-client.medium.com']
+    }
+  },
+  {
+    name: 'Webnode',
+    patterns: {
+      html: ['webnode.com', 'webnode.page']
+    }
+  },
+  {
+    name: 'SITE123',
+    patterns: {
+      html: ['site123.com', 'cdn-cms.site123.com']
+    }
+  },
+  {
+    name: 'Jimdo',
+    patterns: {
+      html: ['jimdo.com', 'jimdocdn.com']
+    }
+  },
+  {
+    name: 'Duda',
+    patterns: {
+      html: ['duda.co', 'dudaone.com', 'duda-site']
+    }
+  },
+  {
+    name: 'Bitrix',
+    patterns: {
+      html: ['bitrix', '/bitrix/']
+    }
+  },
+  {
+    name: '1C-Bitrix',
+    patterns: {
+      html: ['1c-bitrix', '/bitrix/']
+    }
+  },
+  {
+    name: 'phpBB',
+    patterns: {
+      html: ['phpbb', 'powered by phpbb']
+    }
+  },
+  {
+    name: 'vBulletin',
+    patterns: {
+      html: ['vbulletin', 'vb_']
+    }
+  },
+  {
+    name: 'Discourse',
+    patterns: {
+      html: ['discourse', 'discourse-'],
+      paths: ['/discourse/']
+    }
+  },
+  {
+    name: 'MediaWiki',
+    patterns: {
+      meta: ['mediawiki'],
+      html: ['mediawiki', '/wiki/']
+    }
+  }
+]
+
+// Detect CMS from patterns
+function detectCMS(html: string, lowerHtml: string, headers: Record<string, string>): string | undefined {
+  // Check meta generator tag first
+  const metaMatches = html.match(/<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"']+)["\'][^>]*>/i)
+  if (metaMatches) {
+    const generator = metaMatches[1].toLowerCase()
+    for (const cms of CMS_PATTERNS) {
+      if (cms.patterns.meta) {
+        for (const pattern of cms.patterns.meta) {
+          if (generator.includes(pattern)) {
+            return cms.name
+          }
+        }
+      }
+    }
+  }
+
+  // Check HTML patterns
+  for (const cms of CMS_PATTERNS) {
+    // Check HTML content patterns
+    if (cms.patterns.html) {
+      const matchCount = cms.patterns.html.filter(pattern => lowerHtml.includes(pattern)).length
+      // Require at least 2 matches for better accuracy (or 1 if only 1 pattern defined)
+      if (matchCount >= Math.min(2, cms.patterns.html.length)) {
+        return cms.name
+      }
+    }
+
+    // Check headers
+    if (cms.patterns.headers) {
+      for (const headerPattern of cms.patterns.headers) {
+        for (const [headerName, headerValue] of Object.entries(headers)) {
+          if (headerName.toLowerCase().includes(headerPattern) ||
+              (headerValue && headerValue.toLowerCase().includes(headerPattern))) {
+            return cms.name
+          }
+        }
+      }
+    }
+  }
+
+  return undefined
+}
+
 // Lightweight tech detection - only basic patterns, no AI analysis
 async function quickDetectTech(url: string): Promise<QuickTechInfo> {
   try {
@@ -41,35 +434,8 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
 
     const result: QuickTechInfo = {}
 
-    // CMS Detection (quick patterns only)
-    const metaMatches = html.match(/<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"']+)["\'][^>]*>/i)
-    if (metaMatches) {
-      const generator = metaMatches[1].toLowerCase()
-      if (generator.includes('wordpress')) result.cms = 'WordPress'
-      else if (generator.includes('shopify')) result.cms = 'Shopify'
-      else if (generator.includes('wix')) result.cms = 'Wix'
-      else if (generator.includes('squarespace')) result.cms = 'Squarespace'
-      else if (generator.includes('drupal')) result.cms = 'Drupal'
-      else if (generator.includes('joomla')) result.cms = 'Joomla'
-    }
-
-    if (!result.cms) {
-      if (lowerHtml.includes('/wp-content/') || lowerHtml.includes('/wp-includes/')) {
-        result.cms = 'WordPress'
-      } else if (lowerHtml.includes('/sites/default/files/') || lowerHtml.includes('drupal.js') || lowerHtml.includes('drupal-settings-json') || lowerHtml.includes('drupal.settings')) {
-        result.cms = 'Drupal'
-      } else if (lowerHtml.includes('shopify') && lowerHtml.includes('cdn.shopify.com')) {
-        result.cms = 'Shopify'
-      } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
-        result.cms = 'Squarespace'
-      } else if (lowerHtml.includes('wix.com') || lowerHtml.includes('wixstatic.com')) {
-        result.cms = 'Wix'
-      } else if (lowerHtml.includes('webflow.com')) {
-        result.cms = 'Webflow'
-      } else if (lowerHtml.includes('/media/jui/') || lowerHtml.includes('joomla')) {
-        result.cms = 'Joomla'
-      }
-    }
+    // Detect CMS using comprehensive pattern matching
+    result.cms = detectCMS(html, lowerHtml, headers)
 
     // E-commerce Detection (basic patterns)
     if (result.cms === 'WordPress' && lowerHtml.includes('woocommerce')) {
