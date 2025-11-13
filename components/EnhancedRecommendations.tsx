@@ -569,21 +569,21 @@ export default function EnhancedRecommendations({
     
     if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
       const baseInstructions = cms === 'WordPress' ? [
-        '🚀 BEST OPTION: WP Rocket (Premium) includes lazy loading plus many other optimizations',
-        '   • Handles lazy loading for images, iframes, and videos',
-        '   • Also includes: JS/CSS optimization, caching, minification',
-        '   • Setup: Install WP Rocket → Enable "LazyLoad for images" in Media settings',
+        '📌 PLUGIN OPTIONS:',
+        'See the "Recommended Plugins & Tools" table below for plugin comparisons.',
+        'Free options: a3 Lazy Load, Jetpack, Lazy Load by WP Rocket',
+        'Premium option: WP Rocket (also includes caching, JS/CSS optimization)',
+        'Note: WordPress 5.5+ has native lazy loading built-in',
         '',
-        'FREE ALTERNATIVES (if not using WP Rocket):',
-        'Smush (Free): Enable "Lazy Load" in the Lazy Load tab',
-        'a3 Lazy Load (Free): Install and activate - works automatically with default settings',
-        'Jetpack (Free): Enable "Speed up image load times" in Performance settings',
-        'WordPress 5.5+ has native lazy loading built-in (check it\'s not disabled)',
+        '⚙️ MANUAL OPTION (No Plugin Required):',
+        '1. Add loading="lazy" attribute to images in your theme files',
+        '2. Example: <img src="image.jpg" loading="lazy" alt="Description">',
+        '3. IMPORTANT: Exclude above-the-fold images from lazy loading (first 2-3 images)',
+        '4. Ensure images have width/height attributes to prevent layout shifts',
+        '5. Test on mobile devices to ensure images load properly when scrolling',
         '',
-        'MANUAL OPTION:',
-        'Add loading="lazy" to images manually in your theme',
-        'Exclude above-the-fold images from lazy loading (first 2-3 images)',
-        'Test on mobile devices to ensure images load properly when scrolling'
+        '💡 TIP: If you\'re already using a performance plugin for other issues,',
+        'check if it includes lazy loading to avoid installing multiple plugins.'
       ] : [
         'Add loading="lazy" attribute to img tags below the fold',
         'Example: <img src="image.jpg" loading="lazy" alt="Description">',
@@ -601,7 +601,7 @@ export default function EnhancedRecommendations({
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
         details: cms === 'WordPress'
-          ? 'Lazy loading defers loading of offscreen images until users scroll near them. If you use WP Rocket for JavaScript optimization, it also includes lazy loading - no need for separate plugins.'
+          ? 'Lazy loading defers loading of offscreen images until users scroll near them. This improves initial page load speed by only loading images as users scroll to them. WordPress has native lazy loading since version 5.5, but plugins offer more advanced options.'
           : 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
         useCase: 'lazy-loading',
         howTo: getPluginSpecificInstructions(baseInstructions, 'images')

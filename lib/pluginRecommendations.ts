@@ -422,6 +422,88 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
       'Limited cache features'
     ],
     bestFor: 'Performance-focused sites wanting lightweight optimization'
+  },
+
+  // Lazy Loading Plugins
+  {
+    name: 'a3 Lazy Load',
+    slug: 'a3-lazy-load',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization'],
+    description: 'Simple, effective lazy loading for images with automatic configuration',
+    rating: 4.7,
+    reviews: 840,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/a3-lazy-load/',
+    pros: [
+      'Completely free',
+      'Works automatically after activation',
+      'Lazy loads images, iframes, and videos',
+      'Mobile optimized',
+      'No configuration needed',
+      'Lightweight'
+    ],
+    cons: [
+      'Basic features only',
+      'No advanced options',
+      'Limited customization'
+    ],
+    bestFor: 'Sites wanting simple, free lazy loading without configuration'
+  },
+  {
+    name: 'Jetpack',
+    slug: 'jetpack',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization', 'security'],
+    description: 'All-in-one WordPress plugin with free lazy loading, CDN, and security features',
+    rating: 3.9,
+    reviews: 5280,
+    activeInstalls: '5+ million',
+    cost: 'Freemium',
+    pricingDetails: 'Free: Lazy loading + basic features. Premium: from £3.50/month',
+    url: 'https://wordpress.org/plugins/jetpack/',
+    freeTierLimits: 'Free tier includes lazy loading, CDN, basic security',
+    pros: [
+      'Free lazy loading',
+      'Free CDN for images',
+      'Security features included',
+      'Very active development',
+      'WordPress.com integration'
+    ],
+    cons: [
+      'Heavy plugin (many features)',
+      'Can slow down admin area',
+      'Some features require paid plan',
+      'Connects to WordPress.com'
+    ],
+    bestFor: 'Sites already using Jetpack or wanting multiple features in one plugin'
+  },
+  {
+    name: 'Lazy Load by WP Rocket',
+    slug: 'rocket-lazy-load',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization'],
+    description: 'Free standalone lazy loading plugin from the WP Rocket team',
+    rating: 4.4,
+    reviews: 520,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/rocket-lazy-load/',
+    pros: [
+      'Completely free',
+      'From trusted WP Rocket team',
+      'Lightweight',
+      'Lazy loads images and iframes',
+      'YouTube video thumbnails',
+      'Easy to configure'
+    ],
+    cons: [
+      'No longer actively developed',
+      'Basic features compared to paid WP Rocket',
+      'Missing some advanced options'
+    ],
+    bestFor: 'Sites wanting free lazy loading from a reputable developer'
   }
 ]
 
