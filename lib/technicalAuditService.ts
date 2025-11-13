@@ -2,6 +2,7 @@
 import { discoverRealPages } from './realPageDiscovery';
 import { analyzeViewportResponsiveness } from './viewportAnalysisService';
 import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
+import { BrowserService } from './cloudflare-browser';
 
 /**
  * Process items in parallel chunks to avoid overwhelming the server
@@ -143,22 +144,48 @@ export async function performTechnicalAudit(
   };
 
   try {
-    // 1. Fetch main page HTML
-    console.log(`🌐 Fetching main page: ${url}`);
-    const mainPageResponse = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
-    });
-    
-    console.log(`📍 Final URL after redirects: ${mainPageResponse.url}`);
-    
-    if (!mainPageResponse.ok) {
-      console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
-      return result;
+    // 1. Fetch main page HTML using Puppeteer for JavaScript-rendered content
+    console.log(`🌐 Fetching main page with browser rendering: ${url}`);
+    let html: string;
+    let finalUrl = url;
+    let statusCode = 200;
+
+    try {
+      // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
+      const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+        await BrowserService.goto(page, url);
+
+        // Wait a moment for JavaScript to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const renderedHtml = await page.content();
+        const pageUrl = page.url();
+
+        return { html: renderedHtml, url: pageUrl };
+      });
+
+      html = browserResult.html;
+      finalUrl = browserResult.url;
+      console.log(`📍 Final URL after redirects: ${finalUrl}`);
+    } catch (browserError) {
+      // Fallback to simple fetch if browser rendering fails
+      console.warn('Browser rendering failed, falling back to simple fetch:', browserError);
+      const mainPageResponse = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (!mainPageResponse.ok) {
+        console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
+        return result;
+      }
+
+      html = await mainPageResponse.text();
+      finalUrl = mainPageResponse.url;
+      statusCode = mainPageResponse.status;
+      console.log(`📍 Final URL after redirects (fetch): ${finalUrl}`);
     }
-    
-    const html = await mainPageResponse.text();
     
     // 2. Analyze page structure
     const pageAnalysis = analyzePageStructure(html);
@@ -199,7 +226,7 @@ export async function performTechnicalAudit(
         pages: [{
           url: url,
           title: pageTitle,
-          statusCode: mainPageResponse.status,
+          statusCode: statusCode,
           hasTitle: pageAnalysis.hasTitle,
           hasDescription: pageAnalysis.hasDescription,
           hasH1: pageAnalysis.hasH1,

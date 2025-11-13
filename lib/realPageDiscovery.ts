@@ -3,6 +3,8 @@
  * Discovers actual pages using sitemaps, robots.txt, and intelligent crawling
  */
 
+import { BrowserService } from './cloudflare-browser';
+
 // More robust H1 detection that handles various edge cases
 function hasH1Tag(html: string): boolean {
   // Remove comments and CDATA sections first
@@ -275,8 +277,10 @@ export class RealPageDiscovery {
       console.log(`🕷️ Crawling page: ${currentUrl}`);
 
       try {
-        const pageAnalysis = await this.analyzePage(currentUrl);
-        
+        // Use browser rendering for the first page to handle JavaScript-rendered content
+        const useBrowser = currentDepth === 0;
+        const pageAnalysis = await this.analyzePage(currentUrl, useBrowser);
+
         if (pageAnalysis.statusCode === 200) {
           foundPages.push({
             url: currentUrl,
@@ -318,7 +322,7 @@ export class RealPageDiscovery {
     return { pages: foundPages, depth: currentDepth };
   }
 
-  private async analyzePage(url: string): Promise<{
+  private async analyzePage(url: string, useBrowser: boolean = false): Promise<{
     title: string;
     statusCode: number;
     hasTitle: boolean;
@@ -329,26 +333,73 @@ export class RealPageDiscovery {
     internalLinks: string[];
   }> {
     try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(this.timeout)
-      });
+      let html: string;
+      let statusCode: number = 200;
 
-      if (!response.ok) {
-        return {
-          title: 'Error loading page',
-          statusCode: response.status,
-          hasTitle: false,
-          hasDescription: false,
-          hasH1: false,
-          imageCount: 0,
-          linkCount: 0,
-          internalLinks: []
-        };
+      if (useBrowser) {
+        // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
+        try {
+          console.log(`🌐 Using browser rendering for: ${url}`);
+          const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+            await BrowserService.goto(page, url);
+
+            // Wait a moment for JavaScript to execute
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const renderedHtml = await page.content();
+            return renderedHtml;
+          });
+
+          html = browserResult;
+        } catch (browserError) {
+          console.warn('Browser rendering failed, falling back to fetch:', browserError);
+          // Fallback to simple fetch
+          const response = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            redirect: 'follow',
+            signal: AbortSignal.timeout(this.timeout)
+          });
+
+          if (!response.ok) {
+            return {
+              title: 'Error loading page',
+              statusCode: response.status,
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0,
+              internalLinks: []
+            };
+          }
+
+          html = await response.text();
+          statusCode = response.status;
+        }
+      } else {
+        // Use simple fetch for speed (default for discovered pages)
+        const response = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(this.timeout)
+        });
+
+        if (!response.ok) {
+          return {
+            title: 'Error loading page',
+            statusCode: response.status,
+            hasTitle: false,
+            hasDescription: false,
+            hasH1: false,
+            imageCount: 0,
+            linkCount: 0,
+            internalLinks: []
+          };
+        }
+
+        html = await response.text();
+        statusCode = response.status;
       }
-
-      const html = await response.text();
       const baseUrl = new URL(url);
 
       // Extract title
