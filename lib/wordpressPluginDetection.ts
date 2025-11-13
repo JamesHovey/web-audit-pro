@@ -70,7 +70,7 @@ const PLUGIN_SIGNATURES = [
   {
     name: 'WP Rocket',
     category: 'performance' as const,
-    patterns: ['wp-rocket', 'wpr_rocket_'],
+    patterns: ['wp-rocket', 'wpr_rocket_', 'rocket-loader', 'data-rocket-', 'wprocket'],
     confidence: 'high' as const,
     description: 'Premium caching and speed optimization',
     riskLevel: 'low' as const

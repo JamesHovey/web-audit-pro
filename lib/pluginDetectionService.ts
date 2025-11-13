@@ -88,8 +88,12 @@ export function detectWordPressPlugins(html: string): PluginDetectionResult {
       (lowerHtml.includes('w3tc_config') || lowerHtml.includes('/wp-content/plugins/w3-total-cache/'))) {
     wpPlugins.push('W3 Total Cache');
   }
-  if (lowerHtml.includes('wp-rocket') && 
-      (lowerHtml.includes('wp-rocket.js') || lowerHtml.includes('/wp-content/plugins/wp-rocket/'))) {
+  if (lowerHtml.includes('wp-rocket') ||
+      lowerHtml.includes('wpr_rocket_') ||
+      lowerHtml.includes('/wp-content/plugins/wp-rocket/') ||
+      lowerHtml.includes('rocket-loader') ||
+      lowerHtml.includes('data-rocket-') ||
+      lowerHtml.includes('wprocket')) {
     wpPlugins.push('WP Rocket');
   }
   if (lowerHtml.includes('autoptimize') && 
