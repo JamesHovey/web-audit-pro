@@ -3782,11 +3782,24 @@ function renderSectionResults(
               });
             }
 
-            if (pluginsToDisplay.length === 0) return null;
-
             return (
               <div>
-                <h4 className="font-semibold mb-3">{results.cms} {terminology.plural} Detected ({pluginsToDisplay.length})</h4>
+                <h4 className="font-semibold mb-3">
+                  {results.cms} {terminology.plural}
+                  {pluginsToDisplay.length > 0 ? ` Detected (${pluginsToDisplay.length})` : ''}
+                </h4>
+                {pluginsToDisplay.length === 0 ? (
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="mb-1">
+                      <strong>No {terminology.plural.toLowerCase()} detected</strong> - This could mean:
+                    </p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>The site has no detectable {terminology.plural.toLowerCase()} installed</li>
+                      <li>The {terminology.plural.toLowerCase()} are loaded dynamically and not visible in the HTML</li>
+                      <li>The site uses custom or private {terminology.plural.toLowerCase()} that aren't in our detection database</li>
+                    </ul>
+                  </div>
+                ) : null}
                 {isCategorized ? (
                   // Display plugins grouped by category
                   <div className="space-y-4">
