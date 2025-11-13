@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
         const results: Record<string, unknown> = {}
         let currentSection = 0
         const totalSections = sections.length
+        let discoveredPagesCount = pages.length // Track actual pages discovered during audit
 
         // Memory monitoring helper
         const logMemoryUsage = (label: string) => {
@@ -302,6 +303,13 @@ export async function POST(request: NextRequest) {
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
             results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
 
+            // Update discovered pages count from technical audit results
+            const technicalResults = results.technical as { totalPages?: number }
+            if (technicalResults.totalPages) {
+              discoveredPagesCount = technicalResults.totalPages
+              console.log(`📊 Discovered ${discoveredPagesCount} total pages during technical audit`)
+            }
+
             // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
             // It was frequently failing and consuming resources
             console.log('📱 Viewport analysis skipped (disabled for memory optimization)')
@@ -318,6 +326,13 @@ export async function POST(request: NextRequest) {
             // Map scope: 'multi' -> 'custom' for technical audit
             const techScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
             results.technical = await performTechnicalAudit(url, techScope, pages, updateProgress)
+
+            // Update discovered pages count from technical audit results
+            const techResults = results.technical as { totalPages?: number }
+            if (techResults.totalPages) {
+              discoveredPagesCount = techResults.totalPages
+              console.log(`📊 Discovered ${discoveredPagesCount} total pages during technical audit`)
+            }
 
             // Run technology stack detection
             console.log('🔍 Running technology stack detection...')
@@ -556,7 +571,7 @@ export async function POST(request: NextRequest) {
           ...results,
           scope,
           pages,
-          totalPages: pages.length
+          totalPages: discoveredPagesCount // Use actual discovered page count instead of initial pages.length
         }
 
         // Ensure the results are properly serializable
@@ -620,7 +635,7 @@ export async function POST(request: NextRequest) {
               auditId: audit.id,
               url: url,
               scope: scope,
-              totalPages: pages.length,
+              totalPages: discoveredPagesCount, // Use actual discovered page count
               completedAt: completedAudit.completedAt?.toISOString() || new Date().toISOString()
             })
           }
@@ -666,7 +681,7 @@ export async function POST(request: NextRequest) {
               auditId: audit.id,
               url: url,
               scope: scope,
-              totalPages: pages.length,
+              totalPages: discoveredPagesCount, // Use actual discovered page count
               completedAt: fallbackAudit.completedAt?.toISOString() || new Date().toISOString()
             })
           }
