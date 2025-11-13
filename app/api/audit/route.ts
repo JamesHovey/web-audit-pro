@@ -299,6 +299,8 @@ export async function POST(request: NextRequest) {
 
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+            const { detectTechStack } = await import('@/lib/professionalTechDetection')
+
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
             results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
@@ -308,6 +310,30 @@ export async function POST(request: NextRequest) {
             if (technicalResults.totalPages) {
               discoveredPagesCount = technicalResults.totalPages
               console.log(`📊 Discovered ${discoveredPagesCount} total pages during technical audit`)
+            }
+
+            // Run technology stack detection for plugin recommendations
+            console.log('🔍 Running technology stack detection for technical audit...')
+            try {
+              const professionalTechStack = await detectTechStack(url)
+              const techStack = professionalTechStack as unknown as Record<string, unknown>
+
+              results.technology = {
+                cms: professionalTechStack.cms || 'Not detected',
+                framework: professionalTechStack.framework || 'Not detected',
+                pageBuilder: professionalTechStack.pageBuilder || null,
+                plugins: professionalTechStack.plugins || [],
+                totalPlugins: (techStack.totalPlugins as number) || 0,
+              }
+
+              // Also add to technical results for easy access
+              results.technical.cms = professionalTechStack.cms
+              results.technical.plugins = professionalTechStack.plugins || []
+              results.technical.pageBuilder = professionalTechStack.pageBuilder
+
+              console.log(`✅ Technology stack detected: ${professionalTechStack.cms}`)
+            } catch (techError) {
+              console.error('❌ Technology stack detection failed:', techError)
             }
 
             // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
@@ -418,6 +444,15 @@ export async function POST(request: NextRequest) {
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
+
+            // Preserve CMS and plugin data from technology/technical results in performance results
+            // This ensures EnhancedRecommendations component can show plugin-specific instructions
+            if (results.technology) {
+              results.performance.cms = results.technology.cms
+              results.performance.plugins = results.technology.plugins || results.technical.plugins || []
+              results.performance.pageBuilder = results.technology.pageBuilder || results.technical.pageBuilder
+              console.log(`✅ Preserved CMS (${results.technology.cms}) and ${Array.isArray(results.performance.plugins) ? results.performance.plugins.length : Object.keys(results.performance.plugins || {}).length} plugins in performance results`)
+            }
 
             // Preserve large images data from technical audit in performance results AND root level
             // This ensures the large images table and Technical Health section can display properly

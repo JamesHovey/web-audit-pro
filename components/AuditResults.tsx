@@ -677,7 +677,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                       <>
                         {renderSectionResults(
                           audit?.sections?.includes('technical') ? "technical" : "performance",
-                          {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})},
+                          {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {}), cms: audit?.results?.technology?.cms || audit?.results?.performance?.cms || audit?.results?.technical?.cms},
                           undefined,
                           showMethodologyExpanded,
                           toggleMethodology,
@@ -686,8 +686,8 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                           setPerformancePagination,
                           setShowCoreWebVitalsGuide,
                           audit.results?.scope,
-                          audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
-                          audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
+                          audit.results?.technical?.plugins || audit.results?.technology?.plugins || audit.results?.traffic?.plugins || [],
+                          audit.results?.technical?.pageBuilder || audit.results?.technology?.pageBuilder || audit.results?.traffic?.pageBuilder
                         )}
                         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                           <button
