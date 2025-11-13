@@ -879,76 +879,6 @@ export function AuditForm() {
               </div>
             )}
 
-            {/* Tech Stack Display */}
-            {isValidUrl && (
-              <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200 min-w-[200px]">
-                {isTechStackLoading ? (
-                  <>
-                    <span className="text-sm font-medium text-gray-700">Tech:</span>
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
-                    </div>
-                  </>
-                ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework) ? (
-                  <>
-                    <span className="text-sm font-medium text-gray-700">Tech:</span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {techStack.cms && (
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
-                          {techStack.cms}
-                        </span>
-                      )}
-                      {techStack.ecommerce && (
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
-                          {techStack.ecommerce}
-                        </span>
-                      )}
-                      {techStack.hosting && (
-                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
-                          {techStack.hosting}
-                        </span>
-                      )}
-                      {techStack.framework && !techStack.cms && (
-                        <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
-                          {techStack.framework}
-                        </span>
-                      )}
-                    </div>
-                    <Tooltip
-                      content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Technology Stack</p>
-                          <p>Quick detection of the website&apos;s core technologies:</p>
-                          <ul className="list-disc pl-4 space-y-1 text-sm">
-                            {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}</li>}
-                            {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
-                            {techStack.hosting && <li><strong>Hosting:</strong> {techStack.hosting}</li>}
-                            {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}</li>}
-                            {techStack.cdn && <li><strong>CDN:</strong> {techStack.cdn}</li>}
-                          </ul>
-                          <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
-                            <p className="font-medium">Full details in audit:</p>
-                            <p>Complete technology analysis including plugins, themes, and security tools will appear in the audit results.</p>
-                          </div>
-                        </div>
-                      }
-                      position="right"
-                    >
-                      <svg className="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
-                        <circle cx="12" cy="12" r="9.5" />
-                        <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </Tooltip>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-sm font-medium text-gray-700">Tech:</span>
-                    <span className="text-sm text-gray-400">--</span>
-                  </>
-                )}
-              </div>
-            )}
-
             {isValidUrl && (
               <button
                 type="button"
@@ -975,6 +905,75 @@ export function AuditForm() {
           )}
         </div>
 
+        {/* Tech Stack Display */}
+        {isValidUrl && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+            {isTechStackLoading ? (
+              <>
+                <span className="text-sm font-medium text-gray-700">Tech:</span>
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
+                </div>
+              </>
+            ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework) ? (
+              <>
+                <span className="text-sm font-medium text-gray-700">Tech:</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {techStack.cms && (
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                      {techStack.cms}
+                    </span>
+                  )}
+                  {techStack.ecommerce && (
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
+                      {techStack.ecommerce}
+                    </span>
+                  )}
+                  {techStack.hosting && (
+                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
+                      {techStack.hosting}
+                    </span>
+                  )}
+                  {techStack.framework && !techStack.cms && (
+                    <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
+                      {techStack.framework}
+                    </span>
+                  )}
+                </div>
+                <Tooltip
+                  content={
+                    <div className="space-y-2">
+                      <p className="font-medium">Technology Stack</p>
+                      <p>Quick detection of the website&apos;s core technologies:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-sm">
+                        {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}</li>}
+                        {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
+                        {techStack.hosting && <li><strong>Hosting:</strong> {techStack.hosting}</li>}
+                        {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}</li>}
+                        {techStack.cdn && <li><strong>CDN:</strong> {techStack.cdn}</li>}
+                      </ul>
+                      <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
+                        <p className="font-medium">Full details in audit:</p>
+                        <p>Complete technology analysis including plugins, themes, and security tools will appear in the audit results.</p>
+                      </div>
+                    </div>
+                  }
+                  position="right"
+                >
+                  <svg className="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-help transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
+                    <circle cx="12" cy="12" r="9.5" />
+                    <path d="M9.5 9a2.5 2.5 0 1 1 5 0c0 1.38-1.12 2.5-2.5 2.5m0 0v1.5m0 2.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Tooltip>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-medium text-gray-700">Tech:</span>
+                <span className="text-sm text-gray-400">--</span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Audit Scope Selection */}
         {isValidUrl && (
