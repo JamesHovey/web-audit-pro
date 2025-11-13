@@ -56,6 +56,8 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
     if (!result.cms) {
       if (lowerHtml.includes('/wp-content/') || lowerHtml.includes('/wp-includes/')) {
         result.cms = 'WordPress'
+      } else if (lowerHtml.includes('/sites/default/files/') || lowerHtml.includes('drupal.js') || lowerHtml.includes('drupal-settings-json') || lowerHtml.includes('drupal.settings')) {
+        result.cms = 'Drupal'
       } else if (lowerHtml.includes('shopify') && lowerHtml.includes('cdn.shopify.com')) {
         result.cms = 'Shopify'
       } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
@@ -64,6 +66,8 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
         result.cms = 'Wix'
       } else if (lowerHtml.includes('webflow.com')) {
         result.cms = 'Webflow'
+      } else if (lowerHtml.includes('/media/jui/') || lowerHtml.includes('joomla')) {
+        result.cms = 'Joomla'
       }
     }
 
