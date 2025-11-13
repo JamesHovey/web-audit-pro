@@ -532,10 +532,19 @@ export function getPluginsByUseCase(useCase: string, installedPlugins: string[] 
 
 // Helper function to check if a plugin is already installed
 export function isPluginInstalled(plugin: PluginMetadata, installedPlugins: string[]): boolean {
-  return installedPlugins.some(installed =>
-    installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-    installed.toLowerCase().includes(plugin.slug)
-  )
+  return installedPlugins.some(installed => {
+    const installedLower = installed.toLowerCase()
+    const pluginNameLower = plugin.name.toLowerCase()
+    const pluginSlugLower = plugin.slug.toLowerCase()
+
+    // Bidirectional matching: check if either contains the other
+    return (
+      installedLower.includes(pluginNameLower) ||
+      pluginNameLower.includes(installedLower) ||
+      installedLower.includes(pluginSlugLower) ||
+      pluginSlugLower.includes(installedLower)
+    )
+  })
 }
 
 // Map issue types to use cases
@@ -600,10 +609,19 @@ export function getInstalledPlugins(
   installedPluginNames: string[]
 ): PluginMetadata[] {
   return allPlugins.filter(plugin =>
-    installedPluginNames.some(installed =>
-      installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-      installed.toLowerCase().includes(plugin.slug)
-    )
+    installedPluginNames.some(installed => {
+      const installedLower = installed.toLowerCase()
+      const pluginNameLower = plugin.name.toLowerCase()
+      const pluginSlugLower = plugin.slug.toLowerCase()
+
+      // Bidirectional matching: check if either contains the other
+      return (
+        installedLower.includes(pluginNameLower) ||
+        pluginNameLower.includes(installedLower) ||
+        installedLower.includes(pluginSlugLower) ||
+        pluginSlugLower.includes(installedLower)
+      )
+    })
   )
 }
 
@@ -615,11 +633,20 @@ export function getNonInstalledPlugins(
   const installedPlugins = getInstalledPlugins(allPlugins, installedPluginNames)
 
   return allPlugins.filter(plugin => {
-    // Exclude installed plugins
-    const isInstalled = installedPluginNames.some(installed =>
-      installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-      installed.toLowerCase().includes(plugin.slug)
-    )
+    // Exclude installed plugins - use bidirectional matching
+    const isInstalled = installedPluginNames.some(installed => {
+      const installedLower = installed.toLowerCase()
+      const pluginNameLower = plugin.name.toLowerCase()
+      const pluginSlugLower = plugin.slug.toLowerCase()
+
+      // Bidirectional matching: check if either contains the other
+      return (
+        installedLower.includes(pluginNameLower) ||
+        pluginNameLower.includes(installedLower) ||
+        installedLower.includes(pluginSlugLower) ||
+        pluginSlugLower.includes(installedLower)
+      )
+    })
 
     if (isInstalled) return false
 
