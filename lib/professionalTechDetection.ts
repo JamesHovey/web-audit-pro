@@ -87,50 +87,54 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
     
     const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
     
-    // Hybrid Plugin Detection (Pattern Matching + AI)
-    console.log('🔄 Running hybrid plugin detection (Pattern + AI)...');
-    try {
-      const platform = result.cms || 'WordPress'; // Default to WordPress if not detected
-      const hybridResult = await detectPluginsHybrid(platform, html, headers, cleanUrl);
+    // Hybrid Plugin Detection (Pattern Matching + AI) - Only for WordPress
+    if (result.cms === 'WordPress') {
+      console.log('🔄 Running hybrid plugin detection for WordPress (Pattern + AI)...');
+      try {
+        const platform = result.cms;
+        const hybridResult = await detectPluginsHybrid(platform, html, headers, cleanUrl);
 
-      // Log detection summary
-      console.log(generateDetectionSummary(hybridResult));
+        // Log detection summary
+        console.log(generateDetectionSummary(hybridResult));
 
-      // Enhance the result with hybrid detection
-      result.pluginAnalysis = hybridResult.platformAnalysis;
-      result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
-      result.totalPlugins = hybridResult.totalPluginsDetected;
+        // Enhance the result with hybrid detection
+        result.pluginAnalysis = hybridResult.platformAnalysis;
+        result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
+        result.totalPlugins = hybridResult.totalPluginsDetected;
 
-      // Categorize plugins for easy access
-      const categorized: Record<string, any[]> = {};
-      for (const plugin of hybridResult.detectedPlugins) {
-        const category = plugin.category || 'other';
-        if (!categorized[category]) {
-          categorized[category] = [];
+        // Categorize plugins for easy access
+        const categorized: Record<string, any[]> = {};
+        for (const plugin of hybridResult.detectedPlugins) {
+          const category = plugin.category || 'other';
+          if (!categorized[category]) {
+            categorized[category] = [];
+          }
+          categorized[category].push(plugin);
         }
-        categorized[category].push(plugin);
+
+        result.plugins = categorized;
+
+        // Update specific fields based on detected plugins
+        const ecommercePlugins = categorized.ecommerce;
+        if (ecommercePlugins && ecommercePlugins.length > 0) {
+          result.ecommerce = ecommercePlugins[0].name;
+        }
+
+        const pageBuilders = categorized['page-builder'];
+        if (pageBuilders && pageBuilders.length > 0) {
+          result.pageBuilder = pageBuilders[0].name;
+        }
+
+        // Check for missing essential plugins
+        const missingEssentials = checkMissingEssentials(platform, hybridResult.detectedPlugins);
+        result.missingEssentials = missingEssentials;
+
+        console.log(`✅ Hybrid plugin detection complete: ${hybridResult.totalPluginsDetected} plugins detected via ${hybridResult.detectionMethod}`);
+      } catch (error) {
+        console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
-
-      result.plugins = categorized;
-
-      // Update specific fields based on detected plugins
-      const ecommercePlugins = categorized.ecommerce;
-      if (ecommercePlugins && ecommercePlugins.length > 0) {
-        result.ecommerce = ecommercePlugins[0].name;
-      }
-
-      const pageBuilders = categorized['page-builder'];
-      if (pageBuilders && pageBuilders.length > 0) {
-        result.pageBuilder = pageBuilders[0].name;
-      }
-
-      // Check for missing essential plugins
-      const missingEssentials = checkMissingEssentials(platform, hybridResult.detectedPlugins);
-      result.missingEssentials = missingEssentials;
-
-      console.log(`✅ Hybrid plugin detection complete: ${hybridResult.totalPluginsDetected} plugins detected via ${hybridResult.detectionMethod}`);
-    } catch (error) {
-      console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
+    } else {
+      console.log(`⏭️  Skipping plugin detection - CMS is ${result.cms || 'Unknown'} (plugin detection only available for WordPress)`);
     }
     
     return result;

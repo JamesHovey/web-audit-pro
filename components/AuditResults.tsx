@@ -3744,8 +3744,8 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* WordPress Plugins */}
-          {results.plugins && (() => {
+          {/* WordPress/CMS Plugins - Only show for WordPress sites */}
+          {results.plugins && results.cms === 'WordPress' && (() => {
             // Handle both array format and categorized object format
             let pluginsToDisplay: Record<string, unknown>[] = [];
             let isCategorized = false;

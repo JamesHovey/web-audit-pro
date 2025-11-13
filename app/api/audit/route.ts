@@ -398,16 +398,22 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for performance analysis:', error);
             }
 
-            // Detect WordPress plugins for performance recommendations
-            const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
-            const pluginDetection = detectWordPressPlugins(htmlContent)
-            console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
-
-            // Add plugin data to technical results for recommendations
+            // Detect WordPress plugins for performance recommendations (only for WordPress sites)
             const technicalResults = results.technical as Record<string, unknown>
-            technicalResults.plugins = pluginDetection.plugins
-            technicalResults.cms = pluginDetection.cms
-            technicalResults.pageBuilder = pluginDetection.pageBuilder
+            const detectedCMS = (results.technology as Record<string, unknown>)?.cms || technicalResults.cms
+
+            if (detectedCMS === 'WordPress') {
+              console.log('🔍 WordPress detected - running plugin detection...')
+              const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
+              const pluginDetection = detectWordPressPlugins(htmlContent)
+              console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
+
+              // Add plugin data to technical results for recommendations
+              technicalResults.plugins = pluginDetection.plugins
+              technicalResults.pageBuilder = pluginDetection.pageBuilder
+            } else {
+              console.log(`⏭️  Skipping WordPress plugin detection - CMS is ${detectedCMS}`)
+            }
 
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
