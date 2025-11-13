@@ -4,6 +4,10 @@
 import { detectHostingProvider } from './enhancedHostingDetection';
 import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
 import { detectDrupalModules } from './cms-detection/drupalModuleDetection';
+import { detectJoomlaExtensions } from './cms-detection/joomlaExtensionDetection';
+import { detectShopifyApps } from './cms-detection/shopifyAppDetection';
+import { detectMagentoExtensions } from './cms-detection/magentoExtensionDetection';
+import { detectPrestashopModules } from './cms-detection/prestashopModuleDetection';
 
 interface TechStackResult {
   cms?: string;
@@ -168,8 +172,88 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
       } catch (error) {
         console.error('Drupal module detection failed:', error);
       }
+    } else if (result.cms === 'Joomla') {
+      // Joomla Extension Detection
+      console.log('🔄 Running Joomla extension detection...');
+      try {
+        const joomlaResult = detectJoomlaExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Joomla',
+          totalPluginsDetected: joomlaResult.totalExtensions,
+          pluginsByCategory: joomlaResult.extensionsByCategory,
+          recommendations: joomlaResult.recommendations
+        };
+
+        result.totalPlugins = joomlaResult.totalExtensions;
+        result.plugins = joomlaResult.extensionsByCategory;
+
+        console.log(`✅ Joomla extension detection complete: ${joomlaResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Joomla extension detection failed:', error);
+      }
+    } else if (result.cms === 'Shopify') {
+      // Shopify App Detection
+      console.log('🔄 Running Shopify app detection...');
+      try {
+        const shopifyResult = detectShopifyApps(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Shopify',
+          totalPluginsDetected: shopifyResult.totalApps,
+          pluginsByCategory: shopifyResult.appsByCategory,
+          recommendations: shopifyResult.recommendations
+        };
+
+        result.totalPlugins = shopifyResult.totalApps;
+        result.plugins = shopifyResult.appsByCategory;
+
+        console.log(`✅ Shopify app detection complete: ${shopifyResult.totalApps} apps detected`);
+      } catch (error) {
+        console.error('Shopify app detection failed:', error);
+      }
+    } else if (result.cms === 'Magento') {
+      // Magento Extension Detection
+      console.log('🔄 Running Magento extension detection...');
+      try {
+        const magentoResult = detectMagentoExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Magento',
+          totalPluginsDetected: magentoResult.totalExtensions,
+          pluginsByCategory: magentoResult.extensionsByCategory,
+          recommendations: magentoResult.recommendations
+        };
+
+        result.totalPlugins = magentoResult.totalExtensions;
+        result.plugins = magentoResult.extensionsByCategory;
+
+        console.log(`✅ Magento extension detection complete: ${magentoResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Magento extension detection failed:', error);
+      }
+    } else if (result.cms === 'PrestaShop') {
+      // PrestaShop Module Detection
+      console.log('🔄 Running PrestaShop module detection...');
+      try {
+        const prestashopResult = detectPrestashopModules(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'PrestaShop',
+          totalPluginsDetected: prestashopResult.totalModules,
+          pluginsByCategory: prestashopResult.modulesByCategory,
+          recommendations: prestashopResult.recommendations
+        };
+
+        result.totalPlugins = prestashopResult.totalModules;
+        result.plugins = prestashopResult.modulesByCategory;
+
+        console.log(`✅ PrestaShop module detection complete: ${prestashopResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('PrestaShop module detection failed:', error);
+      }
     } else {
-      console.log(`⏭️  Skipping extension detection - CMS is ${result.cms || 'Unknown'} (extension detection available for WordPress and Drupal)`);
+      console.log(`⏭️  Skipping extension detection - CMS is ${result.cms || 'Unknown'} (extension detection available for WordPress, Drupal, Joomla, Shopify, Magento, PrestaShop)`);
     }
     
     return result;

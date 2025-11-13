@@ -3745,7 +3745,7 @@ function renderSectionResults(
           )}
 
           {/* CMS Extensions/Plugins/Modules */}
-          {results.plugins && (results.cms === 'WordPress' || results.cms === 'Drupal' || results.cms === 'Joomla') && (() => {
+          {results.plugins && (results.cms === 'WordPress' || results.cms === 'Drupal' || results.cms === 'Joomla' || results.cms === 'Shopify' || results.cms === 'Magento' || results.cms === 'PrestaShop') && (() => {
             // Get platform-specific terminology
             const getExtensionTerminology = (cms: string) => {
               switch(cms) {
@@ -3796,6 +3796,7 @@ function renderSectionResults(
                       const categoryLabels: Record<string, string> = {
                         'seo': 'SEO',
                         'page-builder': 'Page Builder',
+                        'builder': 'Page Builder',
                         'analytics': 'Analytics',
                         'compliance': 'Compliance',
                         'forms': 'Forms',
@@ -3803,8 +3804,16 @@ function renderSectionResults(
                         'security': 'Security',
                         'performance': 'Performance',
                         'media': 'Media',
+                        'gallery': 'Gallery',
                         'social': 'Social Media',
                         'admin': 'Administration',
+                        'marketing': 'Marketing',
+                        'email': 'Email Marketing',
+                        'reviews': 'Reviews & Ratings',
+                        'upsell': 'Upsell & Cross-sell',
+                        'shipping': 'Shipping',
+                        'payment': 'Payment',
+                        'conversion': 'Conversion Optimization',
                         'other': 'Other'
                       };
 
