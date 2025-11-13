@@ -923,7 +923,7 @@ export function AuditForm() {
                 <div className="flex flex-wrap items-center gap-2">
                   {techStack.cms && (
                     <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
-                      CMS: {techStack.cms}{techStack.cmsVersion && ` ${techStack.cmsVersion}`}
+                      CMS: {techStack.cms}{techStack.cmsVersion && techStack.cmsVersion !== '0' && ` ${techStack.cmsVersion}`}
                     </span>
                   )}
                   {techStack.ecommerce && (
@@ -953,7 +953,7 @@ export function AuditForm() {
                       <p className="font-medium">Technology Stack</p>
                       <p>Quick detection of the website&apos;s core technologies:</p>
                       <ul className="list-disc pl-4 space-y-1 text-sm">
-                        {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}{techStack.cmsVersion && ` ${techStack.cmsVersion}`}</li>}
+                        {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}{techStack.cmsVersion && techStack.cmsVersion !== '0' && ` ${techStack.cmsVersion}`}</li>}
                         {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
                         {techStack.hosting && <li><strong>Hosting:</strong> {techStack.hosting}</li>}
                         {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}{techStack.frameworkVersion && ` ${techStack.frameworkVersion}`}</li>}

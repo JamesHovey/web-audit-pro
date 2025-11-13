@@ -29,7 +29,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 28650,
     activeInstalls: '5+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $99/year',
+    pricingDetails: 'Free version available. Premium: £99/year',
     url: 'https://wordpress.org/plugins/wordpress-seo/',
     freeTierLimits: 'Free version covers all basic SEO needs',
     pros: [
@@ -56,7 +56,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 6850,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version very comprehensive. Pro: $59/year',
+    pricingDetails: 'Free version very comprehensive. Pro: £59/year',
     url: 'https://wordpress.org/plugins/seo-by-rank-math/',
     freeTierLimits: 'Free version includes most features, even schema markup',
     pros: [
@@ -83,7 +83,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4520,
     activeInstalls: '3+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $49.60/year',
+    pricingDetails: 'Free version available. Premium: £49.60/year',
     url: 'https://wordpress.org/plugins/all-in-one-seo-pack/',
     freeTierLimits: 'Free version covers basic SEO',
     pros: [
@@ -111,7 +111,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 1280,
     activeInstalls: '400,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free: 20MB/month. Lite: $4.99/month (unlimited). Growth: $9.99/month',
+    pricingDetails: 'Free: 20MB/month. Lite: £4.99/month (unlimited). Growth: £9.99/month',
     url: 'https://wordpress.org/plugins/imagify/',
     freeTierLimits: '20MB of images per month',
     pros: [
@@ -138,7 +138,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 3640,
     activeInstalls: '400,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free: 100 images/month. One-time credits: $9.99 for 10,000 images',
+    pricingDetails: 'Free: 100 images/month. One-time credits: £9.99 for 10,000 images',
     url: 'https://wordpress.org/plugins/shortpixel-image-optimiser/',
     freeTierLimits: '100 images per month',
     pros: [
@@ -165,7 +165,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 2340,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free: Local optimization. Premium: $7/month for cloud compression',
+    pricingDetails: 'Free: Local optimization. Premium: £7/month for cloud compression',
     url: 'https://wordpress.org/plugins/ewww-image-optimizer/',
     freeTierLimits: 'Unlimited with local optimization',
     pros: [
@@ -192,7 +192,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4520,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free: 5MB per image limit. Pro: $6/month',
+    pricingDetails: 'Free: 5MB per image limit. Pro: £6/month',
     url: 'https://wordpress.org/plugins/wp-smushit/',
     freeTierLimits: '5MB max file size, 50 images bulk optimization',
     pros: [
@@ -221,7 +221,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 8950,
     activeInstalls: '2+ million',
     cost: 'Paid',
-    pricingDetails: 'Single: $59/year. Plus: $119/year. Infinite: $299/year',
+    pricingDetails: 'Single: £59/year. Plus: £119/year. Infinite: £299/year',
     url: 'https://wp-rocket.me/',
     pros: [
       'Best overall performance plugin',
@@ -248,7 +248,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 3840,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version very comprehensive. Pro: $99/year',
+    pricingDetails: 'Free version very comprehensive. Pro: £99/year',
     url: 'https://wordpress.org/plugins/w3-total-cache/',
     freeTierLimits: 'Free version includes most features',
     pros: [
@@ -352,7 +352,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4120,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $49.99 one-time',
+    pricingDetails: 'Free version available. Premium: £49.99 one-time',
     url: 'https://wordpress.org/plugins/wp-fastest-cache/',
     pros: [
       'Easy to use',
@@ -380,7 +380,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 1850,
     activeInstalls: '200,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Pro: $69/year',
+    pricingDetails: 'Free version available. Pro: £69/year',
     url: 'https://wordpress.org/plugins/wp-asset-clean-up/',
     pros: [
       'Reduce plugin bloat',
@@ -406,7 +406,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 2150,
     activeInstalls: '200,000+',
     cost: 'Paid',
-    pricingDetails: 'Personal: $24.95/year. Business: $49.95/year',
+    pricingDetails: 'Personal: £24.95/year. Business: £49.95/year',
     url: 'https://perfmatters.io/',
     pros: [
       'Very lightweight',
@@ -436,7 +436,7 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
     reviews: 12500,
     activeInstalls: 'Web-based',
     cost: 'Freemium',
-    pricingDetails: 'Free: 20 images at a time. API: $25 for 500 compressions',
+    pricingDetails: 'Free: 20 images at a time. API: £25 for 500 compressions',
     url: 'https://tinypng.com/',
     freeTierLimits: '20 images per upload session',
     pros: [

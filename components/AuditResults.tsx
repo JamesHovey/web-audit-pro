@@ -3618,7 +3618,7 @@ function renderSectionResults(
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-black mb-1"><strong>Majestic Lite Plan: $49.99/month</strong></div>
+                  <div className="text-sm text-black mb-1"><strong>Majestic Lite Plan: £49.99/month</strong></div>
                   <div className="text-xs text-gray-600">Most affordable professional backlink API</div>
                 </div>
                 <div className="flex gap-3">

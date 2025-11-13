@@ -34,7 +34,7 @@ export const ACCESSIBILITY_PLUGINS: AccessibilityPluginMetadata[] = [
     reviews: 125,
     activeInstalls: '10,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free with premium features from $49/year',
+    pricingDetails: 'Free with premium features from £49/year',
     freeTierLimits: 'Basic toolbar, limited customization',
     bestFor: 'Sites wanting to provide visitor-controlled accessibility options',
     pros: [
@@ -104,7 +104,7 @@ export const ACCESSIBILITY_PLUGINS: AccessibilityPluginMetadata[] = [
     reviews: 156,
     activeInstalls: '40,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free version + Pro from $99/year',
+    pricingDetails: 'Free version + Pro from £99/year',
     freeTierLimits: 'Limited to 25 checks per post/page',
     bestFor: 'Content editors who want real-time accessibility feedback',
     pros: [
@@ -173,7 +173,7 @@ export const ACCESSIBILITY_PLUGINS: AccessibilityPluginMetadata[] = [
     reviews: 892,
     activeInstalls: '200,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free basic + Pro from $490/year',
+    pricingDetails: 'Free basic + Pro from £490/year',
     freeTierLimits: 'Basic widget, UserWay branding',
     bestFor: 'Enterprise sites needing comprehensive accessibility solution',
     pros: [
@@ -209,7 +209,7 @@ export const ACCESSIBILITY_PLUGINS: AccessibilityPluginMetadata[] = [
     reviews: 1250,
     activeInstalls: '50,000+',
     cost: 'Paid',
-    pricingDetails: 'From $490/year',
+    pricingDetails: 'From £490/year',
     bestFor: 'Sites needing full ADA/WCAG compliance with legal protection',
     pros: [
       'Fully automated AI remediation',
@@ -244,7 +244,7 @@ export const ACCESSIBILITY_PLUGINS: AccessibilityPluginMetadata[] = [
     reviews: 87,
     activeInstalls: '5,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free + Premium from $199/year',
+    pricingDetails: 'Free + Premium from £199/year',
     freeTierLimits: 'Limited scans, basic reporting',
     bestFor: 'Developers wanting detailed technical accessibility reports',
     pros: [
