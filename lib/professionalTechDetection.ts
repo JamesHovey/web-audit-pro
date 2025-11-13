@@ -290,6 +290,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Joomla';
       } else if (generator.toLowerCase().includes('shopify')) {
         result.cms = 'Shopify';
+      } else if (generator.toLowerCase().includes('magento')) {
+        result.cms = 'Magento';
+      } else if (generator.toLowerCase().includes('prestashop')) {
+        result.cms = 'PrestaShop';
       } else if (generator.toLowerCase().includes('wix')) {
         result.cms = 'Wix';
       } else if (generator.toLowerCase().includes('squarespace')) {
@@ -307,6 +311,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Joomla';
       } else if (lowerHtml.includes('shopify') && (lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify-analytics'))) {
         result.cms = 'Shopify';
+      } else if (lowerHtml.includes('mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento') || lowerHtml.includes('magento')) {
+        result.cms = 'Magento';
+      } else if (lowerHtml.includes('prestashop') || lowerHtml.includes('/modules/blockwishlist/') || lowerHtml.includes('/modules/blockcart/') || lowerHtml.includes('/themes/classic/') || lowerHtml.includes('/modules/ps_')) {
+        result.cms = 'PrestaShop';
       } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
         result.cms = 'Squarespace';
       } else if (lowerHtml.includes('wix.com') || lowerHtml.includes('wixstatic.com')) {
