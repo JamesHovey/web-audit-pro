@@ -482,15 +482,15 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       result.hosting = 'Squarespace'
     } else if (server.includes('cloudflare') || result.cdn === 'Cloudflare') {
       result.hosting = 'Cloudflare'
-    } else if (lowerHtml.includes('amazonaws') || result.cdn === 'CloudFront') {
+    } else if (lowerHtml.includes('amazonaws.com') || result.cdn === 'CloudFront') {
       result.hosting = 'AWS'
-    } else if (lowerHtml.includes('vercel') || headers['x-vercel-id']) {
+    } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
       result.hosting = 'Vercel'
-    } else if (lowerHtml.includes('netlify') || headers['x-nf-request-id']) {
+    } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
       result.hosting = 'Netlify'
-    } else if (lowerHtml.includes('digitalocean')) {
+    } else if (lowerHtml.includes('digitaloceanspaces.com') || lowerHtml.includes('cdn.digitalocean')) {
       result.hosting = 'DigitalOcean'
-    } else if (lowerHtml.includes('googleusercontent') || lowerHtml.includes('googleapis')) {
+    } else if (lowerHtml.includes('googleusercontent.com') || lowerHtml.includes('googleapis.com')) {
       result.hosting = 'Google Cloud'
     }
 
