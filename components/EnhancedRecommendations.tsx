@@ -982,7 +982,52 @@ export default function EnhancedRecommendations({
                       How to fix this
                     </summary>
                     <div className="mt-2 p-3 bg-gray-50 rounded">
-                      <p className="text-gray-700 mb-3">{rec.details}</p>
+                      {/* Format details with better structure for plugin-specific instructions */}
+                      {(() => {
+                        const details = rec.details;
+
+                        // Check if details contains plugin-specific instructions (indicated by numbered steps)
+                        if (details.includes('✅ Good news!') && details.match(/\d+\./)) {
+                          const parts = details.split('\n\n');
+
+                          return (
+                            <div className="space-y-3">
+                              {parts.map((part, idx) => {
+                                // Check if this part contains numbered steps
+                                if (part.match(/^\d+\./m)) {
+                                  const steps = part.split('\n').filter(line => line.trim());
+                                  return (
+                                    <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-3">
+                                      <div className="font-medium text-blue-800 mb-2">Configuration Steps:</div>
+                                      <div className="space-y-1">
+                                        {steps.map((step, stepIdx) => (
+                                          <div key={stepIdx} className="flex items-start gap-2">
+                                            <span className="text-blue-600 font-medium text-sm mt-0.5">
+                                              {step.match(/^\d+\./) ? step.match(/^\d+\./)?.[0] : '•'}
+                                            </span>
+                                            <span className="text-gray-700 text-sm">
+                                              {step.replace(/^\d+\.\s*/, '')}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <p key={idx} className="text-gray-700">
+                                      {part}
+                                    </p>
+                                  );
+                                }
+                              })}
+                            </div>
+                          );
+                        } else {
+                          // Regular details without plugin-specific instructions
+                          return <p className="text-gray-700 mb-3">{details}</p>;
+                        }
+                      })()}
 
                       {/* Combined Images Table - Show for "Optimise Images" recommendation */}
                       {(rec.title === 'Optimise Images' || rec.title.includes('Large Image') || rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && (largeImagesList.length > 0 || legacyFormatImagesList.length > 0) && (() => {
@@ -1190,9 +1235,30 @@ export default function EnhancedRecommendations({
                         </div>
                       )}
 
-                      {/* Regular Steps */}
-                      <div className="space-y-2 mb-4">
-                        <div className="font-medium text-gray-800">Steps:</div>
+                      {/* Plugin Recommendation Tables - Now shown FIRST */}
+                      {rec.useCase && cms === 'WordPress' && (
+                        <div className="mb-4 pb-4 border-b border-gray-300 space-y-6">
+                          {/* Currently Installed Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="installed"
+                          />
+
+                          {/* Recommended Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="recommended"
+                          />
+                        </div>
+                      )}
+
+                      {/* Summary Section - Now shown AFTER plugin tables */}
+                      <div className="space-y-2">
+                        <div className="font-medium text-gray-800">Summary:</div>
                         {rec.howTo
                           .filter(step => {
                             // Filter out plugin-specific steps since they're shown in PluginRecommendationTable
@@ -1216,27 +1282,6 @@ export default function EnhancedRecommendations({
                             </div>
                           ))}
                       </div>
-
-                      {/* Plugin Recommendation Tables */}
-                      {rec.useCase && cms === 'WordPress' && (
-                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-6">
-                          {/* Currently Installed Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="installed"
-                          />
-
-                          {/* Recommended Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="recommended"
-                          />
-                        </div>
-                      )}
                     </div>
                   </details>
                 </div>
