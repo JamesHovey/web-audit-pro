@@ -11,10 +11,13 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
 
 interface QuickTechInfo {
   cms?: string
+  cmsVersion?: string
   hosting?: string
   ecommerce?: string
   framework?: string
+  frameworkVersion?: string
   cdn?: string
+  phpVersion?: string
   loading?: boolean
 }
 
@@ -368,16 +371,22 @@ const CMS_PATTERNS: CMSPattern[] = [
 ]
 
 // Detect CMS from patterns
-function detectCMS(html: string, lowerHtml: string, headers: Record<string, string>): string | undefined {
+function detectCMS(html: string, lowerHtml: string, headers: Record<string, string>): { name: string, version?: string } | undefined {
   // Check meta generator tag first
   const metaMatches = html.match(/<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"']+)["\'][^>]*>/i)
   if (metaMatches) {
-    const generator = metaMatches[1].toLowerCase()
+    const generator = metaMatches[1]
+    const generatorLower = generator.toLowerCase()
     for (const cms of CMS_PATTERNS) {
       if (cms.patterns.meta) {
         for (const pattern of cms.patterns.meta) {
-          if (generator.includes(pattern)) {
-            return cms.name
+          if (generatorLower.includes(pattern)) {
+            // Extract version if present
+            const versionMatch = generator.match(/(\d+\.[\d.]+)/i)
+            return {
+              name: cms.name,
+              version: versionMatch ? versionMatch[1] : undefined
+            }
           }
         }
       }
@@ -391,7 +400,20 @@ function detectCMS(html: string, lowerHtml: string, headers: Record<string, stri
       const matchCount = cms.patterns.html.filter(pattern => lowerHtml.includes(pattern)).length
       // Require at least 2 matches for better accuracy (or 1 if only 1 pattern defined)
       if (matchCount >= Math.min(2, cms.patterns.html.length)) {
-        return cms.name
+        // Try to extract version for specific CMS
+        let version: string | undefined
+        if (cms.name === 'WordPress') {
+          // Look for WordPress version in HTML
+          const wpVersionMatch = html.match(/wp-includes\/[^"']*ver=([0-9.]+)/i) ||
+                                 html.match(/wordpress\s+([0-9.]+)/i)
+          version = wpVersionMatch ? wpVersionMatch[1] : undefined
+        } else if (cms.name === 'Drupal') {
+          // Look for Drupal version
+          const drupalVersionMatch = html.match(/drupal\.settings[^}]*version[^"']*["']([0-9.]+)/i) ||
+                                     html.match(/drupal[^"']*([0-9]+\.[0-9]+)/i)
+          version = drupalVersionMatch ? drupalVersionMatch[1] : undefined
+        }
+        return { name: cms.name, version }
       }
     }
 
@@ -401,7 +423,7 @@ function detectCMS(html: string, lowerHtml: string, headers: Record<string, stri
         for (const [headerName, headerValue] of Object.entries(headers)) {
           if (headerName.toLowerCase().includes(headerPattern) ||
               (headerValue && headerValue.toLowerCase().includes(headerPattern))) {
-            return cms.name
+            return { name: cms.name }
           }
         }
       }
@@ -435,7 +457,20 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
     const result: QuickTechInfo = {}
 
     // Detect CMS using comprehensive pattern matching
-    result.cms = detectCMS(html, lowerHtml, headers)
+    const cmsDetection = detectCMS(html, lowerHtml, headers)
+    if (cmsDetection) {
+      result.cms = cmsDetection.name
+      result.cmsVersion = cmsDetection.version
+    }
+
+    // PHP Version Detection from headers
+    const xPoweredBy = headers['x-powered-by']?.toLowerCase() || ''
+    if (xPoweredBy.includes('php')) {
+      const phpVersionMatch = xPoweredBy.match(/php\/([0-9.]+)/i)
+      if (phpVersionMatch) {
+        result.phpVersion = phpVersionMatch[1]
+      }
+    }
 
     // E-commerce Detection (basic patterns)
     if (result.cms === 'WordPress' && lowerHtml.includes('woocommerce')) {
@@ -448,19 +483,47 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       result.ecommerce = 'Magento'
     }
 
-    // Framework Detection (quick patterns)
+    // Framework Detection with version (quick patterns)
     if (lowerHtml.includes('next.js') || lowerHtml.includes('__next') || lowerHtml.includes('_buildmanifest')) {
       result.framework = 'Next.js'
+      // Try to extract Next.js version from buildManifest or meta tags
+      const nextVersionMatch = html.match(/next[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (nextVersionMatch) {
+        result.frameworkVersion = nextVersionMatch[1]
+      }
     } else if (lowerHtml.includes('react') || lowerHtml.includes('_react')) {
       result.framework = 'React'
+      // Try to extract React version
+      const reactVersionMatch = html.match(/react[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (reactVersionMatch) {
+        result.frameworkVersion = reactVersionMatch[1]
+      }
     } else if (lowerHtml.includes('vue.js') || lowerHtml.includes('__vue')) {
       result.framework = 'Vue.js'
+      // Try to extract Vue version
+      const vueVersionMatch = html.match(/vue[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (vueVersionMatch) {
+        result.frameworkVersion = vueVersionMatch[1]
+      }
     } else if (lowerHtml.includes('angular') || lowerHtml.includes('ng-version')) {
       result.framework = 'Angular'
+      // Extract Angular version from ng-version attribute
+      const ngVersionMatch = html.match(/ng-version=["']([0-9.]+)["']/i)
+      if (ngVersionMatch) {
+        result.frameworkVersion = ngVersionMatch[1]
+      }
     } else if (lowerHtml.includes('gatsby')) {
       result.framework = 'Gatsby'
+      const gatsbyVersionMatch = html.match(/gatsby[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (gatsbyVersionMatch) {
+        result.frameworkVersion = gatsbyVersionMatch[1]
+      }
     } else if (lowerHtml.includes('nuxt')) {
       result.framework = 'Nuxt.js'
+      const nuxtVersionMatch = html.match(/nuxt[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (nuxtVersionMatch) {
+        result.frameworkVersion = nuxtVersionMatch[1]
+      }
     }
 
     // CDN Detection

@@ -173,10 +173,13 @@ export function AuditForm() {
   const [isDomainAuthorityLoading, setIsDomainAuthorityLoading] = useState(false)
   const [techStack, setTechStack] = useState<{
     cms?: string
+    cmsVersion?: string
     hosting?: string
     ecommerce?: string
     framework?: string
+    frameworkVersion?: string
     cdn?: string
+    phpVersion?: string
   } | null>(null)
   const [isTechStackLoading, setIsTechStackLoading] = useState(false)
   const [auditConfiguration, setAuditConfiguration] = useState<AuditConfiguration>({
@@ -915,12 +918,12 @@ export function AuditForm() {
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
                 </div>
               </>
-            ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework) ? (
+            ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework || techStack.phpVersion) ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   {techStack.cms && (
                     <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
-                      CMS: {techStack.cms}
+                      CMS: {techStack.cms}{techStack.cmsVersion && ` ${techStack.cmsVersion}`}
                     </span>
                   )}
                   {techStack.ecommerce && (
@@ -935,7 +938,12 @@ export function AuditForm() {
                   )}
                   {techStack.framework && (
                     <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
-                      Framework: {techStack.framework}
+                      Framework: {techStack.framework}{techStack.frameworkVersion && ` ${techStack.frameworkVersion}`}
+                    </span>
+                  )}
+                  {techStack.phpVersion && (
+                    <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded font-medium">
+                      PHP: {techStack.phpVersion}
                     </span>
                   )}
                 </div>
@@ -945,11 +953,12 @@ export function AuditForm() {
                       <p className="font-medium">Technology Stack</p>
                       <p>Quick detection of the website&apos;s core technologies:</p>
                       <ul className="list-disc pl-4 space-y-1 text-sm">
-                        {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}</li>}
+                        {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}{techStack.cmsVersion && ` ${techStack.cmsVersion}`}</li>}
                         {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
                         {techStack.hosting && <li><strong>Hosting:</strong> {techStack.hosting}</li>}
-                        {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}</li>}
+                        {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}{techStack.frameworkVersion && ` ${techStack.frameworkVersion}`}</li>}
                         {techStack.cdn && <li><strong>CDN:</strong> {techStack.cdn}</li>}
+                        {techStack.phpVersion && <li><strong>PHP:</strong> {techStack.phpVersion}</li>}
                       </ul>
                       <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
                         <p className="font-medium">Full details in audit:</p>
