@@ -3,6 +3,7 @@
 
 import { detectHostingProvider } from './enhancedHostingDetection';
 import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
+import { detectDrupalModules } from './cms-detection/drupalModuleDetection';
 
 interface TechStackResult {
   cms?: string;
@@ -133,8 +134,42 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
       } catch (error) {
         console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
+    } else if (result.cms === 'Drupal') {
+      // Drupal Module Detection
+      console.log('🔄 Running Drupal module detection...');
+      try {
+        const drupalResult = detectDrupalModules(html, headers);
+
+        // Enhance the result with Drupal module detection
+        result.pluginAnalysis = {
+          platform: 'Drupal',
+          totalPluginsDetected: drupalResult.totalModules,
+          pluginsByCategory: drupalResult.modulesByCategory,
+          securityAssessment: {
+            vulnerablePlugins: drupalResult.securityRisks.map(m => ({
+              name: m.displayName,
+              severity: m.security?.severity || 'low',
+              cve: undefined
+            })),
+            riskLevel: drupalResult.securityRisks.length > 0 ? 'medium' : 'low'
+          },
+          performanceAssessment: {
+            heavyPlugins: drupalResult.performanceImpact.map(m => m.displayName),
+            overallImpact: drupalResult.performanceImpact.length > 2 ? 'high' :
+                           drupalResult.performanceImpact.length > 0 ? 'medium' : 'low'
+          },
+          recommendations: drupalResult.recommendations
+        };
+
+        result.totalPlugins = drupalResult.totalModules;
+        result.plugins = drupalResult.modulesByCategory;
+
+        console.log(`✅ Drupal module detection complete: ${drupalResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('Drupal module detection failed:', error);
+      }
     } else {
-      console.log(`⏭️  Skipping plugin detection - CMS is ${result.cms || 'Unknown'} (plugin detection only available for WordPress)`);
+      console.log(`⏭️  Skipping extension detection - CMS is ${result.cms || 'Unknown'} (extension detection available for WordPress and Drupal)`);
     }
     
     return result;

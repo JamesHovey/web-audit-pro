@@ -3744,8 +3744,22 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* WordPress/CMS Plugins - Only show for WordPress sites */}
-          {results.plugins && results.cms === 'WordPress' && (() => {
+          {/* CMS Extensions/Plugins/Modules */}
+          {results.plugins && (results.cms === 'WordPress' || results.cms === 'Drupal' || results.cms === 'Joomla') && (() => {
+            // Get platform-specific terminology
+            const getExtensionTerminology = (cms: string) => {
+              switch(cms) {
+                case 'WordPress': return { singular: 'Plugin', plural: 'Plugins' };
+                case 'Drupal': return { singular: 'Module', plural: 'Modules' };
+                case 'Joomla': return { singular: 'Extension', plural: 'Extensions' };
+                case 'Magento': return { singular: 'Extension', plural: 'Extensions' };
+                case 'PrestaShop': return { singular: 'Module', plural: 'Modules' };
+                case 'Shopify': return { singular: 'App', plural: 'Apps' };
+                default: return { singular: 'Extension', plural: 'Extensions' };
+              }
+            };
+            const terminology = getExtensionTerminology(results.cms);
+
             // Handle both array format and categorized object format
             let pluginsToDisplay: Record<string, unknown>[] = [];
             let isCategorized = false;
@@ -3772,7 +3786,7 @@ function renderSectionResults(
 
             return (
               <div>
-                <h4 className="font-semibold mb-3">WordPress Plugins Detected ({pluginsToDisplay.length})</h4>
+                <h4 className="font-semibold mb-3">{results.cms} {terminology.plural} Detected ({pluginsToDisplay.length})</h4>
                 {isCategorized ? (
                   // Display plugins grouped by category
                   <div className="space-y-4">
@@ -3789,7 +3803,9 @@ function renderSectionResults(
                         'security': 'Security',
                         'performance': 'Performance',
                         'media': 'Media',
-                        'social': 'Social Media'
+                        'social': 'Social Media',
+                        'admin': 'Administration',
+                        'other': 'Other'
                       };
 
                       return (
