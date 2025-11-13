@@ -15,9 +15,290 @@ type SortField = 'rating' | 'reviews' | 'cost' | 'activeInstalls'
 type SortDirection = 'asc' | 'desc'
 type CostFilter = 'all' | 'Free' | 'Freemium' | 'Paid'
 
+// Helper function to get plugin-specific configuration steps
+function getPluginConfigurationSteps(pluginName: string, issueType: string): string[] {
+  const key = `${pluginName.toLowerCase()}:${issueType.toLowerCase()}`
+
+  const configSteps: Record<string, string[]> = {
+    // WP Rocket configurations
+    'wp rocket:large-images': [
+      'Log in to your WordPress admin dashboard',
+      'Navigate to Settings → WP Rocket',
+      'Click on the "Media" tab',
+      'Enable "LazyLoad for images"',
+      'Enable "Replace YouTube iframe with preview image"',
+      'Scroll down and enable "WebP compatibility" if your server supports WebP',
+      'Click "Save Changes"',
+      'Test your site to ensure images load properly',
+      '💡 Tip: WP Rocket works great with image optimization plugins like Imagify or ShortPixel'
+    ],
+    'wp rocket:minification': [
+      'Go to Settings → WP Rocket in your WordPress dashboard',
+      'Click on the "File Optimization" tab',
+      'Under CSS Files: Enable "Minify CSS files"',
+      'Under JavaScript Files: Enable "Minify JavaScript files"',
+      'Enable "Combine JavaScript files" (test carefully as this can sometimes cause conflicts)',
+      'Enable "Load JavaScript deferred" to improve page load time',
+      'Click "Save Changes" and clear your cache',
+      'Test your website thoroughly - if anything breaks, disable "Combine" options one by one',
+      '⚠️ Important: Some themes/plugins may conflict with combining files'
+    ],
+    'wp rocket:css-optimization': [
+      'Access WP Rocket settings: Settings → WP Rocket',
+      'Go to the "File Optimization" tab',
+      'Enable "Optimize CSS delivery" - this removes render-blocking CSS',
+      'Enable "Minify CSS files" to reduce CSS file sizes',
+      'WP Rocket will automatically generate critical CSS for above-the-fold content',
+      'Click "Save Changes"',
+      'Clear your cache and test your site',
+      '💡 This feature eliminates render-blocking CSS warnings in PageSpeed Insights'
+    ],
+    'wp rocket:javascript-optimization': [
+      'Navigate to Settings → WP Rocket → File Optimization',
+      'Under JavaScript Files, enable "Minify JavaScript files"',
+      'Enable "Load JavaScript deferred" to defer non-critical JS',
+      'Optional: Enable "Delay JavaScript execution" to further improve initial page load',
+      'If you use Delay JS, add critical scripts to the exclusion list (like Google Analytics)',
+      'Save changes and clear cache',
+      'Test all interactive features on your site (forms, sliders, menus, etc.)',
+      '⚠️ If something breaks, use the exclusion field to exclude specific JS files'
+    ],
+    'wp rocket:caching': [
+      'WP Rocket activates caching automatically upon installation',
+      'To configure: Go to Settings → WP Rocket → Cache tab',
+      'Ensure "Enable caching for mobile devices" is checked',
+      'Enable "Separate cache files for mobile devices" if you have a responsive site',
+      'Set cache lifespan (default 10 hours is usually good)',
+      'Enable "Preload cache" to automatically build cache for your pages',
+      'Add your sitemap URL in the "Preload" section',
+      'Click "Save Changes"',
+      '💡 WP Rocket automatically clears cache when you update content'
+    ],
+
+    // Autoptimize configurations
+    'autoptimize:css-optimization': [
+      'Go to Settings → Autoptimize in WordPress',
+      'In the "CSS Options" section, check "Optimize CSS Code"',
+      'Check "Aggregate CSS-files" to combine CSS files',
+      'Optional: Enable "Inline all CSS" for small sites',
+      'For most sites, keep "Inline and Defer CSS" checked',
+      'Click "Save Changes and Empty Cache"',
+      'Test your site - if styling breaks, try disabling "Aggregate CSS-files"',
+      '💡 Autoptimize has a "Critical CSS" power-up for advanced optimization'
+    ],
+    'autoptimize:javascript-optimization': [
+      'Access Settings → Autoptimize',
+      'In "JS Options", check "Optimize JavaScript Code"',
+      'Check "Aggregate JS-files" to combine JavaScript',
+      'Enable "Also aggregate inline JS" if your theme allows it',
+      'Optional: Enable "Force JavaScript in <head>" (test carefully)',
+      'If you have jQuery issues, add "jquery" to the exclusion list',
+      'Save Changes and Empty Cache',
+      'Test all interactive features thoroughly',
+      '⚠️ Common exclusions needed: "js/jquery/jquery.js,wp-includes/js/dist"'
+    ],
+    'autoptimize:minification': [
+      'Navigate to Settings → Autoptimize',
+      'Enable "Optimize HTML Code" to minify HTML',
+      'Enable "Optimize CSS Code" to minify CSS',
+      'Enable "Optimize JavaScript Code" to minify JS',
+      'Click "Save Changes and Empty Cache"',
+      'Check your website for any layout or functionality issues',
+      '💡 Autoptimize is lightweight and specifically focuses on minification'
+    ],
+
+    // W3 Total Cache configurations
+    'w3 total cache:caching': [
+      'Go to Performance → General Settings in WordPress',
+      'Enable "Page Cache" and select "Disk: Enhanced" as the method',
+      'Enable "Minify" and set Minify mode to "Manual"',
+      'Enable "Browser Cache" to leverage browser caching',
+      'Optional: Enable "Object Cache" if you have a large database',
+      'Scroll to bottom and click "Save all settings"',
+      'Go to Performance → Page Cache → Cache Preload',
+      'Enter your sitemap URL and enable "Automatically prime the page cache"',
+      'Save settings and test your site',
+      '⚠️ W3 Total Cache is powerful but complex - start with basic settings'
+    ],
+    'w3 total cache:minification': [
+      'Navigate to Performance → Minify in WordPress',
+      'Enable "Rewrite URL structure" for cleaner URLs',
+      'Under HTML & XML: Enable "Enable" and "Inline CSS minification"',
+      'Under JS: Enable "Enable", select "Before </body>" for operation',
+      'Under CSS: Enable "Enable" and select "Header" for embedding',
+      'Click "Save settings & purge cache"',
+      'Test your website thoroughly',
+      '💡 Use "Help" buttons in W3TC for guidance on each setting'
+    ],
+
+    // Image Optimization plugins
+    'imagify:large-images': [
+      'Install and activate Imagify from WordPress plugins',
+      'Sign up for a free API key at imagify.io (20MB/month free)',
+      'Go to Settings → Imagify',
+      'Enter your API key',
+      'Select optimization level: "Normal" is recommended (best balance)',
+      'Enable "Auto-Optimize images on upload"',
+      'Enable "Backup original images" for safety',
+      'Check "Resize larger images" and set max width to 1920px',
+      'Enable "Convert to WebP" for modern browsers',
+      'Click "Save & Go to Bulk Optimizer" to optimize existing images',
+      'Run the bulk optimizer on your image library',
+      '💡 Monitor your monthly quota - upgrade if you upload many images'
+    ],
+    'shortpixel image optimizer:large-images': [
+      'Install ShortPixel from WordPress plugins',
+      'Sign up for free API key (100 images/month)',
+      'Navigate to Settings → ShortPixel',
+      'Enter your API key',
+      'Choose compression type: "Lossy" for best compression with good quality',
+      'Enable "Also include thumbnails"',
+      'Check "Convert to WebP"',
+      'Enable "Optimize on upload" for automatic optimization',
+      'Go to Media → Bulk ShortPixel',
+      'Click "Start Optimizing" to optimize existing images',
+      '💡 You can buy one-time credits instead of monthly subscription'
+    ],
+    'ewww image optimizer:large-images': [
+      'Install EWWW Image Optimizer plugin',
+      'Go to Settings → EWWW Image Optimizer',
+      'Choose "Pixel Perfect" or "Balanced" mode (Balanced recommended)',
+      'Enable "Lazy Load" for images',
+      'Enable "WebP Conversion"',
+      'No API key needed for basic optimization!',
+      'Enable "Optimize on Upload"',
+      'Navigate to Media → Bulk Optimize',
+      'Click "Start Scan" then "Start Optimizing"',
+      '💡 Free tier uses local optimization - upgrade for cloud compression'
+    ],
+    'smush:large-images': [
+      'Install and activate Smush plugin',
+      'Go to Smush settings in WordPress dashboard',
+      'Enable "Automatic compression" to optimize new uploads',
+      'Turn on "Lazy Load" for images',
+      'Enable "Resize Original Images" and set max width to 2000px',
+      'Note: WebP conversion requires Smush Pro',
+      'Go to "Bulk Smush" tab',
+      'Click "Bulk Smush Now" to optimize up to 50 images at once',
+      '💡 Free version is unlimited but limited to 5MB per image'
+    ],
+
+    // SEO plugins
+    'yoast seo:meta-titles': [
+      'Install Yoast SEO plugin if not already installed',
+      'Edit the page/post that needs a meta title',
+      'Scroll down to the "Yoast SEO" meta box below the editor',
+      'In the "SEO title" field, enter your optimized title (50-60 characters)',
+      'Include your primary keyword near the beginning',
+      'Make it compelling and click-worthy',
+      'Check the preview to see how it will look in Google',
+      'Click "Update" or "Publish" to save changes',
+      'Repeat for all pages missing meta titles',
+      '💡 Yoast shows a traffic light indicator - aim for green!'
+    ],
+    'yoast seo:meta-descriptions': [
+      'Edit the page/post in WordPress',
+      'Find the Yoast SEO meta box below your content',
+      'Click on the "Meta description" field',
+      'Write a compelling description (150-160 characters)',
+      'Include relevant keywords naturally',
+      'Add a call-to-action if appropriate',
+      'Check the preview snippet',
+      'Save your changes',
+      '💡 Good meta descriptions can improve click-through rates by 20-30%'
+    ],
+    'rank math:meta-titles': [
+      'Install Rank Math SEO plugin',
+      'Edit your page/post',
+      'Look for the "Rank Math" meta box (usually below editor)',
+      'Click "Edit Snippet"',
+      'Enter your SEO Title in the field provided',
+      'Rank Math shows a score and suggestions in real-time',
+      'Keep title between 50-60 characters (Rank Math shows a progress bar)',
+      'Include focus keyword for better rankings',
+      'Save your post/page',
+      '💡 Rank Math provides more free features than Yoast'
+    ],
+    'rank math:meta-descriptions': [
+      'Open the page/post editor',
+      'Scroll to the Rank Math SEO box',
+      'Click "Edit Snippet" if not already visible',
+      'Fill in the "Meta Description" field',
+      'Keep it between 150-160 characters',
+      'Rank Math shows a live preview and character count',
+      'Include your focus keyword',
+      'Make it action-oriented and engaging',
+      'Update your content',
+      '💡 Rank Math has built-in AI to suggest descriptions (Pro feature)'
+    ],
+  }
+
+  // Try exact match first
+  if (configSteps[key]) {
+    return configSteps[key]
+  }
+
+  // Try partial matches based on issue type
+  if (issueType.includes('image') || issueType.includes('large')) {
+    return [
+      'Install a recommended image optimization plugin from the list above',
+      'Configure automatic optimization for new image uploads',
+      'Enable WebP conversion for better compression',
+      'Run bulk optimization on existing images',
+      'Set maximum image dimensions to prevent oversized uploads',
+      'Enable lazy loading for below-the-fold images'
+    ]
+  }
+
+  if (issueType.includes('css')) {
+    return [
+      'Access your plugin settings from the WordPress dashboard',
+      'Look for CSS optimization or minification options',
+      'Enable CSS minification to reduce file sizes',
+      'Enable CSS combining/aggregation if available',
+      'Test your site after enabling to ensure styles work correctly',
+      'Clear your cache after making changes'
+    ]
+  }
+
+  if (issueType.includes('javascript') || issueType.includes('js')) {
+    return [
+      'Navigate to your plugin\'s JavaScript settings',
+      'Enable JS minification',
+      'Enable defer or async loading for non-critical scripts',
+      'Test all interactive features (menus, forms, sliders)',
+      'If something breaks, exclude problematic scripts',
+      'Clear cache and test across different pages'
+    ]
+  }
+
+  if (issueType.includes('cache') || issueType.includes('caching')) {
+    return [
+      'Enable page caching in your plugin settings',
+      'Configure cache preloading with your sitemap',
+      'Enable browser caching',
+      'Set appropriate cache expiration times',
+      'Enable mobile caching if you have a responsive site',
+      'Configure cache clearing rules for when content updates'
+    ]
+  }
+
+  // Default generic steps
+  return [
+    `This plugin can help resolve ${issueType} issues`,
+    'Install and activate the plugin from your WordPress dashboard',
+    'Navigate to the plugin settings page',
+    'Look for options related to the specific issue',
+    'Enable recommended optimizations',
+    'Save your settings and clear any caches',
+    'Test your website to verify the improvements'
+  ]
+}
+
 export default function PluginRecommendationTable({
   plugins,
   installedPlugins,
+  issueType,
   mode = 'recommended'
 }: PluginRecommendationTableProps) {
   const [sortField, setSortField] = useState<SortField>('rating')
@@ -281,16 +562,20 @@ export default function PluginRecommendationTable({
                             <p className="text-sm text-gray-700 mb-4">
                               Follow these steps to optimize <strong>{plugin.name}</strong> and resolve this issue:
                             </p>
-                            <div className="space-y-3">
-                              {/* We'll add specific configuration steps based on the issue type */}
-                              <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-500">
-                                <p className="text-sm text-gray-800">
-                                  <strong>Configuration steps will be displayed here based on the issue type.</strong>
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">
-                                  {plugin.bestFor}
-                                </p>
-                              </div>
+                            <div className="space-y-2">
+                              {getPluginConfigurationSteps(plugin.name, issueType).map((step, stepIndex) => (
+                                <div key={stepIndex} className="flex items-start gap-2">
+                                  <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-semibold mt-0.5">
+                                    {stepIndex + 1}
+                                  </span>
+                                  <p className="text-sm text-gray-700 flex-1">{step}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                              <p className="text-xs text-gray-700">
+                                <strong>💡 Best For:</strong> {plugin.bestFor}
+                              </p>
                             </div>
                           </div>
 

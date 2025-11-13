@@ -827,7 +827,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
           )}
 
       {/* Viewport Responsiveness Analysis - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+      {audit?.sections?.includes('viewport') && (
         <div
           className={`card-pmw transition-all ${
             collapsedSections.viewport ? 'cursor-move hover:shadow-lg' : ''

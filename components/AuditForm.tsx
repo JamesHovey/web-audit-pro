@@ -20,6 +20,11 @@ const AUDIT_SECTIONS = [
     description: "Core Web Vitals, technical SEO health, image optimization, site structure analysis, and technology stack detection"
   },
   {
+    id: "viewport",
+    label: "Viewport Responsiveness",
+    description: "Mobile, tablet, and desktop responsive design testing with screenshots and issue detection"
+  },
+  {
     id: "keywords",
     label: "Keywords",
     description: "Branded and non-branded keyword analysis with competitive intelligence"
