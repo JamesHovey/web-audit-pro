@@ -934,7 +934,7 @@ export function AuditForm() {
                       {techStack.hosting}
                     </span>
                   )}
-                  {techStack.framework && !techStack.cms && (
+                  {techStack.framework && (
                     <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
                       {techStack.framework}
                     </span>
