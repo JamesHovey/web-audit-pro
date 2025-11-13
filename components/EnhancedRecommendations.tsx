@@ -316,17 +316,17 @@ export default function EnhancedRecommendations({
       techRecs.push({
         title: 'Optimise Images',
         description: hasLegacyFormats
-          ? `${technicalIssues.largeImages} large image(s) + ${legacyFormatImagesList.length} image(s) using legacy formats are slowing down your site. See tables below for details.`
-          : `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See "Large Images Need Optimisation" table below for specific images.`,
+          ? `${technicalIssues.largeImages} large image(s) + ${legacyFormatImagesList.length} image(s) using legacy formats are slowing down your site. See table below for details.`
+          : `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
         details: hasLegacyFormats
-          ? 'Large images and legacy formats (JPEG/PNG) significantly impact page load time. Modern formats like WebP reduce file sizes by 25-50% while maintaining quality. The tables below show which images need optimization.'
+          ? 'Large images and legacy formats (JPEG/PNG) significantly impact page load time. Modern formats like WebP reduce file sizes by 25-50% while maintaining quality. The table below shows which images need optimization.'
           : 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
         useCase: 'image-optimization',
         howTo: cms === 'WordPress' ? [
-          '📋 Check the tables below to see which images need fixing',
+          '📋 Check the table below to see which images need fixing',
           '',
           '🎯 BEST SOLUTION - Install an image optimization plugin:',
           '   • Imagify: Compresses images AND converts to WebP automatically',
@@ -987,130 +987,129 @@ export default function EnhancedRecommendations({
                     <div className="mt-2 p-3 bg-gray-50 rounded">
                       <p className="text-gray-700 mb-3">{rec.details}</p>
 
-                      {/* Large Images Table - Show at TOP of "Optimise Images" recommendation */}
-                      {(rec.title === 'Optimise Images' || rec.title.includes('Large Image')) && largeImagesList.length > 0 && (
-                        <div className="mb-4 pb-4 border-b border-gray-300">
-                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimisation</h5>
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead className="bg-orange-100">
-                                  <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
-                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-orange-200">
-                                  {largeImagesList.slice(0, 10).map((image, imageIndex) => (
-                                    <tr key={imageIndex} className="hover:bg-orange-50">
-                                      <td className="px-4 py-3">
-                                        <a
-                                          href={image.imageUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline break-all"
-                                        >
-                                          {image.imageUrl.split('/').pop() || image.imageUrl}
-                                        </a>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <Tooltip content={image.pageUrl}>
-                                          <a
-                                            href={image.pageUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-800 underline"
-                                          >
-                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
-                                          </a>
-                                        </Tooltip>
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-medium text-red-600">
-                                        {(image.sizeKB || 0).toLocaleString()}KB
-                                      </td>
-                                      <td className="px-4 py-3 text-gray-600">
-                                        {image.sizeKB > 500 ? 'Optimise urgently' : 'Compress image'}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-600 mt-2">
-                            💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
-                          </p>
-                        </div>
-                      )}
+                      {/* Combined Images Table - Show for "Optimise Images" recommendation */}
+                      {(rec.title === 'Optimise Images' || rec.title.includes('Large Image') || rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && (largeImagesList.length > 0 || legacyFormatImagesList.length > 0) && (() => {
+                        // Combine and deduplicate images from both lists
+                        const imageMap = new Map();
 
-                      {/* Legacy Format Images Table - Show for "Optimise Images" recommendation */}
-                      {(rec.title === 'Optimise Images' || rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && legacyFormatImagesList.length > 0 && (
-                        <div className="mb-4 pb-4 border-b border-gray-300">
-                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Using Legacy Formats</h5>
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead className="bg-orange-100">
-                                  <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Format</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Suggested Format</th>
-                                    <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-orange-200">
-                                  {legacyFormatImagesList.slice(0, 20).map((image, imageIndex) => (
-                                    <tr key={imageIndex} className="hover:bg-orange-50">
-                                      <td className="px-4 py-3">
-                                        <a
-                                          href={image.imageUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline break-all"
-                                        >
-                                          {image.imageUrl.split('/').pop() || image.imageUrl}
-                                        </a>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <Tooltip content={image.pageUrl}>
+                        // Add large images
+                        largeImagesList.forEach((image: { imageUrl: string; pageUrl: string; sizeKB: number }) => {
+                          const key = image.imageUrl;
+                          if (!imageMap.has(key)) {
+                            imageMap.set(key, {
+                              ...image,
+                              isLarge: true,
+                              currentFormat: image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|avif|svg)$/i)?.[1]?.toUpperCase() || 'Unknown',
+                              isLegacyFormat: false
+                            });
+                          }
+                        });
+
+                        // Add/merge legacy format images
+                        legacyFormatImagesList.forEach((image: { imageUrl: string; pageUrl: string; sizeKB: number; currentFormat: string; suggestedFormat: string }) => {
+                          const key = image.imageUrl;
+                          if (imageMap.has(key)) {
+                            // Merge with existing entry
+                            const existing = imageMap.get(key);
+                            imageMap.set(key, {
+                              ...existing,
+                              currentFormat: image.currentFormat,
+                              suggestedFormat: image.suggestedFormat,
+                              isLegacyFormat: true
+                            });
+                          } else {
+                            // Add new entry
+                            imageMap.set(key, {
+                              ...image,
+                              isLarge: (image.sizeKB || 0) > 100,
+                              isLegacyFormat: true
+                            });
+                          }
+                        });
+
+                        const combinedImages = Array.from(imageMap.values()).slice(0, 20);
+
+                        return (
+                          <div className="mb-4 pb-4 border-b border-gray-300">
+                            <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Need Optimisation</h5>
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead className="bg-orange-100">
+                                    <tr>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Current Format</th>
+                                      <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-orange-200">
+                                    {combinedImages.map((image: { imageUrl: string; pageUrl: string; sizeKB: number; currentFormat: string; suggestedFormat?: string; isLarge: boolean; isLegacyFormat: boolean }, imageIndex: number) => (
+                                      <tr key={imageIndex} className="hover:bg-orange-50">
+                                        <td className="px-4 py-3">
                                           <a
-                                            href={image.pageUrl}
+                                            href={image.imageUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-800 underline"
+                                            className="text-blue-600 hover:text-blue-800 underline break-all"
                                           >
-                                            {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                                            {image.imageUrl.split('/').pop() || image.imageUrl}
                                           </a>
-                                        </Tooltip>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                                          {image.currentFormat}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                                          {image.suggestedFormat}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-medium text-gray-700">
-                                        {(image.sizeKB || 0).toLocaleString()}KB
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <Tooltip content={image.pageUrl}>
+                                            <a
+                                              href={image.pageUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                            >
+                                              {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                                            </a>
+                                          </Tooltip>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          {image.isLegacyFormat ? (
+                                            <Tooltip content={`Legacy format - consider converting to ${image.suggestedFormat || 'WebP'} for better performance`}>
+                                              <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                                {image.currentFormat} (Legacy)
+                                              </span>
+                                            </Tooltip>
+                                          ) : (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                              {image.currentFormat}
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          <span className={image.isLarge ? 'text-red-600' : 'text-gray-700'}>
+                                            {(image.sizeKB || 0).toLocaleString()}KB
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {image.isLarge && image.isLegacyFormat ? (
+                                            <span className="text-red-600 font-medium">Compress & convert to {image.suggestedFormat || 'WebP'}</span>
+                                          ) : image.isLarge ? (
+                                            <span>{image.sizeKB > 500 ? 'Compress urgently' : 'Compress image'}</span>
+                                          ) : image.isLegacyFormat ? (
+                                            <span>Convert to {image.suggestedFormat || 'WebP'}</span>
+                                          ) : (
+                                            <span className="text-gray-500">OK</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
+                            <p className="text-xs text-gray-600 mt-2">
+                              💡 Tip: Use image compression tools like TinyPNG and convert to WebP format to reduce file sizes by 40-70% without losing quality.
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-600 mt-2">
-                            💡 Tip: Converting to WebP can reduce file sizes by 25-35% without visible quality loss. Most modern browsers support WebP.
-                            {legacyFormatImagesList.length > 20 && ` Showing top 20 of ${legacyFormatImagesList.length} legacy format images.`}
-                          </p>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Pages With Issues - Show for technical SEO issues */}
                       {rec.title.includes('Missing H1 Tags') && issuePages?.missingH1Tags && issuePages.missingH1Tags.length > 0 && (
