@@ -92,16 +92,6 @@ export function Navigation({ auditIssues = [], pageTitle, user }: NavigationProp
                 </button>
               )}
 
-              {/* Logout Button */}
-              {user?.username && (
-                <button
-                  onClick={handleSignOut}
-                  className="text-white hover:text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
-                >
-                  Logout
-                </button>
-              )}
-
               {/* Synergist Basket */}
               {basket.length > 0 && (
                 <button
@@ -127,6 +117,16 @@ export function Navigation({ auditIssues = [], pageTitle, user }: NavigationProp
                   <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="white" strokeWidth="2" className="group-hover:stroke-[#ef86ce]" suppressHydrationWarning/>
                 </svg>
               </button>
+
+              {/* Logout Button */}
+              {user?.username && (
+                <button
+                  onClick={handleSignOut}
+                  className="text-white hover:text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
+                >
+                  Logout
+                </button>
+              )}
 
               {!user?.username && (
                 <span className="text-white text-sm">
