@@ -917,26 +917,25 @@ export function AuditForm() {
               </>
             ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework) ? (
               <>
-                <span className="text-sm font-medium text-gray-700">Tech:</span>
                 <div className="flex flex-wrap items-center gap-2">
                   {techStack.cms && (
                     <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
-                      {techStack.cms}
+                      CMS: {techStack.cms}
                     </span>
                   )}
                   {techStack.ecommerce && (
                     <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
-                      {techStack.ecommerce}
+                      E-commerce: {techStack.ecommerce}
                     </span>
                   )}
                   {techStack.hosting && (
                     <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
-                      {techStack.hosting}
+                      Hosting: {techStack.hosting}
                     </span>
                   )}
                   {techStack.framework && (
                     <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
-                      {techStack.framework}
+                      Framework: {techStack.framework}
                     </span>
                   )}
                 </div>
