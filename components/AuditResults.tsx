@@ -2620,12 +2620,14 @@ function renderSectionResults(
               shortTitles: results.issues?.shortTitles,
               longTitles: results.issues?.longTitles,
               pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink,
-              orphanedSitemapPages: results.issues?.orphanedSitemapPages
+              orphanedSitemapPages: results.issues?.orphanedSitemapPages,
+              permanentRedirects: results.issues?.permanentRedirects
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,
               titleLengthIssues: results.titleLengthIssues,
-              internalLinkAnalysis: results.internalLinkAnalysis
+              internalLinkAnalysis: results.internalLinkAnalysis,
+              permanentRedirects: results.permanentRedirects
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}

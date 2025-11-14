@@ -672,6 +672,86 @@ export default function EnhancedRecommendations({
       });
     }
 
+    // Permanent Redirects (301/308)
+    if (technicalIssues?.permanentRedirects && technicalIssues.permanentRedirects > 0) {
+      techRecs.push({
+        title: 'Fix Permanent Redirects',
+        description: `${technicalIssues.permanentRedirects} URL(s) have permanent redirects (301/308). Internal links pointing to redirected URLs waste link equity and slow down page loads with extra HTTP requests.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Permanent redirects (301/308) are often necessary when URLs change, but internal links should point directly to the final destination. Each redirect adds latency and dilutes link equity. Update internal links to point directly to the target URL.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Each redirect adds 200-500ms of latency',
+          '   • Search engines pass less "link juice" through redirects',
+          '   • Users experience slower page loads',
+          '   • Increases server load with extra HTTP requests',
+          '   • May impact SEO rankings due to redirect chains',
+          '',
+          '📋 URLS WITH PERMANENT REDIRECTS:',
+          ...(technicalAudit?.permanentRedirects?.redirects?.slice(0, 5).map(item => {
+            // Extract just the path for cleaner display
+            const fromPath = item.fromUrl.replace(/^https?:\/\/[^/]+/, '') || '/';
+            const toPath = item.toUrl.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • ${fromPath} → ${toPath} (${item.statusCode})`;
+          }) || []),
+          ...(technicalIssues.permanentRedirects && technicalIssues.permanentRedirects > 5
+            ? [`   • ...and ${technicalIssues.permanentRedirects - 5} more redirects`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Update internal links:',
+          '   • Find pages linking to the old URL',
+          '   • Update links to point directly to the final destination',
+          '   • Search your site for the old URL and replace all occurrences',
+          '   • Update navigation menus, sidebars, footers',
+          '',
+          '2️⃣ For WordPress:',
+          '   • Use "Better Search Replace" plugin to update links in database',
+          '   • Update menu items in Appearance → Menus',
+          '   • Check widgets in Appearance → Widgets',
+          '   • Update links in page/post content',
+          '   • Use Yoast/Rank Math to find internal links to old URLs',
+          '',
+          '3️⃣ For static sites:',
+          '   • Search your codebase for the old URL',
+          '   • Update all references in HTML/templates',
+          '   • Update navigation components',
+          '   • Rebuild and redeploy',
+          '',
+          '4️⃣ Keep redirects for external links:',
+          '   • DO NOT remove the redirect itself',
+          '   • Redirects are still needed for external links and bookmarks',
+          '   • Only update YOUR OWN internal links',
+          '',
+          '5️⃣ Check for redirect chains:',
+          '   • Ensure redirects go directly to final destination',
+          '   • Avoid: A → B → C (redirect chain)',
+          '   • Instead: A → C and B → C (direct redirects)',
+          '',
+          '✅ BEST PRACTICES:',
+          '   • All internal links should point to final URLs (no redirects)',
+          '   • Keep 301 redirects in place for SEO and external links',
+          '   • Use 301 (permanent) not 302 (temporary) for moved content',
+          '   • Monitor redirect chains - eliminate any multi-hop redirects',
+          '   • Update sitemap.xml to use final URLs only',
+          '',
+          '📊 TARGET:',
+          '   • 0 internal links pointing to redirected URLs',
+          '   • All sitemaps use final destination URLs',
+          '   • No redirect chains (A → B → C)',
+          '   • Max 1 redirect for any URL (A → B)',
+          '',
+          '💡 IMPORTANT: Keep the redirects themselves (for external links)',
+          '💡 Only update YOUR internal links to skip the redirect',
+          '💡 After fixing, re-run audit to verify improvements'
+        ]
+      });
+    }
+
     // Large Images and Modern Formats (Combined)
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       // Check if we also have legacy format images

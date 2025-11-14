@@ -118,6 +118,15 @@ interface TechnicalAuditResult {
     }>;
     totalPagesAnalyzed: number;
   };
+  permanentRedirects?: {
+    totalRedirects: number;
+    redirects: Array<{
+      fromUrl: string;
+      toUrl: string;
+      statusCode: number; // 301 or 308
+      redirectType: 'permanent';
+    }>;
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -130,6 +139,7 @@ interface TechnicalAuditResult {
     longTitles?: number;
     pagesWithOneIncomingLink?: number;
     orphanedSitemapPages?: number;
+    permanentRedirects?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -892,6 +902,31 @@ export async function performTechnicalAudit(
       }
     }
 
+    // 12. Check for permanent redirects (301/308)
+    // Only perform if we have multiple pages
+    if (pageDiscovery && pageDiscovery.pages.length > 1) {
+      console.log('🔄 Checking for permanent redirects...');
+      try {
+        const redirectAnalysis = await analyzePermanentRedirects(pageDiscovery.pages, domain);
+
+        if (redirectAnalysis.totalRedirects > 0) {
+          result.permanentRedirects = redirectAnalysis;
+          result.issues.permanentRedirects = redirectAnalysis.totalRedirects;
+
+          console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects`);
+        } else {
+          console.log(`✅ No permanent redirects found`);
+        }
+
+        if (onProgress) {
+          await onProgress('checking_redirects', 1, 1, 'Redirect analysis complete');
+        }
+      } catch (_error) {
+        console.error('Redirect analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
   } catch (_error) {
     console.error('Technical audit error:', error);
   }
@@ -1396,6 +1431,101 @@ function normalizeUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Check if a URL has a permanent redirect (301 or 308)
+ * Returns redirect information if found, null otherwise
+ */
+async function checkForPermanentRedirect(url: string): Promise<{
+  hasRedirect: boolean;
+  statusCode?: number;
+  finalUrl?: string;
+} | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD', // Use HEAD to avoid downloading content
+      redirect: 'manual', // Don't follow redirects automatically
+      headers: {
+        'User-Agent': USER_AGENT
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+
+    // Check if it's a permanent redirect (301 or 308)
+    if (response.status === 301 || response.status === 308) {
+      const location = response.headers.get('location');
+      if (location) {
+        // Resolve relative redirect URLs
+        const finalUrl = new URL(location, url).href;
+        return {
+          hasRedirect: true,
+          statusCode: response.status,
+          finalUrl
+        };
+      }
+    }
+
+    // No permanent redirect
+    return {
+      hasRedirect: false
+    };
+  } catch (error) {
+    console.log(`Could not check redirect for ${url}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Analyze permanent redirects across discovered pages
+ */
+async function analyzePermanentRedirects(
+  pagesData: Array<{ url: string }>,
+  domain: string
+): Promise<{
+  totalRedirects: number;
+  redirects: Array<{
+    fromUrl: string;
+    toUrl: string;
+    statusCode: number;
+    redirectType: 'permanent';
+  }>;
+}> {
+  const permanentRedirects: Array<{
+    fromUrl: string;
+    toUrl: string;
+    statusCode: number;
+    redirectType: 'permanent';
+  }> = [];
+
+  console.log(`🔄 Checking ${pagesData.length} URLs for permanent redirects...`);
+
+  // Check each URL for redirects (in batches to avoid overwhelming)
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < pagesData.length; i += BATCH_SIZE) {
+    const batch = pagesData.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(page => checkForPermanentRedirect(page.url))
+    );
+
+    results.forEach((result, index) => {
+      if (result && result.hasRedirect && result.finalUrl && result.statusCode) {
+        permanentRedirects.push({
+          fromUrl: batch[index].url,
+          toUrl: result.finalUrl,
+          statusCode: result.statusCode,
+          redirectType: 'permanent'
+        });
+      }
+    });
+  }
+
+  console.log(`✅ Found ${permanentRedirects.length} permanent redirects`);
+
+  return {
+    totalRedirects: permanentRedirects.length,
+    redirects: permanentRedirects
+  };
 }
 
 function findAllLinks(html: string, pageUrl: string): string[] {
