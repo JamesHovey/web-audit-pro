@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
+import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle, FileText } from 'lucide-react'
 import Tooltip from './Tooltip'
 import PluginRecommendationTable from './PluginRecommendationTable'
 import { getPluginsByUseCase } from '@/lib/pluginRecommendations'
@@ -34,7 +34,42 @@ interface EnhancedRecommendationsProps {
     missingMetaDescriptions?: number
     largeImages?: number
     http404Errors?: number
+    invalidStructuredData?: number
+    lowTextHtmlRatio?: number
   }
+  textHtmlRatioPages?: Array<{
+    url: string
+    textLength: number
+    htmlLength: number
+    ratio: number
+    status: 'good' | 'warning' | 'poor'
+  }>
+  issuePages?: {
+    missingH1Tags?: string[]
+    missingMetaTitles?: string[]
+    missingMetaDescriptions?: string[]
+    httpErrors?: string[]
+  }
+  structuredDataItems?: Array<{
+    type: string
+    format: string
+    location: string
+    isValid: boolean
+    errors: string[]
+    warnings: string[]
+  }>
+  largeImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    sizeKB: number
+  }>
+  legacyFormatImagesList?: Array<{
+    imageUrl: string
+    pageUrl: string
+    currentFormat: string
+    suggestedFormat: string
+    sizeKB: number
+  }>
 }
 
 export default function EnhancedRecommendations({
@@ -44,7 +79,12 @@ export default function EnhancedRecommendations({
   detectedPlugins = [],
   pageBuilder,
   cms,
-  technicalIssues
+  technicalIssues,
+  issuePages,
+  largeImagesList = [],
+  legacyFormatImagesList = [],
+  structuredDataItems = [],
+  textHtmlRatioPages = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -53,6 +93,43 @@ export default function EnhancedRecommendations({
 
     // Missing H1 Tags
     if (technicalIssues?.missingH1Tags && technicalIssues.missingH1Tags > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+
+      let h1Steps: string[]
+      if (hasYoast || hasRankMath) {
+        h1Steps = [
+          hasYoast ? '✅ Yoast SEO can help you check for H1 tags' : '✅ Rank Math can help you check for H1 tags',
+          '1. Edit the page missing an H1 tag',
+          '2. Add a clear, descriptive heading at the very top of your page content',
+          '3. Select the text and format it as "Heading 1" (H1) using the block editor',
+          '4. Make sure it\'s unique and describes the page content',
+          '5. Include your primary keyword if relevant',
+          hasYoast ? '6. Yoast SEO will show a green checkmark if H1 is properly set' : '6. Rank Math will validate your H1 in the SEO analysis',
+          '7. Update/Publish the page',
+          '',
+          '💡 Pro Tip: Most WordPress themes automatically convert your page title into an H1',
+          '   Check your theme settings to see if this is already happening!'
+        ]
+      } else {
+        h1Steps = [
+          '1. Edit the page missing an H1 tag',
+          '2. Add a clear, descriptive heading at the top of the page content',
+          '3. Ensure it uses the H1 heading format (usually "Heading 1" in the editor)',
+          '4. Make the H1 unique and descriptive of the page content',
+          '5. Include your primary keyword if relevant',
+          '',
+          '💡 WordPress Tip: Most themes automatically make the page title an H1',
+          '   Check Theme → Customize → Typography settings',
+          '',
+          '📦 Consider installing an SEO plugin (see recommendations below) to:',
+          '   • Automatically check for missing H1 tags',
+          '   • Provide SEO analysis and warnings',
+          '   • See real-time optimization tips'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing H1 Tags',
         description: `${technicalIssues.missingH1Tags} page(s) are missing H1 tags, which are critical for SEO`,
@@ -61,16 +138,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'H1 tags help search engines understand the main topic of your pages and improve accessibility',
         useCase: 'h1-tags',
-        howTo: cms === 'WordPress' ? [
-          'Edit each page in WordPress editor',
-          'Add a clear, descriptive heading at the top of the page content',
-          'Ensure it uses the H1 heading format (usually "Heading 1" in the editor)',
-          'Make the H1 unique and descriptive of the page content',
-          'Include your primary keyword if relevant',
-          'WordPress: Most themes automatically make the page title an H1. Check Theme → Customize → Typography settings',
-          'Yoast SEO plugin: Will warn you if H1 is missing in the SEO analysis',
-          'Rank Math plugin: Provides H1 tag analysis in the content editor'
-        ] : [
+        howTo: cms === 'WordPress' ? h1Steps : [
           'Add a clear, descriptive <h1> tag at the top of each page',
           'Ensure each page has exactly one H1 tag',
           'Make the H1 unique and descriptive of the page content',
@@ -83,6 +151,73 @@ export default function EnhancedRecommendations({
 
     // Missing Meta Titles
     if (technicalIssues?.missingMetaTitles && technicalIssues.missingMetaTitles > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasAIOSEO = detectedPlugins.some(p => p.toLowerCase().includes('all in one seo'))
+
+      let metaTitleSteps: string[]
+
+      if (hasYoast) {
+        metaTitleSteps = [
+          '✅ You have Yoast SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to the "Yoast SEO" meta box',
+          '3. Click "Edit snippet" if collapsed',
+          '4. Fill in the "SEO title" field (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling for searchers',
+          '7. Yoast shows how it appears in Google search results',
+          '8. Update/Publish the page',
+          '💡 Tip: Yoast shows title length with color coding (green = perfect length)'
+        ]
+      } else if (hasRankMath) {
+        metaTitleSteps = [
+          '✅ You have Rank Math installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to the "Rank Math" meta box',
+          '3. Click "Edit Snippet"',
+          '4. Fill in the "SEO Title" field (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling for searchers',
+          '7. View the real-time Google SERP preview',
+          '8. Update/Publish the page',
+          '💡 Tip: Rank Math scores your title and shows optimization suggestions'
+        ]
+      } else if (hasAIOSEO) {
+        metaTitleSteps = [
+          '✅ You have All in One SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta title',
+          '2. Scroll down to "AIOSEO Settings"',
+          '3. Find the "Post Title" field under "General" tab',
+          '4. Fill in a compelling title (50-60 characters)',
+          '5. Include your primary keyword near the beginning',
+          '6. Make it unique and compelling',
+          '7. Check the Google search preview',
+          '8. Update/Publish the page',
+          '💡 Tip: AIOSEO provides TruSEO score for your title'
+        ]
+      } else {
+        metaTitleSteps = [
+          '⚠️ You don\'t have an SEO plugin installed yet',
+          '📦 Install a free SEO plugin to make this easy:',
+          '   • Yoast SEO (most popular, beginner-friendly)',
+          '   • Rank Math (feature-rich, advanced)',
+          '   • All in One SEO (good for e-commerce)',
+          '',
+          'After installing, follow these steps:',
+          '1. Edit the page/post needing a meta title',
+          '2. Find the SEO plugin meta box (below editor)',
+          '3. Fill in the "SEO Title" or "Meta Title" field',
+          '4. Keep it 50-60 characters',
+          '5. Include primary keyword near the beginning',
+          '6. Make each title unique and compelling',
+          '7. Update/Publish the page',
+          '',
+          '💡 See "Recommended Plugins" below to compare options'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing Meta Titles',
         description: `${technicalIssues.missingMetaTitles} page(s) lack meta titles, hurting search visibility`,
@@ -91,16 +226,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'Meta titles appear in search results and browser tabs, and are one of the most important SEO elements',
         useCase: 'meta-titles',
-        howTo: cms === 'WordPress' ? [
-          'Install an SEO plugin: Yoast SEO, Rank Math, or All in One SEO',
-          'Edit each page/post and find the SEO section below the editor',
-          'Add a compelling title (50-60 characters recommended)',
-          'Include your primary keyword near the beginning',
-          'Make each title unique and descriptive',
-          'Yoast SEO: Edit the "SEO title" field in the Yoast meta box',
-          'Rank Math: Use the "SEO Title" field in Rank Math meta box',
-          'Preview how it will look in search results using the plugin preview'
-        ] : [
+        howTo: cms === 'WordPress' ? metaTitleSteps : [
           'Add <title> tag in the <head> section of each page',
           'Keep titles between 50-60 characters',
           'Include primary keyword near the beginning',
@@ -113,6 +239,75 @@ export default function EnhancedRecommendations({
 
     // Missing Meta Descriptions
     if (technicalIssues?.missingMetaDescriptions && technicalIssues.missingMetaDescriptions > 0) {
+      // Check which SEO plugin is installed
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasAIOSEO = detectedPlugins.some(p => p.toLowerCase().includes('all in one seo'))
+
+      let wordpressSteps: string[]
+
+      if (hasYoast) {
+        wordpressSteps = [
+          '✅ You have Yoast SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "Yoast SEO" meta box',
+          '3. Click "Edit snippet" if collapsed',
+          '4. Fill in the "Meta description" field (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. Yoast shows a preview of how it appears in search results',
+          '8. Update/Publish the page',
+          '💡 Tip: Yoast color-codes the length (green = good, orange = too short/long)'
+        ]
+      } else if (hasRankMath) {
+        wordpressSteps = [
+          '✅ You have Rank Math installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "Rank Math" meta box',
+          '3. Click on the "Edit Snippet" button',
+          '4. Fill in the "Description" field (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. Rank Math shows real-time Google SERP preview',
+          '8. Update/Publish the page',
+          '💡 Tip: Rank Math scores your description and gives optimization suggestions'
+        ]
+      } else if (hasAIOSEO) {
+        wordpressSteps = [
+          '✅ You have All in One SEO installed - perfect for this!',
+          '1. Edit the page/post with missing meta description',
+          '2. Scroll down to the "AIOSEO Settings" section',
+          '3. Find the "Meta Description" field under "General" tab',
+          '4. Fill in the description (150-160 characters)',
+          '5. Write a compelling description with relevant keywords',
+          '6. Include a call-to-action if appropriate',
+          '7. AIOSEO shows a Google search preview',
+          '8. Update/Publish the page',
+          '💡 Tip: AIOSEO provides a TruSEO score for your meta description'
+        ]
+      } else {
+        // No SEO plugin detected - recommend installing one
+        wordpressSteps = [
+          '⚠️ You don\'t have an SEO plugin installed yet',
+          '📦 Install a free SEO plugin to make this easy:',
+          '   • Yoast SEO (most popular, beginner-friendly)',
+          '   • Rank Math (feature-rich, advanced)',
+          '   • All in One SEO (good for e-commerce)',
+          '',
+          'After installing, follow these general steps:',
+          '1. Edit the page/post needing a meta description',
+          '2. Find the SEO plugin meta box (usually below editor)',
+          '3. Fill in the "Meta Description" field',
+          '4. Keep it 150-160 characters',
+          '5. Include relevant keywords naturally',
+          '6. Make it compelling with a call-to-action',
+          '7. Make each description unique',
+          '8. Update/Publish the page',
+          '',
+          '💡 See "Recommended Plugins" below to compare options'
+        ]
+      }
+
       techRecs.push({
         title: 'Add Missing Meta Descriptions',
         description: `${technicalIssues.missingMetaDescriptions} page(s) need meta descriptions for better search previews`,
@@ -121,16 +316,7 @@ export default function EnhancedRecommendations({
         icon: <Code className="w-4 h-4" />,
         details: 'Meta descriptions appear in search results and influence click-through rates',
         useCase: 'meta-descriptions',
-        howTo: cms === 'WordPress' ? [
-          'Use your SEO plugin to add meta descriptions',
-          'Write compelling descriptions (150-160 characters)',
-          'Include relevant keywords naturally',
-          'Make each description unique and actionable',
-          'Add a call-to-action if appropriate',
-          'Yoast SEO: Edit the "Meta description" field',
-          'Rank Math: Use the "Description" field in the meta box',
-          'All in One SEO: Fill in the "Meta Description" field'
-        ] : [
+        howTo: cms === 'WordPress' ? wordpressSteps : [
           'Add <meta name="description"> tag in the <head> section',
           'Keep descriptions between 150-160 characters',
           'Include relevant keywords naturally',
@@ -141,36 +327,393 @@ export default function EnhancedRecommendations({
       })
     }
 
-    // Large Images
+    // Large Images and Modern Formats (Combined)
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
+      // Check if we also have legacy format images
+      const hasLegacyFormats = legacyFormatImagesList && legacyFormatImagesList.length > 0
+
       techRecs.push({
-        title: 'Optimize Large Images',
-        description: `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site`,
+        title: 'Optimise Images',
+        description: hasLegacyFormats
+          ? `${technicalIssues.largeImages} large image(s) + ${legacyFormatImagesList.length} image(s) using legacy formats are slowing down your site. See table below for details.`
+          : `${technicalIssues.largeImages} image(s) over 100KB are slowing down your site. See table below for specific images.`,
         impact: 'High',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Large images significantly impact page load time and user experience',
-        useCase: 'large-images',
+        details: hasLegacyFormats
+          ? 'Large images and legacy formats (JPEG/PNG) significantly impact page load time. Modern formats like WebP reduce file sizes by 25-50% while maintaining quality. The table below shows which images need optimization.'
+          : 'Large images significantly impact page load time and user experience. The table below shows which specific images need optimisation and where they appear.',
+        useCase: 'image-optimization',
         howTo: cms === 'WordPress' ? [
-          'Install an image optimization plugin:',
-          'Recommended: Imagify, ShortPixel, or EWWW Image Optimizer (all have free tiers)',
-          'These plugins automatically compress images on upload',
-          'Imagify: Install → Settings → Choose "Normal" compression → Enable "Auto-optimize images"',
-          'ShortPixel: Install → Settings → Enter API key (free 100 images/month) → Enable "Optimize on upload"',
-          'EWWW: Install → Enable "Compress images on upload" and "Convert to WebP"',
-          'For existing images: Use the bulk optimizer in the plugin',
-          'Alternative: Compress images before uploading using TinyPNG.com or Squoosh.app',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          '📋 Review the table above to see which images need fixing',
+          '',
+          '🎯 RECOMMENDED SOLUTION:',
+          'Install an image optimization plugin from the "Recommended Plugins & Tools" section below.',
+          'All plugins can compress images AND convert to WebP automatically.',
+          '',
+          '⚙️ SETUP STEPS (example using Imagify):',
+          '1. Install and activate the plugin from the recommendations below',
+          '2. Go to Settings and choose "Normal" compression level',
+          '3. Enable "Convert images to WebP format"',
+          '4. Enable "Auto-optimize images on upload" for future images',
+          '5. Click "Bulk Optimization" to compress all existing images',
+          '',
+          '✅ WHAT THIS FIXES:',
+          'Compresses large images (reduces file size by 40-70%)',
+          'Converts JPEG/PNG to WebP (additional 25-35% reduction)',
+          'Automatically optimizes future uploads',
+          '',
+          '🔄 ALTERNATIVE - Manual Optimization:',
+          'Use TinyPNG.com or Squoosh.app before uploading',
+          'Convert to WebP manually using online converters',
+          'Target: Keep images under 100KB when possible',
+          '',
+          '💡 After optimization, re-run the audit to verify improvements'
         ] : [
-          'Compress images before uploading to your site',
-          'Use online tools: TinyPNG.com, Squoosh.app, or ImageOptim',
-          'Convert to modern formats: WebP or AVIF',
-          'Set appropriate dimensions - don\'t upload larger than needed',
-          'Use responsive images with srcset attribute',
-          'For e-commerce: Shopify has built-in image optimization',
-          'For Wix/Squarespace: Use their built-in image optimization tools',
-          'Target: Keep images under 200KB, preferably under 100KB'
+          '📋 Review the table above to see which images need fixing',
+          '',
+          '🎯 TWO ISSUES TO FIX:',
+          '1. Large file sizes (over 100KB)',
+          '2. Legacy formats (JPEG/PNG instead of WebP/AVIF)',
+          '',
+          '🛠️ SOLUTIONS:',
+          'Compress images before uploading:',
+          '   • Use TinyPNG.com, Squoosh.app, or ImageOptim',
+          '   • Target: Keep images under 100KB',
+          '',
+          'Convert to modern formats:',
+          '   • Convert JPEG/PNG to WebP or AVIF',
+          '   • WebP reduces file size by 25-50% with same quality',
+          '   • Use Squoosh.app for conversion',
+          '',
+          'Set appropriate dimensions:',
+          '   • Don\'t upload images larger than needed',
+          '   • Use responsive images with srcset attribute',
+          '',
+          'For Shopify: Built-in image optimization available',
+          'For Wix/Squarespace: Use built-in tools',
+          '',
+          '✅ After optimization, re-run the audit to verify improvements'
         ]
+      })
+    }
+
+    // Invalid Structured Data
+    if (technicalIssues?.invalidStructuredData && technicalIssues.invalidStructuredData > 0) {
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasSchemaPlugin = detectedPlugins.some(p =>
+        p.toLowerCase().includes('schema') ||
+        p.toLowerCase().includes('rank math') ||
+        p.toLowerCase().includes('yoast')
+      )
+
+      const wordpressSteps = hasSchemaPlugin ? [
+        '✅ Good news! You have a schema plugin installed',
+        '1. Review the structured data errors in the table below',
+        '2. Use Google Rich Results Test to identify specific issues:',
+        '   • Visit: https://search.google.com/test/rich-results',
+        '   • Enter your URL or paste the schema markup',
+        '   • Review validation errors and warnings',
+        '',
+        '🔧 FIXING SCHEMA ISSUES:',
+        hasRankMath ? '1. Go to WordPress Dashboard → Rank Math → Schema' : hasYoast ? '1. Go to WordPress Dashboard → SEO → Search Appearance → Content Types' : '1. Go to your schema plugin settings',
+        '2. Review each schema type configured on your site',
+        '3. Ensure all required properties are filled:',
+        '   • Organization: name, logo, url',
+        '   • Article: headline, author, datePublished, image',
+        '   • Product: name, image, offers (price)',
+        '   • LocalBusiness: name, address, telephone',
+        '4. Remove duplicate schemas if detected',
+        '5. Test each page with Google Rich Results Test',
+        '',
+        '📋 COMMON ISSUES:',
+        'Missing required properties (name, image, url)',
+        'Invalid date formats (use ISO 8601: YYYY-MM-DD)',
+        'Missing @context or @type in JSON-LD',
+        'Duplicate schemas of the same type',
+        'Logo images not meeting size requirements (112x112px minimum)',
+        '',
+        '💡 TIP: Fix invalid schemas to qualify for rich search results (star ratings, breadcrumbs, etc.)'
+      ] : [
+        '⚠️ You don\'t have a schema plugin installed yet',
+        '📦 Install a schema plugin to make managing structured data easy:',
+        '   • Rank Math (includes comprehensive schema builder)',
+        '   • Schema Pro (dedicated schema plugin)',
+        '   • WP Schema Pro (visual schema builder)',
+        '',
+        'After installing a schema plugin:',
+        '1. Complete the setup wizard',
+        '2. Configure Organization schema for your business',
+        '3. Enable automatic schema for content types (Articles, Pages)',
+        '4. Review and fix any validation errors',
+        '5. Test with Google Rich Results Test',
+        '',
+        '🎯 PRIORITY SCHEMAS:',
+        'Organization/LocalBusiness - for your business info',
+        'BreadcrumbList - for navigation breadcrumbs',
+        'Article/BlogPosting - for blog content',
+        'Product - for WooCommerce products',
+        '',
+        '💡 TIP: Valid structured data can significantly improve search visibility with rich results'
+      ]
+
+      const generalSteps = [
+        '📋 Review the structured data errors below',
+        '',
+        '🔍 VALIDATE YOUR SCHEMA:',
+        '1. Go to Google Rich Results Test:',
+        '   https://search.google.com/test/rich-results',
+        '2. Enter your URL or paste your schema markup',
+        '3. Review all errors and warnings',
+        '4. Check Schema.org documentation for requirements',
+        '',
+        '🛠️ FIXING JSON-LD ERRORS:',
+        '1. Ensure @context is "https://schema.org"',
+        '2. Include all required properties for your schema type',
+        '3. Use proper date format: YYYY-MM-DD or ISO 8601',
+        '4. Ensure image URLs are absolute, not relative',
+        '5. Remove duplicate schemas of the same type',
+        '',
+        '📊 COMMON SCHEMA TYPES & REQUIRED PROPERTIES:',
+        '',
+        'Organization/LocalBusiness:',
+        '  • name (required)',
+        '  • logo (required for rich results)',
+        '  • url (recommended)',
+        '  • address (required for LocalBusiness)',
+        '',
+        'Article/BlogPosting:',
+        '  • headline (required)',
+        '  • author (required)',
+        '  • datePublished (required)',
+        '  • image (required for rich results)',
+        '  • publisher with logo (required)',
+        '',
+        'Product:',
+        '  • name (required)',
+        '  • image (required)',
+        '  • offers with price & priceCurrency (required)',
+        '  • aggregateRating or review (for star ratings)',
+        '',
+        '💡 RESOURCES:',
+        'Google Rich Results Test: https://search.google.com/test/rich-results',
+        'Schema.org Documentation: https://schema.org/docs/schemas.html',
+        'Google Search Central: https://developers.google.com/search/docs/appearance/structured-data'
+      ]
+
+      techRecs.push({
+        title: 'Fix Invalid Structured Data',
+        description: `${technicalIssues.invalidStructuredData} structured data item(s) have validation errors, preventing rich results`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Structured data (schema markup) helps search engines understand your content and display rich results like star ratings, breadcrumbs, and event details. Invalid schemas won\'t qualify for these enhanced search appearances. Use Google Rich Results Test (https://search.google.com/test/rich-results) to validate your markup.',
+        useCase: cms === 'WordPress' ? 'schema-markup' : undefined,
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
+      })
+    }
+
+    // HTTP 404 Errors
+    if (technicalIssues?.http404Errors && technicalIssues.http404Errors > 0) {
+      const hasRedirectionPlugin = detectedPlugins.some(p =>
+        p.toLowerCase().includes('redirection') ||
+        p.toLowerCase().includes('redirect') ||
+        p.toLowerCase().includes('yoast')
+      )
+
+      const wordpressSteps = hasRedirectionPlugin ? [
+        '✅ Good news! You have a redirection plugin installed',
+        '1. Review the list of 404 errors in the table below',
+        '2. For each broken URL, determine the correct destination:',
+        '   • If page moved → Set up 301 redirect to new location',
+        '   • If page deleted → Redirect to relevant category/homepage',
+        '   • If typo in link → Fix the link on the source page',
+        '',
+        '🔧 SETTING UP REDIRECTS:',
+        '1. Go to WordPress Dashboard → Tools → Redirection',
+        '2. Click "Add New" redirect',
+        '3. Enter the broken URL in "Source URL" field',
+        '4. Enter the correct destination in "Target URL" field',
+        '5. Ensure "Match" is set to "URL only"',
+        '6. Click "Add Redirect"',
+        '7. Test the redirect by visiting the old URL',
+        '',
+        '📋 BEST PRACTICES:',
+        'Use 301 redirects for permanently moved pages',
+        'Redirect to the most relevant alternative page',
+        'Avoid redirect chains (A→B→C)',
+        'Create a custom 404 page to help lost visitors',
+        '',
+        '💡 TIP: If external sites link to these broken URLs, redirects are essential for preserving SEO value'
+      ] : [
+        '⚠️ You don\'t have a redirection plugin installed yet',
+        '📦 Install a free redirection plugin to make fixing 404s easy:',
+        '   • Redirection (most popular, 2M+ installs)',
+        '   • Simple 301 Redirects',
+        '   • Yoast SEO (includes redirect manager)',
+        '',
+        'After installing Redirection plugin:',
+        '1. Go to WordPress Dashboard → Tools → Redirection',
+        '2. Complete the setup wizard',
+        '3. Review the list of 404 errors below',
+        '4. For each broken URL, click "Add New" redirect',
+        '5. Enter broken URL as "Source URL"',
+        '6. Enter correct destination as "Target URL"',
+        '7. Click "Add Redirect"',
+        '',
+        '🎯 WHAT TO DO:',
+        'If page moved → 301 redirect to new location',
+        'If page deleted → Redirect to relevant category/homepage',
+        'If typo in link → Fix the link on source page',
+        '',
+        '💡 TIP: Create a custom 404 page template in your theme for better user experience'
+      ]
+
+      const generalSteps = [
+        '📋 Review the list of 404 errors in the table below',
+        '',
+        '🔍 DIAGNOSE THE ISSUE:',
+        'Check if the page was moved, deleted, or if there\'s a typo in the link',
+        'Determine if the link is internal (your site) or external',
+        '',
+        '🛠️ SOLUTIONS:',
+        '1. Set up 301 redirects for moved/deleted pages:',
+        '   • Configure in your web server (.htaccess for Apache)',
+        '   • Use your hosting control panel redirect manager',
+        '   • For Nginx, add redirect rules to server config',
+        '',
+        '2. Fix broken links at the source:',
+        '   • Update internal links to point to correct URLs',
+        '   • Remove or update broken external links',
+        '',
+        '3. Create a custom 404 page:',
+        '   • Include site navigation',
+        '   • Add search functionality',
+        '   • Suggest popular pages',
+        '   • Provide contact information',
+        '',
+        '📊 EXAMPLE .HTACCESS REDIRECT:',
+        'Redirect 301 /old-page /new-page',
+        'Redirect 301 /deleted-page /',
+        '',
+        '💡 TIP: Monitor 404 errors regularly using Google Search Console'
+      ]
+
+      techRecs.push({
+        title: 'Fix 404 Errors',
+        description: `${technicalIssues.http404Errors} page(s) are returning 404 errors, harming user experience and SEO`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: '404 errors occur when a page cannot be found. They harm user experience, waste crawl budget, and can damage SEO if external sites link to these broken URLs. Setting up proper redirects preserves SEO value and provides a better user experience.',
+        useCase: cms === 'WordPress' ? 'redirects' : undefined,
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
+      })
+    }
+
+    // Low Text-to-HTML Ratio
+    if (technicalIssues?.lowTextHtmlRatio && technicalIssues.lowTextHtmlRatio > 0) {
+      const wordpressSteps = [
+        '📋 Review the pages with low text-to-HTML ratio in the table below',
+        '',
+        '🎯 UNDERSTANDING THE ISSUE:',
+        'Text-to-HTML ratio measures visible text vs total HTML code',
+        'Low ratios (< 25%) indicate thin content or excessive code',
+        'Search engines prefer pages with substantial, meaningful content',
+        '',
+        '🔧 WORDPRESS-SPECIFIC FIXES:',
+        '1. Add more meaningful, unique content to your pages',
+        '   • Expand product descriptions',
+        '   • Add helpful blog posts and articles',
+        '   • Include detailed service information',
+        '   • Add FAQ sections',
+        '',
+        '2. Optimize your theme and plugins:',
+        '   • Use a lightweight, well-coded theme',
+        '   • Avoid plugins that add excessive HTML/CSS/JS',
+        '   • Consider switching to a performance-focused theme',
+        '   • Use Elementor or other page builders sparingly',
+        '',
+        '3. Clean up your HTML:',
+        '   • Remove inline CSS - move to external stylesheets',
+        '   • Remove inline JavaScript - move to external files',
+        '   • Minify HTML in production (use WP Rocket or similar)',
+        '   • Remove HTML comments and unnecessary whitespace',
+        '   • Disable unused WordPress features (emojis, etc.)',
+        '',
+        '4. Use performance plugins to optimize code:',
+        '   • WP Rocket: Minify HTML, CSS, JS',
+        '   • Autoptimize: Aggregate and minify code',
+        '   • Asset CleanUp: Disable unused CSS/JS per page',
+        '',
+        '💡 RECOMMENDED PLUGINS:',
+        'WP Rocket - Minifies HTML, CSS, JS automatically',
+        'Autoptimize - Free alternative for code optimization',
+        'Perfmatters - Remove bloat and unused features',
+        '',
+        '⚠️ IMPORTANT: Don\'t sacrifice user experience for ratios',
+        'The goal is meaningful content, not artificially inflating text'
+      ]
+
+      const generalSteps = [
+        '📋 Review the pages with low text-to-HTML ratio in the table below',
+        '',
+        '🎯 UNDERSTANDING THE ISSUE:',
+        'Text-to-HTML ratio = (visible text / total HTML) × 100',
+        'Industry standards:',
+        '  • Good: > 25%',
+        '  • Warning: 15-25%',
+        '  • Poor: < 15%',
+        '',
+        '🛠️ HOW TO FIX:',
+        '',
+        '1. ADD MORE QUALITY CONTENT:',
+        '   • Write detailed, informative content',
+        '   • Expand thin pages with useful information',
+        '   • Add product descriptions, FAQs, guides',
+        '   • Focus on user value, not just keywords',
+        '',
+        '2. OPTIMIZE YOUR HTML:',
+        '   • Move inline CSS to external stylesheets',
+        '   • Move inline JavaScript to external files',
+        '   • Minify HTML (remove whitespace, comments)',
+        '   • Use CSS classes instead of inline styles',
+        '   • Avoid excessive div nesting',
+        '',
+        '3. CLEAN UP YOUR CODE:',
+        '   • Remove unnecessary HTML comments',
+        '   • Delete unused CSS and JavaScript',
+        '   • Use HTML5 semantic elements',
+        '   • Validate HTML at validator.w3.org',
+        '   • Consider using a build tool for minification',
+        '',
+        '4. REDUCE CODE BLOAT:',
+        '   • Minimize use of heavy frameworks',
+        '   • Remove unused libraries and plugins',
+        '   • Use modern CSS instead of Bootstrap if possible',
+        '   • Lazy load below-the-fold content',
+        '',
+        '📊 CHECKING YOUR RATIO:',
+        'Use browser DevTools:',
+        '  1. Right-click → Inspect',
+        '  2. View HTML length in Elements tab',
+        '  3. Copy visible text to check length',
+        '  4. Calculate: (text length / HTML length) × 100',
+        '',
+        '💡 TIP: Focus on quality content first, code optimization second',
+        'Search engines value meaningful content over arbitrary ratios'
+      ]
+
+      techRecs.push({
+        title: 'Improve Low Text-to-HTML Ratio',
+        description: `${technicalIssues.lowTextHtmlRatio} page(s) have low text-to-HTML ratio, indicating thin content or excessive code`,
+        impact: 'Medium',
+        effort: 'Medium',
+        icon: <FileText className="w-4 h-4" />,
+        details: 'Text-to-HTML ratio measures the percentage of actual text content compared to HTML code. A low ratio (< 25%) can indicate thin content, excessive code bloat, or over-reliance on JavaScript. While not a direct ranking factor, it correlates with content quality and user experience. Pages should have substantial, meaningful content rather than just code.',
+        useCase: undefined, // No specific plugin recommendations
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
       })
     }
 
@@ -278,74 +821,178 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('unused javascript') || lowerRec.includes('remove unused javascript')) {
-      const baseInstructions = [
-        'Audit JavaScript files for unused code',
+      const baseInstructions = cms === 'WordPress' ? [
+        'Install a performance optimisation plugin (see recommended plugins below)',
+        'Identify unused JavaScript using Chrome DevTools → Coverage tab',
+        'Remove unnecessary third-party scripts (analytics, chat widgets not in use)',
+        'Review installed plugins - deactivate unused ones as they add JavaScript',
+        'Consider replacing heavy plugins with lighter alternatives',
+        'Test thoroughly after making changes to ensure functionality'
+      ] : [
+        'Audit JavaScript files for unused code using Chrome DevTools → Coverage tab',
         'Remove unnecessary third-party scripts',
         'Use code splitting to load JS only when needed',
-        'Minify and compress remaining JavaScript'
+        'Minify and compress remaining JavaScript',
+        'Consider using a bundler like Webpack or Rollup',
+        'Implement tree-shaking to remove dead code'
       ]
-      
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Remove Unused JavaScript',
         description: 'JavaScript files contain code that\'s not being executed',
         impact: 'High',
         effort: 'Medium',
         icon: <Code className="w-4 h-4" />,
-        details: 'Unused JavaScript blocks the browser and wastes bandwidth',
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Minify JavaScript files"\n4. Enable "Combine JavaScript files" \n5. Enable "Load JavaScript deferred"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nUnused JavaScript blocks the browser and wastes bandwidth. WP Rocket will optimize your JavaScript automatically with these settings.'
+            : 'Unused JavaScript blocks the browser and wastes bandwidth. WP Rocket is the recommended all-in-one solution that handles JS optimisation plus caching, lazy loading, and more - reducing the number of plugins needed.'
+          : 'Unused JavaScript blocks the browser and wastes bandwidth. Reducing JavaScript improves page load speed and interactivity.',
+        useCase: 'javascript-optimization',
         howTo: getPluginSpecificInstructions(baseInstructions, 'javascript')
       }
     }
     
     if (lowerRec.includes('render-blocking') || lowerRec.includes('blocking resources')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🚀 RECOMMENDED: Install WP Rocket (Premium) - comprehensive solution for blocking resources:',
+        '   • Automatically generates critical CSS',
+        '   • Defers JavaScript loading',
+        '   • Minifies and combines CSS/JS files',
+        '   • Also includes: caching, lazy loading, database optimisation',
+        '   • One plugin solves multiple issues',
+        '   • Cost: £59/year (saves money vs multiple plugins)',
+        '   • Setup: Install WP Rocket → File Optimisation settings configured automatically',
+        '',
+        'FREE ALTERNATIVES (require manual configuration):',
+        'Autoptimize (Free): Aggregate and minify CSS/JS files',
+        'Async JavaScript (Free): Defer JavaScript execution',
+        'Critical CSS (Free): Generate and inline critical CSS',
+        '',
+        'MANUAL STEPS:',
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources'
+      ] : [
+        'Inline critical CSS in the HTML head',
+        'Load non-critical CSS asynchronously',
+        'Defer non-essential JavaScript',
+        'Use resource hints like preload for critical resources',
+        'Consider using a build tool to optimize resource loading'
+      ]
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
         title: 'Fix Render-Blocking Resources',
         description: 'CSS and JS files are preventing your page from displaying quickly',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <AlertTriangle className="w-4 h-4" />,
-        details: 'Critical resources must load before the page can be displayed',
-        howTo: [
-          'Inline critical CSS in the HTML head',
-          'Load non-critical CSS asynchronously',
-          'Defer non-essential JavaScript',
-          'Use resource hints like preload for critical resources'
-        ]
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "File Optimization" tab\n3. Enable "Optimize CSS delivery" - WP Rocket will automatically generate critical CSS\n4. Enable "Load JavaScript deferred" to defer JavaScript loading\n5. Under "CSS Files", enable "Minify CSS files" and "Combine CSS files"\n6. Click "Save Changes"\n7. Clear the cache and test your site\n\nRender-blocking resources prevent your page from displaying quickly. WP Rocket automatically handles this complex optimization.'
+            : 'Critical resources must load before the page can be displayed. WP Rocket automatically handles this complex optimization, including critical CSS generation and resource deferral.'
+          : 'Critical resources must load before the page can be displayed. This requires technical optimization of how CSS and JavaScript are loaded.',
+        useCase: cms === 'WordPress' ? 'javascript-optimization' : undefined,
+        howTo: baseInstructions
       }
     }
     
-    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer'))) {
-      const baseInstructions = [
-        'Add loading="lazy" to img tags',
-        'Use intersection observer for custom lazy loading',
-        'Prioritize above-the-fold images',
-        'Consider using modern image formats'
+    if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '📌 PLUGIN OPTIONS:',
+        'See the "Recommended Plugins & Tools" table below for plugin comparisons.',
+        'Free options: a3 Lazy Load, Jetpack, Lazy Load by WP Rocket',
+        'Premium option: WP Rocket (also includes caching, JS/CSS optimization)',
+        'Note: WordPress 5.5+ has native lazy loading built-in',
+        '',
+        '⚙️ MANUAL OPTION (No Plugin Required):',
+        '1. Add loading="lazy" attribute to images in your theme files',
+        '2. Example: <img src="image.jpg" loading="lazy" alt="Description">',
+        '3. IMPORTANT: Exclude above-the-fold images from lazy loading (first 2-3 images)',
+        '4. Ensure images have width/height attributes to prevent layout shifts',
+        '5. Test on mobile devices to ensure images load properly when scrolling',
+        '',
+        '💡 TIP: If you\'re already using a performance plugin for other issues,',
+        'check if it includes lazy loading to avoid installing multiple plugins.'
+      ] : [
+        'Add loading="lazy" attribute to img tags below the fold',
+        'Example: <img src="image.jpg" loading="lazy" alt="Description">',
+        'Use Intersection Observer API for custom lazy loading',
+        'Prioritize above-the-fold images (don\'t lazy load them)',
+        'Consider using modern image formats like WebP',
+        'JavaScript libraries: lazysizes, lozad.js, or vanilla-lazyload',
+        'Ensure images have width/height attributes to prevent layout shifts'
       ]
-      
+
       return {
-        title: 'Lazy Load Images',
+        title: 'Implement Lazy Loading for Images',
         description: 'Images below the fold are loading immediately, wasting bandwidth',
         impact: 'Medium',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Loading images only when needed improves initial page load',
+        details: cms === 'WordPress'
+          ? 'Lazy loading defers loading of offscreen images until users scroll near them. This improves initial page load speed by only loading images as users scroll to them. WordPress has native lazy loading since version 5.5, but plugins offer more advanced options.'
+          : 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
+        useCase: 'lazy-loading',
         howTo: getPluginSpecificInstructions(baseInstructions, 'images')
       }
     }
     
-    if (lowerRec.includes('webp') || lowerRec.includes('next-gen') || lowerRec.includes('image format')) {
+    if (lowerRec.includes('mobile') && lowerRec.includes('image')) {
+      // CMSs that automatically handle responsive images - skip this recommendation
+      const cmsWithAutoResponsiveImages = ['WordPress', 'Shopify', 'Wix', 'Squarespace', 'Webflow', 'Drupal'];
+
+      if (cms && cmsWithAutoResponsiveImages.some(autoCms => cms.toLowerCase().includes(autoCms.toLowerCase()))) {
+        // CMS handles this automatically, skip recommendation
+        return {
+          title: '', // Empty title will be filtered out
+          description: '',
+          impact: 'Low' as 'Low',
+          effort: 'Easy' as 'Easy',
+          icon: <Image className="w-4 h-4" />,
+          details: '',
+          howTo: []
+        }
+      }
+
+      // Only show for custom sites without automatic responsive images
+      const baseInstructions = [
+        'Use responsive images with srcset and sizes attributes',
+        'Example: <img srcset="small.jpg 480w, medium.jpg 768w, large.jpg 1200w" sizes="(max-width: 768px) 100vw, 50vw" src="medium.jpg" alt="Description">',
+        'Serve appropriately sized images for different screen sizes',
+        'Use picture element for art direction (different images for mobile vs desktop)',
+        'Implement WebP format with JPEG/PNG fallbacks',
+        'Consider using a CDN with automatic image resizing (Cloudinary, Imgix)',
+        'Test on actual mobile devices, not just browser emulation'
+      ]
+
       return {
-        title: 'Use Modern Image Formats',
-        description: 'Convert images to WebP or AVIF for better compression',
+        title: 'Optimise Images for Mobile Devices',
+        description: 'Serve appropriately sized images for mobile screens to save bandwidth',
         impact: 'Medium',
         effort: 'Easy',
         icon: <Image className="w-4 h-4" />,
-        details: 'Modern formats reduce file size by 25-50% with same quality',
-        howTo: [
-          'Convert JPEG/PNG to WebP format',
-          'Use picture element with fallbacks',
-          'Set up automatic conversion on your server',
-          'Test image quality after conversion'
-        ]
+        details: 'Mobile devices don\'t need full desktop-sized images. Serving smaller images saves bandwidth and improves load times on mobile connections.',
+        useCase: 'large-images',
+        howTo: baseInstructions
+      }
+    }
+
+    if (lowerRec.includes('webp') || lowerRec.includes('next-gen') || lowerRec.includes('image format')) {
+      // Skip this - now handled in the combined "Optimise Images" recommendation
+      return {
+        title: '', // Empty title will be filtered out
+        description: '',
+        impact: 'Medium' as 'Medium',
+        effort: 'Easy' as 'Easy',
+        icon: <Image className="w-4 h-4" />,
+        details: '',
+        howTo: []
       }
     }
     
@@ -367,19 +1014,141 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('server response') || lowerRec.includes('response time')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🚀 QUICK WINS (WordPress):',
+        'Install WP Rocket (Premium): Includes page caching, database optimization, and CDN integration',
+        'W3 Total Cache (Free): Page caching and minification',
+        'LiteSpeed Cache (Free): High-performance caching if using LiteSpeed hosting',
+        'WP Super Cache (Free): Simple page caching by Automattic',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Enable page caching (stores HTML to avoid regenerating pages)',
+        'Enable object caching (Redis/Memcached for database queries)',
+        'Optimise database queries (use Query Monitor plugin to find slow queries)',
+        'Upgrade hosting plan (shared hosting is often slow under load)',
+        'Consider managed WordPress hosting (WP Engine, Kinsta, Flywheel)',
+        'Enable opcode caching (OPcache for PHP)',
+        '',
+        '☁️ CDN & INFRASTRUCTURE:',
+        'Use a Content Delivery Network (see "Use a CDN" recommendation)',
+        'Enable Cloudflare (free CDN and security)',
+        'Upgrade to PHP 8.0+ (significantly faster than PHP 7.x)',
+        'Use HTTP/2 or HTTP/3 (faster protocol)',
+        '',
+        '⚠️ IF STILL SLOW:',
+        'Check server resources (CPU, RAM, disk I/O)',
+        'Review plugin overhead (disable unnecessary plugins)',
+        'Consider dedicated or VPS hosting',
+        'Hire a performance consultant for deep optimization'
+      ] : [
+        '📊 CURRENT METRICS:',
+        'Server response time is the time it takes for your server to respond to a browser request',
+        'Google recommends: < 200ms (Good), < 600ms (Needs Improvement), > 600ms (Poor)',
+        'This affects: First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB)',
+        '',
+        '🔧 TECHNICAL IMPROVEMENTS:',
+        'Upgrade to faster hosting (VPS or dedicated server)',
+        'Enable server-side caching (Varnish, Redis)',
+        'Optimise database queries and indexes',
+        'Use a Content Delivery Network (CDN)',
+        'Enable HTTP/2 or HTTP/3',
+        'Optimise server configuration (Nginx, Apache)',
+        'Consider serverless architecture for dynamic content'
+      ]
+
+      const wpRocketInstalled = detectedPlugins.includes('WP Rocket')
+
       return {
-        title: 'Improve Server Response Time',
-        description: 'Your server takes too long to respond to requests',
+        title: 'Improve Server Response Time (TTFB)',
+        description: 'Your server takes too long to respond to requests, delaying page load',
         impact: 'High',
-        effort: 'Hard',
+        effort: cms === 'WordPress' ? 'Medium' : 'Hard',
         icon: <Server className="w-4 h-4" />,
-        details: 'Slow server response delays everything else on your page',
-        howTo: [
-          'Upgrade to faster hosting',
-          'Enable caching on your server',
-          'Optimize database queries',
-          'Use a Content Delivery Network (CDN)'
-        ]
+        details: cms === 'WordPress'
+          ? wpRocketInstalled
+            ? '✅ Good news! WP Rocket is already installed on your site. To fix this issue:\n\n1. Go to WordPress Dashboard → Settings → WP Rocket\n2. Click the "Cache" tab\n3. Ensure "Enable caching for mobile devices" is enabled\n4. Click the "File Optimization" tab and enable minification options\n5. Click the "Database" tab and enable "Post Cleanup" and "Database Cleanup"\n6. Go to the "Preload" tab and enable "Preload Cache" to build the cache automatically\n7. Click "Save Changes"\n8. Clear the cache and test your site\n\nServer response time (TTFB) is how long it takes for your server to start sending data. WP Rocket\'s caching will dramatically improve this by serving cached pages instead of generating them on each request.'
+            : 'Server response time (Time to First Byte - TTFB) is how long it takes for your server to start sending data. This is the foundation of page speed - if your server is slow, everything else is delayed. For WordPress, caching plugins can dramatically improve this.'
+          : 'Server response time (Time to First Byte - TTFB) measures how long it takes for your server to respond to requests. Slow TTFB delays everything on your page. Typical causes: slow hosting, unoptimised database queries, lack of caching, or heavy server-side processing.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
+      }
+    }
+
+    if (lowerRec.includes('cdn') || lowerRec.includes('content delivery network')) {
+      const baseInstructions = cms === 'WordPress' ? [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        'Benefits: Faster global load times, reduced server load, better reliability',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around CDN with free plan, DDoS protection, SSL',
+        '  • Setup: Sign up → Add site → Update nameservers → Enable CDN',
+        '  • Free plan includes: CDN, SSL, DDoS protection, firewall',
+        '  • Paid plans (£20/month+): Better performance, more features',
+        '',
+        'WP Rocket + RocketCDN (£8.99/month): WordPress-optimised CDN',
+        '  • Seamless integration with WP Rocket',
+        '  • Designed specifically for WordPress',
+        '  • Easy setup via WP Rocket dashboard',
+        '',
+        'Bunny CDN (£1/month+): Budget-friendly, fast performance',
+        '  • Pay-as-you-go pricing',
+        '  • Excellent performance',
+        '  • Requires manual configuration',
+        '',
+        'StackPath (Paid): Enterprise-grade CDN',
+        '  • Advanced features and security',
+        '  • Best for high-traffic sites',
+        '',
+        '📦 WORDPRESS PLUGINS FOR CDN:',
+        'WP Rocket: Built-in CDN integration',
+        'Cloudflare Plugin: Official Cloudflare integration',
+        'CDN Enabler: Simple CDN integration for any provider',
+        'W3 Total Cache: Supports multiple CDN providers',
+        '',
+        '⚙️ SETUP STEPS:',
+        '1. Choose CDN provider (Cloudflare recommended for beginners)',
+        '2. Create account and add your domain',
+        '3. Update DNS settings or install plugin',
+        '4. Test CDN is working (check browser network tab)',
+        '5. Configure caching rules if needed'
+      ] : [
+        '🌍 WHAT IS A CDN?',
+        'A Content Delivery Network stores copies of your site on servers worldwide',
+        'Users load your site from the nearest server, reducing distance and load time',
+        '',
+        '🚀 RECOMMENDED CDN SOLUTIONS:',
+        'Cloudflare (Free + Paid): Best all-around, easy setup',
+        'Bunny CDN: Budget-friendly, excellent performance',
+        'Amazon CloudFront: Integrates with AWS services',
+        'Fastly: Enterprise-grade, advanced features',
+        '',
+        '⚙️ SETUP STEPS:',
+        'Sign up for CDN provider',
+        'Add your domain to CDN',
+        'Update DNS settings to point to CDN',
+        'Configure caching rules',
+        'Test CDN is working properly',
+        'Monitor performance improvements'
+      ]
+
+      return {
+        title: 'Use a Content Delivery Network (CDN)',
+        description: 'Serve static assets from servers closer to your users worldwide',
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Server className="w-4 h-4" />,
+        details: cms === 'WordPress'
+          ? 'A CDN dramatically improves global load times by serving your site from multiple locations worldwide. Cloudflare offers a generous free plan with easy setup. For WordPress sites, WP Rocket includes seamless CDN integration.'
+          : 'A CDN caches and serves your static assets (images, CSS, JS) from servers geographically close to your users, dramatically reducing load times globally. Essential for international audiences.',
+        useCase: cms === 'WordPress' ? 'caching' : undefined,
+        howTo: baseInstructions
       }
     }
     
@@ -427,8 +1196,11 @@ export default function EnhancedRecommendations({
   // Combine and prioritize: Technical SEO issues first (High impact), then performance recommendations
   const allRecs = [...technicalRecs, ...performanceRecs]
 
+  // Filter out recommendations with empty titles (skipped recommendations)
+  const validRecs = allRecs.filter(rec => rec.title && rec.title.trim() !== '')
+
   // Deduplicate by title (keep first occurrence)
-  const deduplicatedRecs = allRecs.filter((rec, index, self) =>
+  const deduplicatedRecs = validRecs.filter((rec, index, self) =>
     index === self.findIndex((r) => r.title === rec.title)
   )
 
@@ -548,11 +1320,440 @@ export default function EnhancedRecommendations({
                       How to fix this
                     </summary>
                     <div className="mt-2 p-3 bg-gray-50 rounded">
-                      <p className="text-gray-700 mb-3">{rec.details}</p>
+                      {/* Format details with better structure for plugin-specific instructions */}
+                      {(() => {
+                        const details = rec.details;
 
-                      {/* Regular Steps */}
-                      <div className="space-y-2 mb-4">
-                        <div className="font-medium text-gray-800">Steps:</div>
+                        // Check if details contains plugin-specific instructions (indicated by numbered steps)
+                        if (details.includes('✅ Good news!') && details.match(/\d+\./)) {
+                          const parts = details.split('\n\n');
+
+                          return (
+                            <div className="space-y-3">
+                              {parts.map((part, idx) => {
+                                // Check if this part contains numbered steps
+                                if (part.match(/^\d+\./m)) {
+                                  const steps = part.split('\n').filter(line => line.trim());
+                                  return (
+                                    <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-3">
+                                      <div className="font-medium text-blue-800 mb-2">Configuration Steps:</div>
+                                      <div className="space-y-1">
+                                        {steps.map((step, stepIdx) => (
+                                          <div key={stepIdx} className="flex items-start gap-2">
+                                            <span className="text-blue-600 font-medium text-sm mt-0.5">
+                                              {step.match(/^\d+\./) ? step.match(/^\d+\./)?.[0] : '•'}
+                                            </span>
+                                            <span className="text-gray-700 text-sm">
+                                              {step.replace(/^\d+\.\s*/, '')}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <p key={idx} className="text-gray-700">
+                                      {part}
+                                    </p>
+                                  );
+                                }
+                              })}
+                            </div>
+                          );
+                        } else {
+                          // Regular details without plugin-specific instructions
+                          return <p className="text-gray-700 mb-3">{details}</p>;
+                        }
+                      })()}
+
+                      {/* Combined Images Table - Show for "Optimise Images" recommendation */}
+                      {(rec.title === 'Optimise Images' || rec.title.includes('Large Image') || rec.title.includes('Modern Image') || rec.title.toLowerCase().includes('image format')) && (largeImagesList.length > 0 || legacyFormatImagesList.length > 0) && (() => {
+                        // Combine and deduplicate images from both lists
+                        const imageMap = new Map();
+
+                        // Add large images
+                        largeImagesList.forEach((image: { imageUrl: string; pageUrl: string; sizeKB: number }) => {
+                          const key = image.imageUrl;
+                          if (!imageMap.has(key)) {
+                            imageMap.set(key, {
+                              ...image,
+                              isLarge: true,
+                              currentFormat: image.imageUrl.match(/\.(jpg|jpeg|png|gif|webp|avif|svg)$/i)?.[1]?.toUpperCase() || 'Unknown',
+                              isLegacyFormat: false
+                            });
+                          }
+                        });
+
+                        // Add/merge legacy format images
+                        legacyFormatImagesList.forEach((image: { imageUrl: string; pageUrl: string; sizeKB: number; currentFormat: string; suggestedFormat: string }) => {
+                          const key = image.imageUrl;
+                          if (imageMap.has(key)) {
+                            // Merge with existing entry
+                            const existing = imageMap.get(key);
+                            imageMap.set(key, {
+                              ...existing,
+                              currentFormat: image.currentFormat,
+                              suggestedFormat: image.suggestedFormat,
+                              isLegacyFormat: true
+                            });
+                          } else {
+                            // Add new entry
+                            imageMap.set(key, {
+                              ...image,
+                              isLarge: (image.sizeKB || 0) > 100,
+                              isLegacyFormat: true
+                            });
+                          }
+                        });
+
+                        const combinedImages = Array.from(imageMap.values()).slice(0, 20);
+
+                        return (
+                          <div className="mb-4 pb-4 border-b border-gray-300">
+                            <h5 className="font-semibold mb-3 text-orange-600">⚠️ Images Need Optimisation</h5>
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead className="bg-orange-100">
+                                    <tr>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Current Format</th>
+                                      <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
+                                      <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-orange-200">
+                                    {combinedImages.map((image: { imageUrl: string; pageUrl: string; sizeKB: number; currentFormat: string; suggestedFormat?: string; isLarge: boolean; isLegacyFormat: boolean }, imageIndex: number) => (
+                                      <tr key={imageIndex} className="hover:bg-orange-50">
+                                        <td className="px-4 py-3">
+                                          <a
+                                            href={image.imageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline break-all"
+                                          >
+                                            {image.imageUrl.split('/').pop() || image.imageUrl}
+                                          </a>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <Tooltip content={image.pageUrl}>
+                                            <a
+                                              href={image.pageUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline"
+                                            >
+                                              {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 40)}...
+                                            </a>
+                                          </Tooltip>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          {image.isLegacyFormat ? (
+                                            <Tooltip content={`Legacy format - consider converting to ${image.suggestedFormat || 'WebP'} for better performance`}>
+                                              <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                                {image.currentFormat} (Legacy)
+                                              </span>
+                                            </Tooltip>
+                                          ) : (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                              {image.currentFormat}
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          <span className={image.isLarge ? 'text-red-600' : 'text-gray-700'}>
+                                            {(image.sizeKB || 0).toLocaleString()}KB
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {image.isLarge && image.isLegacyFormat ? (
+                                            <span className="text-red-600 font-medium">Compress & convert to {image.suggestedFormat || 'WebP'}</span>
+                                          ) : image.isLarge ? (
+                                            <span>{image.sizeKB > 500 ? 'Compress urgently' : 'Compress image'}</span>
+                                          ) : image.isLegacyFormat ? (
+                                            <span>Convert to {image.suggestedFormat || 'WebP'}</span>
+                                          ) : (
+                                            <span className="text-gray-500">OK</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-2">
+                              💡 Tip: Use image compression tools like TinyPNG and convert to WebP format to reduce file sizes by 40-70% without losing quality.
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Pages With Issues - Show for technical SEO issues */}
+                      {rec.title.includes('Missing H1 Tags') && issuePages?.missingH1Tags && issuePages.missingH1Tags.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing H1 Tags</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingH1Tags.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingH1Tags.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Titles') && issuePages?.missingMetaTitles && issuePages.missingMetaTitles.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Titles</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaTitles.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaTitles.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.title.includes('Missing Meta Descriptions') && issuePages?.missingMetaDescriptions && issuePages.missingMetaDescriptions.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages Missing Meta Descriptions</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {issuePages.missingMetaDescriptions.map((pageUrl, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <a
+                                    href={pageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                  >
+                                    {pageUrl}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {issuePages.missingMetaDescriptions.length >= 20 && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                Showing first 20 pages. Additional pages may also be affected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Structured Data Validation Table */}
+                      {rec.title.includes('Invalid Structured Data') && structuredDataItems && structuredDataItems.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-red-600">❌ Structured Data Validation Results</h5>
+                          <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-red-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Schema Type</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Format</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Location</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Status</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Issues</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-red-200">
+                                  {structuredDataItems.map((item: { type: string; format: string; location: string; isValid: boolean; errors: string[]; warnings: string[] }, idx: number) => (
+                                    <tr key={idx} className={`hover:bg-red-50 ${!item.isValid ? 'bg-red-100' : ''}`}>
+                                      <td className="px-4 py-3">
+                                        <span className="font-medium text-gray-900">{item.type}</span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                          {item.format}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-gray-600">
+                                        {item.location}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        {item.isValid ? (
+                                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                            Valid
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium">
+                                            Invalid
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        {item.errors.length > 0 && (
+                                          <div className="space-y-1">
+                                            {item.errors.map((error, errorIdx) => (
+                                              <div key={errorIdx} className="text-xs text-red-700">
+                                                • {error}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {item.warnings.length > 0 && (
+                                          <div className="space-y-1 mt-1">
+                                            {item.warnings.map((warning, warningIdx) => (
+                                              <div key={warningIdx} className="text-xs text-orange-600">
+                                                ⚠ {warning}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {item.errors.length === 0 && item.warnings.length === 0 && (
+                                          <span className="text-xs text-gray-500">No issues</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Use <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Google Rich Results Test</a> to validate your structured data and see how it appears in search results.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Text-to-HTML Ratio Table */}
+                      {rec.title.includes('Low Text-to-HTML Ratio') && textHtmlRatioPages && textHtmlRatioPages.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Low Text-to-HTML Ratio</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Text Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">HTML Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Ratio</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {textHtmlRatioPages
+                                    .filter(page => page.status === 'warning' || page.status === 'poor')
+                                    .slice(0, 20)
+                                    .map((page, idx) => (
+                                      <tr key={idx} className={`hover:bg-orange-50 ${page.status === 'poor' ? 'bg-red-50' : ''}`}>
+                                        <td className="px-4 py-3">
+                                          <a
+                                            href={page.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                          >
+                                            {page.url}
+                                          </a>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {page.textLength.toLocaleString()} chars
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {page.htmlLength.toLocaleString()} chars
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <span className={`font-medium ${
+                                            page.ratio >= 25 ? 'text-green-600' :
+                                            page.ratio >= 15 ? 'text-orange-600' :
+                                            'text-red-600'
+                                          }`}>
+                                            {page.ratio.toFixed(1)}%
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          {page.status === 'good' && (
+                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                              Good (&gt; 25%)
+                                            </span>
+                                          )}
+                                          {page.status === 'warning' && (
+                                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                                              Warning (15-25%)
+                                            </span>
+                                          )}
+                                          {page.status === 'poor' && (
+                                            <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium">
+                                              Poor (&lt; 15%)
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Focus on adding quality content first. A good text-to-HTML ratio is above 25%. Industry standards: Good (&gt; 25%), Warning (15-25%), Poor (&lt; 15%).
+                          </p>
+                          {textHtmlRatioPages.filter(p => p.status === 'warning' || p.status === 'poor').length > 20 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              Showing first 20 pages. Additional pages may also be affected.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Plugin Recommendation Tables - Now shown FIRST */}
+                      {rec.useCase && cms === 'WordPress' && (
+                        <div className="mt-6 mb-4 pb-4 pt-4 border-t border-gray-300 space-y-6">
+                          {/* Currently Installed Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="installed"
+                          />
+
+                          {/* Recommended Plugins Section */}
+                          <PluginRecommendationTable
+                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
+                            installedPlugins={detectedPlugins}
+                            issueType={rec.useCase}
+                            mode="recommended"
+                          />
+                        </div>
+                      )}
+
+                      {/* Summary Section - Now shown AFTER plugin tables */}
+                      <div className="space-y-2">
+                        <div className="font-medium text-gray-800">Summary:</div>
                         {rec.howTo
                           .filter(step => {
                             // Filter out plugin-specific steps since they're shown in PluginRecommendationTable
@@ -576,27 +1777,6 @@ export default function EnhancedRecommendations({
                             </div>
                           ))}
                       </div>
-
-                      {/* Plugin Recommendation Tables */}
-                      {rec.useCase && cms === 'WordPress' && (
-                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-6">
-                          {/* Currently Installed Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="installed"
-                          />
-
-                          {/* Recommended Plugins Section */}
-                          <PluginRecommendationTable
-                            plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
-                            installedPlugins={detectedPlugins}
-                            issueType={rec.useCase}
-                            mode="recommended"
-                          />
-                        </div>
-                      )}
                     </div>
                   </details>
                 </div>

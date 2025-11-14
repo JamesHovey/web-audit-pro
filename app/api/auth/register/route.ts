@@ -55,13 +55,12 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create user with 100 free credits
+    // Create user
     const user = await prisma.user.create({
       data: {
         username: normalizedUsername,
         password: hashedPassword,
         plaintextPassword: password, // TESTING ONLY - Store plaintext for password recovery
-        credits: 100, // Free signup credits
       }
     })
 
@@ -72,10 +71,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: {
         id: userWithoutPassword.id,
-        username: userWithoutPassword.username,
-        credits: userWithoutPassword.credits
+        username: userWithoutPassword.username
       },
-      message: "Account created successfully! You've been credited with 100 free credits."
+      message: "Account created successfully! Welcome to Web Audit Pro."
     }, { status: 201 })
 
   } catch (error) {

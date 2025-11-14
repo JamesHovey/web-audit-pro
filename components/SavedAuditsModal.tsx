@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Clock, ExternalLink, CheckCircle, Loader, AlertCircle, Trash2 } from 'lucide-react'
+import { X, Clock, ExternalLink, CheckCircle, Loader, AlertCircle, Trash2, Share2, Users } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
+import ShareAuditModal from './ShareAuditModal'
 
 interface SavedAuditsModalProps {
   isOpen: boolean
@@ -17,13 +18,25 @@ interface Audit {
   createdAt: string
   completedAt?: string
   sections: string[]
+  scope?: string
+  totalPages?: number
+  isOwner?: boolean
+  shareCount?: number
+  sharedBy?: {
+    username: string
+    name?: string | null
+  }
+  sharedAt?: string
 }
 
 export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: SavedAuditsModalProps) {
-  const [audits, setAudits] = useState<Audit[]>([])
+  const [myAudits, setMyAudits] = useState<Audit[]>([])
+  const [sharedAudits, setSharedAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [selectedAuditForShare, setSelectedAuditForShare] = useState<{ id: string; url: string } | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -42,15 +55,29 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
         throw new Error('Failed to fetch audits')
       }
       const data = await response.json()
-      const auditList = data.audits || []
-      setAudits(auditList)
+      setMyAudits(data.myAudits || [])
+      setSharedAudits(data.sharedAudits || [])
       // Notify parent about audit status
-      onAuditsChange?.(auditList.length > 0)
+      const totalAudits = (data.myAudits?.length || 0) + (data.sharedAudits?.length || 0)
+      onAuditsChange?.(totalAudits > 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load audits')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleShareClick = (auditId: string, auditUrl: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedAuditForShare({ id: auditId, url: auditUrl })
+    setShareModalOpen(true)
+  }
+
+  const handleShareModalClose = () => {
+    setShareModalOpen(false)
+    setSelectedAuditForShare(null)
+    // Refresh audits to update share counts
+    fetchAudits()
   }
 
   const handleAuditClick = (auditId: string) => {
@@ -79,12 +106,13 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
       }
 
       // Remove the deleted audit from the list
-      const newAudits = audits.filter(audit => audit.id !== auditId)
-      setAudits(newAudits)
+      const newMyAudits = myAudits.filter(audit => audit.id !== auditId)
+      setMyAudits(newMyAudits)
 
       // Defer the parent notification to avoid setState during render
       setTimeout(() => {
-        onAuditsChange?.(newAudits.length > 0)
+        const totalAudits = newMyAudits.length + sharedAudits.length
+        onAuditsChange?.(totalAudits > 0)
       }, 0)
 
       // If user deleted the audit they're currently viewing, redirect to dashboard
@@ -138,6 +166,34 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
     }
   }
 
+  const getAuditTypeBadge = (scope?: string, totalPages?: number) => {
+    if (scope === 'single') {
+      return (
+        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+          📄 Single Page
+        </span>
+      )
+    } else if (scope === 'all') {
+      return (
+        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+          🌐 {totalPages ? `All Pages (${totalPages})` : 'All Pages'}
+        </span>
+      )
+    } else if (scope === 'custom' || scope === 'multi') {
+      return (
+        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+          📑 {totalPages || 0} {totalPages === 1 ? 'Page' : 'Pages'}
+        </span>
+      )
+    }
+    // Default to single page if scope is not provided
+    return (
+      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+        📄 Single Page
+      </span>
+    )
+  }
+
   if (!isOpen) return null
 
   return (
@@ -178,92 +234,205 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
                 Try again
               </button>
             </div>
-          ) : audits.length === 0 ? (
+          ) : myAudits.length === 0 && sharedAudits.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">No audits yet</p>
               <p className="text-gray-400 text-sm mt-2">Your audit history will appear here</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {audits.map((audit) => (
-                <div
-                  key={audit.id}
-                  onClick={() => handleAuditClick(audit.id)}
-                  className="border rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white group"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-semibold text-gray-900 truncate">
-                          {audit.url}
-                        </h4>
-                        <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      </div>
-
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{formatDate(audit.createdAt)}</span>
-                        </div>
-
-                        {audit.completedAt && (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span>Completed {formatDate(audit.completedAt)}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {audit.sections && audit.sections.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {audit.sections.map((section) => (
-                            <span
-                              key={section}
-                              className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-                            >
-                              {section}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="ml-4 flex items-center gap-3 flex-shrink-0">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(audit.status)}`}>
-                        {getStatusIcon(audit.status)}
-                        {audit.status.charAt(0).toUpperCase() + audit.status.slice(1)}
-                      </span>
-
-                      <button
-                        onClick={(e) => handleDelete(audit.id, audit.url, e)}
-                        disabled={deletingId === audit.id}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="Delete audit"
+            <div className="space-y-6">
+              {/* My Audits Section */}
+              {myAudits.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    My Audits ({myAudits.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {myAudits.map((audit) => (
+                      <div
+                        key={audit.id}
+                        onClick={() => handleAuditClick(audit.id)}
+                        className="border rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white group"
                       >
-                        {deletingId === audit.id ? (
-                          <Loader className="w-4 h-4 text-gray-400 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                        )}
-                      </button>
-                    </div>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {audit.url}
+                              </h4>
+                              {getAuditTypeBadge(audit.scope, audit.totalPages)}
+                              {audit.shareCount && audit.shareCount > 0 && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+                                  <Users className="w-3 h-3" />
+                                  Shared with {audit.shareCount}
+                                </span>
+                              )}
+                              <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            </div>
+
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{formatDate(audit.createdAt)}</span>
+                              </div>
+
+                              {audit.completedAt && (
+                                <div className="flex items-center gap-1 text-green-600">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Completed {formatDate(audit.completedAt)}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {audit.sections && audit.sections.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {audit.sections.map((section) => (
+                                  <span
+                                    key={section}
+                                    className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                                  >
+                                    {section}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(audit.status)}`}>
+                              {getStatusIcon(audit.status)}
+                              {audit.status.charAt(0).toUpperCase() + audit.status.slice(1)}
+                            </span>
+
+                            <button
+                              onClick={(e) => handleShareClick(audit.id, audit.url, e)}
+                              className="p-2 hover:bg-purple-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Share audit"
+                            >
+                              <Share2 className="w-4 h-4 text-purple-600 hover:text-purple-700" />
+                            </button>
+
+                            <button
+                              onClick={(e) => handleDelete(audit.id, audit.url, e)}
+                              disabled={deletingId === audit.id}
+                              className="p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                              title="Delete audit"
+                            >
+                              {deletingId === audit.id ? (
+                                <Loader className="w-4 h-4 text-gray-400 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Shared Audits Section */}
+              {sharedAudits.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Shared Audits ({sharedAudits.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {sharedAudits.map((audit) => (
+                      <div
+                        key={audit.id}
+                        onClick={() => handleAuditClick(audit.id)}
+                        className="border rounded-lg p-4 hover:border-purple-500 hover:shadow-md transition-all cursor-pointer bg-purple-50/30 group"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {audit.url}
+                              </h4>
+                              {getAuditTypeBadge(audit.scope, audit.totalPages)}
+                              {audit.sharedBy && (
+                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full flex items-center gap-1 whitespace-nowrap">
+                                  <Users className="w-3 h-3" />
+                                  Shared by {audit.sharedBy.name || audit.sharedBy.username}
+                                </span>
+                              )}
+                              <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            </div>
+
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{formatDate(audit.createdAt)}</span>
+                              </div>
+
+                              {audit.completedAt && (
+                                <div className="flex items-center gap-1 text-green-600">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Completed {formatDate(audit.completedAt)}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {audit.sections && audit.sections.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {audit.sections.map((section) => (
+                                  <span
+                                    key={section}
+                                    className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                                  >
+                                    {section}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(audit.status)}`}>
+                              {getStatusIcon(audit.status)}
+                              {audit.status.charAt(0).toUpperCase() + audit.status.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {!loading && !error && audits.length > 0 && (
+        {!loading && !error && (myAudits.length > 0 || sharedAudits.length > 0) && (
           <div className="border-t border-gray-200 p-4 bg-gray-50">
             <p className="text-sm text-gray-600 text-center">
-              Total audits: <span className="font-semibold">{audits.length}</span>
+              My audits: <span className="font-semibold">{myAudits.length}</span>
+              {sharedAudits.length > 0 && (
+                <>
+                  {' | '}
+                  Shared with me: <span className="font-semibold">{sharedAudits.length}</span>
+                </>
+              )}
             </p>
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {shareModalOpen && selectedAuditForShare && (
+        <ShareAuditModal
+          isOpen={shareModalOpen}
+          onClose={handleShareModalClose}
+          auditId={selectedAuditForShare.id}
+          auditUrl={selectedAuditForShare.url}
+        />
+      )}
     </div>
   )
 }

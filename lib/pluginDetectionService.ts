@@ -88,8 +88,12 @@ export function detectWordPressPlugins(html: string): PluginDetectionResult {
       (lowerHtml.includes('w3tc_config') || lowerHtml.includes('/wp-content/plugins/w3-total-cache/'))) {
     wpPlugins.push('W3 Total Cache');
   }
-  if (lowerHtml.includes('wp-rocket') && 
-      (lowerHtml.includes('wp-rocket.js') || lowerHtml.includes('/wp-content/plugins/wp-rocket/'))) {
+  if (lowerHtml.includes('wp-rocket') ||
+      lowerHtml.includes('wpr_rocket_') ||
+      lowerHtml.includes('/wp-content/plugins/wp-rocket/') ||
+      lowerHtml.includes('rocket-loader') ||
+      lowerHtml.includes('data-rocket-') ||
+      lowerHtml.includes('wprocket')) {
     wpPlugins.push('WP Rocket');
   }
   if (lowerHtml.includes('autoptimize') && 
@@ -300,6 +304,71 @@ export function getPageBuilderOptimizations(pageBuilder?: string): PageBuilderOp
       }
     );
   }
-  
+
+  if (pageBuilder === 'Gutenberg') {
+    optimizations.push(
+      {
+        name: 'Gutenberg Block Styles',
+        category: 'css',
+        title: 'Optimize Gutenberg Block Styles',
+        description: 'Reduce unnecessary CSS loading from Gutenberg blocks',
+        instructions: [
+          'Install a performance plugin like WP Rocket or Autoptimize',
+          'Enable "Minify CSS" to reduce block styles file size',
+          'Consider disabling unused block styles via theme.json',
+          'Use a plugin like "Disable Gutenberg Blocks" to remove unused blocks',
+          'Remove the classic editor CSS if not using classic blocks'
+        ],
+        impact: 'Medium',
+        difficulty: 'Medium'
+      },
+      {
+        name: 'Gutenberg JavaScript Optimization',
+        category: 'javascript',
+        title: 'Optimize Gutenberg JavaScript Loading',
+        description: 'Improve page load by optimizing Gutenberg JS',
+        instructions: [
+          'Use a caching plugin to minify and combine JavaScript files',
+          'Consider deferring Gutenberg scripts on frontend (not in editor)',
+          'Remove unused Gutenberg features via theme support',
+          'Example: add_theme_support(\'disable-custom-colors\') if not needed',
+          'Use WP Rocket\'s "Load JavaScript deferred" option'
+        ],
+        impact: 'Medium',
+        difficulty: 'Medium'
+      },
+      {
+        name: 'Gutenberg Font Loading',
+        category: 'fonts',
+        title: 'Optimize Font Loading for Gutenberg',
+        description: 'Improve font performance when using Gutenberg',
+        instructions: [
+          'Limit the number of Google Fonts used in blocks',
+          'Use font-display: swap for better loading performance',
+          'Consider using system fonts instead of web fonts',
+          'Preload critical fonts used above the fold',
+          'Remove unused font weights and styles'
+        ],
+        impact: 'Low',
+        difficulty: 'Easy'
+      },
+      {
+        name: 'Gutenberg Lazy Loading',
+        category: 'images',
+        title: 'Enable Lazy Loading for Gutenberg Images',
+        description: 'Improve page speed with lazy loading (built-in since WordPress 5.5)',
+        instructions: [
+          'Lazy loading is automatic in WordPress 5.5+ for images',
+          'Ensure your images use proper width/height attributes',
+          'Consider using a plugin like WP Rocket for advanced lazy loading',
+          'Enable lazy loading for iframes and videos as well',
+          'Test to ensure lazy loading doesn\'t affect above-the-fold content'
+        ],
+        impact: 'High',
+        difficulty: 'Easy'
+      }
+    );
+  }
+
   return optimizations;
 }

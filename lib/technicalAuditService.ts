@@ -1,6 +1,37 @@
 // Real technical audit service that analyzes actual website data
 import { discoverRealPages } from './realPageDiscovery';
 import { analyzeViewportResponsiveness } from './viewportAnalysisService';
+import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
+import { BrowserService } from './cloudflare-browser';
+import { RobotsService } from './robotsService';
+
+// Transparent User-Agent for legal compliance
+const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit Tool)';
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 WebAuditPro/1.0';
+
+/**
+ * Process items in parallel chunks to avoid overwhelming the server
+ * @param items - Array of items to process
+ * @param chunkSize - Number of items to process in parallel
+ * @param processor - Async function to process each item
+ */
+async function processInChunks<T, R>(
+  items: T[],
+  chunkSize: number,
+  processor: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    const chunkResults = await Promise.all(
+      chunk.map((item, chunkIndex) => processor(item, i + chunkIndex))
+    );
+    results.push(...chunkResults);
+  }
+
+  return results;
+}
 
 interface PagePerformanceMetrics {
   desktop: {
@@ -49,11 +80,51 @@ interface TechnicalAuditResult {
     pageUrl: string;
     sizeKB: number;
   }>;
+  legacyFormatImages?: Array<{
+    imageUrl: string;
+    pageUrl: string;
+    currentFormat: string;
+    suggestedFormat: string;
+    sizeKB: number;
+  }>;
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
     missingH1Tags: number;
     httpErrors: number;
+    invalidStructuredData?: number;
+    lowTextHtmlRatio?: number;
+  };
+  issuePages?: {
+    missingMetaTitles?: string[];
+    missingMetaDescriptions?: string[];
+    missingH1Tags?: string[];
+    httpErrors?: string[];
+  };
+  textHtmlRatio?: {
+    totalPages: number;
+    pagesWithLowRatio: number;
+    pages: Array<{
+      url: string;
+      textLength: number;
+      htmlLength: number;
+      ratio: number;
+      status: 'good' | 'warning' | 'poor';
+    }>;
+  };
+  structuredData?: {
+    totalItems: number;
+    validItems: number;
+    invalidItems: number;
+    items: Array<{
+      type: string;
+      format: string;
+      location: string;
+      isValid: boolean;
+      errors: string[];
+      warnings: string[];
+    }>;
+    recommendations: string[];
   };
   notFoundErrors: Array<{
     brokenUrl: string;
@@ -69,12 +140,30 @@ interface TechnicalAuditResult {
   html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
+// Progress callback type
+export type ProgressCallback = (stage: string, current: number, total: number, message: string) => Promise<void>;
+
 export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
-  specifiedPages: string[] = [url]
+  specifiedPages: string[] = [url],
+  onProgress?: ProgressCallback
 ): Promise<TechnicalAuditResult> {
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
+
+  // Check robots.txt compliance
+  console.log(`🤖 Checking robots.txt compliance for ${url}`);
+  const robotsCheck = await RobotsService.isAllowed(url, 'WebAuditPro');
+
+  if (!robotsCheck.allowed) {
+    console.warn(`⚠️ Audit blocked by robots.txt: ${robotsCheck.reason}`);
+    throw new Error(`This website's robots.txt disallows automated auditing. Reason: ${robotsCheck.reason}`);
+  }
+
+  if (robotsCheck.crawlDelay) {
+    console.log(`⏱️ Robots.txt requests crawl delay of ${robotsCheck.crawlDelay} seconds`);
+    // Note: We'll respect this in our batch processing
+  }
 
   // Normalize URL
   const baseUrl = new URL(url);
@@ -86,6 +175,7 @@ export async function performTechnicalAudit(
     pages: [],
     largeImages: 0,
     largeImageDetails: [],
+    legacyFormatImages: [],
     issues: {
       missingMetaTitles: 0,
       missingMetaDescriptions: 0,
@@ -100,22 +190,124 @@ export async function performTechnicalAudit(
   };
 
   try {
-    // 1. Fetch main page HTML
-    console.log(`🌐 Fetching main page: ${url}`);
-    const mainPageResponse = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
-    });
-    
-    console.log(`📍 Final URL after redirects: ${mainPageResponse.url}`);
-    
-    if (!mainPageResponse.ok) {
-      console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
-      return result;
+    // 1. Fetch main page HTML using Puppeteer for JavaScript-rendered content
+    console.log(`🌐 Fetching main page with browser rendering: ${url}`);
+    let html: string;
+    let finalUrl = url;
+    let statusCode = 200;
+    let browserImageData: Map<string, { sizeKB: number; transferSizeKB: number }> = new Map();
+
+    try {
+      // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
+      const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+        // Track image network requests to capture their sizes
+        const imageNetworkData = new Map<string, { sizeKB: number; transferSizeKB: number }>();
+
+        // Enable network monitoring via CDP (Chrome DevTools Protocol)
+        const client = await page.target().createCDPSession();
+        await client.send('Network.enable');
+
+        // Listen to network responses
+        client.on('Network.responseReceived', (params: any) => {
+          const { response, type } = params;
+
+          // Only track image requests
+          if (type === 'Image' || response.mimeType?.startsWith('image/')) {
+            const url = response.url;
+            const headers = response.headers || {};
+            const contentLength = headers['content-length'] || headers['Content-Length'];
+
+            if (contentLength) {
+              const bytes = parseInt(contentLength, 10);
+              if (!isNaN(bytes) && bytes > 0) {
+                imageNetworkData.set(url, {
+                  sizeKB: Math.round(bytes / 1024),
+                  transferSizeKB: Math.round(bytes / 1024) // Will be updated with actual transfer size
+                });
+              }
+            }
+          }
+        });
+
+        // Also listen for loading finished to get actual transfer sizes
+        client.on('Network.loadingFinished', async (params: any) => {
+          const { requestId, encodedDataLength } = params;
+
+          // Get request details to find the URL
+          try {
+            const requestDetails = await client.send('Network.getResponseBody', { requestId });
+            // encodedDataLength is the actual compressed transfer size
+            if (encodedDataLength > 0) {
+              // We need to match this to a URL - will update existing entry if found
+              // For now, we'll use the encodedDataLength as transferSize
+            }
+          } catch (e) {
+            // getResponseBody may fail for images, that's ok
+          }
+        });
+
+        await BrowserService.goto(page, url);
+
+        // Wait a moment for JavaScript to execute and images to load
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Get Resource Timing API data for even more accurate image sizes
+        const resourceTimingData = await page.evaluate(() => {
+          return performance.getEntriesByType('resource')
+            .filter((r: any) => r.initiatorType === 'img' || r.initiatorType === 'image')
+            .map((r: any) => ({
+              url: r.name,
+              transferSize: r.transferSize, // Actual bytes transferred (compressed)
+              encodedBodySize: r.encodedBodySize, // Compressed size
+              decodedBodySize: r.decodedBodySize // Uncompressed size
+            }));
+        });
+
+        // Merge Resource Timing data with CDP data (Resource Timing is more accurate)
+        for (const resource of resourceTimingData) {
+          if (resource.transferSize > 0) {
+            imageNetworkData.set(resource.url, {
+              sizeKB: Math.round(resource.decodedBodySize / 1024), // Uncompressed size
+              transferSizeKB: Math.round(resource.transferSize / 1024) // Actual transfer (compressed)
+            });
+          }
+        }
+
+        console.log(`📸 Captured ${imageNetworkData.size} images from browser network activity`);
+
+        const renderedHtml = await page.content();
+        const pageUrl = page.url();
+
+        return {
+          html: renderedHtml,
+          url: pageUrl,
+          imageData: imageNetworkData
+        };
+      });
+
+      html = browserResult.html;
+      finalUrl = browserResult.url;
+      browserImageData = browserResult.imageData;
+      console.log(`📍 Final URL after redirects: ${finalUrl}`);
+    } catch (browserError) {
+      // Fallback to simple fetch if browser rendering fails
+      console.warn('Browser rendering failed, falling back to simple fetch:', browserError);
+      const mainPageResponse = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (!mainPageResponse.ok) {
+        console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
+        return result;
+      }
+
+      html = await mainPageResponse.text();
+      finalUrl = mainPageResponse.url;
+      statusCode = mainPageResponse.status;
+      console.log(`📍 Final URL after redirects (fetch): ${finalUrl}`);
     }
-    
-    const html = await mainPageResponse.text();
     
     // 2. Analyze page structure
     const pageAnalysis = analyzePageStructure(html);
@@ -125,16 +317,41 @@ export async function performTechnicalAudit(
     if (!pageAnalysis.hasTitle) result.issues.missingMetaTitles++;
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
-    
+
+    // 2.5. Validate structured data (schema markup)
+    console.log('🔍 Validating structured data...');
+    try {
+      const { validateStructuredData } = await import('./structuredDataValidator');
+      const structuredDataResult = await validateStructuredData(html);
+      result.structuredData = structuredDataResult;
+      result.issues.invalidStructuredData = structuredDataResult.invalidItems;
+      console.log(`📊 Structured data: ${structuredDataResult.totalItems} items found, ${structuredDataResult.invalidItems} invalid`);
+    } catch (error) {
+      console.error('❌ Structured data validation failed:', error);
+    }
+
     // 3. Find and analyze all images from main page
-    const mainPageImages = await findAndAnalyzeImages(html, url);
-    result.largeImageDetails = mainPageImages.largeImages;
+    try {
+      const mainPageImages = await findAndAnalyzeImages(html, finalUrl, browserImageData);
+      result.largeImageDetails = mainPageImages.largeImages;
+      result.legacyFormatImages = mainPageImages.legacyFormatImages;
+    } catch (error) {
+      console.error('❌ Image analysis failed for main page:', error);
+      result.largeImageDetails = [];
+      result.legacyFormatImages = [];
+    }
     
     // 4. Find and check all links for 404s
-    const links = findAllLinks(html, url);
-    const brokenLinks = await checkLinksFor404s(links, url);
-    result.notFoundErrors = brokenLinks;
-    result.issues.httpErrors = brokenLinks.length;
+    try {
+      const links = findAllLinks(html, url);
+      const brokenLinks = await checkLinksFor404s(links, url);
+      result.notFoundErrors = brokenLinks;
+      result.issues.httpErrors = brokenLinks.length;
+    } catch (error) {
+      console.error('❌ Link checking failed:', error);
+      result.notFoundErrors = [];
+      result.issues.httpErrors = 0;
+    }
     
     // 5. Check for sitemap
     result.sitemapStatus = await checkSitemap(baseUrl);
@@ -155,7 +372,7 @@ export async function performTechnicalAudit(
         pages: [{
           url: url,
           title: pageTitle,
-          statusCode: mainPageResponse.status,
+          statusCode: statusCode,
           hasTitle: pageAnalysis.hasTitle,
           hasDescription: pageAnalysis.hasDescription,
           hasH1: pageAnalysis.hasH1,
@@ -225,20 +442,49 @@ export async function performTechnicalAudit(
     } else {
       // scope === 'all' - discover all pages
       console.log('🔍 Discovering all website pages...');
+      if (onProgress) await onProgress('discovering_pages', 0, 100, 'Discovering website pages...');
       pageDiscovery = await discoverRealPages(url);
+      if (onProgress) await onProgress('discovering_pages', 100, 100, `Found ${pageDiscovery.totalPages} pages`);
     }
 
     result.totalPages = pageDiscovery.totalPages;
-    
-    // Add performance metrics to ALL pages (limit detailed analysis but provide metrics for all)
+
+    // Clear expired cache entries before starting
+    clearExpiredCache();
+
+    // Add performance metrics to ALL pages with parallel chunked processing
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
+    if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
     const maxDetailedAnalysis = 20; // Only fetch HTML for first 20 pages (for performance)
     const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
-    
-    const pagesWithPerformance = await Promise.all(
-      pagesToAnalyze.map(async (page, index) => {
+
+    // Process pages in chunks of 3 (safe for Railway free tier)
+    const CONCURRENT_PAGES = 3;
+    console.log(`⚡ Processing pages in parallel (${CONCURRENT_PAGES} at a time)`);
+
+    const pagesWithPerformance = await processInChunks(
+      pagesToAnalyze,
+      CONCURRENT_PAGES,
+      async (page, index) => {
         let performance: PagePerformanceMetrics | undefined;
         let pageHtml: string | undefined = undefined;
+
+        // Check cache first
+        const cached = getCachedPageData(page.url);
+        if (cached && cached.lighthouse) {
+          console.log(`⚡ Using cached data for ${page.url}`);
+          return {
+            url: page.url,
+            title: page.title,
+            statusCode: page.statusCode,
+            hasTitle: page.hasTitle,
+            hasDescription: page.hasDescription,
+            hasH1: page.hasH1,
+            imageCount: page.imageCount,
+            performance: cached.lighthouse,
+            html: pageHtml
+          };
+        }
 
         try {
           // Only do detailed HTML fetching for first N pages to avoid timeouts
@@ -297,12 +543,26 @@ export async function performTechnicalAudit(
             console.log(`📊 Generating simulated performance for ${page.url} (beyond fetch limit)`);
           }
         } catch (_error) {
-          console.log(`Could not analyze performance for ${page.url}:`, error.message);
+          console.log(`Could not analyze performance for ${page.url}:`, _error instanceof Error ? _error.message : String(_error));
           // Still provide basic performance metrics so page appears in table
           performance = {
             desktop: { lcp: 3500, cls: 0.15, inp: 300, score: 40 },
             mobile: { lcp: 5000, cls: 0.25, inp: 450, score: 25 }
           };
+        }
+
+        // Cache the performance data for future audits
+        if (performance) {
+          setCachedPageData(page.url, {
+            lighthouse: performance,
+            metadata: {
+              title: page.title,
+              description: page.hasDescription ? 'Present' : 'Missing',
+              hasH1: page.hasH1,
+              imageCount: page.imageCount,
+              statusCode: page.statusCode
+            }
+          });
         }
 
         return {
@@ -316,9 +576,9 @@ export async function performTechnicalAudit(
           performance,
           html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
         };
-      })
+      }
     );
-    
+
     // All pages now have performance data
     result.pages = pagesWithPerformance;
     result.sitemapStatus = pageDiscovery.sitemapStatus;
@@ -360,42 +620,142 @@ export async function performTechnicalAudit(
       console.log(`✅ Aggregate metrics calculated from ${pagesWithMetrics.length} pages`);
     }
     
-    // Count issues across all discovered pages
-    result.issues.missingMetaTitles = pageDiscovery.pages.filter(p => !p.hasTitle).length;
-    result.issues.missingMetaDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription).length;
-    result.issues.missingH1Tags = pageDiscovery.pages.filter(p => !p.hasH1).length;
-    result.issues.httpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400).length;
-    
-    // 8. Analyze images from discovered pages (check up to 10 pages for performance)
-    console.log('🖼️ Analyzing images across discovered pages...');
-    // For single page, don't analyze additional pages (already analyzed main page)
-    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, 10);
+    // Count issues across all discovered pages and collect page URLs
+    const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
+    const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
+    const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400);
 
-    for (const page of pagesToCheck) {
-      if (page.url === url) continue; // Skip main page (already analyzed)
-      
-      try {
-        const pageResponse = await fetch(page.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (pageResponse.ok) {
-          const pageHtml = await pageResponse.text();
-          const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
-          
-          // Add large images from this page to the results
-          result.largeImageDetails.push(...pageImages.largeImages);
-        }
-      } catch (_error) {
-        console.log(`Could not analyze images for ${page.url}`);
+    result.issues.missingMetaTitles = pagesWithMissingTitles.length;
+    result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
+    result.issues.missingH1Tags = pagesWithMissingH1.length;
+    result.issues.httpErrors = pagesWithHttpErrors.length;
+
+    // Store page URLs for each issue type (limit to 20 pages per issue type for performance)
+    result.issuePages = {
+      missingMetaTitles: pagesWithMissingTitles.slice(0, 20).map(p => p.url),
+      missingMetaDescriptions: pagesWithMissingDescriptions.slice(0, 20).map(p => p.url),
+      missingH1Tags: pagesWithMissingH1.slice(0, 20).map(p => p.url),
+      httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
+    };
+
+    // 7.5. Analyze text-to-HTML ratio for pages with HTML content
+    console.log('📊 Analyzing text-to-HTML ratio...');
+    try {
+      const { analyzePagesTextHtmlRatio } = await import('./textHtmlRatioAnalyzer');
+      const pagesWithHtml = pageDiscovery.pages.filter(p => p.html);
+
+      if (pagesWithHtml.length > 0) {
+        const ratioAnalysis = analyzePagesTextHtmlRatio(pagesWithHtml);
+        result.textHtmlRatio = ratioAnalysis;
+        result.issues.lowTextHtmlRatio = ratioAnalysis.pagesWithLowRatio;
+        console.log(`📈 Text-to-HTML ratio: ${ratioAnalysis.pagesWithLowRatio}/${ratioAnalysis.totalPages} pages have low ratio`);
       }
+    } catch (error) {
+      console.error('❌ Text-to-HTML ratio analysis failed:', error);
     }
-    
+
+    // 8. Analyze images from discovered pages with scope-based limits
+    console.log('🖼️ Analyzing images across discovered pages...');
+
+    // Determine how many pages to analyze based on scope
+    let pageLimit = 0;
+    if (scope === 'single') {
+      pageLimit = 0; // Already analyzed main page
+    } else if (scope === 'all') {
+      pageLimit = 50; // Scan up to 50 pages for all discoverable pages
+    } else if (scope === 'custom' || scope === 'multi') {
+      // For custom/multi, analyze all specified pages
+      pageLimit = specifiedPages.length;
+    }
+
+    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, pageLimit);
+    console.log(`📊 Analyzing images on ${pagesToCheck.length} pages (scope: ${scope}, limit: ${pageLimit})`);
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', 0, pagesToCheck.length, 'Analyzing images across pages...');
+    }
+
+    // Process images in parallel chunks
+    const imagePagesToProcess = pagesToCheck.filter(page => page.url !== url); // Skip main page
+    console.log(`⚡ Analyzing images on ${imagePagesToProcess.length} pages in parallel`);
+
+    await processInChunks(
+      imagePagesToProcess,
+      CONCURRENT_PAGES, // Same concurrency as metadata analysis
+      async (page, i) => {
+        try {
+          // Check cache for page HTML
+          const cached = getCachedPageData(page.url);
+          let pageHtml: string | undefined;
+
+          if (cached && cached.images) {
+            console.log(`⚡ Using cached image data for ${page.url}`);
+            // Add cached images to results
+            if (cached.images.length > 0) {
+              const largeImages = cached.images.filter(img => img.sizeKB > 100);
+              result.largeImageDetails.push(...largeImages.map(img => ({
+                imageUrl: img.url,
+                pageUrl: page.url,
+                sizeKB: img.sizeKB
+              })));
+            }
+            return;
+          }
+
+          // Fetch page HTML if not cached
+          const pageResponse = await fetch(page.url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            signal: AbortSignal.timeout(10000)
+          });
+
+          if (pageResponse.ok) {
+            pageHtml = await pageResponse.text();
+            const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
+
+            // Cache image data
+            setCachedPageData(page.url, {
+              images: pageImages.largeImages.map(img => ({
+                url: img.imageUrl,
+                sizeKB: img.sizeKB,
+                format: 'unknown'
+              }))
+            });
+
+            // Add large images from this page to the results
+          result.largeImageDetails.push(...pageImages.largeImages);
+
+            // Add legacy format images from this page
+            if (result.legacyFormatImages) {
+              result.legacyFormatImages.push(...pageImages.legacyFormatImages);
+            }
+          }
+
+          // Report progress every 5 pages
+          if (onProgress && (i + 1) % 5 === 0) {
+            await onProgress('analyzing_images', i + 1, imagePagesToProcess.length, `Analyzed images on ${i + 1} of ${imagePagesToProcess.length} pages`);
+          }
+        } catch (_error) {
+          console.log(`Could not analyze images for ${page.url}`);
+        }
+      }
+    );
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', pagesToCheck.length, pagesToCheck.length, 'Image analysis complete');
+    }
+
     // Sort all large images by size and limit to top 20
     result.largeImageDetails.sort((a, b) => b.sizeKB - a.sizeKB);
     result.largeImageDetails = result.largeImageDetails.slice(0, 20);
     result.largeImages = result.largeImageDetails.length;
+
+    // Sort all legacy format images by size and limit to top 50
+    if (result.legacyFormatImages) {
+      result.legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+      result.legacyFormatImages = result.legacyFormatImages.slice(0, 50);
+      console.log(`📸 Found ${result.legacyFormatImages.length} images using legacy formats`);
+    }
     
     // 9. Analyze viewport responsiveness
     console.log('📱 Analyzing viewport responsiveness...');
@@ -474,88 +834,258 @@ function hasH1Tag(html: string): boolean {
   return false;
 }
 
-async function findAndAnalyzeImages(html: string, pageUrl: string) {
+// Analyze image format and suggest modern alternatives
+function analyzeImageFormat(imageUrl: string): {
+  currentFormat: string;
+  isModern: boolean;
+  suggestedFormat: string;
+} {
+  const url = imageUrl.toLowerCase();
+
+  // Modern formats - no conversion needed
+  if (url.match(/\.(webp|avif|jxl)(\?|$|#)/)) {
+    return { currentFormat: 'Modern (WebP/AVIF)', isModern: true, suggestedFormat: 'N/A' };
+  }
+
+  // Legacy formats - should be converted
+  if (url.match(/\.(jpe?g)(\?|$|#)/)) {
+    return { currentFormat: 'JPEG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.png(\?|$|#)/)) {
+    return { currentFormat: 'PNG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.gif(\?|$|#)/)) {
+    return { currentFormat: 'GIF', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.bmp(\?|$|#)/)) {
+    return { currentFormat: 'BMP', isModern: false, suggestedFormat: 'WebP' };
+  }
+
+  // Unknown format or no extension
+  return { currentFormat: 'Unknown', isModern: true, suggestedFormat: 'N/A' };
+}
+
+async function findAndAnalyzeImages(
+  html: string,
+  pageUrl: string,
+  browserImageData?: Map<string, { sizeKB: number; transferSizeKB: number }>
+) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
+  const legacyFormatImages: Array<{ imageUrl: string; pageUrl: string; currentFormat: string; suggestedFormat: string; sizeKB: number }> = [];
 
   let match;
   const checkedUrls = new Set<string>();
+  const imageUrls: string[] = [];
 
+  // First pass: collect all image URLs
   while ((match = imageRegex.exec(html)) !== null) {
     const imgSrc = match[1];
     if (!imgSrc || checkedUrls.has(imgSrc)) continue;
     checkedUrls.add(imgSrc);
 
-    // Convert relative URLs to absolute
-    let imageUrl = imgSrc;
     try {
       // Skip data URLs and SVGs early
       if (imgSrc.startsWith('data:') || imgSrc.endsWith('.svg')) continue;
 
       // Always use URL constructor for proper normalization
+      let imageUrl: string;
       if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
-        // Valid absolute URL - use directly but validate
         imageUrl = new URL(imgSrc).href;
       } else {
-        // Relative URL or malformed URL - resolve against base
         const base = new URL(pageUrl);
         imageUrl = new URL(imgSrc, base).href;
       }
 
-      // Try to get image size via HEAD request
-      const sizeKB = await getImageSize(imageUrl);
-
-      if (sizeKB > 0) {
-        const imageData = { imageUrl, pageUrl, sizeKB };
-        images.push(imageData);
-
-        // Track images over 100KB
-        if (sizeKB > 100) {
-          largeImages.push(imageData);
-        }
-      }
+      imageUrls.push(imageUrl);
     } catch (_error) {
-      console.log(`Could not check image ${imgSrc}:`, error);
+      // Skip malformed URLs
+      continue;
     }
   }
+
+  // Process images - prioritize browser-captured data
+  const BATCH_SIZE = 10; // Process 10 images at a time
+  const MAX_FAILURES = 50; // Circuit breaker: stop if too many fail
+  let failureCount = 0;
+  let browserDataUsed = 0;
+  let fetchedData = 0;
+
+  for (let i = 0; i < imageUrls.length; i += BATCH_SIZE) {
+    // Circuit breaker: stop processing if too many failures
+    if (failureCount >= MAX_FAILURES) {
+      console.log(`⚠️ Stopped image analysis: ${failureCount} consecutive failures (circuit breaker)`);
+      break;
+    }
+
+    const batch = imageUrls.slice(i, i + BATCH_SIZE);
+
+    // Process batch concurrently
+    const results = await Promise.allSettled(
+      batch.map(async (imageUrl) => {
+        // Strategy 1: Check if we have browser-captured data for this image (BEST!)
+        if (browserImageData && browserImageData.has(imageUrl)) {
+          const browserData = browserImageData.get(imageUrl)!;
+          return {
+            imageUrl,
+            sizeKB: browserData.sizeKB,
+            source: 'browser' as const
+          };
+        }
+
+        // Strategy 2: Fall back to fetching (for images not loaded by browser)
+        const sizeKB = await getImageSize(imageUrl, pageUrl);
+        return {
+          imageUrl,
+          sizeKB,
+          source: 'fetch' as const
+        };
+      })
+    );
+
+    // Process results
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { imageUrl, sizeKB, source } = result.value;
+
+        if (source === 'browser') {
+          browserDataUsed++;
+        } else if (sizeKB > 0) {
+          fetchedData++;
+        }
+
+        if (sizeKB > 0) {
+          failureCount = 0; // Reset failure counter on success
+          const imageData = { imageUrl, pageUrl, sizeKB };
+          images.push(imageData);
+
+          // Track images over 100KB
+          if (sizeKB > 100) {
+            largeImages.push(imageData);
+          }
+
+          // Check image format and track legacy formats (prioritize larger images >100KB)
+          const formatAnalysis = analyzeImageFormat(imageUrl);
+          if (!formatAnalysis.isModern && sizeKB > 100) {
+            legacyFormatImages.push({
+              imageUrl,
+              pageUrl,
+              currentFormat: formatAnalysis.currentFormat,
+              suggestedFormat: formatAnalysis.suggestedFormat,
+              sizeKB
+            });
+          }
+        } else if (source === 'fetch') {
+          failureCount++;
+        }
+      } else {
+        failureCount++;
+      }
+    }
+
+    // Small delay between batches to avoid overwhelming the server (only for fetched images)
+    if (i + BATCH_SIZE < imageUrls.length && fetchedData > 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  console.log(`📊 Image analysis: ${browserDataUsed} from browser, ${fetchedData} fetched, ${images.length} total`);
 
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
 
-  return { images, largeImages };
+  // Sort legacy format images by size (largest first)
+  legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+
+  return { images, largeImages, legacyFormatImages };
 }
 
-async function getImageSize(imageUrl: string): Promise<number> {
-  try {
-    const response = await fetch(imageUrl, {
-      method: 'HEAD',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      signal: AbortSignal.timeout(5000)
-    });
-    
-    if (!response.ok) return 0;
-    
-    const contentLength = response.headers.get('content-length');
-    if (contentLength) {
-      const bytes = parseInt(contentLength, 10);
-      return Math.round(bytes / 1024); // Convert to KB
-    }
-    
-    // If no content-length header, try to fetch the image
-    const imageResponse = await fetch(imageUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      signal: AbortSignal.timeout(10000)
-    });
-    
-    if (imageResponse.ok) {
-      const blob = await imageResponse.blob();
-      return Math.round(blob.size / 1024);
-    }
-  } catch (_error) {
-    console.log(`Could not get size for ${imageUrl}`);
+// Cache for failed image URLs to avoid re-fetching
+const failedImageCache = new Set<string>();
+
+async function getImageSize(imageUrl: string, referrer?: string): Promise<number> {
+  // Skip if we've already failed to fetch this image
+  if (failedImageCache.has(imageUrl)) {
+    return 0;
   }
-  
+
+  try {
+    // Strategy 1: Try HEAD request first (fastest, most efficient)
+    const headResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('HEAD timeout')), 3500)
+      )
+    ]);
+
+    if (headResponse.ok) {
+      const contentLength = headResponse.headers.get('content-length');
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024); // Convert to KB
+        }
+      }
+    }
+
+    // Strategy 2: If HEAD failed or no content-length, try GET with range request
+    const rangeResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Range': 'bytes=0-1023', // Only fetch first 1KB to check
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('Range timeout')), 3500)
+      )
+    ]);
+
+    if (rangeResponse.ok || rangeResponse.status === 206) {
+      const contentLength = rangeResponse.headers.get('content-length');
+      const contentRange = rangeResponse.headers.get('content-range');
+
+      // Parse content-range: bytes 0-1023/12345
+      if (contentRange) {
+        const match = contentRange.match(/bytes \d+-\d+\/(\d+)/);
+        if (match) {
+          const totalBytes = parseInt(match[1], 10);
+          if (!isNaN(totalBytes) && totalBytes > 0) {
+            return Math.round(totalBytes / 1024);
+          }
+        }
+      }
+
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024);
+        }
+      }
+    }
+
+  } catch (error) {
+    // Only log if it's not a timeout (reduce noise)
+    if (error instanceof Error && !error.message.includes('timeout') && !error.message.includes('aborted')) {
+      console.log(`Could not get size for ${imageUrl}: ${error.message}`);
+    }
+    // Cache failed URL to avoid retrying
+    failedImageCache.add(imageUrl);
+  }
+
   return 0;
 }
 
