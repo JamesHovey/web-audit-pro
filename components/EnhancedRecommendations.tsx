@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle, FileText } from 'lucide-react'
+import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle, FileText, FileCode } from 'lucide-react'
 import Tooltip from './Tooltip'
 import PluginRecommendationTable from './PluginRecommendationTable'
 import { getPluginsByUseCase } from '@/lib/pluginRecommendations'
@@ -36,6 +36,22 @@ interface EnhancedRecommendationsProps {
     http404Errors?: number
     invalidStructuredData?: number
     lowTextHtmlRatio?: number
+    unminifiedFiles?: number
+  }
+  technicalAudit?: {
+    unminifiedFiles?: {
+      totalUnminified: number
+      javascriptFiles: Array<{
+        url: string
+        sizeKB?: number
+        reason: string
+      }>
+      cssFiles: Array<{
+        url: string
+        sizeKB?: number
+        reason: string
+      }>
+    }
   }
   textHtmlRatioPages?: Array<{
     url: string
@@ -80,6 +96,7 @@ export default function EnhancedRecommendations({
   pageBuilder,
   cms,
   technicalIssues,
+  technicalAudit,
   issuePages,
   largeImagesList = [],
   legacyFormatImagesList = [],
@@ -396,6 +413,121 @@ export default function EnhancedRecommendations({
           '✅ After optimization, re-run the audit to verify improvements'
         ]
       })
+    }
+
+    // Unminified JavaScript and CSS Files
+    if (technicalIssues?.unminifiedFiles && technicalIssues.unminifiedFiles > 0) {
+      const jsCount = technicalAudit?.unminifiedFiles?.javascriptFiles?.length || 0;
+      const cssCount = technicalAudit?.unminifiedFiles?.cssFiles?.length || 0;
+
+      techRecs.push({
+        title: 'Minify JavaScript and CSS Files',
+        description: `${technicalIssues.unminifiedFiles} unminified file(s) detected (${jsCount} JavaScript, ${cssCount} CSS). Minification removes whitespace and comments, reducing file sizes by 20-40%.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <FileCode className="w-4 h-4" />,
+        details: 'Unminified files contain unnecessary whitespace, comments, and formatting that increase file sizes and slow down page loads. Minification removes these, significantly improving load times and reducing bandwidth usage.',
+        useCase: 'file-minification',
+        howTo: cms === 'WordPress' ? [
+          '🎯 RECOMMENDED SOLUTION (Easiest):',
+          'Use a performance plugin to automatically minify files.',
+          '',
+          '✅ BEST PLUGINS FOR MINIFICATION:',
+          '',
+          '1️⃣ WP Rocket (Premium - £49/year):',
+          '   • Go to Settings → File Optimization',
+          '   • Enable "Minify CSS files"',
+          '   • Enable "Minify JavaScript files"',
+          '   • Enable "Combine CSS files" (optional)',
+          '   • Enable "Combine JavaScript files" (optional)',
+          '   • Files are automatically minified',
+          '',
+          '2️⃣ Autoptimize (Free):',
+          '   • Go to Settings → Autoptimize',
+          '   • Enable "Optimize JavaScript Code"',
+          '   • Enable "Optimize CSS Code"',
+          '   • Enable "Optimize HTML Code"',
+          '   • Click "Save Changes and Empty Cache"',
+          '',
+          '3️⃣ W3 Total Cache (Free):',
+          '   • Go to Performance → Minify',
+          '   • Enable minify',
+          '   • Select "Minify" mode',
+          '   • Enable JS and CSS minification',
+          '',
+          '⚙️ ALTERNATIVE - Build Process:',
+          'If you\'re using a custom theme or plugin development:',
+          '   • Use a build tool like Webpack, Gulp, or Vite',
+          '   • Configure minification in your build process',
+          '   • Example tools: Terser (JS), cssnano (CSS)',
+          '',
+          '📋 FILES TO MINIFY:',
+          ...(jsCount > 0 ? [`   JavaScript files (${jsCount}):`] : []),
+          ...(technicalAudit?.unminifiedFiles?.javascriptFiles?.slice(0, 5).map(f =>
+            `   • ${f.url.split('/').pop()}`
+          ) || []),
+          ...(jsCount > 5 ? [`   • ...and ${jsCount - 5} more`] : []),
+          ...(cssCount > 0 ? ['', `   CSS files (${cssCount}):`] : []),
+          ...(technicalAudit?.unminifiedFiles?.cssFiles?.slice(0, 5).map(f =>
+            `   • ${f.url.split('/').pop()}`
+          ) || []),
+          ...(cssCount > 5 ? [`   • ...and ${cssCount - 5} more`] : []),
+          '',
+          '✅ EXPECTED RESULTS:',
+          '   • 20-40% reduction in JavaScript file sizes',
+          '   • 15-30% reduction in CSS file sizes',
+          '   • Faster page load times',
+          '   • Reduced bandwidth usage',
+          '',
+          '⚠️ IMPORTANT:',
+          '   • Test your site after enabling minification',
+          '   • Some plugins may conflict - disable if issues occur',
+          '   • Use "Combine files" carefully - can break some sites',
+          '',
+          '💡 After minification, re-run the audit to verify improvements'
+        ] : [
+          '🎯 SOLUTION - Use Build Tools:',
+          'Minify files during your build process before deployment.',
+          '',
+          '🛠️ RECOMMENDED TOOLS:',
+          '',
+          'For JavaScript:',
+          '   • Terser - Modern ES6+ minifier',
+          '   • UglifyJS - Classic minifier',
+          '   • esbuild - Extremely fast bundler & minifier',
+          '',
+          'For CSS:',
+          '   • cssnano - PostCSS-based minifier',
+          '   • clean-css - Fast and efficient',
+          '   • Lightning CSS - Modern CSS minifier',
+          '',
+          'Build Systems (All-in-one):',
+          '   • Webpack - Add TerserPlugin and CssMinimizerPlugin',
+          '   • Vite - Minification built-in for production',
+          '   • Parcel - Zero-config minification',
+          '   • Rollup - With terser and cssnano plugins',
+          '',
+          '📋 FILES DETECTED:',
+          ...(jsCount > 0 ? [`   JavaScript (${jsCount} files):`] : []),
+          ...(technicalAudit?.unminifiedFiles?.javascriptFiles?.slice(0, 5).map(f =>
+            `   • ${f.url}`
+          ) || []),
+          ...(jsCount > 5 ? [`   • ...and ${jsCount - 5} more`] : []),
+          ...(cssCount > 0 ? ['', `   CSS (${cssCount} files):`] : []),
+          ...(technicalAudit?.unminifiedFiles?.cssFiles?.slice(0, 5).map(f =>
+            `   • ${f.url}`
+          ) || []),
+          ...(cssCount > 5 ? [`   • ...and ${cssCount - 5} more`] : []),
+          '',
+          '✅ EXPECTED RESULTS:',
+          '   • 20-40% smaller JavaScript files',
+          '   • 15-30% smaller CSS files',
+          '   • Faster page loads',
+          '',
+          '💡 For Shopify: Use theme compilation tools',
+          '💡 For custom sites: Integrate minification in CI/CD pipeline'
+        ]
+      });
     }
 
     // Invalid Structured Data

@@ -4,6 +4,7 @@ import { analyzeViewportResponsiveness } from './viewportAnalysisService';
 import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
 import { BrowserService } from './cloudflare-browser';
 import { RobotsService } from './robotsService';
+import { detectUnminifiedFiles } from './unminifiedFileDetection';
 
 // Transparent User-Agent for legal compliance
 const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit Tool)';
@@ -87,6 +88,19 @@ interface TechnicalAuditResult {
     suggestedFormat: string;
     sizeKB: number;
   }>;
+  unminifiedFiles?: {
+    totalUnminified: number;
+    javascriptFiles: Array<{
+      url: string;
+      sizeKB?: number;
+      reason: string;
+    }>;
+    cssFiles: Array<{
+      url: string;
+      sizeKB?: number;
+      reason: string;
+    }>;
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -94,6 +108,7 @@ interface TechnicalAuditResult {
     httpErrors: number;
     invalidStructuredData?: number;
     lowTextHtmlRatio?: number;
+    unminifiedFiles?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -756,8 +771,37 @@ export async function performTechnicalAudit(
       result.legacyFormatImages = result.legacyFormatImages.slice(0, 50);
       console.log(`📸 Found ${result.legacyFormatImages.length} images using legacy formats`);
     }
-    
-    // 9. Analyze viewport responsiveness
+
+    // 9. Detect unminified JavaScript and CSS files
+    console.log('📦 Detecting unminified JavaScript and CSS files...');
+    try {
+      // Use the main page's HTML for analysis
+      const mainPageHtml = result.html || result.pages[0]?.html || '';
+
+      if (mainPageHtml) {
+        const unminifiedResult = await detectUnminifiedFiles(mainPageHtml, url);
+
+        if (unminifiedResult.totalUnminified > 0) {
+          result.unminifiedFiles = unminifiedResult;
+          result.issues.unminifiedFiles = unminifiedResult.totalUnminified;
+
+          console.log(`⚠️  Found ${unminifiedResult.totalUnminified} unminified files:`);
+          console.log(`   - ${unminifiedResult.javascriptFiles.length} JavaScript files`);
+          console.log(`   - ${unminifiedResult.cssFiles.length} CSS files`);
+        } else {
+          console.log(`✅ All JavaScript and CSS files appear to be minified`);
+        }
+
+        if (onProgress) {
+          await onProgress('analyzing_files', 1, 1, 'File minification check complete');
+        }
+      }
+    } catch (_error) {
+      console.error('Unminified file detection failed:', error);
+      // Don't fail the entire audit if this check fails
+    }
+
+    // 10. Analyze viewport responsiveness
     console.log('📱 Analyzing viewport responsiveness...');
     try {
       result.viewportAnalysis = await analyzeViewportResponsiveness(url);

@@ -2615,7 +2615,11 @@ function renderSectionResults(
               largeImages: results.largeImages || results.issues?.largeImages,
               http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors,
               invalidStructuredData: results.issues?.invalidStructuredData,
-              lowTextHtmlRatio: results.issues?.lowTextHtmlRatio
+              lowTextHtmlRatio: results.issues?.lowTextHtmlRatio,
+              unminifiedFiles: results.issues?.unminifiedFiles
+            }}
+            technicalAudit={{
+              unminifiedFiles: results.unminifiedFiles
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
