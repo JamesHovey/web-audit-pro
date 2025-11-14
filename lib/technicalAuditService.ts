@@ -101,6 +101,10 @@ interface TechnicalAuditResult {
       reason: string;
     }>;
   };
+  titleLengthIssues?: {
+    tooShort: Array<{ url: string; title: string; length: number }>;
+    tooLong: Array<{ url: string; title: string; length: number }>;
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -109,6 +113,8 @@ interface TechnicalAuditResult {
     invalidStructuredData?: number;
     lowTextHtmlRatio?: number;
     unminifiedFiles?: number;
+    shortTitles?: number;
+    longTitles?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -191,11 +197,17 @@ export async function performTechnicalAudit(
     largeImages: 0,
     largeImageDetails: [],
     legacyFormatImages: [],
+    titleLengthIssues: {
+      tooShort: [],
+      tooLong: []
+    },
     issues: {
       missingMetaTitles: 0,
       missingMetaDescriptions: 0,
       missingH1Tags: 0,
       httpErrors: 0,
+      shortTitles: 0,
+      longTitles: 0
     },
     notFoundErrors: [],
     sitemapStatus: 'missing',
@@ -326,10 +338,31 @@ export async function performTechnicalAudit(
     
     // 2. Analyze page structure
     const pageAnalysis = analyzePageStructure(html);
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-    const pageTitle = titleMatch ? titleMatch[1].trim() : 'No title';
+    const pageTitle = pageAnalysis.titleText || 'No title';
 
-    if (!pageAnalysis.hasTitle) result.issues.missingMetaTitles++;
+    // Track title issues
+    if (!pageAnalysis.hasTitle) {
+      result.issues.missingMetaTitles++;
+    } else {
+      // Check title length
+      if (pageAnalysis.isTitleTooShort) {
+        result.issues.shortTitles = (result.issues.shortTitles || 0) + 1;
+        result.titleLengthIssues!.tooShort.push({
+          url: finalUrl,
+          title: pageAnalysis.titleText,
+          length: pageAnalysis.titleLength
+        });
+      }
+      if (pageAnalysis.isTitleTooLong) {
+        result.issues.longTitles = (result.issues.longTitles || 0) + 1;
+        result.titleLengthIssues!.tooLong.push({
+          url: finalUrl,
+          title: pageAnalysis.titleText,
+          length: pageAnalysis.titleLength
+        });
+      }
+    }
+
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
 
@@ -822,9 +855,60 @@ export async function performTechnicalAudit(
   return result;
 }
 
-function analyzePageStructure(html: string) {
+/**
+ * Extract title tag text from HTML
+ */
+function extractTitleText(html: string): string {
+  const match = html.match(/<title[^>]*>(.*?)<\/title>/is);
+  if (match && match[1]) {
+    // Decode HTML entities and trim whitespace
+    return match[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .trim();
+  }
+  return '';
+}
+
+/**
+ * Analyze title tag quality (existence and length)
+ * SEMrush standards:
+ * - Too short: < 30 characters (not enough descriptive text)
+ * - Optimal: 30-60 characters (displays well in search results)
+ * - Too long: > 70 characters (gets truncated in search results)
+ */
+function analyzeTitleTag(html: string): {
+  hasTitle: boolean;
+  titleText: string;
+  titleLength: number;
+  isTooShort: boolean;
+  isTooLong: boolean;
+} {
+  const titleText = extractTitleText(html);
+  const hasTitle = titleText.length > 0;
+  const titleLength = titleText.length;
+
   return {
-    hasTitle: /<title[^>]*>.*<\/title>/is.test(html),
+    hasTitle,
+    titleText,
+    titleLength,
+    isTooShort: hasTitle && titleLength < 30,
+    isTooLong: titleLength > 70
+  };
+}
+
+function analyzePageStructure(html: string) {
+  const titleAnalysis = analyzeTitleTag(html);
+
+  return {
+    hasTitle: titleAnalysis.hasTitle,
+    titleText: titleAnalysis.titleText,
+    titleLength: titleAnalysis.titleLength,
+    isTitleTooShort: titleAnalysis.isTooShort,
+    isTitleTooLong: titleAnalysis.isTooLong,
     hasDescription: hasMetaDescription(html),
     hasH1: hasH1Tag(html),
   };

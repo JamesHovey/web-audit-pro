@@ -37,6 +37,8 @@ interface EnhancedRecommendationsProps {
     invalidStructuredData?: number
     lowTextHtmlRatio?: number
     unminifiedFiles?: number
+    shortTitles?: number
+    longTitles?: number
   }
   technicalAudit?: {
     unminifiedFiles?: {
@@ -51,6 +53,10 @@ interface EnhancedRecommendationsProps {
         sizeKB?: number
         reason: string
       }>
+    }
+    titleLengthIssues?: {
+      tooShort: Array<{ url: string; title: string; length: number }>
+      tooLong: Array<{ url: string; title: string; length: number }>
     }
   }
   textHtmlRatioPages?: Array<{
@@ -342,6 +348,167 @@ export default function EnhancedRecommendations({
           'Each page should have a unique description'
         ]
       })
+    }
+
+    // Title Tag Length Issues (Too Short)
+    if (technicalIssues?.shortTitles && technicalIssues.shortTitles > 0) {
+      techRecs.push({
+        title: 'Fix Short Title Tags',
+        description: `${technicalIssues.shortTitles} page(s) have title tags that are too short (< 30 characters). Short titles don't provide enough context for search engines and users.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <FileText className="w-4 h-4" />,
+        details: 'Title tags should be 30-60 characters for optimal display in search results. Short titles miss opportunities to include relevant keywords and compelling copy that improves click-through rates.',
+        useCase: 'title-optimization',
+        howTo: cms === 'WordPress' ? [
+          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
+          'Current titles are too short and need more descriptive text.',
+          '',
+          '✏️ HOW TO FIX (using SEO plugin):',
+          '',
+          '1️⃣ If using Yoast SEO:',
+          '   • Edit the page/post in WordPress',
+          '   • Scroll to "Yoast SEO" section',
+          '   • Look for "SEO title" field',
+          '   • Expand your title to 30-60 characters',
+          '   • Yoast will show a green bar when length is optimal',
+          '',
+          '2️⃣ If using Rank Math:',
+          '   • Edit the page/post',
+          '   • Find "Rank Math SEO" box',
+          '   • Update the "Title" field',
+          '   • Watch for the character counter (aim for 30-60)',
+          '',
+          '3️⃣ If using All in One SEO:',
+          '   • Edit the page/post',
+          '   • Scroll to "AIOSEO Settings"',
+          '   • Update the "Post Title"',
+          '   • Keep it between 30-60 characters',
+          '',
+          '📋 TITLE WRITING TIPS:',
+          '   • Include your main keyword',
+          '   • Add your brand/company name',
+          '   • Make it descriptive and compelling',
+          '   • Use action words or benefits',
+          '   • Example: "Professional Web Design Services | YourBrand"',
+          '',
+          '✅ GOOD TITLE EXAMPLES:',
+          '   • "Affordable Plumbing Services in London | 24/7 Emergency"',
+          '   • "Buy Organic Coffee Beans Online | Free UK Delivery"',
+          '   • "Web Development Agency | Custom WordPress Sites"',
+          '',
+          '❌ TOO SHORT EXAMPLES:',
+          '   • "Home" (4 chars)',
+          '   • "About Us" (8 chars)',
+          '   • "Services" (8 chars)',
+          '',
+          '💡 After updating, re-run the audit to verify improvements'
+        ] : [
+          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
+          '',
+          '📋 PAGES WITH SHORT TITLES:',
+          ...(technicalAudit?.titleLengthIssues?.tooShort?.slice(0, 5).map(item =>
+            `   • "${item.title}" (${item.length} chars) - ${item.url}`
+          ) || []),
+          ...(technicalIssues.shortTitles && technicalIssues.shortTitles > 5 ? [`   • ...and ${technicalIssues.shortTitles - 5} more`] : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '1. Edit the <title> tag in your HTML <head> section',
+          '2. Expand to 30-60 characters',
+          '3. Include main keyword + brand name',
+          '4. Make it descriptive and compelling',
+          '',
+          '📝 TITLE FORMULA:',
+          '[Primary Keyword] | [Secondary Keyword/Benefit] | [Brand]',
+          '',
+          '✅ GOOD EXAMPLES:',
+          '   • "Professional Web Design Services | Fast & Affordable | WebCo"',
+          '   • "Buy Organic Coffee Beans | Free Delivery | CoffeeCo"',
+          '',
+          '❌ TOO SHORT:',
+          '   • "Home" (4 characters)',
+          '   • "About" (5 characters)',
+          '',
+          '💡 Each page needs a unique, descriptive title'
+        ]
+      });
+    }
+
+    // Title Tag Length Issues (Too Long)
+    if (technicalIssues?.longTitles && technicalIssues.longTitles > 0) {
+      techRecs.push({
+        title: 'Shorten Long Title Tags',
+        description: `${technicalIssues.longTitles} page(s) have title tags that are too long (> 70 characters). Long titles get truncated in search results.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <FileText className="w-4 h-4" />,
+        details: 'Google typically displays the first 50-60 characters of a title tag. Titles longer than 70 characters get cut off with "..." which looks unprofessional and may hide important keywords.',
+        useCase: 'title-optimization',
+        howTo: cms === 'WordPress' ? [
+          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters (max 70)',
+          'Current titles are too long and will be truncated in search results.',
+          '',
+          '✂️ HOW TO SHORTEN:',
+          '',
+          '1️⃣ Remove unnecessary words:',
+          '   • "Best", "Top", "Leading", "Professional" (if redundant)',
+          '   • "Welcome to", "Official Website of"',
+          '   • Repetitive location names',
+          '   • Year dates (unless critical)',
+          '',
+          '2️⃣ Use abbreviations where appropriate:',
+          '   • "UK" instead of "United Kingdom"',
+          '   • "&" instead of "and"',
+          '   • "SEO" instead of "Search Engine Optimization"',
+          '',
+          '3️⃣ Focus on essentials:',
+          '   • Main keyword',
+          '   • Key differentiator',
+          '   • Brand name',
+          '',
+          '✏️ EDIT IN YOUR SEO PLUGIN:',
+          '   • Yoast SEO: Edit "SEO title" field',
+          '   • Rank Math: Update "Title" field',
+          '   • All in One SEO: Modify "Post Title"',
+          '   • Watch the character counter - keep under 60',
+          '',
+          '✅ BEFORE & AFTER EXAMPLES:',
+          '',
+          '❌ TOO LONG (85 chars):',
+          '"Professional Web Design and Development Services for Small Businesses in London, UK"',
+          '',
+          '✅ OPTIMIZED (58 chars):',
+          '"Web Design Services for Small Businesses | London UK"',
+          '',
+          '💡 Every character counts - make them matter!',
+          '💡 After shortening, re-run the audit to verify'
+        ] : [
+          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
+          'Titles over 70 characters get truncated in Google search results.',
+          '',
+          '📋 PAGES WITH LONG TITLES:',
+          ...(technicalAudit?.titleLengthIssues?.tooLong?.slice(0, 5).map(item =>
+            `   • "${item.title.substring(0, 60)}..." (${item.length} chars)`
+          ) || []),
+          ...(technicalIssues.longTitles && technicalIssues.longTitles > 5 ? [`   • ...and ${technicalIssues.longTitles - 5} more`] : []),
+          '',
+          '✂️ HOW TO FIX:',
+          '1. Edit your <title> tag in HTML',
+          '2. Shorten to 30-60 characters',
+          '3. Keep the most important keywords',
+          '4. Remove filler words and redundancy',
+          '',
+          '🔧 SHORTENING TIPS:',
+          '   • Remove "Welcome to", "Official site"',
+          '   • Use "&" instead of "and"',
+          '   • Remove redundant words',
+          '   • Focus on core message',
+          '',
+          '✅ EXAMPLE:',
+          '❌ "Welcome to the Best Professional Web Design and Development Agency in London"',
+          '✅ "Web Design & Development Agency London | WebCo"'
+        ]
+      });
     }
 
     // Large Images and Modern Formats (Combined)
