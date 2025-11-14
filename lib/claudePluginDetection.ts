@@ -428,6 +428,12 @@ WORDPRESS-SPECIFIC DETECTION FOCUS:
 8. **Form Plugins**: Contact Form 7, Gravity Forms, WPForms, Ninja Forms
 9. **Missing Essentials**: Identify if site lacks caching, security, or SEO plugins
 
+CRITICAL - DO NOT REPORT AS WORDPRESS PLUGINS:
+- Analytics scripts (Google Analytics, GA4, GTM, Hotjar, etc.) - these are scripts, not WordPress plugins
+- JavaScript libraries (jQuery, Bootstrap, React, Vue) - these are libraries loaded by themes/plugins
+- CDNs (Cloudflare, CloudFront) - these are infrastructure, not plugins
+- Web servers (Nginx, Apache) or cloud providers (AWS, Azure) - these are hosting infrastructure
+
 PERFORMANCE ANALYSIS:
 - Calculate total plugin count and assess if site is "plugin bloated" (>25 plugins)
 - Identify heavy plugins that slow down the site
@@ -685,6 +691,12 @@ IMPORTANT GUIDELINES:
 - Provide specific evidence for each detection
 - Be realistic about performance impact
 - Prioritize actionable recommendations
-- For custom sites: Report third-party services as "plugins" (e.g., Google Analytics)
+- For CMS platforms (WordPress, Drupal, Joomla, Shopify, Magento, PrestaShop): ONLY report actual platform plugins/extensions/modules. DO NOT report:
+  * Analytics scripts (Google Analytics, GA4, Google Tag Manager, Hotjar, Mixpanel, etc.)
+  * JavaScript libraries (jQuery, React, Vue, Angular, Bootstrap, etc.)
+  * CDNs (Cloudflare, CloudFront, Fastly, Akamai)
+  * Web servers (Nginx, Apache, LiteSpeed)
+  * Cloud providers (AWS, Azure, Google Cloud, DigitalOcean)
+- For custom/static sites: You may report third-party services as "integrations" (e.g., Google Analytics)
 - Focus on business value, not just technical details`;
 }

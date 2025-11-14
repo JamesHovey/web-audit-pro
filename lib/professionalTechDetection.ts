@@ -116,9 +116,58 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
         result.totalPlugins = hybridResult.totalPluginsDetected;
 
-        // Categorize plugins for easy access
+        // Filter out non-WordPress-plugins (analytics, CDNs, libraries, etc.)
+        const NON_PLUGIN_KEYWORDS = [
+          'google analytics',
+          'google analytics 4',
+          'ga4',
+          'gtag',
+          'jquery',
+          'cloudfront',
+          'cloudflare',
+          'fastly',
+          'akamai',
+          'facebook pixel',
+          'google tag manager',
+          'gtm',
+          'hotjar',
+          'mixpanel',
+          'segment',
+          'amplitude',
+          'heap',
+          'bootstrap',
+          'tailwind',
+          'font awesome',
+          'react',
+          'vue',
+          'angular',
+          'next.js',
+          'gatsby',
+          'nuxt',
+          'nginx',
+          'apache',
+          'litespeed',
+          'iis',
+          'aws',
+          'azure',
+          'google cloud',
+          'digitalocean'
+        ];
+
+        const isActualPlugin = (pluginName: string): boolean => {
+          const lowerName = pluginName.toLowerCase().trim();
+          return !NON_PLUGIN_KEYWORDS.some(keyword => lowerName.includes(keyword));
+        };
+
+        // Categorize plugins for easy access (excluding non-plugins)
         const categorized: Record<string, any[]> = {};
         for (const plugin of hybridResult.detectedPlugins) {
+          // Skip if not an actual WordPress plugin
+          if (!isActualPlugin(plugin.name)) {
+            console.log(`⚠️ Filtered out non-plugin: ${plugin.name}`);
+            continue;
+          }
+
           const category = plugin.category || 'other';
           if (!categorized[category]) {
             categorized[category] = [];
@@ -127,6 +176,10 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         }
 
         result.plugins = categorized;
+
+        // Update total plugin count (excluding filtered items)
+        const actualPluginCount = Object.values(categorized).reduce((sum, plugins) => sum + plugins.length, 0);
+        result.totalPlugins = actualPluginCount;
 
         // Update specific fields based on detected plugins
         const ecommercePlugins = categorized.ecommerce;
@@ -139,11 +192,12 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
           result.pageBuilder = pageBuilders[0].name;
         }
 
-        // Check for missing essential plugins
-        const missingEssentials = checkMissingEssentials(platform, hybridResult.detectedPlugins);
+        // Check for missing essential plugins (use only actual plugins)
+        const actualPlugins = Object.values(categorized).flat();
+        const missingEssentials = checkMissingEssentials(platform, actualPlugins);
         result.missingEssentials = missingEssentials;
 
-        console.log(`✅ Hybrid plugin detection complete: ${hybridResult.totalPluginsDetected} plugins detected via ${hybridResult.detectionMethod}`);
+        console.log(`✅ Hybrid plugin detection complete: ${actualPluginCount} actual WordPress plugins detected (${hybridResult.totalPluginsDetected - actualPluginCount} non-plugins filtered out)`);
       } catch (error) {
         console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
