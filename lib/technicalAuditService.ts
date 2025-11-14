@@ -142,6 +142,14 @@ interface TechnicalAuditResult {
     }>;
     totalSubdomainsChecked: number;
   };
+  llmsTxt?: {
+    exists: boolean;
+    url?: string;
+    content?: string;
+    isValid?: boolean;
+    sizeBytes?: number;
+    errors?: string[];
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -156,6 +164,7 @@ interface TechnicalAuditResult {
     orphanedSitemapPages?: number;
     permanentRedirects?: number;
     subdomainsWithoutHSTS?: number;
+    missingLlmsTxt?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -974,6 +983,31 @@ export async function performTechnicalAudit(
       }
     }
 
+    // 14. Check for llms.txt file
+    // https://llmstxt.org/ - Standard for providing context to LLMs
+    console.log('🤖 Checking for llms.txt...');
+    try {
+      const llmsTxtCheck = await checkLlmsTxt(url);
+      result.llmsTxt = llmsTxtCheck;
+
+      if (!llmsTxtCheck.exists) {
+        result.issues.missingLlmsTxt = 1;
+        console.log(`⚠️  llms.txt not found - consider adding one for better LLM understanding`);
+      } else if (llmsTxtCheck.isValid) {
+        console.log(`✅ llms.txt found and valid`);
+      } else {
+        result.issues.missingLlmsTxt = 1;
+        console.log(`⚠️  llms.txt found but has validation errors`);
+      }
+
+      if (onProgress) {
+        await onProgress('checking_llmstxt', 1, 1, 'llms.txt check complete');
+      }
+    } catch (_error) {
+      console.error('llms.txt check failed:', error);
+      // Don't fail the entire audit if this check fails
+    }
+
   } catch (_error) {
     console.error('Technical audit error:', error);
   }
@@ -1746,6 +1780,114 @@ async function analyzeHSTSSupport(
     subdomainsWithoutHSTS,
     totalSubdomainsChecked: subdomains.length
   };
+}
+
+/**
+ * Check for llms.txt file (LLM-friendly information about the website)
+ * https://llmstxt.org/ - Standard for providing context to LLMs
+ */
+async function checkLlmsTxt(baseUrl: string): Promise<{
+  exists: boolean;
+  url?: string;
+  content?: string;
+  isValid?: boolean;
+  sizeBytes?: number;
+  errors?: string[];
+}> {
+  try {
+    const urlObj = new URL(baseUrl);
+    const llmsTxtUrl = `${urlObj.protocol}//${urlObj.hostname}/llms.txt`;
+
+    console.log(`🤖 Checking for llms.txt at ${llmsTxtUrl}...`);
+
+    const response = await fetch(llmsTxtUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': USER_AGENT
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`❌ llms.txt not found (404)`);
+        return {
+          exists: false,
+          url: llmsTxtUrl
+        };
+      }
+      console.log(`⚠️  llms.txt returned status ${response.status}`);
+      return {
+        exists: false,
+        url: llmsTxtUrl,
+        errors: [`HTTP ${response.status}: ${response.statusText}`]
+      };
+    }
+
+    const content = await response.text();
+    const sizeBytes = new Blob([content]).size;
+
+    // Basic validation: llms.txt should be plain text and contain some content
+    const errors: string[] = [];
+    const isValid = validateLlmsTxt(content, errors);
+
+    console.log(`✅ llms.txt found (${sizeBytes} bytes)${isValid ? '' : ' - has validation errors'}`);
+
+    return {
+      exists: true,
+      url: llmsTxtUrl,
+      content: content.substring(0, 1000), // Store first 1000 chars for preview
+      isValid,
+      sizeBytes,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  } catch (error) {
+    console.log(`Could not check llms.txt:`, error);
+    return {
+      exists: false,
+      errors: ['Connection failed']
+    };
+  }
+}
+
+/**
+ * Validate llms.txt content
+ */
+function validateLlmsTxt(content: string, errors: string[]): boolean {
+  let isValid = true;
+
+  // Check if empty
+  if (!content || content.trim().length === 0) {
+    errors.push('File is empty');
+    return false;
+  }
+
+  // Check if too small (likely not meaningful)
+  if (content.trim().length < 50) {
+    errors.push('File is too short (less than 50 characters)');
+    isValid = false;
+  }
+
+  // Check if it looks like HTML instead of plain text
+  if (content.includes('<!DOCTYPE') || content.includes('<html')) {
+    errors.push('File appears to be HTML instead of plain text');
+    isValid = false;
+  }
+
+  // Check if it's a 404 page masquerading as llms.txt
+  if (content.toLowerCase().includes('not found') && content.toLowerCase().includes('404')) {
+    errors.push('File appears to be a 404 error page');
+    isValid = false;
+  }
+
+  // Optional: Check for markdown sections (common llms.txt format)
+  const hasMarkdownHeaders = /^#\s+/m.test(content);
+  if (!hasMarkdownHeaders) {
+    // Not an error, just a note
+    errors.push('Note: llms.txt typically uses Markdown format with headers');
+  }
+
+  return isValid;
 }
 
 function findAllLinks(html: string, pageUrl: string): string[] {

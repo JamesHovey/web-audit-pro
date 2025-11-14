@@ -2622,14 +2622,16 @@ function renderSectionResults(
               pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink,
               orphanedSitemapPages: results.issues?.orphanedSitemapPages,
               permanentRedirects: results.issues?.permanentRedirects,
-              subdomainsWithoutHSTS: results.issues?.subdomainsWithoutHSTS
+              subdomainsWithoutHSTS: results.issues?.subdomainsWithoutHSTS,
+              missingLlmsTxt: results.issues?.missingLlmsTxt
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,
               titleLengthIssues: results.titleLengthIssues,
               internalLinkAnalysis: results.internalLinkAnalysis,
               permanentRedirects: results.permanentRedirects,
-              hstsAnalysis: results.hstsAnalysis
+              hstsAnalysis: results.hstsAnalysis,
+              llmsTxt: results.llmsTxt
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
