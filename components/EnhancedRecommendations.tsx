@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle } from 'lucide-react'
+import { AlertTriangle, Zap, Image, Code, Server, TrendingUp, HelpCircle, FileText } from 'lucide-react'
 import Tooltip from './Tooltip'
 import PluginRecommendationTable from './PluginRecommendationTable'
 import { getPluginsByUseCase } from '@/lib/pluginRecommendations'
@@ -35,7 +35,15 @@ interface EnhancedRecommendationsProps {
     largeImages?: number
     http404Errors?: number
     invalidStructuredData?: number
+    lowTextHtmlRatio?: number
   }
+  textHtmlRatioPages?: Array<{
+    url: string
+    textLength: number
+    htmlLength: number
+    ratio: number
+    status: 'good' | 'warning' | 'poor'
+  }>
   issuePages?: {
     missingH1Tags?: string[]
     missingMetaTitles?: string[]
@@ -75,7 +83,8 @@ export default function EnhancedRecommendations({
   issuePages,
   largeImagesList = [],
   legacyFormatImagesList = [],
-  structuredDataItems = []
+  structuredDataItems = [],
+  textHtmlRatioPages = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -599,6 +608,111 @@ export default function EnhancedRecommendations({
         icon: <AlertTriangle className="w-4 h-4" />,
         details: '404 errors occur when a page cannot be found. They harm user experience, waste crawl budget, and can damage SEO if external sites link to these broken URLs. Setting up proper redirects preserves SEO value and provides a better user experience.',
         useCase: cms === 'WordPress' ? 'redirects' : undefined,
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
+      })
+    }
+
+    // Low Text-to-HTML Ratio
+    if (technicalIssues?.lowTextHtmlRatio && technicalIssues.lowTextHtmlRatio > 0) {
+      const wordpressSteps = [
+        '📋 Review the pages with low text-to-HTML ratio in the table below',
+        '',
+        '🎯 UNDERSTANDING THE ISSUE:',
+        'Text-to-HTML ratio measures visible text vs total HTML code',
+        'Low ratios (< 25%) indicate thin content or excessive code',
+        'Search engines prefer pages with substantial, meaningful content',
+        '',
+        '🔧 WORDPRESS-SPECIFIC FIXES:',
+        '1. Add more meaningful, unique content to your pages',
+        '   • Expand product descriptions',
+        '   • Add helpful blog posts and articles',
+        '   • Include detailed service information',
+        '   • Add FAQ sections',
+        '',
+        '2. Optimize your theme and plugins:',
+        '   • Use a lightweight, well-coded theme',
+        '   • Avoid plugins that add excessive HTML/CSS/JS',
+        '   • Consider switching to a performance-focused theme',
+        '   • Use Elementor or other page builders sparingly',
+        '',
+        '3. Clean up your HTML:',
+        '   • Remove inline CSS - move to external stylesheets',
+        '   • Remove inline JavaScript - move to external files',
+        '   • Minify HTML in production (use WP Rocket or similar)',
+        '   • Remove HTML comments and unnecessary whitespace',
+        '   • Disable unused WordPress features (emojis, etc.)',
+        '',
+        '4. Use performance plugins to optimize code:',
+        '   • WP Rocket: Minify HTML, CSS, JS',
+        '   • Autoptimize: Aggregate and minify code',
+        '   • Asset CleanUp: Disable unused CSS/JS per page',
+        '',
+        '💡 RECOMMENDED PLUGINS:',
+        'WP Rocket - Minifies HTML, CSS, JS automatically',
+        'Autoptimize - Free alternative for code optimization',
+        'Perfmatters - Remove bloat and unused features',
+        '',
+        '⚠️ IMPORTANT: Don\'t sacrifice user experience for ratios',
+        'The goal is meaningful content, not artificially inflating text'
+      ]
+
+      const generalSteps = [
+        '📋 Review the pages with low text-to-HTML ratio in the table below',
+        '',
+        '🎯 UNDERSTANDING THE ISSUE:',
+        'Text-to-HTML ratio = (visible text / total HTML) × 100',
+        'Industry standards:',
+        '  • Good: > 25%',
+        '  • Warning: 15-25%',
+        '  • Poor: < 15%',
+        '',
+        '🛠️ HOW TO FIX:',
+        '',
+        '1. ADD MORE QUALITY CONTENT:',
+        '   • Write detailed, informative content',
+        '   • Expand thin pages with useful information',
+        '   • Add product descriptions, FAQs, guides',
+        '   • Focus on user value, not just keywords',
+        '',
+        '2. OPTIMIZE YOUR HTML:',
+        '   • Move inline CSS to external stylesheets',
+        '   • Move inline JavaScript to external files',
+        '   • Minify HTML (remove whitespace, comments)',
+        '   • Use CSS classes instead of inline styles',
+        '   • Avoid excessive div nesting',
+        '',
+        '3. CLEAN UP YOUR CODE:',
+        '   • Remove unnecessary HTML comments',
+        '   • Delete unused CSS and JavaScript',
+        '   • Use HTML5 semantic elements',
+        '   • Validate HTML at validator.w3.org',
+        '   • Consider using a build tool for minification',
+        '',
+        '4. REDUCE CODE BLOAT:',
+        '   • Minimize use of heavy frameworks',
+        '   • Remove unused libraries and plugins',
+        '   • Use modern CSS instead of Bootstrap if possible',
+        '   • Lazy load below-the-fold content',
+        '',
+        '📊 CHECKING YOUR RATIO:',
+        'Use browser DevTools:',
+        '  1. Right-click → Inspect',
+        '  2. View HTML length in Elements tab',
+        '  3. Copy visible text to check length',
+        '  4. Calculate: (text length / HTML length) × 100',
+        '',
+        '💡 TIP: Focus on quality content first, code optimization second',
+        'Search engines value meaningful content over arbitrary ratios'
+      ]
+
+      techRecs.push({
+        title: 'Improve Low Text-to-HTML Ratio',
+        description: `${technicalIssues.lowTextHtmlRatio} page(s) have low text-to-HTML ratio, indicating thin content or excessive code`,
+        impact: 'Medium',
+        effort: 'Medium',
+        icon: <FileText className="w-4 h-4" />,
+        details: 'Text-to-HTML ratio measures the percentage of actual text content compared to HTML code. A low ratio (< 25%) can indicate thin content, excessive code bloat, or over-reliance on JavaScript. While not a direct ranking factor, it correlates with content quality and user experience. Pages should have substantial, meaningful content rather than just code.',
+        useCase: undefined, // No specific plugin recommendations
         howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
       })
     }
@@ -1532,6 +1646,87 @@ export default function EnhancedRecommendations({
                           <p className="text-xs text-gray-600 mt-2">
                             💡 Tip: Use <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Google Rich Results Test</a> to validate your structured data and see how it appears in search results.
                           </p>
+                        </div>
+                      )}
+
+                      {/* Text-to-HTML Ratio Table */}
+                      {rec.title.includes('Low Text-to-HTML Ratio') && textHtmlRatioPages && textHtmlRatioPages.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Low Text-to-HTML Ratio</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Text Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">HTML Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Ratio</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {textHtmlRatioPages
+                                    .filter(page => page.status === 'warning' || page.status === 'poor')
+                                    .slice(0, 20)
+                                    .map((page, idx) => (
+                                      <tr key={idx} className={`hover:bg-orange-50 ${page.status === 'poor' ? 'bg-red-50' : ''}`}>
+                                        <td className="px-4 py-3">
+                                          <a
+                                            href={page.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                          >
+                                            {page.url}
+                                          </a>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {page.textLength.toLocaleString()} chars
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">
+                                          {page.htmlLength.toLocaleString()} chars
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <span className={`font-medium ${
+                                            page.ratio >= 25 ? 'text-green-600' :
+                                            page.ratio >= 15 ? 'text-orange-600' :
+                                            'text-red-600'
+                                          }`}>
+                                            {page.ratio.toFixed(1)}%
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          {page.status === 'good' && (
+                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                              Good (&gt; 25%)
+                                            </span>
+                                          )}
+                                          {page.status === 'warning' && (
+                                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                                              Warning (15-25%)
+                                            </span>
+                                          )}
+                                          {page.status === 'poor' && (
+                                            <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium">
+                                              Poor (&lt; 15%)
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Focus on adding quality content first. A good text-to-HTML ratio is above 25%. Industry standards: Good (&gt; 25%), Warning (15-25%), Poor (&lt; 15%).
+                          </p>
+                          {textHtmlRatioPages.filter(p => p.status === 'warning' || p.status === 'poor').length > 20 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              Showing first 20 pages. Additional pages may also be affected.
+                            </p>
+                          )}
                         </div>
                       )}
 

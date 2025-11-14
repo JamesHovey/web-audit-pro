@@ -88,12 +88,24 @@ interface TechnicalAuditResult {
     missingH1Tags: number;
     httpErrors: number;
     invalidStructuredData?: number;
+    lowTextHtmlRatio?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
     missingMetaDescriptions?: string[];
     missingH1Tags?: string[];
     httpErrors?: string[];
+  };
+  textHtmlRatio?: {
+    totalPages: number;
+    pagesWithLowRatio: number;
+    pages: Array<{
+      url: string;
+      textLength: number;
+      htmlLength: number;
+      ratio: number;
+      status: 'good' | 'warning' | 'poor';
+    }>;
   };
   structuredData?: {
     totalItems: number;
@@ -519,7 +531,23 @@ export async function performTechnicalAudit(
       missingH1Tags: pagesWithMissingH1.slice(0, 20).map(p => p.url),
       httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
     };
-    
+
+    // 7.5. Analyze text-to-HTML ratio for pages with HTML content
+    console.log('📊 Analyzing text-to-HTML ratio...');
+    try {
+      const { analyzePagesTextHtmlRatio } = await import('./textHtmlRatioAnalyzer');
+      const pagesWithHtml = pageDiscovery.pages.filter(p => p.html);
+
+      if (pagesWithHtml.length > 0) {
+        const ratioAnalysis = analyzePagesTextHtmlRatio(pagesWithHtml);
+        result.textHtmlRatio = ratioAnalysis;
+        result.issues.lowTextHtmlRatio = ratioAnalysis.pagesWithLowRatio;
+        console.log(`📈 Text-to-HTML ratio: ${ratioAnalysis.pagesWithLowRatio}/${ratioAnalysis.totalPages} pages have low ratio`);
+      }
+    } catch (error) {
+      console.error('❌ Text-to-HTML ratio analysis failed:', error);
+    }
+
     // 8. Analyze images from discovered pages with scope-based limits
     console.log('🖼️ Analyzing images across discovered pages...');
 
