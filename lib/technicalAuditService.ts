@@ -3,6 +3,11 @@ import { discoverRealPages } from './realPageDiscovery';
 import { analyzeViewportResponsiveness } from './viewportAnalysisService';
 import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
 import { BrowserService } from './cloudflare-browser';
+import { RobotsService } from './robotsService';
+
+// Transparent User-Agent for legal compliance
+const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit Tool)';
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 WebAuditPro/1.0';
 
 /**
  * Process items in parallel chunks to avoid overwhelming the server
@@ -146,6 +151,20 @@ export async function performTechnicalAudit(
 ): Promise<TechnicalAuditResult> {
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
 
+  // Check robots.txt compliance
+  console.log(`🤖 Checking robots.txt compliance for ${url}`);
+  const robotsCheck = await RobotsService.isAllowed(url, 'WebAuditPro');
+
+  if (!robotsCheck.allowed) {
+    console.warn(`⚠️ Audit blocked by robots.txt: ${robotsCheck.reason}`);
+    throw new Error(`This website's robots.txt disallows automated auditing. Reason: ${robotsCheck.reason}`);
+  }
+
+  if (robotsCheck.crawlDelay) {
+    console.log(`⏱️ Robots.txt requests crawl delay of ${robotsCheck.crawlDelay} seconds`);
+    // Note: We'll respect this in our batch processing
+  }
+
   // Normalize URL
   const baseUrl = new URL(url);
   const domain = baseUrl.hostname;
@@ -274,7 +293,7 @@ export async function performTechnicalAudit(
       // Fallback to simple fetch if browser rendering fails
       console.warn('Browser rendering failed, falling back to simple fetch:', browserError);
       const mainPageResponse = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+        headers: { 'User-Agent': USER_AGENT },
         redirect: 'follow',
         signal: AbortSignal.timeout(15000)
       });
@@ -997,7 +1016,7 @@ async function getImageSize(imageUrl: string, referrer?: string): Promise<number
       fetch(imageUrl, {
         method: 'HEAD',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': BROWSER_USER_AGENT,
           'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
           ...(referrer ? { 'Referer': referrer } : {})
         },
@@ -1023,7 +1042,7 @@ async function getImageSize(imageUrl: string, referrer?: string): Promise<number
       fetch(imageUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': BROWSER_USER_AGENT,
           'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
           'Range': 'bytes=0-1023', // Only fetch first 1KB to check
           ...(referrer ? { 'Referer': referrer } : {})
