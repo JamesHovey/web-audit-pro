@@ -585,6 +585,86 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
       'No WebP support in free version'
     ],
     bestFor: 'Mac users wanting local batch optimization'
+  },
+
+  // Redirect Management Plugins
+  {
+    name: 'Redirection',
+    slug: 'redirection',
+    category: 'seo',
+    useCase: ['redirects', '404-errors', 'seo-optimization'],
+    description: 'Most popular redirect manager for WordPress with comprehensive 404 monitoring',
+    rating: 4.8,
+    reviews: 2150,
+    activeInstalls: '2+ million',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/redirection/',
+    pros: [
+      'Completely free',
+      'Track 404 errors automatically',
+      'Import/export redirects',
+      'Regular expressions support',
+      'Conditional redirects',
+      'Monitor all redirects'
+    ],
+    cons: [
+      'Can be complex for beginners',
+      'No premium support',
+      'Interface could be more modern'
+    ],
+    bestFor: 'Sites needing comprehensive redirect management and 404 tracking'
+  },
+  {
+    name: 'Simple 301 Redirects',
+    slug: 'simple-301-redirects',
+    category: 'seo',
+    useCase: ['redirects', '404-errors'],
+    description: 'Lightweight plugin for simple 301 redirects without extra features',
+    rating: 4.5,
+    reviews: 284,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/simple-301-redirects/',
+    pros: [
+      'Extremely simple and lightweight',
+      'No learning curve',
+      'Fast and efficient',
+      'No database bloat',
+      'Perfect for basic needs'
+    ],
+    cons: [
+      'No 404 monitoring',
+      'No wildcard redirects',
+      'Limited to simple redirects',
+      'No advanced features'
+    ],
+    bestFor: 'Users wanting simple redirect functionality without complexity'
+  },
+  {
+    name: 'Safe Redirect Manager',
+    slug: 'safe-redirect-manager',
+    category: 'seo',
+    useCase: ['redirects', '404-errors'],
+    description: 'Developer-friendly redirect plugin by 10up with clean interface',
+    rating: 4.7,
+    reviews: 147,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/safe-redirect-manager/',
+    pros: [
+      'Clean, modern interface',
+      'Supports HTTP status codes',
+      'Wildcard redirects',
+      'Import/export',
+      'Developer hooks available',
+      'No database overhead'
+    ],
+    cons: [
+      'No 404 monitoring',
+      'Fewer features than Redirection',
+      'Less popular/tested'
+    ],
+    bestFor: 'Developers and users wanting a clean, efficient redirect solution'
   }
 ]
 

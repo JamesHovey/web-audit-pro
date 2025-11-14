@@ -379,6 +379,104 @@ export default function EnhancedRecommendations({
       })
     }
 
+    // HTTP 404 Errors
+    if (technicalIssues?.http404Errors && technicalIssues.http404Errors > 0) {
+      const hasRedirectionPlugin = detectedPlugins.some(p =>
+        p.toLowerCase().includes('redirection') ||
+        p.toLowerCase().includes('redirect') ||
+        p.toLowerCase().includes('yoast')
+      )
+
+      const wordpressSteps = hasRedirectionPlugin ? [
+        '✅ Good news! You have a redirection plugin installed',
+        '1. Review the list of 404 errors in the table below',
+        '2. For each broken URL, determine the correct destination:',
+        '   • If page moved → Set up 301 redirect to new location',
+        '   • If page deleted → Redirect to relevant category/homepage',
+        '   • If typo in link → Fix the link on the source page',
+        '',
+        '🔧 SETTING UP REDIRECTS:',
+        '1. Go to WordPress Dashboard → Tools → Redirection',
+        '2. Click "Add New" redirect',
+        '3. Enter the broken URL in "Source URL" field',
+        '4. Enter the correct destination in "Target URL" field',
+        '5. Ensure "Match" is set to "URL only"',
+        '6. Click "Add Redirect"',
+        '7. Test the redirect by visiting the old URL',
+        '',
+        '📋 BEST PRACTICES:',
+        'Use 301 redirects for permanently moved pages',
+        'Redirect to the most relevant alternative page',
+        'Avoid redirect chains (A→B→C)',
+        'Create a custom 404 page to help lost visitors',
+        '',
+        '💡 TIP: If external sites link to these broken URLs, redirects are essential for preserving SEO value'
+      ] : [
+        '⚠️ You don\'t have a redirection plugin installed yet',
+        '📦 Install a free redirection plugin to make fixing 404s easy:',
+        '   • Redirection (most popular, 2M+ installs)',
+        '   • Simple 301 Redirects',
+        '   • Yoast SEO (includes redirect manager)',
+        '',
+        'After installing Redirection plugin:',
+        '1. Go to WordPress Dashboard → Tools → Redirection',
+        '2. Complete the setup wizard',
+        '3. Review the list of 404 errors below',
+        '4. For each broken URL, click "Add New" redirect',
+        '5. Enter broken URL as "Source URL"',
+        '6. Enter correct destination as "Target URL"',
+        '7. Click "Add Redirect"',
+        '',
+        '🎯 WHAT TO DO:',
+        'If page moved → 301 redirect to new location',
+        'If page deleted → Redirect to relevant category/homepage',
+        'If typo in link → Fix the link on source page',
+        '',
+        '💡 TIP: Create a custom 404 page template in your theme for better user experience'
+      ]
+
+      const generalSteps = [
+        '📋 Review the list of 404 errors in the table below',
+        '',
+        '🔍 DIAGNOSE THE ISSUE:',
+        'Check if the page was moved, deleted, or if there\'s a typo in the link',
+        'Determine if the link is internal (your site) or external',
+        '',
+        '🛠️ SOLUTIONS:',
+        '1. Set up 301 redirects for moved/deleted pages:',
+        '   • Configure in your web server (.htaccess for Apache)',
+        '   • Use your hosting control panel redirect manager',
+        '   • For Nginx, add redirect rules to server config',
+        '',
+        '2. Fix broken links at the source:',
+        '   • Update internal links to point to correct URLs',
+        '   • Remove or update broken external links',
+        '',
+        '3. Create a custom 404 page:',
+        '   • Include site navigation',
+        '   • Add search functionality',
+        '   • Suggest popular pages',
+        '   • Provide contact information',
+        '',
+        '📊 EXAMPLE .HTACCESS REDIRECT:',
+        'Redirect 301 /old-page /new-page',
+        'Redirect 301 /deleted-page /',
+        '',
+        '💡 TIP: Monitor 404 errors regularly using Google Search Console'
+      ]
+
+      techRecs.push({
+        title: 'Fix 404 Errors',
+        description: `${technicalIssues.http404Errors} page(s) are returning 404 errors, harming user experience and SEO`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: '404 errors occur when a page cannot be found. They harm user experience, waste crawl budget, and can damage SEO if external sites link to these broken URLs. Setting up proper redirects preserves SEO value and provides a better user experience.',
+        useCase: cms === 'WordPress' ? 'redirects' : undefined,
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
+      })
+    }
+
     return techRecs
   }
 
