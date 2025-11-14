@@ -762,9 +762,8 @@ export const UNIVERSAL_SIGNATURES: UniversalSignature[] = [
       '/wp-content/plugins/wordpress-seo/',
       'yoast-seo',
       'yoast_seo',
-      'wpseo',
-      'wp-seo-meta-box',
-      'schema.org/Article'
+      'yoast_wpseo',
+      'wp-seo-meta-box'
     ],
     confidence: 'high',
     riskLevel: 'low',
@@ -1310,21 +1309,8 @@ export const UNIVERSAL_SIGNATURES: UniversalSignature[] = [
     riskLevel: 'low',
     performanceImpact: 'medium'
   },
-  {
-    platform: 'wordpress',
-    name: 'Gutenberg',
-    category: 'page-builder',
-    subcategory: 'block-editor',
-    patterns: [
-      'wp-block-',
-      'has-text-align',
-      'is-style-',
-      'wp-block-group'
-    ],
-    confidence: 'medium',
-    riskLevel: 'low',
-    performanceImpact: 'minimal'
-  },
+  // NOTE: Gutenberg removed - it's part of WordPress core since 5.0, not a plugin
+  // The block editor is built into WordPress and shouldn't be listed as a detected plugin
 
   // ============================================
   // E-COMMERCE PLUGINS

@@ -47,8 +47,9 @@ export function detectWordPressPlugins(html: string): PluginDetectionResult {
   const wpPlugins = [];
   
   // SEO Plugins (strict detection)
-  if (lowerHtml.includes('yoast') && 
-      (lowerHtml.includes('yoast_wpseo') || lowerHtml.includes('wp-seo-main') || lowerHtml.includes('/wp-content/plugins/wordpress-seo/'))) {
+  if (lowerHtml.includes('/wp-content/plugins/wordpress-seo/') ||
+      lowerHtml.includes('yoast_wpseo') ||
+      lowerHtml.includes('wp-seo-main')) {
     wpPlugins.push('Yoast SEO');
   }
   if ((lowerHtml.includes('rank-math') || lowerHtml.includes('rankmath')) && 
