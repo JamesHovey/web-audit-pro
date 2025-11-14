@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp, ExternalLink, Star, Info } from 'lucide-react'
-import { getWordPressPluginMetadata } from '@/lib/wordpressPluginMetadata'
 
 interface DetectedPluginsTableProps {
   plugins: Array<Record<string, unknown>>
@@ -56,39 +55,78 @@ export default function DetectedPluginsTable({
   useEffect(() => {
     async function fetchMetadata() {
       setLoading(true)
-      const results: PluginWithMetadata[] = []
 
-      for (const plugin of plugins) {
-        const pluginName = plugin.name as string
-        try {
-          const metadata = await getWordPressPluginMetadata(pluginName)
-          results.push({
-            name: pluginName,
-            categoryKey: plugin.categoryKey as string,
-            description: metadata.description,
-            rating: metadata.rating,
-            reviews: metadata.reviews,
-            activeInstalls: metadata.activeInstalls,
-            url: metadata.url,
-            found: metadata.found
-          })
-        } catch (error) {
-          // Fallback if metadata fetch fails
-          results.push({
-            name: pluginName,
-            categoryKey: plugin.categoryKey as string,
-            description: 'Description not available',
-            rating: 0,
-            reviews: 0,
-            activeInstalls: 'N/A',
-            url: `https://wordpress.org/plugins/${pluginName.toLowerCase().replace(/\s+/g, '-')}/`,
-            found: false
-          })
+      try {
+        // Get all plugin names
+        const pluginNames = plugins.map(p => p.name as string)
+
+        // Fetch metadata from server-side API
+        const response = await fetch('/api/wordpress-plugin-metadata', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ plugins: pluginNames })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch plugin metadata')
         }
-      }
 
-      setPluginsWithMetadata(results)
-      setLoading(false)
+        const data = await response.json()
+        const results: PluginWithMetadata[] = []
+
+        // Map the results back to our plugins
+        for (const plugin of plugins) {
+          const pluginName = plugin.name as string
+          const metadata = data.results[pluginName]
+
+          if (metadata) {
+            results.push({
+              name: pluginName,
+              categoryKey: plugin.categoryKey as string,
+              description: metadata.description,
+              rating: metadata.rating,
+              reviews: metadata.reviews,
+              activeInstalls: metadata.activeInstalls,
+              url: metadata.url,
+              found: metadata.found
+            })
+          } else {
+            // Fallback if no metadata found
+            results.push({
+              name: pluginName,
+              categoryKey: plugin.categoryKey as string,
+              description: 'Description not available',
+              rating: 0,
+              reviews: 0,
+              activeInstalls: 'N/A',
+              url: `https://wordpress.org/plugins/${pluginName.toLowerCase().replace(/\s+/g, '-')}/`,
+              found: false
+            })
+          }
+        }
+
+        setPluginsWithMetadata(results)
+      } catch (error) {
+        console.error('Error fetching plugin metadata:', error)
+
+        // Fallback: create basic plugin data
+        const fallbackResults: PluginWithMetadata[] = plugins.map(plugin => ({
+          name: plugin.name as string,
+          categoryKey: plugin.categoryKey as string,
+          description: 'Unable to load description at this time',
+          rating: 0,
+          reviews: 0,
+          activeInstalls: 'N/A',
+          url: `https://wordpress.org/plugins/${(plugin.name as string).toLowerCase().replace(/\s+/g, '-')}/`,
+          found: false
+        }))
+
+        setPluginsWithMetadata(fallbackResults)
+      } finally {
+        setLoading(false)
+      }
     }
 
     if (plugins.length > 0) {
