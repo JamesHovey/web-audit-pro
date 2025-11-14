@@ -2621,13 +2621,15 @@ function renderSectionResults(
               longTitles: results.issues?.longTitles,
               pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink,
               orphanedSitemapPages: results.issues?.orphanedSitemapPages,
-              permanentRedirects: results.issues?.permanentRedirects
+              permanentRedirects: results.issues?.permanentRedirects,
+              subdomainsWithoutHSTS: results.issues?.subdomainsWithoutHSTS
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,
               titleLengthIssues: results.titleLengthIssues,
               internalLinkAnalysis: results.internalLinkAnalysis,
-              permanentRedirects: results.permanentRedirects
+              permanentRedirects: results.permanentRedirects,
+              hstsAnalysis: results.hstsAnalysis
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}

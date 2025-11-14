@@ -752,6 +752,88 @@ export default function EnhancedRecommendations({
       });
     }
 
+    // Subdomains Without HSTS
+    if (technicalIssues?.subdomainsWithoutHSTS && technicalIssues.subdomainsWithoutHSTS > 0) {
+      techRecs.push({
+        title: 'Enable HSTS on Subdomains',
+        description: `${technicalIssues.subdomainsWithoutHSTS} subdomain(s) don't support HSTS (HTTP Strict Transport Security). This leaves subdomains vulnerable to SSL stripping attacks and man-in-the-middle attacks.`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: 'HSTS (HTTP Strict Transport Security) tells browsers to only access your site over HTTPS, preventing SSL stripping attacks. Subdomains without HSTS can be exploited even if your main domain is secure. Fix this by adding HSTS headers on subdomains or using includeSubDomains directive on main domain.',
+        useCase: 'security',
+        howTo: [
+          '🎯 WHY THIS IS CRITICAL:',
+          '   • Prevents SSL stripping attacks (downgrade to HTTP)',
+          '   • Stops man-in-the-middle attacks on subdomains',
+          '   • Required for PCI-DSS compliance',
+          '   • Improves SEO rankings (Google favors secure sites)',
+          '   • Protects user cookies and session data',
+          '',
+          '📋 SUBDOMAINS WITHOUT HSTS:',
+          ...(technicalAudit?.hstsAnalysis?.subdomainsWithoutHSTS?.slice(0, 5).map(item =>
+            `   • ${item.subdomain} - ${item.reason}`
+          ) || []),
+          ...(technicalIssues.subdomainsWithoutHSTS && technicalIssues.subdomainsWithoutHSTS > 5
+            ? [`   • ...and ${technicalIssues.subdomainsWithoutHSTS - 5} more subdomains`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ EASIEST: Add includeSubDomains on main domain:',
+          '   • Add this HTTP header on your main domain:',
+          '   • Strict-Transport-Security: max-age=31536000; includeSubDomains; preload',
+          '   • This automatically protects ALL subdomains',
+          '   • No need to configure each subdomain individually',
+          '',
+          '2️⃣ For Apache (.htaccess or httpd.conf):',
+          '   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"',
+          '',
+          '3️⃣ For Nginx:',
+          '   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;',
+          '',
+          '4️⃣ For Cloudflare:',
+          '   • Go to SSL/TLS → Edge Certificates',
+          '   • Enable "HTTP Strict Transport Security (HSTS)"',
+          '   • Check "Include subdomains"',
+          '   • Set Max Age to 12 months',
+          '',
+          '5️⃣ For WordPress:',
+          '   • Add to wp-config.php (before "That\'s all, stop editing!"):',
+          '   • header(\'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload\');',
+          '   • Or use "Really Simple SSL" plugin (Pro version)',
+          '',
+          '6️⃣ For Next.js/Vercel:',
+          '   • Add to next.config.js headers:',
+          '   • { key: \'Strict-Transport-Security\', value: \'max-age=31536000; includeSubDomains; preload\' }',
+          '',
+          '⚠️ IMPORTANT CONSIDERATIONS:',
+          '   • Test on staging first - HSTS can break non-HTTPS content',
+          '   • Ensure ALL subdomains support HTTPS before enabling',
+          '   • includeSubDomains affects www, api, cdn, etc.',
+          '   • Start with shorter max-age (e.g., 300) for testing',
+          '   • Increase to 31536000 (1 year) after testing',
+          '',
+          '✅ BEST PRACTICES:',
+          '   • Always use includeSubDomains on main domain',
+          '   • Use preload directive to get on Chrome\'s HSTS preload list',
+          '   • Set max-age to at least 31536000 (1 year)',
+          '   • Ensure HTTPS works on ALL subdomains first',
+          '   • Submit to https://hstspreload.org/ after enabling',
+          '',
+          '📊 TARGET:',
+          '   • Main domain: HSTS with includeSubDomains enabled',
+          '   • All subdomains: Protected by main domain\'s HSTS',
+          '   • Max-age: 31536000 (1 year) or higher',
+          '   • Preload list: Submitted to hstspreload.org',
+          '',
+          '💡 CRITICAL: Use includeSubDomains on main domain to protect all subdomains',
+          '💡 Test thoroughly - HSTS cannot be easily disabled once set',
+          '💡 After fixing, re-run audit to verify HSTS is working'
+        ]
+      });
+    }
+
     // Large Images and Modern Formats (Combined)
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       // Check if we also have legacy format images

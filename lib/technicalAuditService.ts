@@ -127,6 +127,21 @@ interface TechnicalAuditResult {
       redirectType: 'permanent';
     }>;
   };
+  hstsAnalysis?: {
+    mainDomain: {
+      domain: string;
+      hasHSTS: boolean;
+      includesSubdomains: boolean;
+      maxAge?: number;
+      header?: string;
+    };
+    subdomainsWithoutHSTS: Array<{
+      subdomain: string;
+      hasHSTS: boolean;
+      reason: string;
+    }>;
+    totalSubdomainsChecked: number;
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -140,6 +155,7 @@ interface TechnicalAuditResult {
     pagesWithOneIncomingLink?: number;
     orphanedSitemapPages?: number;
     permanentRedirects?: number;
+    subdomainsWithoutHSTS?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -927,6 +943,37 @@ export async function performTechnicalAudit(
       }
     }
 
+    // 13. Check HSTS (HTTP Strict Transport Security) support
+    // Check main domain and subdomains for HSTS headers
+    if (pageDiscovery && pageDiscovery.pages.length >= 1) {
+      console.log('🔒 Checking HSTS support...');
+      try {
+        const hstsAnalysis = await analyzeHSTSSupport(url, pageDiscovery.pages, domain);
+
+        result.hstsAnalysis = hstsAnalysis;
+
+        // Count subdomains without HSTS as an issue
+        if (hstsAnalysis.subdomainsWithoutHSTS.length > 0) {
+          result.issues.subdomainsWithoutHSTS = hstsAnalysis.subdomainsWithoutHSTS.length;
+          console.log(`⚠️  Found ${hstsAnalysis.subdomainsWithoutHSTS.length} subdomain(s) without HSTS`);
+        } else if (hstsAnalysis.totalSubdomainsChecked > 0) {
+          console.log(`✅ All ${hstsAnalysis.totalSubdomainsChecked} subdomain(s) have HSTS enabled`);
+        }
+
+        // Also warn if main domain doesn't have HSTS
+        if (!hstsAnalysis.mainDomain.hasHSTS) {
+          console.log(`⚠️  Main domain does not have HSTS enabled`);
+        }
+
+        if (onProgress) {
+          await onProgress('checking_hsts', 1, 1, 'HSTS analysis complete');
+        }
+      } catch (_error) {
+        console.error('HSTS analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
   } catch (_error) {
     console.error('Technical audit error:', error);
   }
@@ -1525,6 +1572,179 @@ async function analyzePermanentRedirects(
   return {
     totalRedirects: permanentRedirects.length,
     redirects: permanentRedirects
+  };
+}
+
+/**
+ * Check if a domain has HSTS (HTTP Strict Transport Security) enabled
+ */
+async function checkHSTSHeader(url: string): Promise<{
+  hasHSTS: boolean;
+  includesSubdomains: boolean;
+  maxAge?: number;
+  header?: string;
+} | null> {
+  try {
+    // Must use HTTPS to check HSTS header
+    const httpsUrl = url.replace(/^http:/, 'https:');
+
+    const response = await fetch(httpsUrl, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': USER_AGENT
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const hstsHeader = response.headers.get('strict-transport-security');
+
+    if (!hstsHeader) {
+      return {
+        hasHSTS: false,
+        includesSubdomains: false
+      };
+    }
+
+    // Parse HSTS header
+    // Format: "max-age=31536000; includeSubDomains; preload"
+    const includesSubdomains = hstsHeader.toLowerCase().includes('includesubdomains');
+    const maxAgeMatch = hstsHeader.match(/max-age=(\d+)/i);
+    const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1]) : undefined;
+
+    return {
+      hasHSTS: true,
+      includesSubdomains,
+      maxAge,
+      header: hstsHeader
+    };
+  } catch (error) {
+    console.log(`Could not check HSTS for ${url}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Extract unique subdomains from discovered pages
+ */
+function extractSubdomains(pagesData: Array<{ url: string }>, mainDomain: string): string[] {
+  const subdomains = new Set<string>();
+
+  for (const page of pagesData) {
+    try {
+      const urlObj = new URL(page.url);
+      const hostname = urlObj.hostname;
+
+      // Check if this is a subdomain of the main domain
+      if (hostname !== mainDomain && hostname.endsWith(`.${mainDomain}`)) {
+        subdomains.add(hostname);
+      }
+
+      // Also check for www variant
+      const mainWithoutWww = mainDomain.replace(/^www\./, '');
+      if (hostname !== mainWithoutWww && hostname.endsWith(`.${mainWithoutWww}`)) {
+        subdomains.add(hostname);
+      }
+    } catch {
+      // Skip invalid URLs
+    }
+  }
+
+  return Array.from(subdomains);
+}
+
+/**
+ * Analyze HSTS support for main domain and subdomains
+ */
+async function analyzeHSTSSupport(
+  mainUrl: string,
+  pagesData: Array<{ url: string }>,
+  domain: string
+): Promise<{
+  mainDomain: {
+    domain: string;
+    hasHSTS: boolean;
+    includesSubdomains: boolean;
+    maxAge?: number;
+    header?: string;
+  };
+  subdomainsWithoutHSTS: Array<{
+    subdomain: string;
+    hasHSTS: boolean;
+    reason: string;
+  }>;
+  totalSubdomainsChecked: number;
+}> {
+  console.log(`🔒 Checking HSTS support for ${domain}...`);
+
+  // Check main domain HSTS
+  const mainDomainHSTS = await checkHSTSHeader(mainUrl);
+
+  const mainDomainResult = {
+    domain,
+    hasHSTS: mainDomainHSTS?.hasHSTS || false,
+    includesSubdomains: mainDomainHSTS?.includesSubdomains || false,
+    maxAge: mainDomainHSTS?.maxAge,
+    header: mainDomainHSTS?.header
+  };
+
+  console.log(`Main domain HSTS: ${mainDomainResult.hasHSTS ? '✅ Enabled' : '❌ Disabled'}`);
+  if (mainDomainResult.hasHSTS && mainDomainResult.includesSubdomains) {
+    console.log(`  → Includes subdomains: ✅ Yes`);
+  }
+
+  // Extract subdomains from discovered pages
+  const subdomains = extractSubdomains(pagesData, domain);
+  console.log(`Found ${subdomains.length} subdomain(s) to check`);
+
+  const subdomainsWithoutHSTS: Array<{
+    subdomain: string;
+    hasHSTS: boolean;
+    reason: string;
+  }> = [];
+
+  // If main domain has includeSubdomains, subdomains are automatically protected
+  if (mainDomainResult.hasHSTS && mainDomainResult.includesSubdomains) {
+    console.log(`✅ All subdomains protected by main domain's includeSubdomains directive`);
+    return {
+      mainDomain: mainDomainResult,
+      subdomainsWithoutHSTS: [],
+      totalSubdomainsChecked: subdomains.length
+    };
+  }
+
+  // Check each subdomain individually (in batches)
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < subdomains.length; i += BATCH_SIZE) {
+    const batch = subdomains.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(subdomain => checkHSTSHeader(`https://${subdomain}`))
+    );
+
+    results.forEach((result, index) => {
+      const subdomain = batch[index];
+
+      if (!result) {
+        subdomainsWithoutHSTS.push({
+          subdomain,
+          hasHSTS: false,
+          reason: 'Could not check HSTS (connection failed)'
+        });
+      } else if (!result.hasHSTS) {
+        subdomainsWithoutHSTS.push({
+          subdomain,
+          hasHSTS: false,
+          reason: 'No HSTS header found'
+        });
+      }
+    });
+  }
+
+  console.log(`✅ HSTS check complete: ${subdomainsWithoutHSTS.length} subdomain(s) without HSTS`);
+
+  return {
+    mainDomain: mainDomainResult,
+    subdomainsWithoutHSTS,
+    totalSubdomainsChecked: subdomains.length
   };
 }
 
