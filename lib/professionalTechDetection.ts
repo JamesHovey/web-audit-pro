@@ -8,6 +8,8 @@ import { detectJoomlaExtensions } from './cms-detection/joomlaExtensionDetection
 import { detectShopifyApps } from './cms-detection/shopifyAppDetection';
 import { detectMagentoExtensions } from './cms-detection/magentoExtensionDetection';
 import { detectPrestashopModules } from './cms-detection/prestashopModuleDetection';
+import { BrowserService } from './cloudflare-browser';
+import { detectWordPressPlugins } from './pluginDetectionService';
 
 interface TechStackResult {
   cms?: string;
@@ -69,27 +71,34 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
 }
 
 // Direct website analysis function that fetches and analyzes a URL
+// Uses Puppeteer to bypass bot protection (403 errors)
 async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult, 'source' | 'confidence'> | null> {
   try {
     const cleanUrl = url.startsWith('http') ? url : `https://${url}`;
-    
-    const response = await fetch(cleanUrl, {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
-      },
-      timeout: 10000
+
+    // Use browser rendering to bypass bot protection (same as quick-detect)
+    const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+      const response = await page.goto(cleanUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000
+      });
+
+      // Wait for JavaScript to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const html = await page.content();
+
+      // Get response headers
+      const headers: Record<string, string> = {};
+      if (response) {
+        const responseHeaders = response.headers();
+        Object.assign(headers, responseHeaders);
+      }
+
+      return { html, headers };
     });
-    
-    if (!response.ok) {
-      console.log(`Direct analysis failed: ${response.status} ${response.statusText}`);
-      return null;
-    }
-    
-    const html = await response.text();
-    const headers = Object.fromEntries(response.headers.entries());
-    
+
+    const { html, headers } = browserResult;
     const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
     
     // Hybrid Plugin Detection (Pattern Matching + AI) - Only for WordPress
@@ -343,11 +352,21 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
       result.framework = 'Svelte';
     }
     
-    // ANALYTICS DETECTION
-    if (lowerHtml.includes('google-analytics') || lowerHtml.includes('gtag') || lowerHtml.includes('ga(')) {
-      result.analytics = 'Google Analytics';
-    } else if (lowerHtml.includes('gtm.js') || lowerHtml.includes('googletagmanager')) {
-      result.analytics = 'Google Tag Manager';
+    // ANALYTICS DETECTION (enhanced for async-loaded scripts)
+    if (lowerHtml.includes('google-analytics') ||
+        lowerHtml.includes('gtag') ||
+        lowerHtml.includes('ga(') ||
+        lowerHtml.includes('googletagmanager.com/gtag/') ||
+        lowerHtml.includes('ga.js') ||
+        lowerHtml.includes('analytics.js') ||
+        lowerHtml.includes('g-') || // GA4 measurement IDs
+        lowerHtml.includes('gtm-') || // GTM IDs
+        lowerHtml.includes('ua-')) { // Universal Analytics
+      if (lowerHtml.includes('gtm.js') || lowerHtml.includes('googletagmanager')) {
+        result.analytics = 'Google Tag Manager';
+      } else {
+        result.analytics = 'Google Analytics';
+      }
     } else if (lowerHtml.includes('adobe-analytics') || lowerHtml.includes('omniture')) {
       result.analytics = 'Adobe Analytics';
     } else if (lowerHtml.includes('matomo') || lowerHtml.includes('piwik')) {
@@ -356,6 +375,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
       result.analytics = 'Hotjar';
     } else if (lowerHtml.includes('mixpanel')) {
       result.analytics = 'Mixpanel';
+    } else if (lowerHtml.includes('plausible')) {
+      result.analytics = 'Plausible';
+    } else if (lowerHtml.includes('fathom')) {
+      result.analytics = 'Fathom Analytics';
     }
     
     // CDN DETECTION
@@ -376,44 +399,63 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     if (server.includes('litespeed')) result.other.push('LiteSpeed');
     if (server.includes('iis')) result.other.push('Microsoft IIS');
     
-    // HOSTING DETECTION from headers and patterns
-    if (server.includes('cloudflare')) {
-      result.hosting = 'Cloudflare';
-    } else if (server.includes('amazonaws') || lowerHtml.includes('amazonaws.com')) {
-      result.hosting = 'Amazon Web Services (AWS)';
+    // HOSTING DETECTION from headers and patterns (Enhanced)
+    // Check multiple sources for accurate detection
+    if (headers['x-powered-by']?.toLowerCase().includes('wpe')) {
+      result.hosting = 'WP Engine';
+    } else if (headers['x-kinsta-cache'] || lowerHtml.includes('kinsta.com')) {
+      result.hosting = 'Kinsta';
+    } else if (headers['x-pantheon-styx-hostname'] || lowerHtml.includes('pantheon')) {
+      result.hosting = 'Pantheon';
+    } else if (headers['x-flywheel-site'] || lowerHtml.includes('getflywheel')) {
+      result.hosting = 'Flywheel';
+    } else if (headers['x-siteground-hash'] || lowerHtml.includes('siteground')) {
+      result.hosting = 'SiteGround';
+    } else if (headers['x-ah-environment'] || lowerHtml.includes('acquia')) {
+      result.hosting = 'Acquia';
+    } else if (server.includes('cloudflare') || headers['cf-ray']) {
+      // Note: Cloudflare is often a CDN, not origin hosting
+      result.hosting = 'Cloudflare Pages';
+    } else if (headers['x-github-request-id'] || lowerHtml.includes('github.io')) {
+      result.hosting = 'GitHub Pages';
+    } else if (server.includes('amazonaws') || lowerHtml.includes('amazonaws.com') || lowerHtml.includes('aws')) {
+      result.hosting = 'AWS';
     } else if (lowerHtml.includes('digitalocean') || lowerHtml.includes('do-spaces')) {
       result.hosting = 'DigitalOcean';
-    } else if (lowerHtml.includes('googleusercontent') || lowerHtml.includes('googleapis')) {
-      result.hosting = 'Google Cloud Platform';
+    } else if (lowerHtml.includes('googleusercontent') || lowerHtml.includes('googleapis') || lowerHtml.includes('gcp')) {
+      result.hosting = 'Google Cloud';
     } else if (lowerHtml.includes('azure') || lowerHtml.includes('azurewebsites')) {
       result.hosting = 'Microsoft Azure';
     } else if (lowerHtml.includes('netlify') || headers['x-nf-request-id']) {
       result.hosting = 'Netlify';
     } else if (lowerHtml.includes('vercel') || headers['x-vercel-id']) {
       result.hosting = 'Vercel';
+    } else if (headers['x-served-by']?.includes('heroku') || lowerHtml.includes('herokuapp')) {
+      result.hosting = 'Heroku';
+    } else if (lowerHtml.includes('railway.app') || headers['x-railway']) {
+      result.hosting = 'Railway';
+    } else if (lowerHtml.includes('render.com')) {
+      result.hosting = 'Render';
+    } else if (headers['x-drupal-cache'] || headers['x-drupal-dynamic-cache']) {
+      result.hosting = 'Drupal Hosting';
+    } else if (server.includes('nginx') && !result.hosting) {
+      // Generic fallback for nginx without specific host
+      result.hosting = 'VPS/Dedicated Server (Nginx)';
+    } else if (server.includes('apache') && !result.hosting) {
+      // Generic fallback for apache without specific host
+      result.hosting = 'VPS/Dedicated Server (Apache)';
+    } else if (server.includes('litespeed') && !result.hosting) {
+      result.hosting = 'LiteSpeed Server';
     }
     
-    // E-COMMERCE DETECTION (strict)
+    // WordPress Plugin Detection (Sophisticated - uses shared service)
     if (result.cms === 'WordPress') {
-      if (lowerHtml.includes('woocommerce') && 
-          (lowerHtml.includes('wc-ajax') || lowerHtml.includes('/wp-content/plugins/woocommerce/'))) {
-        result.plugins.push('WooCommerce');
+      const wpDetection = detectWordPressPlugins(html);
+      if (wpDetection.plugins && wpDetection.plugins.length > 0) {
+        result.plugins = wpDetection.plugins;
       }
-    }
-    
-    // WordPress Plugin Detection
-    if (result.cms === 'WordPress') {
-      if (lowerHtml.includes('yoast') && lowerHtml.includes('yoast_wpseo')) {
-        result.plugins.push('Yoast SEO');
-      }
-      if (lowerHtml.includes('elementor')) {
-        result.pageBuilder = 'Elementor';
-      }
-      if (lowerHtml.includes('divi-theme') || lowerHtml.includes('et_pb_')) {
-        result.pageBuilder = 'Divi';
-      }
-      if (lowerHtml.includes('wpbakery') || lowerHtml.includes('js_composer')) {
-        result.pageBuilder = 'WPBakery';
+      if (wpDetection.pageBuilder) {
+        result.pageBuilder = wpDetection.pageBuilder;
       }
     }
     
