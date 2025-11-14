@@ -13,8 +13,8 @@ export async function GET(_request: NextRequest) {
 
     const userId = (session.user as { id: string }).id
 
-    // Get all audits for the user, sorted by creation date (newest first)
-    const audits = await prisma.audit.findMany({
+    // Get audits owned by the user
+    const myAudits = await prisma.audit.findMany({
       where: {
         userId: userId
       },
@@ -28,24 +28,95 @@ export async function GET(_request: NextRequest) {
         createdAt: true,
         completedAt: true,
         sections: true,
-        results: true // Include results to get scope and totalPages
+        results: true,
+        shares: {
+          select: {
+            id: true,
+            sharedWith: {
+              select: {
+                username: true
+              }
+            }
+          }
+        }
       },
       take: 50 // Limit to last 50 audits
     })
 
+    // Get audits shared with the user
+    const sharedAudits = await prisma.audit.findMany({
+      where: {
+        shares: {
+          some: {
+            sharedWithUserId: userId
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      select: {
+        id: true,
+        url: true,
+        status: true,
+        createdAt: true,
+        completedAt: true,
+        sections: true,
+        results: true,
+        user: {
+          select: {
+            username: true,
+            name: true
+          }
+        },
+        shares: {
+          where: {
+            sharedWithUserId: userId
+          },
+          select: {
+            id: true,
+            createdAt: true,
+            sharedBy: {
+              select: {
+                username: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
+      take: 50
+    })
+
     // Extract scope and totalPages from results for each audit
-    const auditsWithScope = audits.map(audit => {
+    const myAuditsWithScope = myAudits.map(audit => {
       const results = audit.results as any
       return {
         ...audit,
         scope: results?.scope || 'single',
-        totalPages: results?.totalPages || 1
+        totalPages: results?.totalPages || 1,
+        shareCount: audit.shares.length,
+        isOwner: true
+      }
+    })
+
+    const sharedAuditsWithScope = sharedAudits.map(audit => {
+      const results = audit.results as any
+      const share = audit.shares[0] // Current user's share
+      return {
+        ...audit,
+        scope: results?.scope || 'single',
+        totalPages: results?.totalPages || 1,
+        sharedBy: share.sharedBy,
+        sharedAt: share.createdAt,
+        isOwner: false
       }
     })
 
     return NextResponse.json({
-      audits: auditsWithScope,
-      total: auditsWithScope.length
+      myAudits: myAuditsWithScope,
+      sharedAudits: sharedAuditsWithScope,
+      total: myAuditsWithScope.length + sharedAuditsWithScope.length
     })
 
   } catch (error) {

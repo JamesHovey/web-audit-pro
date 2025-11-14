@@ -40,19 +40,21 @@ model Session {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  username          String    @unique
+  id                String       @id @default(cuid())
+  username          String       @unique
   name              String?
-  email             String?   @unique
+  email             String?      @unique
   emailVerified     DateTime?
   image             String?
   password          String
-  plaintextPassword String?   // TESTING ONLY - Remove in production
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  plaintextPassword String?      // TESTING ONLY - Remove in production
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   accounts          Account[]
   sessions          Session[]
   audits            Audit[]
+  sharedWithMe      AuditShare[] @relation("SharedWith")
+  sharesGiven       AuditShare[] @relation("SharedBy")
 }
 
 model VerificationToken {
@@ -64,19 +66,36 @@ model VerificationToken {
 }
 
 model Audit {
-  id                String   @id @default(cuid())
+  id                String       @id @default(cuid())
   userId            String?
   url               String
-  status            String   @default("pending") // pending, running, completed, failed
-  sections          Json     // Selected audit sections
-  results           Json?    // Audit results
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String       @default("pending") // pending, running, completed, failed
+  sections          Json         // Selected audit sections
+  results           Json?        // Audit results
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   completedAt       DateTime?
-  usageMetrics      Json?    // Detailed usage: { browserMinutes, keCredits, serperSearches, claudeTokens }
+  usageMetrics      Json?        // Detailed usage: { browserMinutes, keCredits, serperSearches, claudeTokens }
 
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares AuditShare[]
 
   @@index([userId])
   @@index([status])
+}
+
+model AuditShare {
+  id               String   @id @default(cuid())
+  auditId          String
+  sharedWithUserId String
+  sharedByUserId   String
+  createdAt        DateTime @default(now())
+
+  audit        Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  sharedWith   User  @relation("SharedWith", fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+  sharedBy     User  @relation("SharedBy", fields: [sharedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([auditId, sharedWithUserId])
+  @@index([sharedWithUserId])
+  @@index([auditId])
 }
