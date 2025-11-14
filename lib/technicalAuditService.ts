@@ -236,15 +236,27 @@ export async function performTechnicalAudit(
     }
 
     // 3. Find and analyze all images from main page
-    const mainPageImages = await findAndAnalyzeImages(html, url);
-    result.largeImageDetails = mainPageImages.largeImages;
-    result.legacyFormatImages = mainPageImages.legacyFormatImages;
+    try {
+      const mainPageImages = await findAndAnalyzeImages(html, url);
+      result.largeImageDetails = mainPageImages.largeImages;
+      result.legacyFormatImages = mainPageImages.legacyFormatImages;
+    } catch (error) {
+      console.error('❌ Image analysis failed for main page:', error);
+      result.largeImageDetails = [];
+      result.legacyFormatImages = [];
+    }
     
     // 4. Find and check all links for 404s
-    const links = findAllLinks(html, url);
-    const brokenLinks = await checkLinksFor404s(links, url);
-    result.notFoundErrors = brokenLinks;
-    result.issues.httpErrors = brokenLinks.length;
+    try {
+      const links = findAllLinks(html, url);
+      const brokenLinks = await checkLinksFor404s(links, url);
+      result.notFoundErrors = brokenLinks;
+      result.issues.httpErrors = brokenLinks.length;
+    } catch (error) {
+      console.error('❌ Link checking failed:', error);
+      result.notFoundErrors = [];
+      result.issues.httpErrors = 0;
+    }
     
     // 5. Check for sitemap
     result.sitemapStatus = await checkSitemap(baseUrl);
@@ -766,54 +778,93 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
 
   let match;
   const checkedUrls = new Set<string>();
+  const imageUrls: string[] = [];
 
+  // First pass: collect all image URLs
   while ((match = imageRegex.exec(html)) !== null) {
     const imgSrc = match[1];
     if (!imgSrc || checkedUrls.has(imgSrc)) continue;
     checkedUrls.add(imgSrc);
 
-    // Convert relative URLs to absolute
-    let imageUrl = imgSrc;
     try {
       // Skip data URLs and SVGs early
       if (imgSrc.startsWith('data:') || imgSrc.endsWith('.svg')) continue;
 
       // Always use URL constructor for proper normalization
+      let imageUrl: string;
       if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
-        // Valid absolute URL - use directly but validate
         imageUrl = new URL(imgSrc).href;
       } else {
-        // Relative URL or malformed URL - resolve against base
         const base = new URL(pageUrl);
         imageUrl = new URL(imgSrc, base).href;
       }
 
-      // Try to get image size via HEAD request
-      const sizeKB = await getImageSize(imageUrl);
-
-      if (sizeKB > 0) {
-        const imageData = { imageUrl, pageUrl, sizeKB };
-        images.push(imageData);
-
-        // Track images over 100KB
-        if (sizeKB > 100) {
-          largeImages.push(imageData);
-        }
-
-        // Check image format and track legacy formats (prioritize larger images >100KB)
-        const formatAnalysis = analyzeImageFormat(imageUrl);
-        if (!formatAnalysis.isModern && sizeKB > 100) {
-          legacyFormatImages.push({
-            imageUrl,
-            pageUrl,
-            currentFormat: formatAnalysis.currentFormat,
-            suggestedFormat: formatAnalysis.suggestedFormat,
-            sizeKB
-          });
-        }
-      }
+      imageUrls.push(imageUrl);
     } catch (_error) {
-      console.log(`Could not check image ${imgSrc}:`, error);
+      // Skip malformed URLs
+      continue;
+    }
+  }
+
+  // Process images in batches with concurrency control
+  const BATCH_SIZE = 10; // Process 10 images at a time
+  const MAX_FAILURES = 50; // Circuit breaker: stop if too many fail
+  let failureCount = 0;
+
+  for (let i = 0; i < imageUrls.length; i += BATCH_SIZE) {
+    // Circuit breaker: stop processing if too many failures
+    if (failureCount >= MAX_FAILURES) {
+      console.log(`⚠️ Stopped image analysis: ${failureCount} consecutive failures (circuit breaker)`);
+      break;
+    }
+
+    const batch = imageUrls.slice(i, i + BATCH_SIZE);
+
+    // Process batch concurrently
+    const results = await Promise.allSettled(
+      batch.map(async (imageUrl) => {
+        const sizeKB = await getImageSize(imageUrl, pageUrl);
+        return { imageUrl, sizeKB };
+      })
+    );
+
+    // Process results
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { imageUrl, sizeKB } = result.value;
+
+        if (sizeKB > 0) {
+          failureCount = 0; // Reset failure counter on success
+          const imageData = { imageUrl, pageUrl, sizeKB };
+          images.push(imageData);
+
+          // Track images over 100KB
+          if (sizeKB > 100) {
+            largeImages.push(imageData);
+          }
+
+          // Check image format and track legacy formats (prioritize larger images >100KB)
+          const formatAnalysis = analyzeImageFormat(imageUrl);
+          if (!formatAnalysis.isModern && sizeKB > 100) {
+            legacyFormatImages.push({
+              imageUrl,
+              pageUrl,
+              currentFormat: formatAnalysis.currentFormat,
+              suggestedFormat: formatAnalysis.suggestedFormat,
+              sizeKB
+            });
+          }
+        } else {
+          failureCount++;
+        }
+      } else {
+        failureCount++;
+      }
+    }
+
+    // Small delay between batches to avoid overwhelming the server
+    if (i + BATCH_SIZE < imageUrls.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
@@ -826,36 +877,91 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
   return { images, largeImages, legacyFormatImages };
 }
 
-async function getImageSize(imageUrl: string): Promise<number> {
-  try {
-    const response = await fetch(imageUrl, {
-      method: 'HEAD',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      signal: AbortSignal.timeout(5000)
-    });
-    
-    if (!response.ok) return 0;
-    
-    const contentLength = response.headers.get('content-length');
-    if (contentLength) {
-      const bytes = parseInt(contentLength, 10);
-      return Math.round(bytes / 1024); // Convert to KB
-    }
-    
-    // If no content-length header, try to fetch the image
-    const imageResponse = await fetch(imageUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      signal: AbortSignal.timeout(10000)
-    });
-    
-    if (imageResponse.ok) {
-      const blob = await imageResponse.blob();
-      return Math.round(blob.size / 1024);
-    }
-  } catch (_error) {
-    console.log(`Could not get size for ${imageUrl}`);
+// Cache for failed image URLs to avoid re-fetching
+const failedImageCache = new Set<string>();
+
+async function getImageSize(imageUrl: string, referrer?: string): Promise<number> {
+  // Skip if we've already failed to fetch this image
+  if (failedImageCache.has(imageUrl)) {
+    return 0;
   }
-  
+
+  try {
+    // Strategy 1: Try HEAD request first (fastest, most efficient)
+    const headResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('HEAD timeout')), 3500)
+      )
+    ]);
+
+    if (headResponse.ok) {
+      const contentLength = headResponse.headers.get('content-length');
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024); // Convert to KB
+        }
+      }
+    }
+
+    // Strategy 2: If HEAD failed or no content-length, try GET with range request
+    const rangeResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Range': 'bytes=0-1023', // Only fetch first 1KB to check
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('Range timeout')), 3500)
+      )
+    ]);
+
+    if (rangeResponse.ok || rangeResponse.status === 206) {
+      const contentLength = rangeResponse.headers.get('content-length');
+      const contentRange = rangeResponse.headers.get('content-range');
+
+      // Parse content-range: bytes 0-1023/12345
+      if (contentRange) {
+        const match = contentRange.match(/bytes \d+-\d+\/(\d+)/);
+        if (match) {
+          const totalBytes = parseInt(match[1], 10);
+          if (!isNaN(totalBytes) && totalBytes > 0) {
+            return Math.round(totalBytes / 1024);
+          }
+        }
+      }
+
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024);
+        }
+      }
+    }
+
+  } catch (error) {
+    // Only log if it's not a timeout (reduce noise)
+    if (error instanceof Error && !error.message.includes('timeout') && !error.message.includes('aborted')) {
+      console.log(`Could not get size for ${imageUrl}: ${error.message}`);
+    }
+    // Cache failed URL to avoid retrying
+    failedImageCache.add(imageUrl);
+  }
+
   return 0;
 }
 
