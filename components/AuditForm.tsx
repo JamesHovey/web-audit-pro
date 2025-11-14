@@ -948,7 +948,7 @@ export function AuditForm() {
                   )}
                   {techStack.plugins && techStack.plugins.length > 0 && (
                     <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium">
-                      Plugins: {techStack.plugins.length}
+                      Plugins: {techStack.plugins.join(', ')}
                     </span>
                   )}
                   {techStack.pageBuilder && (
