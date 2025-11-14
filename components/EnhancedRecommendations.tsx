@@ -34,6 +34,7 @@ interface EnhancedRecommendationsProps {
     missingMetaDescriptions?: number
     largeImages?: number
     http404Errors?: number
+    invalidStructuredData?: number
   }
   issuePages?: {
     missingH1Tags?: string[]
@@ -41,6 +42,14 @@ interface EnhancedRecommendationsProps {
     missingMetaDescriptions?: string[]
     httpErrors?: string[]
   }
+  structuredDataItems?: Array<{
+    type: string
+    format: string
+    location: string
+    isValid: boolean
+    errors: string[]
+    warnings: string[]
+  }>
   largeImagesList?: Array<{
     imageUrl: string
     pageUrl: string
@@ -65,7 +74,8 @@ export default function EnhancedRecommendations({
   technicalIssues,
   issuePages,
   largeImagesList = [],
-  legacyFormatImagesList = []
+  legacyFormatImagesList = [],
+  structuredDataItems = []
 }: EnhancedRecommendationsProps) {
   
   // Helper function to generate recommendations for technical SEO issues
@@ -376,6 +386,122 @@ export default function EnhancedRecommendations({
           '',
           '✅ After optimization, re-run the audit to verify improvements'
         ]
+      })
+    }
+
+    // Invalid Structured Data
+    if (technicalIssues?.invalidStructuredData && technicalIssues.invalidStructuredData > 0) {
+      const hasRankMath = detectedPlugins.some(p => p.toLowerCase().includes('rank math'))
+      const hasYoast = detectedPlugins.some(p => p.toLowerCase().includes('yoast'))
+      const hasSchemaPlugin = detectedPlugins.some(p =>
+        p.toLowerCase().includes('schema') ||
+        p.toLowerCase().includes('rank math') ||
+        p.toLowerCase().includes('yoast')
+      )
+
+      const wordpressSteps = hasSchemaPlugin ? [
+        '✅ Good news! You have a schema plugin installed',
+        '1. Review the structured data errors in the table below',
+        '2. Use Google Rich Results Test to identify specific issues:',
+        '   • Visit: https://search.google.com/test/rich-results',
+        '   • Enter your URL or paste the schema markup',
+        '   • Review validation errors and warnings',
+        '',
+        '🔧 FIXING SCHEMA ISSUES:',
+        hasRankMath ? '1. Go to WordPress Dashboard → Rank Math → Schema' : hasYoast ? '1. Go to WordPress Dashboard → SEO → Search Appearance → Content Types' : '1. Go to your schema plugin settings',
+        '2. Review each schema type configured on your site',
+        '3. Ensure all required properties are filled:',
+        '   • Organization: name, logo, url',
+        '   • Article: headline, author, datePublished, image',
+        '   • Product: name, image, offers (price)',
+        '   • LocalBusiness: name, address, telephone',
+        '4. Remove duplicate schemas if detected',
+        '5. Test each page with Google Rich Results Test',
+        '',
+        '📋 COMMON ISSUES:',
+        'Missing required properties (name, image, url)',
+        'Invalid date formats (use ISO 8601: YYYY-MM-DD)',
+        'Missing @context or @type in JSON-LD',
+        'Duplicate schemas of the same type',
+        'Logo images not meeting size requirements (112x112px minimum)',
+        '',
+        '💡 TIP: Fix invalid schemas to qualify for rich search results (star ratings, breadcrumbs, etc.)'
+      ] : [
+        '⚠️ You don\'t have a schema plugin installed yet',
+        '📦 Install a schema plugin to make managing structured data easy:',
+        '   • Rank Math (includes comprehensive schema builder)',
+        '   • Schema Pro (dedicated schema plugin)',
+        '   • WP Schema Pro (visual schema builder)',
+        '',
+        'After installing a schema plugin:',
+        '1. Complete the setup wizard',
+        '2. Configure Organization schema for your business',
+        '3. Enable automatic schema for content types (Articles, Pages)',
+        '4. Review and fix any validation errors',
+        '5. Test with Google Rich Results Test',
+        '',
+        '🎯 PRIORITY SCHEMAS:',
+        'Organization/LocalBusiness - for your business info',
+        'BreadcrumbList - for navigation breadcrumbs',
+        'Article/BlogPosting - for blog content',
+        'Product - for WooCommerce products',
+        '',
+        '💡 TIP: Valid structured data can significantly improve search visibility with rich results'
+      ]
+
+      const generalSteps = [
+        '📋 Review the structured data errors below',
+        '',
+        '🔍 VALIDATE YOUR SCHEMA:',
+        '1. Go to Google Rich Results Test:',
+        '   https://search.google.com/test/rich-results',
+        '2. Enter your URL or paste your schema markup',
+        '3. Review all errors and warnings',
+        '4. Check Schema.org documentation for requirements',
+        '',
+        '🛠️ FIXING JSON-LD ERRORS:',
+        '1. Ensure @context is "https://schema.org"',
+        '2. Include all required properties for your schema type',
+        '3. Use proper date format: YYYY-MM-DD or ISO 8601',
+        '4. Ensure image URLs are absolute, not relative',
+        '5. Remove duplicate schemas of the same type',
+        '',
+        '📊 COMMON SCHEMA TYPES & REQUIRED PROPERTIES:',
+        '',
+        'Organization/LocalBusiness:',
+        '  • name (required)',
+        '  • logo (required for rich results)',
+        '  • url (recommended)',
+        '  • address (required for LocalBusiness)',
+        '',
+        'Article/BlogPosting:',
+        '  • headline (required)',
+        '  • author (required)',
+        '  • datePublished (required)',
+        '  • image (required for rich results)',
+        '  • publisher with logo (required)',
+        '',
+        'Product:',
+        '  • name (required)',
+        '  • image (required)',
+        '  • offers with price & priceCurrency (required)',
+        '  • aggregateRating or review (for star ratings)',
+        '',
+        '💡 RESOURCES:',
+        'Google Rich Results Test: https://search.google.com/test/rich-results',
+        'Schema.org Documentation: https://schema.org/docs/schemas.html',
+        'Google Search Central: https://developers.google.com/search/docs/appearance/structured-data'
+      ]
+
+      techRecs.push({
+        title: 'Fix Invalid Structured Data',
+        description: `${technicalIssues.invalidStructuredData} structured data item(s) have validation errors, preventing rich results`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Structured data (schema markup) helps search engines understand your content and display rich results like star ratings, breadcrumbs, and event details. Invalid schemas won\'t qualify for these enhanced search appearances. Use Google Rich Results Test (https://search.google.com/test/rich-results) to validate your markup.',
+        useCase: cms === 'WordPress' ? 'schema-markup' : undefined,
+        howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
       })
     }
 
@@ -1330,6 +1456,82 @@ export default function EnhancedRecommendations({
                               </p>
                             )}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Structured Data Validation Table */}
+                      {rec.title.includes('Invalid Structured Data') && structuredDataItems && structuredDataItems.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-red-600">❌ Structured Data Validation Results</h5>
+                          <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-red-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Schema Type</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Format</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Location</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Status</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Issues</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-red-200">
+                                  {structuredDataItems.map((item: { type: string; format: string; location: string; isValid: boolean; errors: string[]; warnings: string[] }, idx: number) => (
+                                    <tr key={idx} className={`hover:bg-red-50 ${!item.isValid ? 'bg-red-100' : ''}`}>
+                                      <td className="px-4 py-3">
+                                        <span className="font-medium text-gray-900">{item.type}</span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                          {item.format}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-gray-600">
+                                        {item.location}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        {item.isValid ? (
+                                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                            Valid
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium">
+                                            Invalid
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        {item.errors.length > 0 && (
+                                          <div className="space-y-1">
+                                            {item.errors.map((error, errorIdx) => (
+                                              <div key={errorIdx} className="text-xs text-red-700">
+                                                • {error}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {item.warnings.length > 0 && (
+                                          <div className="space-y-1 mt-1">
+                                            {item.warnings.map((warning, warningIdx) => (
+                                              <div key={warningIdx} className="text-xs text-orange-600">
+                                                ⚠ {warning}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {item.errors.length === 0 && item.warnings.length === 0 && (
+                                          <span className="text-xs text-gray-500">No issues</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Use <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Google Rich Results Test</a> to validate your structured data and see how it appears in search results.
+                          </p>
                         </div>
                       )}
 

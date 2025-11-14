@@ -2612,11 +2612,13 @@ function renderSectionResults(
               missingMetaTitles: results.issues?.missingMetaTitles,
               missingMetaDescriptions: results.issues?.missingMetaDescriptions,
               largeImages: results.largeImages || results.issues?.largeImages,
-              http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
+              http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors,
+              invalidStructuredData: results.issues?.invalidStructuredData
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
             legacyFormatImagesList={results.legacyFormatImages || []}
+            structuredDataItems={results.structuredData?.items || []}
           />
 
           {/* Conversion Analysis Section */}

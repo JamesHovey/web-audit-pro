@@ -665,6 +665,90 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
       'Less popular/tested'
     ],
     bestFor: 'Developers and users wanting a clean, efficient redirect solution'
+  },
+
+  // Schema/Structured Data Plugins
+  {
+    name: 'Schema Pro',
+    slug: 'wp-schema-pro',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Premium schema plugin with visual builder and comprehensive schema types',
+    rating: 4.9,
+    reviews: 428,
+    activeInstalls: '200,000+',
+    cost: 'Paid',
+    pricingDetails: '£63/year for single site',
+    url: 'https://wpschema.com/',
+    pros: [
+      'Visual schema builder',
+      'Supports 20+ schema types',
+      'Automatic schema generation',
+      'Works with any theme/builder',
+      'Regular updates for Google changes',
+      'Excellent support'
+    ],
+    cons: [
+      'Premium only (no free version)',
+      'Annual subscription required',
+      'May be overkill for simple sites'
+    ],
+    bestFor: 'Professional sites needing comprehensive schema management'
+  },
+  {
+    name: 'Schema & Structured Data for WP',
+    slug: 'schema-and-structured-data-for-wp',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Free schema plugin supporting multiple schema types with easy setup',
+    rating: 4.5,
+    reviews: 582,
+    activeInstalls: '100,000+',
+    cost: 'Freemium',
+    pricingDetails: 'Free version available. Pro: £79/year',
+    url: 'https://wordpress.org/plugins/schema-and-structured-data-for-wp/',
+    freeTierLimits: 'Free version includes 35+ schema types',
+    pros: [
+      'Generous free version',
+      'Supports 35+ schema types',
+      'Automatic schema insertion',
+      'Compatible with major themes',
+      'Google validation tools integration',
+      'Regular updates'
+    ],
+    cons: [
+      'Interface less intuitive than Schema Pro',
+      'Some advanced features require Pro',
+      'Limited customization in free version'
+    ],
+    bestFor: 'Sites wanting comprehensive free schema without complexity'
+  },
+  {
+    name: 'WP SEO Structured Data Schema',
+    slug: 'wp-seo-structured-data-schema',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Lightweight free schema plugin with focus on essential schema types',
+    rating: 4.4,
+    reviews: 234,
+    activeInstalls: '50,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/wp-seo-structured-data-schema/',
+    pros: [
+      'Completely free',
+      'Lightweight and fast',
+      'Easy setup wizard',
+      'No coding required',
+      'Automatic JSON-LD output',
+      'Works with all themes'
+    ],
+    cons: [
+      'Limited schema types',
+      'Basic features only',
+      'Less frequent updates',
+      'Smaller user base'
+    ],
+    bestFor: 'Simple sites needing basic Organization and Article schemas'
   }
 ]
 

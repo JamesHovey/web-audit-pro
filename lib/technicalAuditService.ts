@@ -87,12 +87,27 @@ interface TechnicalAuditResult {
     missingMetaDescriptions: number;
     missingH1Tags: number;
     httpErrors: number;
+    invalidStructuredData?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
     missingMetaDescriptions?: string[];
     missingH1Tags?: string[];
     httpErrors?: string[];
+  };
+  structuredData?: {
+    totalItems: number;
+    validItems: number;
+    invalidItems: number;
+    items: Array<{
+      type: string;
+      format: string;
+      location: string;
+      isValid: boolean;
+      errors: string[];
+      warnings: string[];
+    }>;
+    recommendations: string[];
   };
   notFoundErrors: Array<{
     brokenUrl: string;
@@ -195,7 +210,19 @@ export async function performTechnicalAudit(
     if (!pageAnalysis.hasTitle) result.issues.missingMetaTitles++;
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
-    
+
+    // 2.5. Validate structured data (schema markup)
+    console.log('🔍 Validating structured data...');
+    try {
+      const { validateStructuredData } = await import('./structuredDataValidator');
+      const structuredDataResult = await validateStructuredData(html);
+      result.structuredData = structuredDataResult;
+      result.issues.invalidStructuredData = structuredDataResult.invalidItems;
+      console.log(`📊 Structured data: ${structuredDataResult.totalItems} items found, ${structuredDataResult.invalidItems} invalid`);
+    } catch (error) {
+      console.error('❌ Structured data validation failed:', error);
+    }
+
     // 3. Find and analyze all images from main page
     const mainPageImages = await findAndAnalyzeImages(html, url);
     result.largeImageDetails = mainPageImages.largeImages;
