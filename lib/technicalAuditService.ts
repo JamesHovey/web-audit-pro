@@ -176,23 +176,99 @@ export async function performTechnicalAudit(
     let html: string;
     let finalUrl = url;
     let statusCode = 200;
+    let browserImageData: Map<string, { sizeKB: number; transferSizeKB: number }> = new Map();
 
     try {
       // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
       const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+        // Track image network requests to capture their sizes
+        const imageNetworkData = new Map<string, { sizeKB: number; transferSizeKB: number }>();
+
+        // Enable network monitoring via CDP (Chrome DevTools Protocol)
+        const client = await page.target().createCDPSession();
+        await client.send('Network.enable');
+
+        // Listen to network responses
+        client.on('Network.responseReceived', (params: any) => {
+          const { response, type } = params;
+
+          // Only track image requests
+          if (type === 'Image' || response.mimeType?.startsWith('image/')) {
+            const url = response.url;
+            const headers = response.headers || {};
+            const contentLength = headers['content-length'] || headers['Content-Length'];
+
+            if (contentLength) {
+              const bytes = parseInt(contentLength, 10);
+              if (!isNaN(bytes) && bytes > 0) {
+                imageNetworkData.set(url, {
+                  sizeKB: Math.round(bytes / 1024),
+                  transferSizeKB: Math.round(bytes / 1024) // Will be updated with actual transfer size
+                });
+              }
+            }
+          }
+        });
+
+        // Also listen for loading finished to get actual transfer sizes
+        client.on('Network.loadingFinished', async (params: any) => {
+          const { requestId, encodedDataLength } = params;
+
+          // Get request details to find the URL
+          try {
+            const requestDetails = await client.send('Network.getResponseBody', { requestId });
+            // encodedDataLength is the actual compressed transfer size
+            if (encodedDataLength > 0) {
+              // We need to match this to a URL - will update existing entry if found
+              // For now, we'll use the encodedDataLength as transferSize
+            }
+          } catch (e) {
+            // getResponseBody may fail for images, that's ok
+          }
+        });
+
         await BrowserService.goto(page, url);
 
-        // Wait a moment for JavaScript to execute
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait a moment for JavaScript to execute and images to load
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Get Resource Timing API data for even more accurate image sizes
+        const resourceTimingData = await page.evaluate(() => {
+          return performance.getEntriesByType('resource')
+            .filter((r: any) => r.initiatorType === 'img' || r.initiatorType === 'image')
+            .map((r: any) => ({
+              url: r.name,
+              transferSize: r.transferSize, // Actual bytes transferred (compressed)
+              encodedBodySize: r.encodedBodySize, // Compressed size
+              decodedBodySize: r.decodedBodySize // Uncompressed size
+            }));
+        });
+
+        // Merge Resource Timing data with CDP data (Resource Timing is more accurate)
+        for (const resource of resourceTimingData) {
+          if (resource.transferSize > 0) {
+            imageNetworkData.set(resource.url, {
+              sizeKB: Math.round(resource.decodedBodySize / 1024), // Uncompressed size
+              transferSizeKB: Math.round(resource.transferSize / 1024) // Actual transfer (compressed)
+            });
+          }
+        }
+
+        console.log(`📸 Captured ${imageNetworkData.size} images from browser network activity`);
 
         const renderedHtml = await page.content();
         const pageUrl = page.url();
 
-        return { html: renderedHtml, url: pageUrl };
+        return {
+          html: renderedHtml,
+          url: pageUrl,
+          imageData: imageNetworkData
+        };
       });
 
       html = browserResult.html;
       finalUrl = browserResult.url;
+      browserImageData = browserResult.imageData;
       console.log(`📍 Final URL after redirects: ${finalUrl}`);
     } catch (browserError) {
       // Fallback to simple fetch if browser rendering fails
@@ -237,7 +313,7 @@ export async function performTechnicalAudit(
 
     // 3. Find and analyze all images from main page
     try {
-      const mainPageImages = await findAndAnalyzeImages(html, url);
+      const mainPageImages = await findAndAnalyzeImages(html, finalUrl, browserImageData);
       result.largeImageDetails = mainPageImages.largeImages;
       result.legacyFormatImages = mainPageImages.legacyFormatImages;
     } catch (error) {
@@ -770,7 +846,11 @@ function analyzeImageFormat(imageUrl: string): {
   return { currentFormat: 'Unknown', isModern: true, suggestedFormat: 'N/A' };
 }
 
-async function findAndAnalyzeImages(html: string, pageUrl: string) {
+async function findAndAnalyzeImages(
+  html: string,
+  pageUrl: string,
+  browserImageData?: Map<string, { sizeKB: number; transferSizeKB: number }>
+) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
@@ -806,10 +886,12 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
     }
   }
 
-  // Process images in batches with concurrency control
+  // Process images - prioritize browser-captured data
   const BATCH_SIZE = 10; // Process 10 images at a time
   const MAX_FAILURES = 50; // Circuit breaker: stop if too many fail
   let failureCount = 0;
+  let browserDataUsed = 0;
+  let fetchedData = 0;
 
   for (let i = 0; i < imageUrls.length; i += BATCH_SIZE) {
     // Circuit breaker: stop processing if too many failures
@@ -823,15 +905,36 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
     // Process batch concurrently
     const results = await Promise.allSettled(
       batch.map(async (imageUrl) => {
+        // Strategy 1: Check if we have browser-captured data for this image (BEST!)
+        if (browserImageData && browserImageData.has(imageUrl)) {
+          const browserData = browserImageData.get(imageUrl)!;
+          return {
+            imageUrl,
+            sizeKB: browserData.sizeKB,
+            source: 'browser' as const
+          };
+        }
+
+        // Strategy 2: Fall back to fetching (for images not loaded by browser)
         const sizeKB = await getImageSize(imageUrl, pageUrl);
-        return { imageUrl, sizeKB };
+        return {
+          imageUrl,
+          sizeKB,
+          source: 'fetch' as const
+        };
       })
     );
 
     // Process results
     for (const result of results) {
       if (result.status === 'fulfilled') {
-        const { imageUrl, sizeKB } = result.value;
+        const { imageUrl, sizeKB, source } = result.value;
+
+        if (source === 'browser') {
+          browserDataUsed++;
+        } else if (sizeKB > 0) {
+          fetchedData++;
+        }
 
         if (sizeKB > 0) {
           failureCount = 0; // Reset failure counter on success
@@ -854,7 +957,7 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
               sizeKB
             });
           }
-        } else {
+        } else if (source === 'fetch') {
           failureCount++;
         }
       } else {
@@ -862,11 +965,13 @@ async function findAndAnalyzeImages(html: string, pageUrl: string) {
       }
     }
 
-    // Small delay between batches to avoid overwhelming the server
-    if (i + BATCH_SIZE < imageUrls.length) {
+    // Small delay between batches to avoid overwhelming the server (only for fetched images)
+    if (i + BATCH_SIZE < imageUrls.length && fetchedData > 0) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
+
+  console.log(`📊 Image analysis: ${browserDataUsed} from browser, ${fetchedData} fetched, ${images.length} total`);
 
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
