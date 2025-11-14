@@ -1,0 +1,724 @@
+2025-11-14T10:07:44.000000000Z [inf]  Starting Container
+2025-11-14T10:07:45.238673595Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-14T10:07:46.312852712Z [inf]  Prisma schema loaded from prisma/schema.prisma
+2025-11-14T10:07:46.312857101Z [inf]  Datasource "db": PostgreSQL database "railway", schema "public" at "postgres.railway.internal:5432"
+2025-11-14T10:07:46.578942285Z [inf]  
+2025-11-14T10:07:46.578947476Z [inf]  4 migrations found in prisma/migrations
+2025-11-14T10:07:46.578951969Z [inf]  
+2025-11-14T10:07:46.698770414Z [inf]  Applying migration `20250114_add_audit_sharing`
+2025-11-14T10:07:46.724645193Z [inf]  
+2025-11-14T10:07:46.724652126Z [inf]  The following migration(s) have been applied:
+2025-11-14T10:07:46.724659506Z [inf]  
+2025-11-14T10:07:46.724666101Z [inf]  migrations/
+2025-11-14T10:07:46.724672444Z [inf]    └─ 20250114_add_audit_sharing/
+2025-11-14T10:07:46.724679552Z [inf]      └─ migration.sql
+2025-11-14T10:07:46.724685616Z [inf]        
+2025-11-14T10:07:46.724691657Z [inf]  All migrations have been successfully applied.
+2025-11-14T10:07:47.000000000Z [inf]  Stopping Container
+2025-11-14T10:07:47.187605032Z [inf]  
+2025-11-14T10:07:47.187614261Z [inf]  > web-audit-pro@0.1.0 start
+2025-11-14T10:07:47.187628409Z [inf]  > next start
+2025-11-14T10:07:47.187635760Z [inf]  
+2025-11-14T10:07:47.187650221Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-14T10:07:47.212204731Z [inf]     ▲ Next.js 15.4.6
+2025-11-14T10:07:47.212209206Z [inf]     - Local:        http://localhost:8080
+2025-11-14T10:07:47.212212893Z [inf]     - Network:      http://10.230.184.68:8080
+2025-11-14T10:07:47.212217274Z [inf]  
+2025-11-14T10:07:47.212221390Z [inf]   ✓ Starting...
+2025-11-14T10:07:47.721423356Z [err]   ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-11-14T10:07:47.801263526Z [inf]   ✓ Ready in 749ms
+2025-11-14T10:07:50.969653681Z [err]  npm error path /app
+2025-11-14T10:07:50.969661693Z [err]  npm error command failed
+2025-11-14T10:07:50.969668373Z [err]  npm error signal SIGTERM
+2025-11-14T10:07:50.969673198Z [err]  npm error command sh -c next start
+2025-11-14T10:07:50.969678523Z [err]  npm error A complete log of this run can be found in: /root/.npm/_logs/2025-11-14T09_49_54_044Z-debug-0.log
+2025-11-14T10:08:07.802477795Z [inf]  🔍 Getting domain authority for: sussexreadymixconcrete.co.uk
+2025-11-14T10:08:07.802492682Z [inf]  🔍 Quick tech detection for: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:08:07.802500484Z [inf]  ✅ Domain authority retrieved: 2.42/10 (rank: 30919154)
+2025-11-14T10:08:07.802509030Z [inf]  
+2025-11-14T10:08:07.802515449Z [inf]  === ENHANCED PAGE DISCOVERY FOR www.sussexreadymixconcrete.co.uk ===
+2025-11-14T10:08:07.802521802Z [inf]  Target: 500 pages maximum
+2025-11-14T10:08:07.802529211Z [inf]  Step 1: Comprehensive sitemap analysis...
+2025-11-14T10:08:07.802536305Z [inf]  ✓ Found sitemap: https://www.sussexreadymixconcrete.co.uk/sitemap.xml
+2025-11-14T10:08:07.802542472Z [inf]    Processing sitemap index: https://www.sussexreadymixconcrete.co.uk/sitemap.xml
+2025-11-14T10:08:07.802548167Z [inf]    Found 5 child sitemaps
+2025-11-14T10:08:07.802554205Z [inf]    Fetching child sitemap: https://www.sussexreadymixconcrete.co.uk/post-sitemap.xml
+2025-11-14T10:08:07.802560558Z [inf]      Parsing XML content, length: 14864
+2025-11-14T10:08:07.802568773Z [inf]      Found 32 URL blocks
+2025-11-14T10:08:07.802574935Z [inf]      Extracted 32 valid URLs from sitemap
+2025-11-14T10:08:07.802581343Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/news/, https://www.sussexreadymixconcrete.co.uk/news/welcome-article/, https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/
+2025-11-14T10:08:07.802589093Z [inf]    Child sitemap yielded 32 pages
+2025-11-14T10:08:07.802594960Z [inf]    Fetching child sitemap: https://www.sussexreadymixconcrete.co.uk/page-sitemap.xml
+2025-11-14T10:08:07.802601954Z [inf]      Parsing XML content, length: 16266
+2025-11-14T10:08:07.802608133Z [inf]      Found 56 URL blocks
+2025-11-14T10:08:07.802614458Z [inf]      Extracted 56 valid URLs from sitemap
+2025-11-14T10:08:07.802620593Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/, https://www.sussexreadymixconcrete.co.uk/privacy-policy/, https://www.sussexreadymixconcrete.co.uk/cookie-policy/
+2025-11-14T10:08:07.804158697Z [inf]    Child sitemap yielded 56 pages
+2025-11-14T10:08:07.804168151Z [inf]    Fetching child sitemap: https://www.sussexreadymixconcrete.co.uk/locations-sitemap.xml
+2025-11-14T10:08:07.804169906Z [inf]      Extracted 1 valid URLs from sitemap
+2025-11-14T10:08:07.804175950Z [inf]      Parsing XML content, length: 3847
+2025-11-14T10:08:07.804177597Z [inf]    Fetching child sitemap: https://www.sussexreadymixconcrete.co.uk/category-sitemap.xml
+2025-11-14T10:08:07.804180108Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/news/author/admin-adtrak/
+2025-11-14T10:08:07.804184264Z [inf]      Found 11 URL blocks
+2025-11-14T10:08:07.804188119Z [inf]    Child sitemap yielded 1 pages
+2025-11-14T10:08:07.804190677Z [inf]      Parsing XML content, length: 2080
+2025-11-14T10:08:07.804192486Z [inf]      Extracted 11 valid URLs from sitemap
+2025-11-14T10:08:07.804199348Z [inf]      Found 10 URL blocks
+2025-11-14T10:08:07.804200771Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/billingshurst/, https://www.sussexreadymixconcrete.co.uk/areas-we-cover/southwater/, https://www.sussexreadymixconcrete.co.uk/areas-we-cover/seaford/
+2025-11-14T10:08:07.804205142Z [inf]      Extracted 10 valid URLs from sitemap
+2025-11-14T10:08:07.804209115Z [inf]    Child sitemap yielded 11 pages
+2025-11-14T10:08:07.804212173Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/news/category/aggregates/, https://www.sussexreadymixconcrete.co.uk/news/category/concrete-flooring/, https://www.sussexreadymixconcrete.co.uk/news/category/concrete-news/
+2025-11-14T10:08:07.804217080Z [inf]    Child sitemap yielded 10 pages
+2025-11-14T10:08:07.804221421Z [inf]    Fetching child sitemap: https://www.sussexreadymixconcrete.co.uk/author-sitemap.xml
+2025-11-14T10:08:07.804227006Z [inf]      Parsing XML content, length: 776
+2025-11-14T10:08:07.804233453Z [inf]      Found 1 URL blocks
+2025-11-14T10:08:07.805722873Z [inf]  ✓ Found sitemap: https://www.sussexreadymixconcrete.co.uk/sitemap_index.xml
+2025-11-14T10:08:07.805729902Z [inf]    Processing sitemap index: https://www.sussexreadymixconcrete.co.uk/sitemap_index.xml
+2025-11-14T10:08:07.805734894Z [inf]    Found 5 child sitemaps
+2025-11-14T10:08:07.805740449Z [inf]  ✓ Found sitemap: https://www.sussexreadymixconcrete.co.uk/wp-sitemap.xml
+2025-11-14T10:08:07.805745017Z [inf]    Processing sitemap index: https://www.sussexreadymixconcrete.co.uk/wp-sitemap.xml
+2025-11-14T10:08:07.805750232Z [inf]    Found 5 child sitemaps
+2025-11-14T10:08:08.376844817Z [inf]    Processing individual sitemap: https://www.sussexreadymixconcrete.co.uk/wp-sitemap-posts-post-1.xml
+2025-11-14T10:08:08.376854994Z [inf]      Parsing XML content, length: 14864
+2025-11-14T10:08:08.376861632Z [inf]      Found 32 URL blocks
+2025-11-14T10:08:08.376867898Z [inf]      Extracted 32 valid URLs from sitemap
+2025-11-14T10:08:08.376874041Z [inf]      Sample URLs: https://www.sussexreadymixconcrete.co.uk/news/, https://www.sussexreadymixconcrete.co.uk/news/welcome-article/, https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/
+2025-11-14T10:08:08.376881136Z [inf]    Individual sitemap yielded 32 pages
+2025-11-14T10:08:08.376885120Z [inf]  ✓ Found sitemap: https://www.sussexreadymixconcrete.co.uk/wp-sitemap-posts-post-1.xml
+2025-11-14T10:08:08.489777480Z [inf]  Found 80 pages from sitemaps
+2025-11-14T10:08:08.489782222Z [inf]  Step 2: Multi-level internal link discovery...
+2025-11-14T10:08:08.489786748Z [inf]    Crawling depth 1...
+2025-11-14T10:08:12.500223204Z [inf]    Crawling depth 2...
+2025-11-14T10:08:17.730968465Z [inf]  Found 92 additional pages from crawling
+2025-11-14T10:08:17.730974379Z [inf]  Step 3: Checking common page patterns...
+2025-11-14T10:08:22.797712432Z [inf]  Found 0 pages from common patterns
+2025-11-14T10:08:22.797718719Z [inf]  ✓ Discovery complete: 112 pages found
+2025-11-14T10:08:22.797724780Z [inf]  Sources: { sitemap: 79, internalLinks: 32, homepage: 1 }
+2025-11-14T10:08:42.845617418Z [inf]  🔍 Getting domain authority for: pmwcom.co.uk
+2025-11-14T10:08:42.845621367Z [inf]  🔍 Quick tech detection for: https://pmwcom.co.uk
+2025-11-14T10:08:42.845626234Z [inf]  ✅ Domain authority retrieved: 3.2/10 (rank: 6487103)
+2025-11-14T10:08:42.845629968Z [inf]  🔍 Getting domain authority for: sussexreadymixconcrete.co.uk
+2025-11-14T10:08:42.845634857Z [inf]  ✅ Using cached tech detection for: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:08:42.845638523Z [inf]  ✅ Domain authority retrieved: 2.42/10 (rank: 30919154)
+2025-11-14T10:08:42.845642550Z [inf]  🔍 Getting domain authority for: sussexreadymixconcrete.co.uk
+2025-11-14T10:08:42.845646989Z [inf]  🔍 Quick tech detection for: https://sussexreadymixconcrete.co.uk/
+2025-11-14T10:08:42.845651795Z [inf]  ✅ Domain authority retrieved: 2.42/10 (rank: 30919154)
+2025-11-14T10:08:44.780906446Z [inf]  ✅ Domain authority retrieved: 2.42/10 (rank: 30919154)
+2025-11-14T10:08:44.780978061Z [inf]  🔍 Getting domain authority for: sussexreadymixconcrete.co.uk
+2025-11-14T10:08:44.780993213Z [inf]  🔍 Quick tech detection for: https://sussexreadymixconcrete.co.uk
+2025-11-14T10:08:48.350342082Z [inf]  ✅ Using cached tech detection for: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:08:48.350347175Z [inf]  🔍 Getting domain authority for: sussexreadymixconcrete.co.uk
+2025-11-14T10:08:48.373456226Z [inf]  ✅ Domain authority retrieved: 2.42/10 (rank: 30919154)
+2025-11-14T10:09:08.341160845Z [inf]  📊 Audit configuration: maxPages=250, smartSampling=true, scope=all
+2025-11-14T10:09:13.142051956Z [inf]  💾 [Audit Start] Memory: 78MB used / 91MB total
+2025-11-14T10:09:13.142059206Z [inf]  Processing section 1/1: performance
+2025-11-14T10:09:13.142065385Z [inf]  🔧 Running technical audit...
+2025-11-14T10:09:13.142071084Z [inf]  🔧 Starting technical audit for https://www.sussexreadymixconcrete.co.uk/ (scope: all)
+2025-11-14T10:09:13.142076928Z [inf]  🌐 Fetching main page with browser rendering: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:09:42.810799025Z [inf]  📍 Final URL after redirects: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:09:42.810804914Z [inf]  🔍 Validating structured data...
+2025-11-14T10:09:42.810810496Z [inf]  📊 Structured data: 3 items found, 1 invalid
+2025-11-14T10:09:52.700717991Z [inf]  🔍 Discovering all website pages...
+2025-11-14T10:09:52.707924076Z [inf]  🔍 Discovering real pages for: https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:09:52.709166202Z [inf]  🗺️ Checking sitemap: https://www.sussexreadymixconcrete.co.uk/sitemap.xml
+2025-11-14T10:09:54.362183040Z [inf]  📑 Found 5 child sitemaps in sitemap index
+2025-11-14T10:10:02.032719672Z [inf]  📊 Parsed 32 URLs from sitemap
+2025-11-14T10:10:02.032732179Z [inf]     ✓ Parsed 32 pages from post-sitemap.xml, total: 32
+2025-11-14T10:10:15.825823467Z [err]  2025-11-14 10:10:07.685 UTC [76] LOG:  checkpoint starting: time
+2025-11-14T10:10:15.825842304Z [err]  2025-11-14 10:10:12.464 UTC [76] LOG:  checkpoint complete: wrote 48 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.728 s, sync=0.016 s, total=4.779 s; sync files=46, longest=0.014 s, average=0.001 s; distance=194 kB, estimate=1746 kB; lsn=0/92275A0, redo lsn=0/9227548
+2025-11-14T10:10:22.040279883Z [inf]  📊 Parsed 56 URLs from sitemap
+2025-11-14T10:10:22.040284872Z [inf]  ✅ Found 110 pages from sitemap
+2025-11-14T10:10:22.040288042Z [inf]     ✓ Parsed 56 pages from page-sitemap.xml, total: 88
+2025-11-14T10:10:22.040295063Z [inf]  📊 Analyzing Core Web Vitals for all discovered pages...
+2025-11-14T10:10:22.040300051Z [inf]  📊 Parsed 11 URLs from sitemap
+2025-11-14T10:10:22.040303262Z [inf]  ⚡ Processing pages in parallel (3 at a time)
+2025-11-14T10:10:22.040307196Z [inf]     ✓ Parsed 11 pages from locations-sitemap.xml, total: 99
+2025-11-14T10:10:22.040311764Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/
+2025-11-14T10:10:22.040315173Z [inf]  📊 Parsed 10 URLs from sitemap
+2025-11-14T10:10:22.040320568Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/ (real data)
+2025-11-14T10:10:22.040322752Z [inf]     ✓ Parsed 10 pages from category-sitemap.xml, total: 109
+2025-11-14T10:10:22.040330101Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/ (expires in 24h)
+2025-11-14T10:10:22.040330357Z [inf]  📊 Parsed 1 URLs from sitemap
+2025-11-14T10:10:22.040338648Z [inf]     ✓ Parsed 1 pages from author-sitemap.xml, total: 110
+2025-11-14T10:10:22.040339255Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/
+2025-11-14T10:10:22.040346300Z [inf]  ✅ Total pages discovered from all sitemaps: 110
+2025-11-14T10:10:22.040366394Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/ (real data)
+2025-11-14T10:10:22.040373729Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/ (expires in 24h)
+2025-11-14T10:10:22.040380785Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/welcome-article/
+2025-11-14T10:10:22.042195814Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/welcome-article/ (real data)
+2025-11-14T10:10:22.042209411Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/welcome-article/ (expires in 24h)
+2025-11-14T10:10:22.042215971Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/top-10-tips-to-prepare-for-your-concrete-delivery/
+2025-11-14T10:10:22.042221404Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/top-10-tips-to-prepare-for-your-concrete-delivery/ (real data)
+2025-11-14T10:10:22.042226818Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/top-10-tips-to-prepare-for-your-concrete-delivery/ (expires in 24h)
+2025-11-14T10:10:22.042232459Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/our-handy-guide-to-polished-concrete-flooring/
+2025-11-14T10:10:22.042238362Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/our-handy-guide-to-polished-concrete-flooring/ (real data)
+2025-11-14T10:10:22.042243559Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/our-handy-guide-to-polished-concrete-flooring/ (expires in 24h)
+2025-11-14T10:10:22.042253760Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/5-tips-for-pouring-the-perfect-concrete-driveway/
+2025-11-14T10:10:22.042260002Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/5-tips-for-pouring-the-perfect-concrete-driveway/ (real data)
+2025-11-14T10:10:22.042266372Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/5-tips-for-pouring-the-perfect-concrete-driveway/ (expires in 24h)
+2025-11-14T10:10:22.076132552Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/6-concrete-driveway-design-ideas/
+2025-11-14T10:10:22.078562209Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/6-concrete-driveway-design-ideas/ (real data)
+2025-11-14T10:10:22.078575851Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/6-concrete-driveway-design-ideas/ (expires in 24h)
+2025-11-14T10:10:22.094996664Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-kind-of-concrete-is-right-for-my-project/
+2025-11-14T10:10:22.095000985Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-kind-of-concrete-is-right-for-my-project/ (real data)
+2025-11-14T10:10:22.095005060Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/what-kind-of-concrete-is-right-for-my-project/ (expires in 24h)
+2025-11-14T10:10:22.122446462Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-the-perfect-concrete-slab/
+2025-11-14T10:10:22.125481895Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-the-perfect-concrete-slab/ (real data)
+2025-11-14T10:10:22.125487967Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-the-perfect-concrete-slab/ (expires in 24h)
+2025-11-14T10:10:22.645338087Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-and-care-for-concrete-in-cold-weather/ (expires in 24h)
+2025-11-14T10:10:22.645348555Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-use-concrete-in-interior-design/ (real data)
+2025-11-14T10:10:22.645354541Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-use-concrete-in-interior-design/ (expires in 24h)
+2025-11-14T10:10:22.645354830Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-choose-the-right-concrete-company/
+2025-11-14T10:10:22.645360864Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-choose-the-right-concrete-company/ (real data)
+2025-11-14T10:10:22.645367297Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-and-care-for-concrete-in-cold-weather/
+2025-11-14T10:10:22.645369184Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-choose-the-right-concrete-company/ (expires in 24h)
+2025-11-14T10:10:22.645381534Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-and-care-for-concrete-in-cold-weather/ (real data)
+2025-11-14T10:10:22.645382469Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-use-concrete-in-interior-design/
+2025-11-14T10:10:22.714626429Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-is-the-difference-between-concrete-and-screed/
+2025-11-14T10:10:22.714634707Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-is-the-difference-between-concrete-and-screed/ (real data)
+2025-11-14T10:10:22.714639797Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/what-is-the-difference-between-concrete-and-screed/ (expires in 24h)
+2025-11-14T10:10:22.714644015Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-is-the-price-of-concrete-per-cubic-metre/
+2025-11-14T10:10:22.714650623Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/what-is-the-price-of-concrete-per-cubic-metre/ (real data)
+2025-11-14T10:10:22.714655419Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/what-is-the-price-of-concrete-per-cubic-metre/ (expires in 24h)
+2025-11-14T10:10:22.750186129Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-is-sealing-concrete-floors-important/
+2025-11-14T10:10:22.750190975Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-is-sealing-concrete-floors-important/ (real data)
+2025-11-14T10:10:22.750195127Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-is-sealing-concrete-floors-important/ (expires in 24h)
+2025-11-14T10:10:23.035707085Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/the-types-of-concrete-and-their-benefits/
+2025-11-14T10:10:23.035719078Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/the-types-of-concrete-and-their-benefits/ (real data)
+2025-11-14T10:10:23.035726218Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/the-types-of-concrete-and-their-benefits/ (expires in 24h)
+2025-11-14T10:10:23.125169166Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/can-you-pour-concrete-in-the-rain/
+2025-11-14T10:10:23.125177489Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/can-you-pour-concrete-in-the-rain/ (real data)
+2025-11-14T10:10:23.125182028Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/can-you-pour-concrete-in-the-rain/ (expires in 24h)
+2025-11-14T10:10:23.135288071Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/when-should-you-lay-concrete/
+2025-11-14T10:10:23.135293646Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/when-should-you-lay-concrete/ (real data)
+2025-11-14T10:10:23.135298775Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/when-should-you-lay-concrete/ (expires in 24h)
+2025-11-14T10:10:23.135303928Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-concrete-pumps-make-for-quicker-and-more-effective-pouring/
+2025-11-14T10:10:23.135309302Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/how-concrete-pumps-make-for-quicker-and-more-effective-pouring/ (beyond fetch limit)
+2025-11-14T10:10:23.135314264Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-concrete-pumps-make-for-quicker-and-more-effective-pouring/ (expires in 24h)
+2025-11-14T10:10:23.744885556Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-should-i-choose-ready-mix-concrete/ (real data)
+2025-11-14T10:10:23.744897336Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-should-i-choose-ready-mix-concrete/ (expires in 24h)
+2025-11-14T10:10:23.744906680Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/grab-hire-vs-skip-hire-which-is-better/
+2025-11-14T10:10:23.744907674Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-concrete-a-driveway/
+2025-11-14T10:10:23.744915507Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/grab-hire-vs-skip-hire-which-is-better/ (real data)
+2025-11-14T10:10:23.744917334Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-does-my-concrete-have-white-spots/
+2025-11-14T10:10:23.744924553Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-screed-a-floor/
+2025-11-14T10:10:23.744924554Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/grab-hire-vs-skip-hire-which-is-better/ (expires in 24h)
+2025-11-14T10:10:23.744932552Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-concrete-a-driveway/ (beyond fetch limit)
+2025-11-14T10:10:23.744939652Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-concrete-a-driveway/ (expires in 24h)
+2025-11-14T10:10:23.744949190Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/why-does-my-concrete-have-white-spots/ (beyond fetch limit)
+2025-11-14T10:10:23.744956237Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-does-my-concrete-have-white-spots/ (expires in 24h)
+2025-11-14T10:10:23.744967119Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-should-i-choose-ready-mix-concrete/
+2025-11-14T10:10:23.747830474Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-screed-a-floor/ (beyond fetch limit)
+2025-11-14T10:10:23.747835650Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-screed-a-floor/ (expires in 24h)
+2025-11-14T10:10:23.747840766Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/floor-screed-for-underfloor-heating-guide/
+2025-11-14T10:10:23.747846060Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/types-of-aggregates-and-their-uses/
+2025-11-14T10:10:23.747983444Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/which-type-of-concrete-pump-do-i-need-boom-pump-or-line-pump/
+2025-11-14T10:10:23.747990735Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/floor-screed-for-underfloor-heating-guide/ (beyond fetch limit)
+2025-11-14T10:10:23.747996442Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/floor-screed-for-underfloor-heating-guide/ (expires in 24h)
+2025-11-14T10:10:23.748001915Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/types-of-aggregates-and-their-uses/ (beyond fetch limit)
+2025-11-14T10:10:23.748007649Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/types-of-aggregates-and-their-uses/ (expires in 24h)
+2025-11-14T10:10:23.748012663Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/which-type-of-concrete-pump-do-i-need-boom-pump-or-line-pump/ (beyond fetch limit)
+2025-11-14T10:10:23.748018321Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/which-type-of-concrete-pump-do-i-need-boom-pump-or-line-pump/ (expires in 24h)
+2025-11-14T10:10:23.748026250Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/concrete-fence-panels/
+2025-11-14T10:10:23.749117026Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/ready-mix-vs-volumetric-concrete-which-is-better/
+2025-11-14T10:10:23.749126058Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/why-does-concrete-crack/
+2025-11-14T10:10:23.749133692Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/concrete-fence-panels/ (beyond fetch limit)
+2025-11-14T10:10:23.749140624Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/concrete-fence-panels/ (expires in 24h)
+2025-11-14T10:10:23.749147727Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/ready-mix-vs-volumetric-concrete-which-is-better/ (beyond fetch limit)
+2025-11-14T10:10:23.749154468Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/ready-mix-vs-volumetric-concrete-which-is-better/ (expires in 24h)
+2025-11-14T10:10:23.749161205Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/why-does-concrete-crack/ (beyond fetch limit)
+2025-11-14T10:10:23.749168926Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-does-concrete-crack/ (expires in 24h)
+2025-11-14T10:10:23.749176597Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-concrete-in-hot-weather/
+2025-11-14T10:10:23.749184485Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/does-my-driveway-need-replacing/
+2025-11-14T10:10:23.749191269Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/
+2025-11-14T10:10:23.749198252Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-concrete-in-hot-weather/ (beyond fetch limit)
+2025-11-14T10:10:23.749205584Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-concrete-in-hot-weather/ (expires in 24h)
+2025-11-14T10:10:23.751901029Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/grab-hire/
+2025-11-14T10:10:23.751901602Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/ (expires in 24h)
+2025-11-14T10:10:23.751908607Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/out-of-hours-concrete/
+2025-11-14T10:10:23.751911930Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/privacy-policy/
+2025-11-14T10:10:23.751918687Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/cookie-policy/
+2025-11-14T10:10:23.751924543Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-calculator/
+2025-11-14T10:10:23.751930024Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/cookie-policy/ (beyond fetch limit)
+2025-11-14T10:10:23.751932743Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-calculator/ (beyond fetch limit)
+2025-11-14T10:10:23.751940138Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-calculator/ (expires in 24h)
+2025-11-14T10:10:23.751941609Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/cookie-policy/ (expires in 24h)
+2025-11-14T10:10:23.751945657Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/does-my-driveway-need-replacing/ (expires in 24h)
+2025-11-14T10:10:23.751946366Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/does-my-driveway-need-replacing/ (beyond fetch limit)
+2025-11-14T10:10:23.751954687Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/privacy-policy/ (beyond fetch limit)
+2025-11-14T10:10:23.751960151Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/ (beyond fetch limit)
+2025-11-14T10:10:23.751960846Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/privacy-policy/ (expires in 24h)
+2025-11-14T10:10:23.754361651Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/fibre-concrete/ (expires in 24h)
+2025-11-14T10:10:23.754372672Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/interlocking-concrete-blocks/ (beyond fetch limit)
+2025-11-14T10:10:23.754381942Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-cube-testing/
+2025-11-14T10:10:23.754386716Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/grab-hire/ (beyond fetch limit)
+2025-11-14T10:10:23.754391769Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/grab-hire/ (expires in 24h)
+2025-11-14T10:10:23.754397094Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/out-of-hours-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.754403148Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/out-of-hours-concrete/ (expires in 24h)
+2025-11-14T10:10:23.754407997Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-cube-testing/ (beyond fetch limit)
+2025-11-14T10:10:23.754412747Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-cube-testing/ (expires in 24h)
+2025-11-14T10:10:23.754418012Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/fibre-concrete/
+2025-11-14T10:10:23.754423317Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/interlocking-concrete-blocks/
+2025-11-14T10:10:23.754428415Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/waterproof-concrete/
+2025-11-14T10:10:23.754433625Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/fibre-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.756321709Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/waterproof-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.756330389Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/self-compacting-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.756330956Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/waterproof-concrete/ (expires in 24h)
+2025-11-14T10:10:23.756331046Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/permeable-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.756337721Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/permeable-concrete/
+2025-11-14T10:10:23.756341492Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/permeable-concrete/ (expires in 24h)
+2025-11-14T10:10:23.756343842Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/self-compacting-concrete/ (expires in 24h)
+2025-11-14T10:10:23.756364245Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/reinforced-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.756370152Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/foam-concrete/
+2025-11-14T10:10:23.756375185Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/reinforced-concrete/ (expires in 24h)
+2025-11-14T10:10:23.756379605Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/interlocking-concrete-blocks/ (expires in 24h)
+2025-11-14T10:10:23.756381890Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/reinforced-concrete/
+2025-11-14T10:10:23.756394797Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/self-compacting-concrete/
+2025-11-14T10:10:23.757842470Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/volumetric-concrete/
+2025-11-14T10:10:23.757849586Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/yards-and-carparks/
+2025-11-14T10:10:23.757857295Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/foam-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.757863352Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/foam-concrete/ (expires in 24h)
+2025-11-14T10:10:23.757869502Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/volumetric-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.757875255Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/volumetric-concrete/ (expires in 24h)
+2025-11-14T10:10:23.757884496Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/yards-and-carparks/ (beyond fetch limit)
+2025-11-14T10:10:23.757890648Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/commercial-concrete/yards-and-carparks/ (expires in 24h)
+2025-11-14T10:10:23.757896513Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/construction-and-contractors-concrete/
+2025-11-14T10:10:23.757902468Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/floor-screed/
+2025-11-14T10:10:23.757908053Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/underfloor-heating-screed/
+2025-11-14T10:10:23.757914591Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/construction-and-contractors-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.757922397Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/commercial-concrete/construction-and-contractors-concrete/ (expires in 24h)
+2025-11-14T10:10:23.760567258Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/floor-screed/ (beyond fetch limit)
+2025-11-14T10:10:23.760571313Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/floor-screed/ (expires in 24h)
+2025-11-14T10:10:23.760575147Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/underfloor-heating-screed/ (beyond fetch limit)
+2025-11-14T10:10:23.760578818Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/underfloor-heating-screed/ (expires in 24h)
+2025-11-14T10:10:23.760582657Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/shed-base-concrete/
+2025-11-14T10:10:23.760586349Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/imprinted-concrete/
+2025-11-14T10:10:23.760590096Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/garden-concrete/
+2025-11-14T10:10:23.760594253Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/shed-base-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.760597929Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/shed-base-concrete/ (expires in 24h)
+2025-11-14T10:10:23.760601711Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/imprinted-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.760605352Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/imprinted-concrete/ (expires in 24h)
+2025-11-14T10:10:23.760609030Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/garden-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.760613200Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/garden-concrete/ (expires in 24h)
+2025-11-14T10:10:23.762449439Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-boom-pumps/
+2025-11-14T10:10:23.762451943Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/driveway-concrete/
+2025-11-14T10:10:23.762457543Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/basement-foundations/ (beyond fetch limit)
+2025-11-14T10:10:23.762460659Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-for-foundations/
+2025-11-14T10:10:23.762471067Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-for-foundations/ (beyond fetch limit)
+2025-11-14T10:10:23.762474090Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-construction-for-houses/ (expires in 24h)
+2025-11-14T10:10:23.762480180Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/basement-foundations/
+2025-11-14T10:10:23.762483645Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-for-foundations/ (expires in 24h)
+2025-11-14T10:10:23.762487714Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-ground-line-pumps/
+2025-11-14T10:10:23.762493246Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-construction-for-houses/ (beyond fetch limit)
+2025-11-14T10:10:23.762497916Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/concrete-construction-for-houses/
+2025-11-14T10:10:23.762503463Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/driveway-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.762509011Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/driveway-concrete/ (expires in 24h)
+2025-11-14T10:10:23.764726656Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-ground-line-pumps/ (beyond fetch limit)
+2025-11-14T10:10:23.764735029Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-ground-line-pumps/ (expires in 24h)
+2025-11-14T10:10:23.764741955Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-boom-pumps/ (beyond fetch limit)
+2025-11-14T10:10:23.764747023Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/join-us/ (beyond fetch limit)
+2025-11-14T10:10:23.764748945Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-boom-pumps/ (expires in 24h)
+2025-11-14T10:10:23.764753934Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-pumps-technical-information/ (beyond fetch limit)
+2025-11-14T10:10:23.764763903Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-pumps-technical-information/ (expires in 24h)
+2025-11-14T10:10:23.764774168Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/ (beyond fetch limit)
+2025-11-14T10:10:23.764778107Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/concrete-pumps-technical-information/
+2025-11-14T10:10:23.764787147Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/ (expires in 24h)
+2025-11-14T10:10:23.764793285Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/screed/
+2025-11-14T10:10:23.764801068Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/basement-foundations/ (expires in 24h)
+2025-11-14T10:10:23.764806213Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/join-us/
+2025-11-14T10:10:23.767513584Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.767523380Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/commercial-concrete/ (expires in 24h)
+2025-11-14T10:10:23.767533742Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/sectors-we-cover/
+2025-11-14T10:10:23.767542958Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-floors/power-floated-concrete-flooring/
+2025-11-14T10:10:23.767543435Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/
+2025-11-14T10:10:23.767553593Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/ready-mix-concrete/
+2025-11-14T10:10:23.767557452Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/
+2025-11-14T10:10:23.767561604Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/join-us/ (expires in 24h)
+2025-11-14T10:10:23.767567987Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/sectors-we-cover/ (beyond fetch limit)
+2025-11-14T10:10:23.767571581Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-floors/ (beyond fetch limit)
+2025-11-14T10:10:23.767574370Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-floors/
+2025-11-14T10:10:23.767583025Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-floors/ (expires in 24h)
+2025-11-14T10:10:23.767589714Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-floors/power-floated-concrete-flooring/ (beyond fetch limit)
+2025-11-14T10:10:23.767597998Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-floors/power-floated-concrete-flooring/ (expires in 24h)
+2025-11-14T10:10:23.771549977Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/domestic-concrete/ (expires in 24h)
+2025-11-14T10:10:23.771562066Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/ready-mix-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.771574907Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/commercial-concrete/sectors-we-cover/ (expires in 24h)
+2025-11-14T10:10:23.771575818Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/ready-mix-concrete/ (expires in 24h)
+2025-11-14T10:10:23.771584586Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/domestic-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.771590442Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/
+2025-11-14T10:10:23.771597699Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/on-site-mixed-concrete/
+2025-11-14T10:10:23.771604673Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/
+2025-11-14T10:10:23.771612096Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/ (beyond fetch limit)
+2025-11-14T10:10:23.771618222Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/ (expires in 24h)
+2025-11-14T10:10:23.771627163Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/on-site-mixed-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.771639119Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/on-site-mixed-concrete/ (expires in 24h)
+2025-11-14T10:10:23.771645812Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/ (beyond fetch limit)
+2025-11-14T10:10:23.772921192Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/ (expires in 24h)
+2025-11-14T10:10:23.772925587Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/
+2025-11-14T10:10:23.772929264Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/
+2025-11-14T10:10:23.772932938Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/speciality-concrete/
+2025-11-14T10:10:23.772936723Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-pumps/ (beyond fetch limit)
+2025-11-14T10:10:23.772940758Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-pumps/ (expires in 24h)
+2025-11-14T10:10:23.772944832Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/ (beyond fetch limit)
+2025-11-14T10:10:23.772948462Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/ (expires in 24h)
+2025-11-14T10:10:23.772952152Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/speciality-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.772955796Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/speciality-concrete/ (expires in 24h)
+2025-11-14T10:10:23.772960166Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/concrete-collection/
+2025-11-14T10:10:23.772964101Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/
+2025-11-14T10:10:23.772968800Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/sub-base/
+2025-11-14T10:10:23.772972716Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/concrete-collection/ (beyond fetch limit)
+2025-11-14T10:10:23.774435740Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/about-us/ (expires in 24h)
+2025-11-14T10:10:23.774443698Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/contact/ (beyond fetch limit)
+2025-11-14T10:10:23.774450790Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/contact/ (expires in 24h)
+2025-11-14T10:10:23.774460100Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/faqs/
+2025-11-14T10:10:23.774476382Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/next-day-concrete-delivery/concrete-collection/ (expires in 24h)
+2025-11-14T10:10:23.774482924Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/ (beyond fetch limit)
+2025-11-14T10:10:23.774488699Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/ (expires in 24h)
+2025-11-14T10:10:23.774493930Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/sub-base/ (beyond fetch limit)
+2025-11-14T10:10:23.774499457Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/sub-base/ (expires in 24h)
+2025-11-14T10:10:23.774504926Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/screed-calculator/
+2025-11-14T10:10:23.774509801Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/about-us/
+2025-11-14T10:10:23.774514635Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/contact/
+2025-11-14T10:10:23.774520985Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/screed-calculator/ (beyond fetch limit)
+2025-11-14T10:10:23.774526108Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/screed-calculator/ (expires in 24h)
+2025-11-14T10:10:23.774533737Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/about-us/ (beyond fetch limit)
+2025-11-14T10:10:23.775925542Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/gravel/ (expires in 24h)
+2025-11-14T10:10:23.775935025Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/ballast/ (beyond fetch limit)
+2025-11-14T10:10:23.775955663Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/commercial-building-projects/
+2025-11-14T10:10:23.775961593Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-admixtures/
+2025-11-14T10:10:23.775966936Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/faqs/ (beyond fetch limit)
+2025-11-14T10:10:23.775972210Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/faqs/ (expires in 24h)
+2025-11-14T10:10:23.775978143Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/commercial-concrete/commercial-building-projects/ (beyond fetch limit)
+2025-11-14T10:10:23.775983393Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/commercial-concrete/commercial-building-projects/ (expires in 24h)
+2025-11-14T10:10:23.775988947Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-admixtures/ (beyond fetch limit)
+2025-11-14T10:10:23.775994710Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/concrete-suppliers/concrete-admixtures/ (expires in 24h)
+2025-11-14T10:10:23.776002124Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/gravel/
+2025-11-14T10:10:23.776006680Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/ballast/
+2025-11-14T10:10:23.776010843Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/sand/
+2025-11-14T10:10:23.776014705Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/gravel/ (beyond fetch limit)
+2025-11-14T10:10:23.777519703Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/shoreham/
+2025-11-14T10:10:23.777527941Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/ballast/ (expires in 24h)
+2025-11-14T10:10:23.777532506Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/sand/ (beyond fetch limit)
+2025-11-14T10:10:23.777536811Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/sand/ (expires in 24h)
+2025-11-14T10:10:23.777541531Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/aggregates/recycled-materials/
+2025-11-14T10:10:23.777546128Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/billingshurst/
+2025-11-14T10:10:23.777550326Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/southwater/
+2025-11-14T10:10:23.777554508Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/aggregates/recycled-materials/ (beyond fetch limit)
+2025-11-14T10:10:23.777558600Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/aggregates/recycled-materials/ (expires in 24h)
+2025-11-14T10:10:23.777562643Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/billingshurst/ (beyond fetch limit)
+2025-11-14T10:10:23.777568312Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/billingshurst/ (expires in 24h)
+2025-11-14T10:10:23.777572437Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/southwater/ (beyond fetch limit)
+2025-11-14T10:10:23.777576909Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/southwater/ (expires in 24h)
+2025-11-14T10:10:23.777581636Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/seaford/
+2025-11-14T10:10:23.779673928Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/hove/
+2025-11-14T10:10:23.779684370Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/seaford/ (beyond fetch limit)
+2025-11-14T10:10:23.779691769Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/seaford/ (expires in 24h)
+2025-11-14T10:10:23.779710040Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/shoreham/ (beyond fetch limit)
+2025-11-14T10:10:23.779717509Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/shoreham/ (expires in 24h)
+2025-11-14T10:10:23.779724368Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/hove/ (beyond fetch limit)
+2025-11-14T10:10:23.779730665Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/hove/ (expires in 24h)
+2025-11-14T10:10:23.779736983Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/lancing/
+2025-11-14T10:10:23.779743863Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/uckfield/
+2025-11-14T10:10:23.779751131Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/burgess-hill/
+2025-11-14T10:10:23.779757567Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/lancing/ (beyond fetch limit)
+2025-11-14T10:10:23.779764712Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/lancing/ (expires in 24h)
+2025-11-14T10:10:23.779772760Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/uckfield/ (beyond fetch limit)
+2025-11-14T10:10:23.779779152Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/uckfield/ (expires in 24h)
+2025-11-14T10:10:23.782005437Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-news/
+2025-11-14T10:10:23.782026741Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/burgess-hill/ (beyond fetch limit)
+2025-11-14T10:10:23.782038646Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/burgess-hill/ (expires in 24h)
+2025-11-14T10:10:23.782044147Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/horsham/
+2025-11-14T10:10:23.782050107Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/crawley/
+2025-11-14T10:10:23.782056168Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/east-grinstead/
+2025-11-14T10:10:23.782061336Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/horsham/ (beyond fetch limit)
+2025-11-14T10:10:23.782066482Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/horsham/ (expires in 24h)
+2025-11-14T10:10:23.782071992Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/crawley/ (beyond fetch limit)
+2025-11-14T10:10:23.782078538Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/crawley/ (expires in 24h)
+2025-11-14T10:10:23.782083937Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/areas-we-cover/east-grinstead/ (beyond fetch limit)
+2025-11-14T10:10:23.782090780Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/areas-we-cover/east-grinstead/ (expires in 24h)
+2025-11-14T10:10:23.782096175Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/aggregates/
+2025-11-14T10:10:23.782101248Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-flooring/
+2025-11-14T10:10:23.783382970Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/aggregates/ (beyond fetch limit)
+2025-11-14T10:10:23.783389079Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/general/
+2025-11-14T10:10:23.783389927Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/aggregates/ (expires in 24h)
+2025-11-14T10:10:23.783395697Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-flooring/ (beyond fetch limit)
+2025-11-14T10:10:23.783399963Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-pumps/ (beyond fetch limit)
+2025-11-14T10:10:23.783401973Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/concrete-flooring/ (expires in 24h)
+2025-11-14T10:10:23.783407995Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-news/ (beyond fetch limit)
+2025-11-14T10:10:23.783409933Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/concrete-pumps/ (expires in 24h)
+2025-11-14T10:10:23.783414737Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/concrete-news/ (expires in 24h)
+2025-11-14T10:10:23.783418402Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/domestic-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.783420671Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/concrete-pumps/
+2025-11-14T10:10:23.783427042Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/domestic-concrete/
+2025-11-14T10:10:23.783445909Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/domestic-concrete/ (expires in 24h)
+2025-11-14T10:10:23.784784074Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/general/ (beyond fetch limit)
+2025-11-14T10:10:23.784792283Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/general/ (expires in 24h)
+2025-11-14T10:10:23.784797657Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/grab-hire/
+2025-11-14T10:10:23.784802836Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/ready-mixed-concrete/
+2025-11-14T10:10:23.784807846Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/screed/
+2025-11-14T10:10:23.784812720Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/grab-hire/ (beyond fetch limit)
+2025-11-14T10:10:23.784819740Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/grab-hire/ (expires in 24h)
+2025-11-14T10:10:23.784824690Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/ready-mixed-concrete/ (beyond fetch limit)
+2025-11-14T10:10:23.784829375Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/ready-mixed-concrete/ (expires in 24h)
+2025-11-14T10:10:23.784834095Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/screed/ (beyond fetch limit)
+2025-11-14T10:10:23.784838807Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/screed/ (expires in 24h)
+2025-11-14T10:10:23.784843197Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/category/uncategorised/
+2025-11-14T10:10:23.784849335Z [inf]  📊 Analyzing performance for https://www.sussexreadymixconcrete.co.uk/news/author/admin-adtrak/
+2025-11-14T10:10:23.784854422Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/category/uncategorised/ (beyond fetch limit)
+2025-11-14T10:10:23.787239023Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/category/uncategorised/ (expires in 24h)
+2025-11-14T10:10:23.787248273Z [inf]  📊 Generating simulated performance for https://www.sussexreadymixconcrete.co.uk/news/author/admin-adtrak/ (beyond fetch limit)
+2025-11-14T10:10:23.787254504Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/author/admin-adtrak/ (expires in 24h)
+2025-11-14T10:10:23.787260416Z [inf]  📊 Calculating aggregate performance metrics...
+2025-11-14T10:10:23.787266515Z [inf]  ✅ Aggregate metrics calculated from 110 pages
+2025-11-14T10:10:23.787272724Z [inf]  📊 Analyzing text-to-HTML ratio...
+2025-11-14T10:10:23.787279091Z [inf]  🖼️ Analyzing images across discovered pages...
+2025-11-14T10:10:23.787285257Z [inf]  📊 Analyzing images on 50 pages (scope: all, limit: 50)
+2025-11-14T10:10:23.787291493Z [inf]  ⚡ Analyzing images on 49 pages in parallel
+2025-11-14T10:10:23.787297436Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/
+2025-11-14T10:10:23.787306538Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/welcome-article/
+2025-11-14T10:10:23.787311907Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/
+2025-11-14T10:10:28.981300409Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/01/DSC0371-min-scaled-800x500-c-center.jpg
+2025-11-14T10:10:28.983489289Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:10:28.994573309Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:10:33.983728422Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/12/DSC0174-1-scaled-800x500-c-center.jpg
+2025-11-14T10:10:33.983734592Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:10:33.997134434Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:10:38.982121564Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/09/DSC0195-min-scaled-800x500-c-center.jpg
+2025-11-14T10:10:38.983555084Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:10:38.995874073Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:10:43.983179730Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2023/12/CM3_0548-scaled-800x500-c-center.jpg
+2025-11-14T10:10:43.987188904Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:10:43.996935962Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:10:48.984202817Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2019/01/CM3_0555-min-scaled-800x500-c-center.jpg
+2025-11-14T10:10:48.986799993Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:10:48.996935376Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:10:48.996941348Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/welcome-article/ (expires in 24h)
+2025-11-14T10:10:53.984515098Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DSC9993-scaled-800x500-c-center.jpg
+2025-11-14T10:10:53.990739286Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:10:53.990753485Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-long-will-my-concrete-take-to-cure/ (expires in 24h)
+2025-11-14T10:10:58.987979203Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/CM3_0557-min-scaled-800x500-c-center.jpg
+2025-11-14T10:11:04.792853833Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/ (expires in 24h)
+2025-11-14T10:11:04.792860815Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/top-10-tips-to-prepare-for-your-concrete-delivery/
+2025-11-14T10:11:04.792867568Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/5-tips-for-pouring-the-perfect-concrete-driveway/
+2025-11-14T10:11:04.792873838Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/our-handy-guide-to-polished-concrete-flooring/
+2025-11-14T10:11:09.925997668Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:11:09.962734331Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-floors-hero-1024x683.jpeg
+2025-11-14T10:11:10.005704913Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2019/09/sussex-pour-640x0-c-center.jpg
+2025-11-14T10:11:14.926995475Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2019/11/concrete-floors-hero2-640x0-c-center.jpg
+2025-11-14T10:11:14.964862786Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:11:15.007186043Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/underfloor-heating-1024x683.jpeg
+2025-11-14T10:11:19.948228054Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2019/11/concrete-floors-hero2-1024x460.jpeg
+2025-11-14T10:11:19.965382421Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:11:20.009783320Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:11:24.978656835Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:11:24.978662502Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:11:25.013547496Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:11:29.953677506Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:11:29.966467427Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:11:30.028431628Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:11:34.993568769Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:11:34.993575050Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:11:35.011708266Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:11:39.970958555Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:11:39.970965219Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:11:40.014009462Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:11:45.062733078Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:11:45.062738857Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:11:45.062743818Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:11:50.034314099Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:11:50.034319190Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:11:50.034323936Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:11:55.024838368Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:11:55.024846922Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:11:55.024855318Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:12:00.160435169Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:12:00.160440012Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:12:00.160446006Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/top-10-tips-to-prepare-for-your-concrete-delivery/ (expires in 24h)
+2025-11-14T10:12:00.160451962Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:12:05.165251606Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:12:05.165256983Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:12:05.165262281Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/5-tips-for-pouring-the-perfect-concrete-driveway/ (expires in 24h)
+2025-11-14T10:12:10.256279176Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:12:10.256285643Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/our-handy-guide-to-polished-concrete-flooring/ (expires in 24h)
+2025-11-14T10:12:10.256292228Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/what-kind-of-concrete-is-right-for-my-project/
+2025-11-14T10:12:10.256299093Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-the-perfect-concrete-slab/
+2025-11-14T10:12:10.256305585Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/6-concrete-driveway-design-ideas/
+2025-11-14T10:12:15.377910732Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:12:20.161763320Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/what-kind-of-concrete-is-right-for-my-project/
+2025-11-14T10:12:20.161768036Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/6-concrete-driveway-design-ideas/
+2025-11-14T10:12:20.403488292Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/05/pouring-perfect-concrete-slab-640x0-c-center.jpg
+2025-11-14T10:12:26.298339282Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-the-perfect-concrete-slab/ (expires in 24h)
+2025-11-14T10:12:26.298344920Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-to-choose-the-right-concrete-company/
+2025-11-14T10:12:26.298350702Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-to-use-concrete-in-interior-design/
+2025-11-14T10:12:26.298356659Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-and-care-for-concrete-in-cold-weather/
+2025-11-14T10:12:31.374585650Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:12:31.482742541Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-1024x768.jpeg
+2025-11-14T10:12:36.320978773Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-and-care-for-concrete-in-cold-weather/
+2025-11-14T10:12:36.320985169Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-company-640x0-c-center.jpg
+2025-11-14T10:12:36.483084982Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:12:41.378317994Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/11/concrete-interior-design-768x1024.jpg
+2025-11-14T10:12:41.484405576Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:12:46.309395325Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:12:46.483756251Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:12:51.387971676Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:12:51.488674713Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:12:56.433352773Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:12:56.487445812Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:13:01.479845557Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:13:01.485871150Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:13:06.444718303Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:13:06.488208295Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:13:11.490187820Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:13:11.490195263Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:13:16.481201080Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:13:16.488283166Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:13:21.459290535Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:13:21.492943270Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:13:21.492951738Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-choose-the-right-concrete-company/ (expires in 24h)
+2025-11-14T10:13:26.630674259Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:13:26.630679247Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-use-concrete-in-interior-design/ (expires in 24h)
+2025-11-14T10:13:26.630684585Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/what-is-the-price-of-concrete-per-cubic-metre/
+2025-11-14T10:13:26.630690549Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/what-is-the-difference-between-concrete-and-screed/
+2025-11-14T10:13:26.630696541Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/why-is-sealing-concrete-floors-important/
+2025-11-14T10:13:31.732572727Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:13:31.732581830Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:13:36.342282877Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/what-is-the-price-of-concrete-per-cubic-metre/
+2025-11-14T10:13:36.768052627Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/11/concrete-screed-640x0-c-center.jpg
+2025-11-14T10:13:36.768057440Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2023/03/concrete-flooring-640x0-c-center.jpg
+2025-11-14T10:13:41.783038342Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/11/concrete-screed-1024x746.png
+2025-11-14T10:13:41.783043659Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2023/03/concrete-flooring-1024x655.png
+2025-11-14T10:13:46.786844418Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:13:46.786851038Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:13:51.874200021Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:13:51.874205623Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:13:56.826458230Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:13:56.826602386Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:14:01.923446081Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:14:01.923451306Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:14:06.921826119Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:14:06.921830250Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:14:12.057514600Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:14:12.057520384Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:14:17.019512396Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:14:17.019518545Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:14:21.728706660Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:14:21.738503233Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:14:26.740758077Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:14:26.740764096Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:14:31.731763926Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:14:31.731768574Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/what-is-the-difference-between-concrete-and-screed/ (expires in 24h)
+2025-11-14T10:14:31.739428737Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:14:31.739438748Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-is-sealing-concrete-floors-important/ (expires in 24h)
+2025-11-14T10:14:31.752843899Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/the-types-of-concrete-and-their-benefits/
+2025-11-14T10:14:31.752849085Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/can-you-pour-concrete-in-the-rain/
+2025-11-14T10:14:31.752853753Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/when-should-you-lay-concrete/
+2025-11-14T10:14:51.738059265Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/the-types-of-concrete-and-their-benefits/
+2025-11-14T10:14:51.738065556Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/can-you-pour-concrete-in-the-rain/
+2025-11-14T10:14:51.738069925Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/when-should-you-lay-concrete/
+2025-11-14T10:14:51.738074410Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/grab-hire-vs-skip-hire-which-is-better/
+2025-11-14T10:14:51.738078659Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/why-should-i-choose-ready-mix-concrete/
+2025-11-14T10:14:51.738082860Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-concrete-pumps-make-for-quicker-and-more-effective-pouring/
+2025-11-14T10:14:51.738086791Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:14:51.738090653Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:14:51.738094485Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:14:52.494440333Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:14:52.494446254Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:14:52.494451604Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:14:57.612635774Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:14:57.612640731Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:14:57.612651650Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:15:02.289392514Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:15:02.684529251Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:15:02.684535312Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:15:07.296588146Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:15:07.621456508Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:15:07.621463105Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:15:12.333921777Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:15:12.333927215Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:15:12.333933426Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:15:16.326055747Z [err]  2025-11-14 10:15:07.564 UTC [76] LOG:  checkpoint starting: time
+2025-11-14T10:15:16.326061238Z [err]  2025-11-14 10:15:07.747 UTC [76] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.109 s, sync=0.015 s, total=0.183 s; sync files=2, longest=0.012 s, average=0.008 s; distance=7 kB, estimate=1572 kB; lsn=0/9229370, redo lsn=0/9229318
+2025-11-14T10:15:17.291193708Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:15:17.319285122Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:15:17.319288953Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:15:22.322685677Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:15:22.322690718Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/grab-hire-vs-skip-hire-which-is-better/ (expires in 24h)
+2025-11-14T10:15:22.322694779Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:15:22.322699206Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:15:22.322703972Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-should-i-choose-ready-mix-concrete/ (expires in 24h)
+2025-11-14T10:15:27.318658751Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:15:28.386381734Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-concrete-pumps-make-for-quicker-and-more-effective-pouring/ (expires in 24h)
+2025-11-14T10:15:28.386387242Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-concrete-a-driveway/
+2025-11-14T10:15:28.388734696Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/why-does-my-concrete-have-white-spots/
+2025-11-14T10:15:28.388742236Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-screed-a-floor/
+2025-11-14T10:15:33.861297971Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2023/12/CM3_0548-scaled-640x0-c-center.jpg
+2025-11-14T10:15:33.861303957Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/SRM-Logo.png
+2025-11-14T10:15:38.390045203Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-screed-a-floor/
+2025-11-14T10:15:38.806513993Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2023/12/CM3_0548-1024x683.jpg
+2025-11-14T10:15:38.806520066Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/09/DSC0195-min-scaled-640x0-c-center.jpg
+2025-11-14T10:15:43.855567206Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:15:43.855572629Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:15:48.950298275Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:15:48.950304938Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:15:53.909962052Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:15:53.909971856Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:15:59.030962305Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:15:59.030967102Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:16:03.998834454Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:16:03.998842223Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:16:08.773901559Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:16:08.773911509Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:16:13.769310173Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:16:13.777835367Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:16:18.768987507Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:16:18.773312166Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:16:23.784665905Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:16:23.784674571Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:16:28.781599707Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:16:28.781604381Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-much-does-it-cost-to-concrete-a-driveway/ (expires in 24h)
+2025-11-14T10:16:28.781608429Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:16:28.781613758Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-does-my-concrete-have-white-spots/ (expires in 24h)
+2025-11-14T10:16:28.781619498Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/floor-screed-for-underfloor-heating-guide/
+2025-11-14T10:16:28.781624862Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/types-of-aggregates-and-their-uses/
+2025-11-14T10:16:28.781630097Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/which-type-of-concrete-pump-do-i-need-boom-pump-or-line-pump/
+2025-11-14T10:16:38.780097589Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/floor-screed-for-underfloor-heating-guide/
+2025-11-14T10:16:38.780111395Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/types-of-aggregates-and-their-uses/
+2025-11-14T10:16:38.780119579Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/which-type-of-concrete-pump-do-i-need-boom-pump-or-line-pump/
+2025-11-14T10:16:38.780126762Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/concrete-fence-panels/
+2025-11-14T10:16:38.782248288Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/ready-mix-vs-volumetric-concrete-which-is-better/
+2025-11-14T10:16:38.784784736Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/why-does-concrete-crack/
+2025-11-14T10:16:44.492336706Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:16:44.492344427Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:16:44.492350280Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:16:49.571909786Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:16:49.571915346Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:16:49.571920133Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-800x500-c-center.jpg
+2025-11-14T10:16:54.549490808Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:16:54.549502692Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:16:54.549509581Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2024/05/DJI_0012-scaled-800x500-c-center.jpg
+2025-11-14T10:16:59.661149622Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:16:59.661155330Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:16:59.661160108Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/10/commercial-concrete-800x500-c-center.jpg
+2025-11-14T10:17:04.710812834Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:17:04.710820225Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:17:04.710827472Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/domestic-concrete-hero-800x500-c-center.jpg
+2025-11-14T10:17:09.301861421Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:17:09.301865274Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/concrete-fence-panels/ (expires in 24h)
+2025-11-14T10:17:09.750675356Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-2-800x0-c-center.jpg
+2025-11-14T10:17:09.750682043Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2021/09/concrete-pumps-hero-800x500-c-center.jpg
+2025-11-14T10:17:14.335802328Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-3-800x0-c-center.jpg
+2025-11-14T10:17:14.335809020Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/ready-mix-vs-volumetric-concrete-which-is-better/ (expires in 24h)
+2025-11-14T10:17:14.340831840Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-main-800x400-c-center.jpg
+2025-11-14T10:17:19.341180543Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/themes/sussex-ready-mix/_resources/images/cta/cta-image-1-800x0-c-center.jpg
+2025-11-14T10:17:19.711250268Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/why-does-concrete-crack/ (expires in 24h)
+2025-11-14T10:17:19.711256661Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-concrete-in-hot-weather/
+2025-11-14T10:17:19.711262873Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/news/does-my-driveway-need-replacing/
+2025-11-14T10:17:19.711268657Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/privacy-policy/
+2025-11-14T10:17:24.920728253Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2022/09/CM3_0559-scaled-640x0-c-center.jpg
+2025-11-14T10:17:29.449159352Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/news/does-my-driveway-need-replacing/
+2025-11-14T10:17:29.449173906Z [inf]  Could not analyze images for https://www.sussexreadymixconcrete.co.uk/privacy-policy/
+2025-11-14T10:17:29.873989428Z [inf]  Could not get size for https://www.sussexreadymixconcrete.co.uk/wp-content/uploads/2025/10/iStock_000004328446_Large-scaled-800x500-c-center.jpg
+2025-11-14T10:17:32.323490619Z [inf]  💾 Cached: https://www.sussexreadymixconcrete.co.uk/news/how-to-pour-concrete-in-hot-weather/ (expires in 24h)
+2025-11-14T10:17:32.323496896Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/cookie-policy/
+2025-11-14T10:17:32.323504313Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/concrete-calculator/
+2025-11-14T10:17:32.323509899Z [inf]  ✅ Cache HIT: https://www.sussexreadymixconcrete.co.uk/grab-hire/
