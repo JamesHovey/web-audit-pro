@@ -946,6 +946,16 @@ export function AuditForm() {
                       PHP: {techStack.phpVersion}
                     </span>
                   )}
+                  {techStack.plugins && techStack.plugins.length > 0 && (
+                    <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium">
+                      Plugins: {techStack.plugins.length}
+                    </span>
+                  )}
+                  {techStack.pageBuilder && (
+                    <span className="text-xs px-2 py-1 bg-rose-100 text-rose-700 rounded font-medium">
+                      {techStack.pageBuilder}
+                    </span>
+                  )}
                 </div>
                 <Tooltip
                   content={
@@ -954,15 +964,26 @@ export function AuditForm() {
                       <p>Quick detection of the website&apos;s core technologies:</p>
                       <ul className="list-disc pl-4 space-y-1 text-sm">
                         {techStack.cms && <li><strong>CMS:</strong> {techStack.cms}{techStack.cmsVersion && techStack.cmsVersion !== '0' && ` ${techStack.cmsVersion}`}</li>}
-                        {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
-                        {techStack.hosting && <li><strong>Hosting:</strong> {techStack.hosting}</li>}
                         {techStack.framework && <li><strong>Framework:</strong> {techStack.framework}{techStack.frameworkVersion && ` ${techStack.frameworkVersion}`}</li>}
+                        {techStack.hosting && <li><strong>Origin Hosting:</strong> {techStack.hosting}</li>}
+                        {techStack.ecommerce && <li><strong>E-commerce:</strong> {techStack.ecommerce}</li>}
                         {techStack.cdn && <li><strong>CDN:</strong> {techStack.cdn}</li>}
                         {techStack.phpVersion && <li><strong>PHP:</strong> {techStack.phpVersion}</li>}
+                        {techStack.pageBuilder && <li><strong>Page Builder:</strong> {techStack.pageBuilder}</li>}
+                        {techStack.plugins && techStack.plugins.length > 0 && (
+                          <li>
+                            <strong>WordPress Plugins ({techStack.plugins.length}):</strong>
+                            <ul className="list-none pl-2 mt-1 space-y-0.5">
+                              {techStack.plugins.map((plugin: string) => (
+                                <li key={plugin} className="text-xs">• {plugin}</li>
+                              ))}
+                            </ul>
+                          </li>
+                        )}
                       </ul>
                       <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
                         <p className="font-medium">Full details in audit:</p>
-                        <p>Complete technology analysis including plugins, themes, and security tools will appear in the audit results.</p>
+                        <p>Complete technology analysis including themes and security configurations will appear in the audit results.</p>
                       </div>
                     </div>
                   }

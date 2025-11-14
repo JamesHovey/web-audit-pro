@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { BrowserService } from '@/lib/cloudflare-browser'
+import { detectWordPressPlugins } from '@/lib/pluginDetectionService'
 
 // Simple in-memory cache with 5-minute TTL
 interface CacheEntry {
@@ -20,6 +21,8 @@ interface QuickTechInfo {
   cdn?: string
   phpVersion?: string
   loading?: boolean
+  plugins?: string[]
+  pageBuilder?: string
 }
 
 // Comprehensive CMS detection patterns for top 50+ CMS platforms
@@ -472,6 +475,17 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
     if (cmsDetection) {
       result.cms = cmsDetection.name
       result.cmsVersion = cmsDetection.version
+    }
+
+    // WordPress Plugin Detection (sophisticated detection)
+    if (result.cms === 'WordPress') {
+      const wpDetection = detectWordPressPlugins(html);
+      if (wpDetection.plugins && wpDetection.plugins.length > 0) {
+        result.plugins = wpDetection.plugins;
+      }
+      if (wpDetection.pageBuilder) {
+        result.pageBuilder = wpDetection.pageBuilder;
+      }
     }
 
     // PHP Version Detection from headers
