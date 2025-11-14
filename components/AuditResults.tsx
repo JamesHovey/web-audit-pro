@@ -22,6 +22,7 @@ import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import BrandedVsNonBrandedChart from './BrandedVsNonBrandedChart'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
 import SectionExportButtons from './SectionExportButtons'
+import DetectedPluginsTable from './DetectedPluginsTable'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -3805,107 +3806,11 @@ function renderSectionResults(
                   </div>
                 ) : null}
                 {isCategorized ? (
-                  // Display plugins in table format
-                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">{terminology.singular} Name</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Version</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Category</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Confidence</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Link</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {pluginsToDisplay.map((plugin: Record<string, unknown>, index: number) => {
-                          const categoryLabels: Record<string, string> = {
-                            'seo': 'SEO',
-                            'page-builder': 'Page Builder',
-                            'builder': 'Page Builder',
-                            'analytics': 'Analytics',
-                            'compliance': 'Compliance',
-                            'forms': 'Forms',
-                            'ecommerce': 'E-commerce',
-                            'security': 'Security',
-                            'performance': 'Performance',
-                            'media': 'Media',
-                            'gallery': 'Gallery',
-                            'social': 'Social Media',
-                            'admin': 'Administration',
-                            'marketing': 'Marketing',
-                            'email': 'Email Marketing',
-                            'reviews': 'Reviews & Ratings',
-                            'upsell': 'Upsell & Cross-sell',
-                            'shipping': 'Shipping',
-                            'payment': 'Payment',
-                            'conversion': 'Conversion Optimization',
-                            'other': 'Other'
-                          };
-
-                          const getConfidenceBadgeColor = (confidence: string) => {
-                            switch (confidence) {
-                              case 'high':
-                                return 'bg-green-100 text-green-700 border-green-300';
-                              case 'medium':
-                                return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-                              case 'low':
-                                return 'bg-orange-100 text-orange-700 border-orange-300';
-                              default:
-                                return 'bg-gray-100 text-gray-700 border-gray-300';
-                            }
-                          };
-
-                          // Get plugin URL from lib/pluginUrlService
-                          const pluginName = plugin.name as string;
-                          const pluginSlug = pluginName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                          const pluginUrl = `https://wordpress.org/plugins/${pluginSlug}/`;
-
-                          return (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-4 py-3">
-                                <div className="font-medium text-gray-900">{plugin.name}</div>
-                              </td>
-                              <td className="px-4 py-3 text-gray-700">
-                                {plugin.version && plugin.version !== 'N/A' && plugin.version !== '[Unable to detect]' ? (
-                                  <span className="text-sm">v{plugin.version}</span>
-                                ) : (
-                                  <span className="text-xs text-gray-400">Unknown</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-gray-700 capitalize">
-                                  {plugin.categoryKey ? categoryLabels[plugin.categoryKey as string] || (plugin.categoryKey as string) : 'Other'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {plugin.confidence ? (
-                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium border ${getConfidenceBadgeColor(plugin.confidence as string)}`}>
-                                    {(plugin.confidence as string).charAt(0).toUpperCase() + (plugin.confidence as string).slice(1)}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-400">-</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <a
-                                  href={pluginUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1"
-                                >
-                                  <span>View</span>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                  </svg>
-                                </a>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  // Display plugins in table format with metadata
+                  <DetectedPluginsTable
+                    plugins={pluginsToDisplay}
+                    terminology={terminology}
+                  />
                 ) : (
                   // Display plugins as simple list
                   <div className="flex flex-wrap gap-2">
