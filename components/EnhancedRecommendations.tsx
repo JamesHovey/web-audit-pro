@@ -1237,7 +1237,7 @@ export default function EnhancedRecommendations({
 
                       {/* Plugin Recommendation Tables - Now shown FIRST */}
                       {rec.useCase && cms === 'WordPress' && (
-                        <div className="mb-4 pb-4 border-b border-gray-300 space-y-6">
+                        <div className="mt-6 mb-4 pb-4 pt-4 border-t border-gray-300 space-y-6">
                           {/* Currently Installed Plugins Section */}
                           <PluginRecommendationTable
                             plugins={getPluginsByUseCase(rec.useCase, detectedPlugins)}
