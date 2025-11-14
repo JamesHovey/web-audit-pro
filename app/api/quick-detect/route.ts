@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { BrowserService } from '@/lib/cloudflare-browser'
 
 // Simple in-memory cache with 5-minute TTL
 interface CacheEntry {
@@ -433,26 +434,36 @@ function detectCMS(html: string, lowerHtml: string, headers: Record<string, stri
   return undefined
 }
 
-// Lightweight tech detection - only basic patterns, no AI analysis
+// Lightweight tech detection - uses browser rendering to bypass 403/bot protection
 async function quickDetectTech(url: string): Promise<QuickTechInfo> {
   try {
     const cleanUrl = url.startsWith('http') ? url : `https://${url}`
 
-    const response = await fetch(cleanUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      },
-      signal: AbortSignal.timeout(8000) // 8 second timeout
-    })
+    // Use browser rendering to bypass bot protection (403 errors)
+    const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+      // Navigate with shorter timeout for quick detection
+      const response = await page.goto(cleanUrl, {
+        waitUntil: 'domcontentloaded', // Faster than networkidle0
+        timeout: 10000
+      });
 
-    if (!response.ok) {
-      return {}
-    }
+      // Wait briefly for essential content to load (e.g., JavaScript-rendered CMS signatures)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const html = await response.text()
-    const headers = Object.fromEntries(response.headers.entries())
-    const lowerHtml = html.toLowerCase()
+      const html = await page.content();
+
+      // Get response headers from the main document
+      const headers: Record<string, string> = {};
+      if (response) {
+        const responseHeaders = response.headers();
+        Object.assign(headers, responseHeaders);
+      }
+
+      return { html, headers };
+    });
+
+    const { html, headers } = browserResult;
+    const lowerHtml = html.toLowerCase();
 
     const result: QuickTechInfo = {}
 
