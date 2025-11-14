@@ -2619,7 +2619,8 @@ function renderSectionResults(
               unminifiedFiles: results.issues?.unminifiedFiles,
               shortTitles: results.issues?.shortTitles,
               longTitles: results.issues?.longTitles,
-              pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink
+              pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink,
+              orphanedSitemapPages: results.issues?.orphanedSitemapPages
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,

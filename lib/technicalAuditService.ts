@@ -111,6 +111,11 @@ interface TechnicalAuditResult {
       incomingLinkCount: number;
       linkingPage: string;
     }>;
+    orphanedSitemapPages: Array<{
+      url: string;
+      inSitemap: boolean;
+      incomingLinkCount: number;
+    }>;
     totalPagesAnalyzed: number;
   };
   issues: {
@@ -124,6 +129,7 @@ interface TechnicalAuditResult {
     shortTitles?: number;
     longTitles?: number;
     pagesWithOneIncomingLink?: number;
+    orphanedSitemapPages?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -860,11 +866,19 @@ export async function performTechnicalAudit(
       try {
         const internalLinkAnalysis = analyzeInternalLinks(pageDiscovery.pages, domain);
 
-        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
+        // Store analysis results and issue counts
+        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0 || internalLinkAnalysis.orphanedSitemapPages.length > 0) {
           result.internalLinkAnalysis = internalLinkAnalysis;
-          result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
 
-          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
+          if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
+            result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
+            console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
+          }
+
+          if (internalLinkAnalysis.orphanedSitemapPages.length > 0) {
+            result.issues.orphanedSitemapPages = internalLinkAnalysis.orphanedSitemapPages.length;
+            console.log(`⚠️  Found ${internalLinkAnalysis.orphanedSitemapPages.length} orphaned pages in sitemap`);
+          }
         } else {
           console.log(`✅ All pages have adequate internal linking`);
         }
@@ -1253,10 +1267,10 @@ async function getImageSize(imageUrl: string, referrer?: string): Promise<number
 
 /**
  * Analyze internal linking structure across all pages
- * Identifies pages with weak internal linking (only 1 incoming link)
+ * Identifies pages with weak internal linking (only 1 incoming link) and orphaned sitemap pages
  */
 function analyzeInternalLinks(
-  pagesData: Array<{ url: string; html?: string }>,
+  pagesData: Array<{ url: string; html?: string; source?: string }>,
   domain: string
 ): {
   pagesWithOneIncomingLink: Array<{
@@ -1264,16 +1278,29 @@ function analyzeInternalLinks(
     incomingLinkCount: number;
     linkingPage: string;
   }>;
+  orphanedSitemapPages: Array<{
+    url: string;
+    inSitemap: boolean;
+    incomingLinkCount: number;
+  }>;
   totalPagesAnalyzed: number;
 } {
   // Build a map of page URL -> array of pages that link to it
   const incomingLinksMap = new Map<string, Set<string>>();
+
+  // Track which pages came from sitemap
+  const sitemapPages = new Set<string>();
 
   // Initialize map with all discovered pages
   for (const page of pagesData) {
     const normalizedUrl = normalizeUrl(page.url);
     if (!incomingLinksMap.has(normalizedUrl)) {
       incomingLinksMap.set(normalizedUrl, new Set());
+    }
+
+    // Track pages from sitemap
+    if (page.source === 'sitemap') {
+      sitemapPages.add(normalizedUrl);
     }
   }
 
@@ -1326,8 +1353,29 @@ function analyzeInternalLinks(
     }
   }
 
+  // Find orphaned sitemap pages (in sitemap but no incoming links)
+  const orphanedSitemapPages: Array<{
+    url: string;
+    inSitemap: boolean;
+    incomingLinkCount: number;
+  }> = [];
+
+  for (const sitemapPageUrl of sitemapPages) {
+    const incomingPages = incomingLinksMap.get(sitemapPageUrl);
+    if (!incomingPages || incomingPages.size === 0) {
+      orphanedSitemapPages.push({
+        url: sitemapPageUrl,
+        inSitemap: true,
+        incomingLinkCount: 0
+      });
+    }
+  }
+
+  console.log(`📊 Internal link analysis: ${pagesWithOneIncomingLink.length} pages with one link, ${orphanedSitemapPages.length} orphaned sitemap pages`);
+
   return {
     pagesWithOneIncomingLink,
+    orphanedSitemapPages,
     totalPagesAnalyzed: pagesData.length
   };
 }

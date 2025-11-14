@@ -595,6 +595,83 @@ export default function EnhancedRecommendations({
       });
     }
 
+    // Orphaned Sitemap Pages
+    if (technicalIssues?.orphanedSitemapPages && technicalIssues.orphanedSitemapPages > 0) {
+      techRecs.push({
+        title: 'Fix Orphaned Sitemap Pages',
+        description: `${technicalIssues.orphanedSitemapPages} page(s) in your sitemap have NO incoming internal links. These orphaned pages are invisible to users and hurt SEO by wasting crawl budget.`,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: 'Orphaned pages appear in your XML sitemap but have zero internal links from other pages. Search engines find them via sitemap but users cannot navigate to them. This creates a poor user experience and wastes search engine crawl budget on pages that are disconnected from your site structure.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS IS CRITICAL:',
+          '   • Users CANNOT navigate to these pages (they are invisible)',
+          '   • Search engines see a disconnect between sitemap and actual site structure',
+          '   • Wastes crawl budget on disconnected content',
+          '   • Signals poor site architecture to Google',
+          '   • These pages rarely rank well due to lack of internal link equity',
+          '',
+          '📋 ORPHANED SITEMAP PAGES (0 INCOMING LINKS):',
+          ...(technicalAudit?.internalLinkAnalysis?.orphanedSitemapPages?.slice(0, 5).map(item => {
+            // Extract just the path for cleaner display
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • ${urlPath} (in sitemap, but 0 internal links)`;
+          }) || []),
+          ...(technicalIssues.orphanedSitemapPages && technicalIssues.orphanedSitemapPages > 5
+            ? [`   • ...and ${technicalIssues.orphanedSitemapPages - 5} more orphaned pages`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Add internal links from relevant pages:',
+          '   • Find 3-5 related pages on your site',
+          '   • Add contextual links to the orphaned page',
+          '   • Use descriptive anchor text with target keywords',
+          '   • Ensure links make sense in context',
+          '',
+          '2️⃣ Add to site navigation:',
+          '   • Main menu (for important pages)',
+          '   • Footer menu (for secondary pages)',
+          '   • Sidebar widgets (category lists, recent posts)',
+          '   • Breadcrumb navigation',
+          '',
+          '3️⃣ Create hub/category pages:',
+          '   • Build landing pages that link to related content',
+          '   • Add "Related Articles" sections',
+          '   • Create category pages with links to all posts in that category',
+          '',
+          '4️⃣ For WordPress:',
+          '   • Edit posts/pages → Add links in content editor',
+          '   • Appearance → Menus → Add pages to menu',
+          '   • Widgets → Add "Recent Posts" or "Custom Menu"',
+          '   • Use plugins: YARPP, Related Posts, Link Whisper',
+          '',
+          '5️⃣ Alternative: Remove from sitemap:',
+          '   • If the page is truly not important, remove it from sitemap',
+          '   • Delete or noindex the page if it is low-quality',
+          '   • Only keep pages in sitemap that you want indexed',
+          '',
+          '✅ BEST PRACTICES:',
+          '   • Every page in your sitemap should be linked from at least 3 other pages',
+          '   • Use natural, descriptive anchor text',
+          '   • Link from high-authority pages to distribute link equity',
+          '   • Ensure links are visible and clickable (not hidden)',
+          '   • Review your sitemap regularly - remove unnecessary URLs',
+          '',
+          '📊 TARGET:',
+          '   • 0 orphaned pages (all sitemap URLs should have 3+ incoming links)',
+          '   • Keep sitemap clean - only include important pages',
+          '   • Maximum 3 clicks from homepage to any page',
+          '',
+          '💡 IMPORTANT: Orphaned pages are a red flag to search engines',
+          '💡 Fix these immediately to improve site structure and SEO',
+          '💡 After fixing, re-run audit to confirm all pages are linked'
+        ]
+      });
+    }
+
     // Large Images and Modern Formats (Combined)
     if (technicalIssues?.largeImages && technicalIssues.largeImages > 0) {
       // Check if we also have legacy format images
