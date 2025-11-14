@@ -105,6 +105,14 @@ interface TechnicalAuditResult {
     tooShort: Array<{ url: string; title: string; length: number }>;
     tooLong: Array<{ url: string; title: string; length: number }>;
   };
+  internalLinkAnalysis?: {
+    pagesWithOneIncomingLink: Array<{
+      url: string;
+      incomingLinkCount: number;
+      linkingPage: string;
+    }>;
+    totalPagesAnalyzed: number;
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
@@ -115,6 +123,7 @@ interface TechnicalAuditResult {
     unminifiedFiles?: number;
     shortTitles?: number;
     longTitles?: number;
+    pagesWithOneIncomingLink?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -843,7 +852,32 @@ export async function performTechnicalAudit(
       console.error('Viewport analysis failed:', error);
       result.viewportAnalysis = null;
     }
-    
+
+    // 11. Analyze internal linking structure
+    // Only perform if we have multiple pages (makes sense for 'all' or 'custom' audits with multiple pages)
+    if (pageDiscovery && pageDiscovery.pages.length > 1) {
+      console.log('🔗 Analyzing internal linking structure...');
+      try {
+        const internalLinkAnalysis = analyzeInternalLinks(pageDiscovery.pages, domain);
+
+        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
+          result.internalLinkAnalysis = internalLinkAnalysis;
+          result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
+
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
+        } else {
+          console.log(`✅ All pages have adequate internal linking`);
+        }
+
+        if (onProgress) {
+          await onProgress('analyzing_links', 1, 1, 'Internal link analysis complete');
+        }
+      } catch (_error) {
+        console.error('Internal link analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
   } catch (_error) {
     console.error('Technical audit error:', error);
   }
@@ -1215,6 +1249,105 @@ async function getImageSize(imageUrl: string, referrer?: string): Promise<number
   }
 
   return 0;
+}
+
+/**
+ * Analyze internal linking structure across all pages
+ * Identifies pages with weak internal linking (only 1 incoming link)
+ */
+function analyzeInternalLinks(
+  pagesData: Array<{ url: string; html?: string }>,
+  domain: string
+): {
+  pagesWithOneIncomingLink: Array<{
+    url: string;
+    incomingLinkCount: number;
+    linkingPage: string;
+  }>;
+  totalPagesAnalyzed: number;
+} {
+  // Build a map of page URL -> array of pages that link to it
+  const incomingLinksMap = new Map<string, Set<string>>();
+
+  // Initialize map with all discovered pages
+  for (const page of pagesData) {
+    const normalizedUrl = normalizeUrl(page.url);
+    if (!incomingLinksMap.has(normalizedUrl)) {
+      incomingLinksMap.set(normalizedUrl, new Set());
+    }
+  }
+
+  // Analyze links from each page
+  for (const sourcePage of pagesData) {
+    if (!sourcePage.html) continue;
+
+    const sourceUrl = normalizeUrl(sourcePage.url);
+    const links = findAllLinks(sourcePage.html, sourcePage.url);
+
+    // Filter to internal links only (same domain)
+    const internalLinks = links.filter(link => {
+      try {
+        const linkHost = new URL(link).hostname;
+        return linkHost === domain || linkHost === `www.${domain}` || linkHost === domain.replace('www.', '');
+      } catch {
+        return false;
+      }
+    });
+
+    // Record incoming links for each target page
+    for (const targetLink of internalLinks) {
+      const normalizedTarget = normalizeUrl(targetLink);
+
+      // Skip self-links
+      if (normalizedTarget === sourceUrl) continue;
+
+      if (!incomingLinksMap.has(normalizedTarget)) {
+        incomingLinksMap.set(normalizedTarget, new Set());
+      }
+      incomingLinksMap.get(normalizedTarget)!.add(sourceUrl);
+    }
+  }
+
+  // Find pages with exactly 1 incoming link
+  const pagesWithOneIncomingLink: Array<{
+    url: string;
+    incomingLinkCount: number;
+    linkingPage: string;
+  }> = [];
+
+  for (const [pageUrl, incomingPages] of incomingLinksMap.entries()) {
+    if (incomingPages.size === 1) {
+      const linkingPage = Array.from(incomingPages)[0];
+      pagesWithOneIncomingLink.push({
+        url: pageUrl,
+        incomingLinkCount: 1,
+        linkingPage
+      });
+    }
+  }
+
+  return {
+    pagesWithOneIncomingLink,
+    totalPagesAnalyzed: pagesData.length
+  };
+}
+
+/**
+ * Normalize URL for comparison (remove trailing slash, fragments, etc.)
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Remove trailing slash, hash, and query params for comparison
+    let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+    // Remove trailing slash unless it's the root
+    if (normalized.endsWith('/') && normalized !== `${urlObj.protocol}//${urlObj.hostname}/`) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+  } catch {
+    return url;
+  }
 }
 
 function findAllLinks(html: string, pageUrl: string): string[] {

@@ -39,6 +39,7 @@ interface EnhancedRecommendationsProps {
     unminifiedFiles?: number
     shortTitles?: number
     longTitles?: number
+    pagesWithOneIncomingLink?: number
   }
   technicalAudit?: {
     unminifiedFiles?: {
@@ -57,6 +58,14 @@ interface EnhancedRecommendationsProps {
     titleLengthIssues?: {
       tooShort: Array<{ url: string; title: string; length: number }>
       tooLong: Array<{ url: string; title: string; length: number }>
+    }
+    internalLinkAnalysis?: {
+      pagesWithOneIncomingLink: Array<{
+        url: string
+        incomingLinkCount: number
+        linkingPage: string
+      }>
+      totalPagesAnalyzed: number
     }
   }
   textHtmlRatioPages?: Array<{
@@ -507,6 +516,81 @@ export default function EnhancedRecommendations({
           '✅ EXAMPLE:',
           '❌ "Welcome to the Best Professional Web Design and Development Agency in London"',
           '✅ "Web Design & Development Agency London | WebCo"'
+        ]
+      });
+    }
+
+    // Pages with Only One Incoming Internal Link
+    if (technicalIssues?.pagesWithOneIncomingLink && technicalIssues.pagesWithOneIncomingLink > 0) {
+      techRecs.push({
+        title: 'Improve Internal Linking',
+        description: `${technicalIssues.pagesWithOneIncomingLink} page(s) have only one incoming internal link. Poor internal linking weakens SEO and makes pages harder for users and search engines to discover.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Pages with only one incoming link are poorly integrated into your site structure. Good internal linking improves SEO, helps users navigate, and distributes page authority throughout your site. Aim for 3-5+ internal links to each important page.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Search engines use internal links to discover and understand pages',
+          '   • More incoming links = more "link equity" and better rankings',
+          '   • Helps users discover related content',
+          '   • Reduces bounce rate by offering navigation options',
+          '',
+          '📋 PAGES WITH WEAK INTERNAL LINKING:',
+          ...(technicalAudit?.internalLinkAnalysis?.pagesWithOneIncomingLink?.slice(0, 5).map(item => {
+            // Extract just the path for cleaner display
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            const linkingPath = item.linkingPage.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • ${urlPath} (linked from: ${linkingPath})`;
+          }) || []),
+          ...(technicalIssues.pagesWithOneIncomingLink && technicalIssues.pagesWithOneIncomingLink > 5
+            ? [`   • ...and ${technicalIssues.pagesWithOneIncomingLink - 5} more pages`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Add contextual links from related content:',
+          '   • Review pages on similar topics',
+          '   • Add natural links within body content',
+          '   • Use descriptive anchor text (not "click here")',
+          '   • Link to the orphaned page from 3-5 relevant pages',
+          '',
+          '2️⃣ Add to navigation menus:',
+          '   • Main navigation (for important pages)',
+          '   • Footer links (for secondary pages)',
+          '   • Sidebar widgets (for popular or recent content)',
+          '   • Breadcrumb navigation',
+          '',
+          '3️⃣ Create hub pages or content clusters:',
+          '   • Build pillar pages that link to related content',
+          '   • Create "Related Posts" or "You May Also Like" sections',
+          '   • Add category/tag pages that link to relevant posts',
+          '',
+          '4️⃣ For WordPress:',
+          '   • Use "Related Posts" plugins (e.g., YARPP, Related Posts)',
+          '   • Add manual links in post/page editor',
+          '   • Use block editor to insert link blocks',
+          '   • Create custom menus in Appearance → Menus',
+          '',
+          '5️⃣ For other platforms:',
+          '   • Manually edit page content to add links',
+          '   • Update navigation templates',
+          '   • Use site-wide widgets or components',
+          '',
+          '✅ BEST PRACTICES:',
+          '   • Use descriptive anchor text (include target keywords)',
+          '   • Link from high-authority pages to newer/weaker pages',
+          '   • Keep link relevance high (only link related content)',
+          '   • Aim for 3-5+ internal links per page',
+          '   • Don\'t over-optimize (keep it natural)',
+          '',
+          '📊 TARGET:',
+          '   • All important pages should have 3+ incoming links',
+          '   • Homepage should link to key landing pages',
+          '   • Blog posts should link to 2-3 related articles',
+          '',
+          '💡 After adding links, re-run the audit to verify improvements'
         ]
       });
     }

@@ -2618,11 +2618,13 @@ function renderSectionResults(
               lowTextHtmlRatio: results.issues?.lowTextHtmlRatio,
               unminifiedFiles: results.issues?.unminifiedFiles,
               shortTitles: results.issues?.shortTitles,
-              longTitles: results.issues?.longTitles
+              longTitles: results.issues?.longTitles,
+              pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,
-              titleLengthIssues: results.titleLengthIssues
+              titleLengthIssues: results.titleLengthIssues,
+              internalLinkAnalysis: results.internalLinkAnalysis
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}
