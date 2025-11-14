@@ -116,6 +116,46 @@ interface TechnicalAuditResult {
       inSitemap: boolean;
       incomingLinkCount: number;
     }>;
+    trueOrphanPages: Array<{
+      url: string;
+      incomingLinkCount: number;
+      discoveryMethod: string;
+    }>;
+    pagesWithBrokenLinks: Array<{
+      url: string;
+      brokenLinkCount: number;
+      brokenLinks: Array<{ targetUrl: string; anchorText: string }>;
+    }>;
+    pagesWithNofollowLinks: Array<{
+      url: string;
+      nofollowLinkCount: number;
+      nofollowLinks: Array<{ targetUrl: string; anchorText: string }>;
+    }>;
+    linkDepthAnalysis: {
+      pagesDeepInSite: Array<{
+        url: string;
+        depth: number; // clicks from homepage
+      }>;
+      averageDepth: number;
+      maxDepth: number;
+    };
+    anchorTextAnalysis: {
+      genericAnchors: Array<{
+        url: string;
+        anchorText: string;
+        count: number;
+      }>;
+      overOptimized: Array<{
+        url: string;
+        anchorText: string;
+        count: number;
+      }>;
+    };
+    deepLinkRatio: {
+      homepageLinks: number;
+      deepContentLinks: number;
+      ratio: number; // deep / total
+    };
     totalPagesAnalyzed: number;
   };
   permanentRedirects?: {
@@ -162,6 +202,12 @@ interface TechnicalAuditResult {
     longTitles?: number;
     pagesWithOneIncomingLink?: number;
     orphanedSitemapPages?: number;
+    trueOrphanPages?: number;
+    pagesWithBrokenLinks?: number;
+    pagesWithNofollowLinks?: number;
+    pagesDeepInSite?: number;
+    genericAnchors?: number;
+    poorDeepLinkRatio?: number;
     permanentRedirects?: number;
     subdomainsWithoutHSTS?: number;
     missingLlmsTxt?: number;
@@ -905,22 +951,51 @@ export async function performTechnicalAudit(
       try {
         const internalLinkAnalysis = analyzeInternalLinks(pageDiscovery.pages, domain);
 
-        // Store analysis results and issue counts
-        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0 || internalLinkAnalysis.orphanedSitemapPages.length > 0) {
-          result.internalLinkAnalysis = internalLinkAnalysis;
+        // Store analysis results
+        result.internalLinkAnalysis = internalLinkAnalysis;
 
-          if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
-            result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
-            console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
-          }
-
-          if (internalLinkAnalysis.orphanedSitemapPages.length > 0) {
-            result.issues.orphanedSitemapPages = internalLinkAnalysis.orphanedSitemapPages.length;
-            console.log(`⚠️  Found ${internalLinkAnalysis.orphanedSitemapPages.length} orphaned pages in sitemap`);
-          }
-        } else {
-          console.log(`✅ All pages have adequate internal linking`);
+        // Track all issue counts
+        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
+          result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
         }
+
+        if (internalLinkAnalysis.orphanedSitemapPages.length > 0) {
+          result.issues.orphanedSitemapPages = internalLinkAnalysis.orphanedSitemapPages.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.orphanedSitemapPages.length} orphaned pages in sitemap`);
+        }
+
+        if (internalLinkAnalysis.trueOrphanPages.length > 0) {
+          result.issues.trueOrphanPages = internalLinkAnalysis.trueOrphanPages.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.trueOrphanPages.length} true orphan pages (0 incoming links)`);
+        }
+
+        if (internalLinkAnalysis.pagesWithBrokenLinks.length > 0) {
+          result.issues.pagesWithBrokenLinks = internalLinkAnalysis.pagesWithBrokenLinks.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithBrokenLinks.length} pages with broken internal links`);
+        }
+
+        if (internalLinkAnalysis.pagesWithNofollowLinks.length > 0) {
+          result.issues.pagesWithNofollowLinks = internalLinkAnalysis.pagesWithNofollowLinks.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithNofollowLinks.length} pages with nofollow internal links`);
+        }
+
+        if (internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length > 0) {
+          result.issues.pagesDeepInSite = internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length} pages deep in site (4+ clicks from homepage)`);
+        }
+
+        if (internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length > 0) {
+          result.issues.genericAnchors = internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length} instances of generic anchor text`);
+        }
+
+        if (internalLinkAnalysis.deepLinkRatio.ratio < 0.6) {
+          result.issues.poorDeepLinkRatio = 1;
+          console.log(`⚠️  Poor deep link ratio: ${(internalLinkAnalysis.deepLinkRatio.ratio * 100).toFixed(1)}% (should be ≥60%)`);
+        }
+
+        console.log(`✅ Internal link analysis complete - analyzed ${internalLinkAnalysis.totalPagesAnalyzed} pages`);
 
         if (onProgress) {
           await onProgress('analyzing_links', 1, 1, 'Internal link analysis complete');
@@ -1386,30 +1461,43 @@ async function getImageSize(imageUrl: string, referrer?: string): Promise<number
 }
 
 /**
- * Analyze internal linking structure across all pages
- * Identifies pages with weak internal linking (only 1 incoming link) and orphaned sitemap pages
+ * Analyze internal linking structure across all pages - SOPHISTICATED VERSION
+ * Includes: link depth, orphans, broken links, nofollow, anchor text, deep link ratio
  */
 function analyzeInternalLinks(
-  pagesData: Array<{ url: string; html?: string; source?: string }>,
+  pagesData: Array<{ url: string; html?: string; source?: string; statusCode?: number }>,
   domain: string
-): {
-  pagesWithOneIncomingLink: Array<{
-    url: string;
-    incomingLinkCount: number;
-    linkingPage: string;
-  }>;
-  orphanedSitemapPages: Array<{
-    url: string;
-    inSitemap: boolean;
-    incomingLinkCount: number;
-  }>;
-  totalPagesAnalyzed: number;
-} {
+) {
+  console.log(`🔗 Starting sophisticated internal link analysis for ${pagesData.length} pages...`);
+
   // Build a map of page URL -> array of pages that link to it
   const incomingLinksMap = new Map<string, Set<string>>();
 
   // Track which pages came from sitemap
   const sitemapPages = new Set<string>();
+
+  // Track all link details (with anchor text and nofollow status)
+  interface LinkDetails {
+    sourceUrl: string;
+    targetUrl: string;
+    anchorText: string;
+    isNofollow: boolean;
+    isBroken: boolean;
+  }
+  const allLinkDetails: LinkDetails[] = [];
+
+  // Track broken links per page
+  const brokenLinksPerPage = new Map<string, Array<{ targetUrl: string; anchorText: string }>>();
+
+  // Track nofollow links per page
+  const nofollowLinksPerPage = new Map<string, Array<{ targetUrl: string; anchorText: string }>>();
+
+  // Track anchor text usage
+  const anchorTextMap = new Map<string, Map<string, number>>(); // url -> anchor text -> count
+
+  // Count homepage vs deep links
+  let homepageLinks = 0;
+  let deepContentLinks = 0;
 
   // Initialize map with all discovered pages
   for (const page of pagesData) {
@@ -1424,38 +1512,88 @@ function analyzeInternalLinks(
     }
   }
 
-  // Analyze links from each page
+  // Extract all links with rich details (anchor text, nofollow, etc.)
   for (const sourcePage of pagesData) {
     if (!sourcePage.html) continue;
 
     const sourceUrl = normalizeUrl(sourcePage.url);
-    const links = findAllLinks(sourcePage.html, sourcePage.url);
+    const enrichedLinks = extractLinksWithDetails(sourcePage.html, sourcePage.url);
 
     // Filter to internal links only (same domain)
-    const internalLinks = links.filter(link => {
+    const internalLinks = enrichedLinks.filter(link => {
       try {
-        const linkHost = new URL(link).hostname;
+        const linkHost = new URL(link.targetUrl).hostname;
         return linkHost === domain || linkHost === `www.${domain}` || linkHost === domain.replace('www.', '');
       } catch {
         return false;
       }
     });
 
-    // Record incoming links for each target page
-    for (const targetLink of internalLinks) {
-      const normalizedTarget = normalizeUrl(targetLink);
+    // Process each internal link
+    for (const link of internalLinks) {
+      const normalizedTarget = normalizeUrl(link.targetUrl);
 
       // Skip self-links
       if (normalizedTarget === sourceUrl) continue;
 
+      // Check if link is to homepage or deep content
+      const isHomepageLink = isHomepage(normalizedTarget);
+      if (isHomepageLink) {
+        homepageLinks++;
+      } else {
+        deepContentLinks++;
+      }
+
+      // Record incoming link
       if (!incomingLinksMap.has(normalizedTarget)) {
         incomingLinksMap.set(normalizedTarget, new Set());
       }
       incomingLinksMap.get(normalizedTarget)!.add(sourceUrl);
+
+      // Track broken internal links (if target page exists in our data)
+      const targetPage = pagesData.find(p => normalizeUrl(p.url) === normalizedTarget);
+      const isBroken = targetPage && targetPage.statusCode && targetPage.statusCode >= 400;
+
+      if (isBroken) {
+        if (!brokenLinksPerPage.has(sourceUrl)) {
+          brokenLinksPerPage.set(sourceUrl, []);
+        }
+        brokenLinksPerPage.get(sourceUrl)!.push({
+          targetUrl: link.targetUrl,
+          anchorText: link.anchorText
+        });
+      }
+
+      // Track nofollow internal links
+      if (link.isNofollow) {
+        if (!nofollowLinksPerPage.has(sourceUrl)) {
+          nofollowLinksPerPage.set(sourceUrl, []);
+        }
+        nofollowLinksPerPage.get(sourceUrl)!.push({
+          targetUrl: link.targetUrl,
+          anchorText: link.anchorText
+        });
+      }
+
+      // Track anchor text
+      if (!anchorTextMap.has(normalizedTarget)) {
+        anchorTextMap.set(normalizedTarget, new Map());
+      }
+      const anchorTextCount = anchorTextMap.get(normalizedTarget)!;
+      anchorTextCount.set(link.anchorText, (anchorTextCount.get(link.anchorText) || 0) + 1);
+
+      // Store link details
+      allLinkDetails.push({
+        sourceUrl,
+        targetUrl: normalizedTarget,
+        anchorText: link.anchorText,
+        isNofollow: link.isNofollow,
+        isBroken: isBroken || false
+      });
     }
   }
 
-  // Find pages with exactly 1 incoming link
+  // 1. Find pages with exactly 1 incoming link
   const pagesWithOneIncomingLink: Array<{
     url: string;
     incomingLinkCount: number;
@@ -1473,7 +1611,7 @@ function analyzeInternalLinks(
     }
   }
 
-  // Find orphaned sitemap pages (in sitemap but no incoming links)
+  // 2. Find orphaned sitemap pages (in sitemap but no incoming links)
   const orphanedSitemapPages: Array<{
     url: string;
     inSitemap: boolean;
@@ -1491,13 +1629,247 @@ function analyzeInternalLinks(
     }
   }
 
-  console.log(`📊 Internal link analysis: ${pagesWithOneIncomingLink.length} pages with one link, ${orphanedSitemapPages.length} orphaned sitemap pages`);
+  // 3. Find TRUE orphan pages (0 incoming links from ANY page)
+  const trueOrphanPages: Array<{
+    url: string;
+    incomingLinkCount: number;
+    discoveryMethod: string;
+  }> = [];
+
+  for (const page of pagesData) {
+    const normalizedUrl = normalizeUrl(page.url);
+    const incomingPages = incomingLinksMap.get(normalizedUrl);
+    if (!incomingPages || incomingPages.size === 0) {
+      trueOrphanPages.push({
+        url: page.url,
+        incomingLinkCount: 0,
+        discoveryMethod: page.source || 'unknown'
+      });
+    }
+  }
+
+  // 4. Pages with broken internal links
+  const pagesWithBrokenLinks: Array<{
+    url: string;
+    brokenLinkCount: number;
+    brokenLinks: Array<{ targetUrl: string; anchorText: string }>;
+  }> = [];
+
+  for (const [sourceUrl, brokenLinks] of brokenLinksPerPage.entries()) {
+    pagesWithBrokenLinks.push({
+      url: sourceUrl,
+      brokenLinkCount: brokenLinks.length,
+      brokenLinks: brokenLinks.slice(0, 10) // Limit to 10 examples
+    });
+  }
+
+  // 5. Pages with nofollow internal links
+  const pagesWithNofollowLinks: Array<{
+    url: string;
+    nofollowLinkCount: number;
+    nofollowLinks: Array<{ targetUrl: string; anchorText: string }>;
+  }> = [];
+
+  for (const [sourceUrl, nofollowLinks] of nofollowLinksPerPage.entries()) {
+    pagesWithNofollowLinks.push({
+      url: sourceUrl,
+      nofollowLinkCount: nofollowLinks.length,
+      nofollowLinks: nofollowLinks.slice(0, 10) // Limit to 10 examples
+    });
+  }
+
+  // 6. Link Depth Analysis (BFS from homepage)
+  const homepageUrl = normalizeUrl(`https://${domain}`);
+  const linkDepthMap = calculateLinkDepth(homepageUrl, incomingLinksMap, allLinkDetails);
+
+  const pagesDeepInSite: Array<{ url: string; depth: number }> = [];
+  let totalDepth = 0;
+  let maxDepth = 0;
+  let pageCount = 0;
+
+  for (const [url, depth] of linkDepthMap.entries()) {
+    if (depth > 3) { // Pages more than 3 clicks deep
+      pagesDeepInSite.push({ url, depth });
+    }
+    totalDepth += depth;
+    maxDepth = Math.max(maxDepth, depth);
+    pageCount++;
+  }
+
+  const averageDepth = pageCount > 0 ? totalDepth / pageCount : 0;
+
+  // Sort by depth (deepest first)
+  pagesDeepInSite.sort((a, b) => b.depth - a.depth);
+
+  // 7. Anchor Text Analysis
+  const genericAnchorPatterns = ['click here', 'read more', 'learn more', 'here', 'this', 'link', 'more'];
+  const genericAnchors: Array<{ url: string; anchorText: string; count: number }> = [];
+  const overOptimized: Array<{ url: string; anchorText: string; count: number }> = [];
+
+  for (const [url, anchorTexts] of anchorTextMap.entries()) {
+    for (const [anchorText, count] of anchorTexts.entries()) {
+      const lowerAnchor = anchorText.toLowerCase().trim();
+
+      // Check for generic anchor text
+      if (genericAnchorPatterns.some(pattern => lowerAnchor === pattern || lowerAnchor.includes(pattern))) {
+        genericAnchors.push({ url, anchorText, count });
+      }
+
+      // Check for over-optimization (same anchor text used many times)
+      if (count >= 5) {
+        overOptimized.push({ url, anchorText, count });
+      }
+    }
+  }
+
+  // Sort by count (most used first)
+  genericAnchors.sort((a, b) => b.count - a.count);
+  overOptimized.sort((a, b) => b.count - a.count);
+
+  // 8. Deep Link Ratio
+  const totalLinks = homepageLinks + deepContentLinks;
+  const deepLinkRatio = totalLinks > 0 ? deepContentLinks / totalLinks : 0;
+
+  console.log(`📊 Sophisticated analysis complete:`);
+  console.log(`   - ${pagesWithOneIncomingLink.length} pages with 1 incoming link`);
+  console.log(`   - ${orphanedSitemapPages.length} orphaned sitemap pages`);
+  console.log(`   - ${trueOrphanPages.length} true orphan pages (0 links)`);
+  console.log(`   - ${pagesWithBrokenLinks.length} pages with broken internal links`);
+  console.log(`   - ${pagesWithNofollowLinks.length} pages with nofollow internal links`);
+  console.log(`   - ${pagesDeepInSite.length} pages 4+ clicks deep (avg: ${averageDepth.toFixed(1)}, max: ${maxDepth})`);
+  console.log(`   - ${genericAnchors.length} generic anchors, ${overOptimized.length} over-optimized`);
+  console.log(`   - Deep link ratio: ${(deepLinkRatio * 100).toFixed(1)}% (${deepContentLinks} deep / ${totalLinks} total)`);
 
   return {
     pagesWithOneIncomingLink,
     orphanedSitemapPages,
+    trueOrphanPages,
+    pagesWithBrokenLinks,
+    pagesWithNofollowLinks,
+    linkDepthAnalysis: {
+      pagesDeepInSite: pagesDeepInSite.slice(0, 20), // Limit to top 20
+      averageDepth,
+      maxDepth
+    },
+    anchorTextAnalysis: {
+      genericAnchors: genericAnchors.slice(0, 20), // Top 20
+      overOptimized: overOptimized.slice(0, 20) // Top 20
+    },
+    deepLinkRatio: {
+      homepageLinks,
+      deepContentLinks,
+      ratio: deepLinkRatio
+    },
     totalPagesAnalyzed: pagesData.length
   };
+}
+
+/**
+ * Extract links with anchor text and rel attributes
+ */
+function extractLinksWithDetails(html: string, pageUrl: string): Array<{
+  targetUrl: string;
+  anchorText: string;
+  isNofollow: boolean;
+}> {
+  const linkRegex = /<a\s+([^>]+)>([^<]*)<\/a>/gi;
+  const links: Array<{ targetUrl: string; anchorText: string; isNofollow: boolean }> = [];
+  const baseUrl = new URL(pageUrl);
+
+  let match;
+  while ((match = linkRegex.exec(html)) !== null) {
+    const attributes = match[1];
+    const anchorText = match[2].trim() || '';
+
+    // Extract href
+    const hrefMatch = attributes.match(/href=["']([^"']+)["']/i);
+    if (!hrefMatch) continue;
+
+    const href = hrefMatch[1];
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      continue;
+    }
+
+    // Check for nofollow
+    const relMatch = attributes.match(/rel=["']([^"']+)["']/i);
+    const isNofollow = relMatch ? relMatch[1].toLowerCase().includes('nofollow') : false;
+
+    try {
+      // Resolve URL
+      let linkUrl: string;
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        linkUrl = new URL(href).href;
+      } else {
+        linkUrl = new URL(href, baseUrl).href;
+      }
+
+      links.push({
+        targetUrl: linkUrl,
+        anchorText: anchorText || '(no text)',
+        isNofollow
+      });
+    } catch (_error) {
+      // Invalid URL, skip
+    }
+  }
+
+  return links;
+}
+
+/**
+ * Calculate link depth from homepage using BFS
+ */
+function calculateLinkDepth(
+  homepageUrl: string,
+  incomingLinksMap: Map<string, Set<string>>,
+  allLinks: Array<{ sourceUrl: string; targetUrl: string }>
+): Map<string, number> {
+  const depthMap = new Map<string, number>();
+  const queue: Array<{ url: string; depth: number }> = [{ url: homepageUrl, depth: 0 }];
+  const visited = new Set<string>();
+
+  // Build outgoing links map for BFS
+  const outgoingLinksMap = new Map<string, Set<string>>();
+  for (const link of allLinks) {
+    if (!outgoingLinksMap.has(link.sourceUrl)) {
+      outgoingLinksMap.set(link.sourceUrl, new Set());
+    }
+    outgoingLinksMap.get(link.sourceUrl)!.add(link.targetUrl);
+  }
+
+  // BFS from homepage
+  while (queue.length > 0) {
+    const { url, depth } = queue.shift()!;
+
+    if (visited.has(url)) continue;
+    visited.add(url);
+
+    depthMap.set(url, depth);
+
+    // Add linked pages to queue
+    const outgoingLinks = outgoingLinksMap.get(url);
+    if (outgoingLinks) {
+      for (const targetUrl of outgoingLinks) {
+        if (!visited.has(targetUrl)) {
+          queue.push({ url: targetUrl, depth: depth + 1 });
+        }
+      }
+    }
+  }
+
+  return depthMap;
+}
+
+/**
+ * Check if a URL is a homepage
+ */
+function isHomepage(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname === '/' || urlObj.pathname === '';
+  } catch {
+    return false;
+  }
 }
 
 /**

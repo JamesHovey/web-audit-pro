@@ -40,6 +40,17 @@ interface EnhancedRecommendationsProps {
     shortTitles?: number
     longTitles?: number
     pagesWithOneIncomingLink?: number
+    orphanedSitemapPages?: number
+    trueOrphanPages?: number
+    pagesWithBrokenLinks?: number
+    pagesWithNofollowLinks?: number
+    pagesDeepInSite?: number
+    genericAnchors?: number
+    poorDeepLinkRatio?: number
+    permanentRedirects?: number
+    subdomainsWithoutHSTS?: number
+    missingLlmsTxt?: number
+    missingRobotsTxt?: number
   }
   technicalAudit?: {
     unminifiedFiles?: {
@@ -65,7 +76,60 @@ interface EnhancedRecommendationsProps {
         incomingLinkCount: number
         linkingPage: string
       }>
+      orphanedSitemapPages?: Array<{
+        url: string
+        inSitemap: boolean
+        incomingLinkCount: number
+      }>
+      trueOrphanPages?: Array<{
+        url: string
+        incomingLinkCount: number
+        discoveryMethod: string
+      }>
+      pagesWithBrokenLinks?: Array<{
+        url: string
+        brokenLinkCount: number
+        brokenLinks: Array<{ targetUrl: string; anchorText: string }>
+      }>
+      pagesWithNofollowLinks?: Array<{
+        url: string
+        nofollowLinkCount: number
+        nofollowLinks: Array<{ targetUrl: string; anchorText: string }>
+      }>
+      linkDepthAnalysis?: {
+        pagesDeepInSite: Array<{
+          url: string
+          depth: number
+        }>
+        averageDepth: number
+        maxDepth: number
+      }
+      anchorTextAnalysis?: {
+        genericAnchors: Array<{
+          url: string
+          anchorText: string
+          count: number
+        }>
+        overOptimized: Array<{
+          url: string
+          anchorText: string
+          count: number
+        }>
+      }
+      deepLinkRatio?: {
+        homepageLinks: number
+        deepContentLinks: number
+        ratio: number
+      }
       totalPagesAnalyzed: number
+    }
+    permanentRedirects?: {
+      totalRedirects: number
+      redirects: Array<{
+        fromUrl: string
+        toUrl: string
+        statusCode: number
+      }>
     }
   }
   textHtmlRatioPages?: Array<{
@@ -668,6 +732,350 @@ export default function EnhancedRecommendations({
           '💡 IMPORTANT: Orphaned pages are a red flag to search engines',
           '💡 Fix these immediately to improve site structure and SEO',
           '💡 After fixing, re-run audit to confirm all pages are linked'
+        ]
+      });
+    }
+
+    // True Orphan Pages (0 Incoming Links)
+    if (technicalIssues?.trueOrphanPages && technicalIssues.trueOrphanPages > 0) {
+      techRecs.push({
+        title: 'Fix True Orphan Pages',
+        description: `${technicalIssues.trueOrphanPages} page(s) have ZERO incoming internal links. These pages are completely isolated and invisible to users navigating your site.`,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: 'True orphan pages have no incoming internal links from any page on your site. Users cannot discover these pages through navigation. Search engines can only find them through sitemaps or external links, but they receive no internal link equity, severely harming their ranking potential.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS IS CRITICAL:',
+          '   • Pages are completely invisible to site visitors',
+          '   • Zero internal link equity = very poor rankings',
+          '   • Search engines see these as disconnected/low-priority',
+          '   • Wastes crawl budget on isolated content',
+          '   • Signals serious site architecture problems',
+          '',
+          '📋 TRUE ORPHAN PAGES (0 INCOMING LINKS):',
+          ...(technicalAudit?.internalLinkAnalysis?.trueOrphanPages?.slice(0, 5).map(item => {
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • ${urlPath} (discovered via ${item.discoveryMethod})`;
+          }) || []),
+          ...(technicalIssues.trueOrphanPages && technicalIssues.trueOrphanPages > 5
+            ? [`   • ...and ${technicalIssues.trueOrphanPages - 5} more orphan pages`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Add internal links immediately:',
+          '   • Add links from 3-5 relevant pages',
+          '   • Use descriptive anchor text with keywords',
+          '   • Place links in contextual content (not just footers)',
+          '   • Ensure links are visible and clickable',
+          '',
+          '2️⃣ Add to navigation structure:',
+          '   • Main navigation menu (for important pages)',
+          '   • Category/section pages (for content pages)',
+          '   • Related posts sections',
+          '   • Footer or sidebar menus',
+          '',
+          '3️⃣ OR consider deletion:',
+          '   • If page is low-quality or outdated, delete it',
+          '   • If not valuable, set to noindex or remove',
+          '   • Only keep pages that serve a purpose',
+          '',
+          '✅ TARGET: 0 orphan pages - every page should have 3+ incoming links',
+          '',
+          '💡 This is the most severe internal linking issue - fix immediately!'
+        ]
+      });
+    }
+
+    // Pages with Broken Internal Links
+    if (technicalIssues?.pagesWithBrokenLinks && technicalIssues.pagesWithBrokenLinks > 0) {
+      techRecs.push({
+        title: 'Fix Broken Internal Links',
+        description: `${technicalIssues.pagesWithBrokenLinks} page(s) contain broken internal links. Broken links hurt user experience and waste link equity by pointing to non-existent pages.`,
+        impact: 'High',
+        effort: 'Medium',
+        icon: <AlertTriangle className="w-4 h-4" />,
+        details: 'Broken internal links (404 errors) create a poor user experience and waste the SEO value of internal linking. Search engines see broken links as a sign of poor site maintenance. Fix or remove all broken internal links.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Broken links frustrate users and increase bounce rate',
+          '   • Wastes link equity on non-existent pages',
+          '   • Search engines see broken links as poor site quality',
+          '   • Hurts crawl efficiency and indexing',
+          '   • May impact overall site rankings',
+          '',
+          '📋 PAGES WITH BROKEN INTERNAL LINKS:',
+          ...(technicalAudit?.internalLinkAnalysis?.pagesWithBrokenLinks?.slice(0, 5).map(item => {
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            const brokenExample = item.brokenLinks[0];
+            const brokenPath = brokenExample?.targetUrl.replace(/^https?:\/\/[^/]+/, '') || '';
+            return `   • ${urlPath} → has ${item.brokenLinkCount} broken link(s) (e.g., ${brokenPath})`;
+          }) || []),
+          ...(technicalIssues.pagesWithBrokenLinks && technicalIssues.pagesWithBrokenLinks > 5
+            ? [`   • ...and ${technicalIssues.pagesWithBrokenLinks - 5} more pages with broken links`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Update links to correct URLs:',
+          '   • Find the correct destination page',
+          '   • Update the href to the working URL',
+          '   • Test the link after updating',
+          '',
+          '2️⃣ Restore deleted pages:',
+          '   • If content was accidentally deleted, restore it',
+          '   • Or create a new page at the expected URL',
+          '',
+          '3️⃣ Remove broken links:',
+          '   • If target page is gone permanently, remove the link',
+          '   • Update content to remove references',
+          '',
+          '4️⃣ Add redirects:',
+          '   • Set up 301 redirects from old URLs to new ones',
+          '   • Then update internal links to point directly to new URLs',
+          '',
+          '✅ TARGET: 0 broken internal links',
+          '',
+          '💡 Use browser dev tools or link checker tools to find all broken links'
+        ]
+      });
+    }
+
+    // Pages with Nofollow Internal Links
+    if (technicalIssues?.pagesWithNofollowLinks && technicalIssues.pagesWithNofollowLinks > 0) {
+      techRecs.push({
+        title: 'Remove Nofollow from Internal Links',
+        description: `${technicalIssues.pagesWithNofollowLinks} page(s) have internal links with rel="nofollow". Nofollow on internal links prevents link equity distribution and can harm SEO.`,
+        impact: 'Medium',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Using rel="nofollow" on internal links tells search engines not to follow or pass authority through those links. This wastes link equity and can hurt the rankings of important pages. Nofollow should only be used for external links to untrusted sites, never for internal links.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Nofollow prevents link equity from flowing to target pages',
+          '   • Wastes the SEO value of internal linking',
+          '   • Can cause important pages to not rank well',
+          '   • Search engines may not discover/crawl nofollowed pages',
+          '   • Signals you don\'t trust your own content',
+          '',
+          '📋 PAGES WITH NOFOLLOW INTERNAL LINKS:',
+          ...(technicalAudit?.internalLinkAnalysis?.pagesWithNofollowLinks?.slice(0, 5).map(item => {
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            const nofollowExample = item.nofollowLinks[0];
+            const nofollowPath = nofollowExample?.targetUrl.replace(/^https?:\/\/[^/]+/, '') || '';
+            return `   • ${urlPath} → has ${item.nofollowLinkCount} nofollow link(s) (e.g., to ${nofollowPath})`;
+          }) || []),
+          ...(technicalIssues.pagesWithNofollowLinks && technicalIssues.pagesWithNofollowLinks > 5
+            ? [`   • ...and ${technicalIssues.pagesWithNofollowLinks - 5} more pages`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Remove rel="nofollow" from internal links:',
+          '   • Find links with rel="nofollow" in your HTML',
+          '   • Remove the rel attribute or change to rel="dofollow"',
+          '   • Or simply remove rel entirely for internal links',
+          '',
+          '2️⃣ Check your CMS/theme settings:',
+          '   • Some plugins add nofollow automatically',
+          '   • Review plugin settings and disable nofollow for internal links',
+          '   • Check theme options for link settings',
+          '',
+          '3️⃣ For WordPress:',
+          '   • Edit page/post → Find links in editor',
+          '   • Click link → Advanced → Remove "nofollow"',
+          '   • Check plugins like Yoast SEO for global settings',
+          '',
+          '✅ BEST PRACTICE: Never use nofollow on internal links',
+          '   • Only use nofollow for external links to untrusted sites',
+          '   • All internal links should pass link equity',
+          '',
+          '💡 Removing nofollow can significantly improve internal page rankings'
+        ]
+      });
+    }
+
+    // Pages Deep in Site Structure
+    if (technicalIssues?.pagesDeepInSite && technicalIssues.pagesDeepInSite > 0) {
+      techRecs.push({
+        title: 'Reduce Link Depth',
+        description: `${technicalIssues.pagesDeepInSite} page(s) are buried deep in your site (4+ clicks from homepage). Pages deep in site structure receive less authority and may not be crawled efficiently.`,
+        impact: 'Medium',
+        effort: 'Medium',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Link depth measures how many clicks it takes to reach a page from the homepage. Pages 4+ clicks deep receive significantly less link equity and may be crawled less frequently by search engines. Best practice is to keep important pages within 3 clicks of the homepage.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Pages far from homepage receive less link authority',
+          '   • Search engines may crawl deep pages less frequently',
+          '   • Users are unlikely to navigate 4+ levels deep',
+          '   • Deep pages often don\'t rank as well',
+          '   • Indicates poor site architecture',
+          '',
+          '📋 PAGES DEEP IN SITE (4+ CLICKS FROM HOMEPAGE):',
+          ...(technicalAudit?.internalLinkAnalysis?.linkDepthAnalysis?.pagesDeepInSite?.slice(0, 5).map(item => {
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • ${urlPath} (${item.depth} clicks from homepage)`;
+          }) || []),
+          ...(technicalIssues.pagesDeepInSite && technicalIssues.pagesDeepInSite > 5
+            ? [`   • ...and ${technicalIssues.pagesDeepInSite - 5} more deep pages`]
+            : []),
+          ...(technicalAudit?.internalLinkAnalysis?.linkDepthAnalysis?.averageDepth
+            ? [`   • Average depth: ${technicalAudit.internalLinkAnalysis.linkDepthAnalysis.averageDepth.toFixed(1)} clicks`]
+            : []),
+          ...(technicalAudit?.internalLinkAnalysis?.linkDepthAnalysis?.maxDepth
+            ? [`   • Maximum depth: ${technicalAudit.internalLinkAnalysis.linkDepthAnalysis.maxDepth} clicks`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Add direct links from homepage:',
+          '   • Add important pages to main navigation',
+          '   • Create featured sections on homepage',
+          '   • Add to homepage sidebar or footer',
+          '',
+          '2️⃣ Create hub/pillar pages:',
+          '   • Build category landing pages linked from homepage',
+          '   • Link from these hub pages to deep content',
+          '   • Reduces effective depth by creating shortcuts',
+          '',
+          '3️⃣ Improve internal linking:',
+          '   • Add more cross-links between related pages',
+          '   • Create breadcrumb navigation',
+          '   • Add "related content" sections',
+          '',
+          '4️⃣ Flatten site architecture:',
+          '   • Reduce category nesting levels',
+          '   • Move important content closer to homepage',
+          '   • Simplify navigation structure',
+          '',
+          '✅ TARGET: All important pages within 3 clicks of homepage',
+          '',
+          '💡 Flat site architecture = better SEO and user experience'
+        ]
+      });
+    }
+
+    // Generic Anchor Text
+    if (technicalIssues?.genericAnchors && technicalIssues.genericAnchors > 0) {
+      techRecs.push({
+        title: 'Improve Anchor Text',
+        description: `${technicalIssues.genericAnchors} internal link(s) use generic anchor text like "click here" or "read more". Descriptive anchor text improves SEO and user experience.`,
+        impact: 'Low',
+        effort: 'Easy',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Generic anchor text like "click here", "read more", or "learn more" provides no context to users or search engines about the linked content. Descriptive anchor text helps SEO by including relevant keywords and helps users understand where the link leads.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Search engines use anchor text to understand linked content',
+          '   • Descriptive anchors help pages rank for target keywords',
+          '   • Improves accessibility for screen readers',
+          '   • Users know what to expect before clicking',
+          '   • Generic anchors waste SEO opportunity',
+          '',
+          '📋 GENERIC ANCHOR TEXT EXAMPLES:',
+          ...(technicalAudit?.internalLinkAnalysis?.anchorTextAnalysis?.genericAnchors?.slice(0, 5).map(item => {
+            const urlPath = item.url.replace(/^https?:\/\/[^/]+/, '') || '/';
+            return `   • "${item.anchorText}" → ${urlPath} (used ${item.count}x)`;
+          }) || []),
+          ...(technicalIssues.genericAnchors && technicalIssues.genericAnchors > 5
+            ? [`   • ...and ${technicalIssues.genericAnchors - 5} more generic anchors`]
+            : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Replace generic text with descriptive keywords:',
+          '   • Instead of "click here" → "view our pricing plans"',
+          '   • Instead of "read more" → "learn about technical SEO"',
+          '   • Instead of "learn more" → "explore our portfolio"',
+          '   • Include target keywords naturally',
+          '',
+          '2️⃣ Be specific and contextual:',
+          '   • Describe what the user will find',
+          '   • Use action words + topic keywords',
+          '   • Keep it concise (3-6 words ideal)',
+          '',
+          '3️⃣ For WordPress:',
+          '   • Edit post/page → Select link text',
+          '   • Replace with descriptive text',
+          '   • Keep link URL the same',
+          '',
+          '✅ BEST PRACTICES:',
+          '   • Use descriptive keywords (but don\'t over-optimize)',
+          '   • Make anchor text relevant to target page',
+          '   • Vary anchor text (don\'t use same text everywhere)',
+          '   • Keep it natural and readable',
+          '',
+          '❌ AVOID:',
+          '   • "Click here", "Read more", "Learn more"',
+          '   • "This page", "This link"',
+          '   • Naked URLs (https://example.com)',
+          '   • Generic phrases with no context',
+          '',
+          '💡 Descriptive anchor text is a simple SEO win with big impact'
+        ]
+      });
+    }
+
+    // Poor Deep Link Ratio
+    if (technicalIssues?.poorDeepLinkRatio && technicalIssues.poorDeepLinkRatio > 0) {
+      techRecs.push({
+        title: 'Improve Deep Link Ratio',
+        description: `Your site has a poor deep link ratio (${technicalAudit?.internalLinkAnalysis?.deepLinkRatio?.ratio ? (technicalAudit.internalLinkAnalysis.deepLinkRatio.ratio * 100).toFixed(1) : '?'}% to deep content). Too many links go to the homepage instead of valuable inner pages.`,
+        impact: 'Medium',
+        effort: 'Medium',
+        icon: <Code className="w-4 h-4" />,
+        details: 'Deep link ratio measures the percentage of internal links pointing to inner pages vs. the homepage. A healthy site should have 60%+ of internal links pointing to deep content. Over-linking to the homepage wastes link equity and doesn\'t help inner pages rank.',
+        useCase: 'internal-linking',
+        howTo: [
+          '🎯 WHY THIS MATTERS:',
+          '   • Inner pages need link equity to rank well',
+          '   • Over-linking to homepage concentrates authority unnecessarily',
+          '   • Homepage already has natural authority from external links',
+          '   • Deep linking distributes SEO value throughout site',
+          '   • Shows search engines you have valuable content beyond homepage',
+          '',
+          '📊 YOUR DEEP LINK RATIO:',
+          ...(technicalAudit?.internalLinkAnalysis?.deepLinkRatio ? [
+            `   • Homepage links: ${technicalAudit.internalLinkAnalysis.deepLinkRatio.homepageLinks}`,
+            `   • Deep content links: ${technicalAudit.internalLinkAnalysis.deepLinkRatio.deepContentLinks}`,
+            `   • Deep link ratio: ${(technicalAudit.internalLinkAnalysis.deepLinkRatio.ratio * 100).toFixed(1)}%`,
+            `   • TARGET: ≥60% deep links`
+          ] : []),
+          '',
+          '✏️ HOW TO FIX:',
+          '',
+          '1️⃣ Replace homepage links with deep links:',
+          '   • Review navigation menus',
+          '   • Instead of linking logo to homepage in every page, link contextually',
+          '   • Link to specific category/product pages instead of homepage',
+          '',
+          '2️⃣ Add more contextual internal links:',
+          '   • Link to relevant blog posts within content',
+          '   • Add "Related Articles" sections',
+          '   • Create resource hubs linking to deep content',
+          '   • Add category pages with links to articles',
+          '',
+          '3️⃣ Reduce unnecessary homepage links:',
+          '   • Don\'t link "Home" in every navigation element',
+          '   • Remove redundant homepage links from content',
+          '   • One homepage link per page is enough (usually logo)',
+          '',
+          '4️⃣ Create internal linking strategy:',
+          '   • Link from high-authority pages to newer content',
+          '   • Build content clusters with hub pages',
+          '   • Add breadcrumb navigation',
+          '   • Use footer to link to key inner pages',
+          '',
+          '✅ TARGET: 60-80% of internal links should point to deep content',
+          '',
+          '💡 Deep linking is how you distribute SEO value across your entire site'
         ]
       });
     }
