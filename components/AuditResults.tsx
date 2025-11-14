@@ -2623,7 +2623,8 @@ function renderSectionResults(
               orphanedSitemapPages: results.issues?.orphanedSitemapPages,
               permanentRedirects: results.issues?.permanentRedirects,
               subdomainsWithoutHSTS: results.issues?.subdomainsWithoutHSTS,
-              missingLlmsTxt: results.issues?.missingLlmsTxt
+              missingLlmsTxt: results.issues?.missingLlmsTxt,
+              missingRobotsTxt: results.issues?.missingRobotsTxt
             }}
             technicalAudit={{
               unminifiedFiles: results.unminifiedFiles,
@@ -2631,7 +2632,8 @@ function renderSectionResults(
               internalLinkAnalysis: results.internalLinkAnalysis,
               permanentRedirects: results.permanentRedirects,
               hstsAnalysis: results.hstsAnalysis,
-              llmsTxt: results.llmsTxt
+              llmsTxt: results.llmsTxt,
+              robotsTxtStatus: results.robotsTxtStatus
             }}
             issuePages={results.issuePages}
             largeImagesList={results.largeImagesList || results.largeImageDetails || []}

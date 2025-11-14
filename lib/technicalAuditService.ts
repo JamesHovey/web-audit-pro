@@ -165,6 +165,7 @@ interface TechnicalAuditResult {
     permanentRedirects?: number;
     subdomainsWithoutHSTS?: number;
     missingLlmsTxt?: number;
+    missingRobotsTxt?: number;
   };
   issuePages?: {
     missingMetaTitles?: string[];
@@ -453,9 +454,12 @@ export async function performTechnicalAudit(
     
     // 5. Check for sitemap
     result.sitemapStatus = await checkSitemap(baseUrl);
-    
+
     // 6. Check for robots.txt
     result.robotsTxtStatus = await checkRobotsTxt(baseUrl);
+    if (result.robotsTxtStatus === 'missing') {
+      result.issues.missingRobotsTxt = 1;
+    }
     
     // 7. Discover pages based on scope
     let pageDiscovery;
