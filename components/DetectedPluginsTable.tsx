@@ -10,6 +10,7 @@ interface DetectedPluginsTableProps {
 
 interface PluginWithMetadata {
   name: string;
+  slug: string;
   categoryKey?: string;
   description: string;
   rating: number;
@@ -84,6 +85,7 @@ export default function DetectedPluginsTable({
           if (metadata) {
             results.push({
               name: pluginName,
+              slug: metadata.slug,
               categoryKey: plugin.categoryKey as string,
               description: metadata.description,
               rating: metadata.rating,
@@ -94,14 +96,16 @@ export default function DetectedPluginsTable({
             })
           } else {
             // Fallback if no metadata found
+            const fallbackSlug = pluginName.toLowerCase().replace(/\s+/g, '-');
             results.push({
               name: pluginName,
+              slug: fallbackSlug,
               categoryKey: plugin.categoryKey as string,
               description: 'Description not available',
               rating: 0,
               reviews: 0,
               activeInstalls: 'N/A',
-              url: `https://wordpress.org/plugins/${pluginName.toLowerCase().replace(/\s+/g, '-')}/`,
+              url: `https://wordpress.org/plugins/${fallbackSlug}/`,
               found: false
             })
           }
@@ -112,16 +116,20 @@ export default function DetectedPluginsTable({
         console.error('Error fetching plugin metadata:', error)
 
         // Fallback: create basic plugin data
-        const fallbackResults: PluginWithMetadata[] = plugins.map(plugin => ({
-          name: plugin.name as string,
-          categoryKey: plugin.categoryKey as string,
-          description: 'Unable to load description at this time',
-          rating: 0,
-          reviews: 0,
-          activeInstalls: 'N/A',
-          url: `https://wordpress.org/plugins/${(plugin.name as string).toLowerCase().replace(/\s+/g, '-')}/`,
-          found: false
-        }))
+        const fallbackResults: PluginWithMetadata[] = plugins.map(plugin => {
+          const fallbackSlug = (plugin.name as string).toLowerCase().replace(/\s+/g, '-');
+          return {
+            name: plugin.name as string,
+            slug: fallbackSlug,
+            categoryKey: plugin.categoryKey as string,
+            description: 'Unable to load description at this time',
+            rating: 0,
+            reviews: 0,
+            activeInstalls: 'N/A',
+            url: `https://wordpress.org/plugins/${fallbackSlug}/`,
+            found: false
+          };
+        })
 
         setPluginsWithMetadata(fallbackResults)
       } finally {
@@ -187,7 +195,18 @@ export default function DetectedPluginsTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-gray-700">
-                  {plugin.reviews > 0 ? plugin.reviews.toLocaleString() : 'N/A'}
+                  {plugin.reviews > 0 ? (
+                    <a
+                      href={`https://wordpress.org/plugins/${plugin.slug}/#reviews`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {plugin.reviews.toLocaleString()}
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400">N/A</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -203,8 +222,9 @@ export default function DetectedPluginsTable({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1"
+                      title={plugin.activeInstalls === 'Premium Plugin' ? 'Visit plugin website' : 'View on WordPress.org'}
                     >
-                      Visit <ExternalLink className="w-3 h-3" />
+                      {plugin.activeInstalls === 'Premium Plugin' ? 'Website' : 'WordPress.org'} <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                 </td>
@@ -243,7 +263,18 @@ export default function DetectedPluginsTable({
                         <div className="bg-white p-3 rounded border border-gray-200">
                           <div className="text-xs text-gray-500 mb-1">Reviews</div>
                           <div className="text-lg font-bold text-gray-900">
-                            {plugin.reviews > 0 ? plugin.reviews.toLocaleString() : 'No reviews'}
+                            {plugin.reviews > 0 ? (
+                              <a
+                                href={`https://wordpress.org/plugins/${plugin.slug}/#reviews`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {plugin.reviews.toLocaleString()}
+                              </a>
+                            ) : (
+                              'No reviews'
+                            )}
                           </div>
                         </div>
 
@@ -263,11 +294,18 @@ export default function DetectedPluginsTable({
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
                         >
-                          View on WordPress.org <ExternalLink className="w-4 h-4" />
+                          {plugin.activeInstalls === 'Premium Plugin'
+                            ? 'Visit Official Website'
+                            : 'View on WordPress.org'} <ExternalLink className="w-4 h-4" />
                         </a>
-                        {!plugin.found && (
+                        {!plugin.found && plugin.activeInstalls !== 'Premium Plugin' && (
                           <span className="text-xs text-gray-500">
-                            (Premium or custom plugin - limited information available)
+                            (Custom plugin or not available on WordPress.org)
+                          </span>
+                        )}
+                        {plugin.activeInstalls === 'Premium Plugin' && (
+                          <span className="text-xs text-green-600 font-medium">
+                            Premium Plugin
                           </span>
                         )}
                       </div>

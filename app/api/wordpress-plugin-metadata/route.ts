@@ -27,6 +27,49 @@ interface PluginMetadata {
 }
 
 /**
+ * Premium plugins with their actual website URLs
+ * These plugins are not on WordPress.org or have been delisted
+ */
+const PREMIUM_PLUGINS: Record<string, { url: string; description: string }> = {
+  'SEOPress': {
+    url: 'https://www.seopress.org/',
+    description: 'SEOPress is a powerful WordPress SEO plugin to optimize your SEO, boost your traffic, improve social sharing, build custom HTML and XML Sitemaps, create optimized breadcrumbs, add schemas / Google Structured data types, manage redirections 301 and so much more.'
+  },
+  'WP Rocket': {
+    url: 'https://wp-rocket.me/',
+    description: 'WP Rocket is the most powerful caching plugin in the world. It provides immediate performance improvements with no complex configuration needed.'
+  },
+  'Gravity Forms': {
+    url: 'https://www.gravityforms.com/',
+    description: 'Gravity Forms is the easiest tool to create advanced forms for your WordPress site. Create contact forms, surveys, order forms, and more with drag & drop simplicity.'
+  },
+  'Advanced Custom Fields PRO': {
+    url: 'https://www.advancedcustomfields.com/',
+    description: 'Advanced Custom Fields PRO is the complete solution for fully customizing your edit screens with powerful fields and flexible content layouts.'
+  },
+  'ACF PRO': {
+    url: 'https://www.advancedcustomfields.com/',
+    description: 'Advanced Custom Fields PRO is the complete solution for fully customizing your edit screens with powerful fields and flexible content layouts.'
+  },
+  'WPBakery Page Builder': {
+    url: 'https://wpbakery.com/',
+    description: 'WPBakery Page Builder is a drag and drop frontend and backend page builder plugin that helps you build beautiful layouts quickly.'
+  },
+  'Slider Revolution': {
+    url: 'https://www.sliderrevolution.com/',
+    description: 'Slider Revolution is a premium slider plugin that helps you create stunning slideshows, hero blocks, and full page presentations.'
+  },
+  'LayerSlider': {
+    url: 'https://layerslider.com/',
+    description: 'LayerSlider is a premium multi-purpose animation platform with professional features for designers and developers.'
+  },
+  'WPML': {
+    url: 'https://wpml.org/',
+    description: 'WPML makes it easy to build multilingual sites and run them. It is powerful enough for corporate sites, yet simple for blogs.'
+  }
+};
+
+/**
  * Convert plugin name to WordPress.org slug
  */
 function getPluginSlug(pluginName: string): string {
@@ -43,16 +86,13 @@ function getPluginSlug(pluginName: string): string {
     'WP Super Cache': 'wp-super-cache',
     'Elementor': 'elementor',
     'WooCommerce': 'woocommerce',
-    'Gravity Forms': 'gravityforms',
     'Advanced Custom Fields': 'advanced-custom-fields',
     'MonsterInsights': 'google-analytics-for-wordpress',
     'Really Simple SSL': 'really-simple-ssl',
     'UpdraftPlus': 'updraftplus',
     'Akismet': 'akismet',
     'Jetpack': 'jetpack',
-    'WPML': 'sitepress-multilingual-cms',
     'Polylang': 'polylang',
-    'WP Rocket': 'wp-rocket',
     'Mailchimp for WordPress': 'mailchimp-for-wp',
     'LiteSpeed Cache': 'litespeed-cache',
     'WP Fastest Cache': 'wp-fastest-cache',
@@ -68,15 +108,13 @@ function getPluginSlug(pluginName: string): string {
     'Redirection': 'redirection',
     'Broken Link Checker': 'broken-link-checker',
     'Divi Builder': 'divi-builder',
-    'WPBakery Page Builder': 'js_composer',
-    'Beaver Builder': 'beaver-builder',
+    'Beaver Builder': 'beaver-builder-lite-version',
     'Social Warfare': 'social-warfare',
     'AddThis': 'addthis',
     'Custom Post Type UI': 'custom-post-type-ui',
     'All In One WP Security': 'all-in-one-wp-security-and-firewall',
     'Easy Digital Downloads': 'easy-digital-downloads',
-    'Google Analytics Dashboard': 'google-analytics-dashboard-for-wp',
-    'BackupBuddy': 'backupbuddy'
+    'Google Analytics Dashboard': 'google-analytics-dashboard-for-wp'
   };
 
   // Check special cases first
@@ -189,6 +227,27 @@ async function scrapePluginPage(slug: string): Promise<Partial<PluginMetadata>> 
  * Fetch plugin metadata from WordPress.org API
  */
 async function getWordPressPluginMetadata(pluginName: string): Promise<PluginMetadata> {
+  // Check if this is a known premium plugin first
+  const premiumPlugin = Object.keys(PREMIUM_PLUGINS).find(key =>
+    pluginName.toLowerCase().includes(key.toLowerCase()) ||
+    key.toLowerCase().includes(pluginName.toLowerCase())
+  );
+
+  if (premiumPlugin) {
+    const premium = PREMIUM_PLUGINS[premiumPlugin];
+    console.log(`✅ Detected premium plugin: ${pluginName}`);
+    return {
+      name: pluginName,
+      slug: getPluginSlug(pluginName),
+      description: premium.description,
+      rating: 0, // Premium plugins don't have WordPress.org ratings
+      reviews: 0,
+      activeInstalls: 'Premium Plugin',
+      url: premium.url,
+      found: true
+    };
+  }
+
   const slug = getPluginSlug(pluginName);
 
   try {
@@ -239,7 +298,7 @@ async function getWordPressPluginMetadata(pluginName: string): Promise<PluginMet
         reviews: scraped.reviews || 0,
         activeInstalls: scraped.activeInstalls || 'N/A',
         url: `https://wordpress.org/plugins/${slug}/`,
-        found: true
+        found: scraped.found || false
       };
       console.log(`✅ Successfully scraped metadata for ${pluginName}`);
       return metadata;
