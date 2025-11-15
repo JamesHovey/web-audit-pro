@@ -3725,10 +3725,12 @@ function renderSectionResults(
                 <span className="text-gray-600 text-sm">CMS:</span>
                 <div className="font-semibold text-blue-600">{results.cms || 'Not detected'}</div>
               </div>
-              <div>
-                <span className="text-gray-600 text-sm">Framework:</span>
-                <div className="font-semibold text-green-600">{results.framework || 'Not detected'}</div>
-              </div>
+              {results.framework && (
+                <div>
+                  <span className="text-gray-600 text-sm">Framework:</span>
+                  <div className="font-semibold text-green-600">{results.framework}</div>
+                </div>
+              )}
               {results.pageBuilder && (
                 <div>
                   <span className="text-gray-600 text-sm">Page Builder:</span>
