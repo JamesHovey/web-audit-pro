@@ -2222,8 +2222,8 @@ export default function EnhancedRecommendations({
     
     if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
       // Check for WP Rocket and Elementor
-      const hasWPRocket = detectedPlugins?.some(p => p.toLowerCase().includes('wp rocket'));
-      const hasElementor = pageBuilder?.toLowerCase().includes('elementor');
+      const hasWPRocket = detectedPlugins?.some(p => p.toLowerCase().includes('wp rocket')) ?? false;
+      const hasElementor = pageBuilder ? pageBuilder.toLowerCase().includes('elementor') : false;
 
       // Build contextual instructions based on what's detected
       let baseInstructions: string[] = [];
