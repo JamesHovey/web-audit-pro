@@ -947,9 +947,11 @@ export function AuditForm() {
                     </span>
                   )}
                   {techStack.plugins && techStack.plugins.length > 0 && (
-                    <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium">
-                      Plugins: {techStack.plugins.join(', ')}
-                    </span>
+                    <Tooltip content={techStack.plugins.join(', ')}>
+                      <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium cursor-help">
+                        Plugins: {techStack.plugins.length}
+                      </span>
+                    </Tooltip>
                   )}
                   {techStack.pageBuilder && (
                     <span className="text-xs px-2 py-1 bg-rose-100 text-rose-700 rounded font-medium">
