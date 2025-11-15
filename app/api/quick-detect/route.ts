@@ -450,8 +450,9 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
         timeout: 10000
       });
 
-      // Wait briefly for essential content to load (e.g., JavaScript-rendered CMS signatures)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for essential content to load (e.g., JavaScript-rendered CMS signatures and plugin scripts)
+      // Increased from 500ms to 1500ms to match full audit detection accuracy
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const html = await page.content();
 
