@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { BrowserService } from '@/lib/cloudflare-browser'
-import { detectWordPressPlugins } from '@/lib/pluginDetectionService'
+import { detectPluginsHybrid } from '@/lib/hybridPluginDetection'
 
 // Simple in-memory cache with 5-minute TTL
 interface CacheEntry {
@@ -478,14 +478,40 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       result.cmsVersion = cmsDetection.version
     }
 
-    // WordPress Plugin Detection (sophisticated detection)
+    // WordPress Plugin Detection (hybrid pattern + AI detection)
     if (result.cms === 'WordPress') {
-      const wpDetection = detectWordPressPlugins(html);
-      if (wpDetection.plugins && wpDetection.plugins.length > 0) {
-        result.plugins = wpDetection.plugins;
-      }
-      if (wpDetection.pageBuilder) {
-        result.pageBuilder = wpDetection.pageBuilder;
+      try {
+        const hybridResult = await detectPluginsHybrid('WordPress', html, headers, cleanUrl);
+
+        // Extract plugin names from the hybrid detection results
+        const pluginNames: string[] = [];
+        for (const plugin of hybridResult.detectedPlugins) {
+          // Filter out non-WordPress-plugins (analytics, CDNs, etc.)
+          const lowerName = plugin.name.toLowerCase();
+          const isNonPlugin = lowerName.includes('google analytics') ||
+                             lowerName.includes('cloudflare') ||
+                             lowerName.includes('jquery') ||
+                             lowerName.includes('bootstrap') ||
+                             lowerName.includes('font awesome');
+
+          if (!isNonPlugin) {
+            pluginNames.push(plugin.name);
+          }
+        }
+
+        if (pluginNames.length > 0) {
+          result.plugins = pluginNames;
+        }
+
+        // Extract page builder if detected
+        const pageBuilderPlugins = hybridResult.detectedPlugins.filter(p =>
+          p.category === 'page-builder'
+        );
+        if (pageBuilderPlugins.length > 0) {
+          result.pageBuilder = pageBuilderPlugins[0].name;
+        }
+      } catch (error) {
+        console.error('Hybrid plugin detection failed, skipping:', error);
       }
     }
 
