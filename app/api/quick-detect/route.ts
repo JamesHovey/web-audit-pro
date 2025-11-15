@@ -484,18 +484,53 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
         const hybridResult = await detectPluginsHybrid('WordPress', html, headers, cleanUrl);
 
         // Extract plugin names from the hybrid detection results
+        // Filter out non-WordPress-plugins (analytics, CDNs, libraries, tracking scripts, etc.)
+        const NON_PLUGIN_KEYWORDS = [
+          'google analytics',
+          'google analytics 4',
+          'ga4',
+          'gtag',
+          'google tag manager',
+          'gtm',
+          'facebook pixel',
+          'hotjar',
+          'mixpanel',
+          'segment',
+          'amplitude',
+          'heap',
+          'jquery',
+          'cloudfront',
+          'cloudflare',
+          'fastly',
+          'akamai',
+          'bootstrap',
+          'tailwind',
+          'font awesome',
+          'react',
+          'vue',
+          'angular',
+          'next.js',
+          'gatsby',
+          'nuxt',
+          'nginx',
+          'apache',
+          'litespeed',
+          'iis',
+          'aws',
+          'azure',
+          'google cloud',
+          'digitalocean'
+        ];
+
         const pluginNames: string[] = [];
         for (const plugin of hybridResult.detectedPlugins) {
-          // Filter out non-WordPress-plugins (analytics, CDNs, etc.)
-          const lowerName = plugin.name.toLowerCase();
-          const isNonPlugin = lowerName.includes('google analytics') ||
-                             lowerName.includes('cloudflare') ||
-                             lowerName.includes('jquery') ||
-                             lowerName.includes('bootstrap') ||
-                             lowerName.includes('font awesome');
+          const lowerName = plugin.name.toLowerCase().trim();
+          const isNonPlugin = NON_PLUGIN_KEYWORDS.some(keyword => lowerName.includes(keyword));
 
           if (!isNonPlugin) {
             pluginNames.push(plugin.name);
+          } else {
+            console.log(`⚠️ Filtered out non-plugin: ${plugin.name}`);
           }
         }
 

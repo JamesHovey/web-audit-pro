@@ -948,20 +948,26 @@ export function AuditForm() {
                   )}
                   {techStack.plugins && techStack.plugins.length > 0 && (
                     <Tooltip content={
-                      <ul className="list-disc list-inside space-y-1">
-                        {techStack.plugins.map((plugin: string, index: number) => (
-                          <li key={index}>{plugin}</li>
-                        ))}
-                      </ul>
+                      <div className="space-y-2">
+                        <p className="font-medium text-sm">Detected Plugins:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {techStack.plugins.map((plugin: string, index: number) => (
+                            <li key={index}>{plugin}</li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-gray-300 mt-2 pt-2 border-t border-gray-700">
+                          Note: Additional plugins may be present but not detected due to security measures, custom implementations, or obfuscated code.
+                        </p>
+                      </div>
                     }>
                       <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium cursor-help">
-                        Plugins: {techStack.plugins.length}
+                        Detected Plugins: {techStack.plugins.length}
                       </span>
                     </Tooltip>
                   )}
                   {techStack.pageBuilder && (
                     <span className="text-xs px-2 py-1 bg-rose-100 text-rose-700 rounded font-medium">
-                      {techStack.pageBuilder}
+                      Page Builder: {techStack.pageBuilder}
                     </span>
                   )}
                 </div>
