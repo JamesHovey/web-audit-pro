@@ -1351,46 +1351,103 @@ export default function EnhancedRecommendations({
 
     // Missing robots.txt
     if (technicalIssues?.missingRobotsTxt && technicalIssues.missingRobotsTxt > 0) {
-      techRecs.push({
-        title: 'Add robots.txt File',
-        description: `Your website doesn't have a robots.txt file. This file is essential for controlling how search engines crawl and index your website.`,
-        impact: 'High',
-        effort: 'Easy',
-        icon: <Server className="w-4 h-4" />,
-        details: 'robots.txt is a critical SEO file that tells search engines which pages to crawl and index. Missing robots.txt can result in inefficient crawling, wasted crawl budget, and potential indexing of pages you want to keep private (like admin areas, staging sites, or duplicate content).',
-        useCase: 'seo',
-        howTo: [
-          '🎯 WHY ROBOTS.TXT IS CRITICAL:',
-          '   • Controls which pages search engines can crawl',
-          '   • Prevents indexing of admin pages, staging sites, duplicate content',
-          '   • Optimizes crawl budget for important pages',
-          '   • Blocks bad bots from wasting server resources',
-          '   • Points search engines to your sitemap.xml',
-          '   • Industry standard since 1994 - expected by all search engines',
+      // Detect CMS and SEO plugins for contextual instructions
+      const isWordPress = cms === 'WordPress';
+      const detectedSEOPlugin = detectedPlugins?.find(plugin =>
+        plugin.toLowerCase().includes('yoast') ||
+        plugin.toLowerCase().includes('rank math') ||
+        plugin.toLowerCase().includes('all in one seo') ||
+        plugin.toLowerCase().includes('seopress')
+      );
+
+      // Build contextual description
+      let contextualDesc = `Your website doesn't have a robots.txt file. `;
+      if (isWordPress && detectedSEOPlugin) {
+        contextualDesc += `Since you're using WordPress with ${detectedSEOPlugin}, you can easily create one using the plugin's built-in tools.`;
+      } else if (isWordPress) {
+        contextualDesc += `Since you're using WordPress, you can create one via an SEO plugin or manually.`;
+      } else {
+        contextualDesc += `This file is essential for controlling how search engines crawl and index your website.`;
+      }
+
+      // Build contextual how-to steps
+      const howToSteps: string[] = [
+        '🎯 WHY ROBOTS.TXT IS CRITICAL:',
+        '   • Controls which pages search engines can crawl',
+        '   • Prevents indexing of admin pages, staging sites, duplicate content',
+        '   • Optimizes crawl budget for important pages',
+        '   • Blocks bad bots from wasting server resources',
+        '   • Points search engines to your sitemap.xml',
+        '   • Industry standard since 1994 - expected by all search engines',
+        ''
+      ];
+
+      if (isWordPress) {
+        howToSteps.push(
+          `✏️ HOW TO ADD ROBOTS.TXT TO YOUR WORDPRESS SITE:`,
+          ''
+        );
+
+        // Add plugin-specific instructions if detected
+        if (detectedSEOPlugin?.toLowerCase().includes('yoast')) {
+          howToSteps.push(
+            `📌 USING ${detectedSEOPlugin.toUpperCase()} (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: SEO → Tools → File Editor',
+            '3️⃣ Click on "Create robots.txt file" button',
+            '4️⃣ Add the recommended rules below',
+            '5️⃣ Click "Save changes to robots.txt"',
+            ''
+          );
+        } else if (detectedSEOPlugin?.toLowerCase().includes('rank math')) {
+          howToSteps.push(
+            `📌 USING ${detectedSEOPlugin.toUpperCase()} (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: Rank Math → General Settings → Edit robots.txt',
+            '3️⃣ Add the recommended rules below',
+            '4️⃣ Click "Save Changes"',
+            ''
+          );
+        } else if (detectedSEOPlugin?.toLowerCase().includes('all in one seo')) {
+          howToSteps.push(
+            `📌 USING ${detectedSEOPlugin.toUpperCase()} (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: All in One SEO → Tools → Robots.txt',
+            '3️⃣ Enable "Use Custom Robots.txt"',
+            '4️⃣ Add the recommended rules below',
+            '5️⃣ Click "Save Changes"',
+            ''
+          );
+        } else if (detectedSEOPlugin?.toLowerCase().includes('seopress')) {
+          howToSteps.push(
+            `📌 USING ${detectedSEOPlugin.toUpperCase()} (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: SEO → Advanced → robots.txt',
+            '3️⃣ Enable "Use custom robots.txt file"',
+            '4️⃣ Add the recommended rules below',
+            '5️⃣ Click "Save Settings"',
+            ''
+          );
+        } else {
+          howToSteps.push(
+            '📌 RECOMMENDED: INSTALL AN SEO PLUGIN:',
+            '   • Yoast SEO (most popular)',
+            '   • Rank Math (feature-rich)',
+            '   • All in One SEO',
+            '   • SEOPress',
+            '',
+            'After installing, use the plugin\'s robots.txt editor (much easier than manual FTP)',
+            ''
+          );
+        }
+
+        howToSteps.push(
+          '📋 RECOMMENDED WORDPRESS ROBOTS.TXT:',
           '',
-          '📋 WHAT TO INCLUDE:',
-          '   • User-agent directives (which bots the rules apply to)',
-          '   • Disallow directives (what NOT to crawl)',
-          '   • Allow directives (override disallow rules)',
-          '   • Sitemap location (helps search engines find all pages)',
-          '   • Crawl-delay (optional, for rate limiting)',
-          '',
-          '✏️ HOW TO CREATE:',
-          '',
-          '1️⃣ Create a file named "robots.txt" in your website root:',
-          '   • File location: https://yourdomain.com/robots.txt',
-          '   • Must be plain text (not HTML)',
-          '   • Case-sensitive filename: robots.txt (all lowercase)',
-          '',
-          '2️⃣ Basic robots.txt template:',
-          '   # Allow all search engines to crawl everything',
-          '   User-agent: *',
-          '   Disallow:',
-          '   ',
-          '   # Point to sitemap',
-          '   Sitemap: https://yourdomain.com/sitemap.xml',
-          '',
-          '3️⃣ WordPress robots.txt template:',
           '   User-agent: *',
           '   Disallow: /wp-admin/',
           '   Allow: /wp-admin/admin-ajax.php',
@@ -1400,69 +1457,88 @@ export default function EnhancedRecommendations({
           '   Disallow: /readme.html',
           '   Disallow: /license.txt',
           '   ',
-          '   Sitemap: https://yourdomain.com/sitemap.xml',
+          '   # Point to your sitemap (auto-generated by your SEO plugin)',
+          '   Sitemap: https://yourdomain.com/sitemap_index.xml',
+          ''
+        );
+
+        // Add e-commerce specific rules if WooCommerce detected
+        if (detectedPlugins?.some(p => p.toLowerCase().includes('woocommerce'))) {
+          howToSteps.push(
+            '🛒 ADDITIONAL WOOCOMMERCE RULES (DETECTED ON YOUR SITE):',
+            '   Add these lines to block cart and checkout pages:',
+            '',
+            '   Disallow: /cart/',
+            '   Disallow: /checkout/',
+            '   Disallow: /my-account/',
+            '   Disallow: /*?add-to-cart=',
+            '   Disallow: /*?removed_item',
+            ''
+          );
+        }
+
+        howToSteps.push(
+          '⚠️ ALTERNATIVE: MANUAL FTP UPLOAD (if no SEO plugin):',
+          '   1. Create a text file named "robots.txt"',
+          '   2. Add the WordPress template above',
+          '   3. Upload via FTP to your website root directory',
+          '   4. Ensure file permissions are set to 644',
+          ''
+        );
+      } else {
+        // Non-WordPress instructions
+        howToSteps.push(
+          '✏️ HOW TO CREATE ROBOTS.TXT:',
           '',
-          '4️⃣ E-commerce robots.txt template:',
+          '1️⃣ Create a file named "robots.txt" in your website root:',
+          '   • File location: https://yourdomain.com/robots.txt',
+          '   • Must be plain text (not HTML)',
+          '   • Case-sensitive filename: robots.txt (all lowercase)',
+          '',
+          '2️⃣ Basic robots.txt template:',
           '   User-agent: *',
-          '   Disallow: /cart/',
-          '   Disallow: /checkout/',
-          '   Disallow: /my-account/',
-          '   Disallow: /*?add-to-cart=',
-          '   Disallow: /*?removed_item',
+          '   Disallow:',
           '   ',
+          '   # Point to sitemap',
           '   Sitemap: https://yourdomain.com/sitemap.xml',
           '',
-          '5️⃣ For WordPress:',
-          '   • Yoast SEO: SEO → Tools → File Editor → robots.txt',
-          '   • Rank Math: Rank Math → General Settings → Edit robots.txt',
-          '   • All in One SEO: All in One SEO → Tools → Robots.txt',
-          '   • Manual: Upload via FTP to website root',
-          '',
-          '6️⃣ For Next.js/Vercel:',
-          '   • Add robots.txt to /public folder',
-          '   • Or use next-sitemap package to generate it',
-          '',
-          '7️⃣ For static sites:',
-          '   • Add robots.txt to root directory',
-          '   • Commit and deploy',
-          '',
-          '8️⃣ For Apache/Nginx:',
-          '   • Upload robots.txt to document root (usually /var/www/html or public_html)',
+          '3️⃣ Upload to your web server:',
+          '   • Via FTP/SFTP to document root',
+          '   • Or through your hosting control panel',
           '   • Ensure proper permissions (644)',
-          '',
-          '⚠️ COMMON MISTAKES TO AVOID:',
-          '   • DON\'T block your entire site: Disallow: / (unless intentional)',
-          '   • DON\'T use robots.txt for security (it\'s public and not enforced)',
-          '   • DON\'T block CSS/JS files (hurts Google\'s ability to render pages)',
-          '   • DON\'T list sensitive URLs (robots.txt is publicly visible)',
-          '   • DON\'T forget the Sitemap directive',
-          '',
-          '✅ BEST PRACTICES:',
-          '   • Keep it simple - only block what\'s necessary',
-          '   • Always include Sitemap directive',
-          '   • Allow CSS and JavaScript files',
-          '   • Use * for User-agent unless targeting specific bots',
-          '   • Test with Google Search Console (robots.txt Tester)',
-          '   • Block admin areas, duplicate content, search result pages',
-          '',
-          '🔍 BLOCK COMMON PROBLEM AREAS:',
-          '   • Admin panels: /admin/, /wp-admin/',
-          '   • Search results: /*?s=, /search/',
-          '   • Session IDs: /*?sid=, /*?sessionid=',
-          '   • Shopping cart parameters: /*?add-to-cart=',
-          '   • Tracking parameters: /*?utm_',
-          '   • Pagination duplicates: /*?page=',
-          '',
-          '📊 TESTING:',
-          '   • Google Search Console → robots.txt Tester',
-          '   • Visit https://yourdomain.com/robots.txt directly',
-          '   • Use online robots.txt validators',
-          '',
-          '💡 CRITICAL: This is one of the most important SEO files',
-          '💡 Takes only 5 minutes to create',
-          '💡 After adding, test at https://yourdomain.com/robots.txt',
-          '💡 Submit your sitemap to Google Search Console'
-        ]
+          ''
+        );
+      }
+
+      howToSteps.push(
+        '⚠️ COMMON MISTAKES TO AVOID:',
+        '   • DON\'T block your entire site: Disallow: / (unless intentional)',
+        '   • DON\'T use robots.txt for security (it\'s public and not enforced)',
+        '   • DON\'T block CSS/JS files (hurts Google\'s ability to render pages)',
+        '   • DON\'T list sensitive URLs (robots.txt is publicly visible)',
+        '   • DON\'T forget the Sitemap directive',
+        '',
+        '📊 TESTING:',
+        '   • Visit https://yourdomain.com/robots.txt directly to verify',
+        '   • Test with Google Search Console → robots.txt Tester',
+        '   • Use online robots.txt validators',
+        '',
+        '💡 CRITICAL: This is one of the most important SEO files',
+        '💡 Takes only 5 minutes to create',
+        isWordPress && detectedSEOPlugin
+          ? `💡 You already have ${detectedSEOPlugin} - use its built-in editor!`
+          : '💡 After adding, test at https://yourdomain.com/robots.txt'
+      );
+
+      techRecs.push({
+        title: 'Add robots.txt File',
+        description: contextualDesc,
+        impact: 'High',
+        effort: 'Easy',
+        icon: <Server className="w-4 h-4" />,
+        details: 'robots.txt is a critical SEO file that tells search engines which pages to crawl and index. Missing robots.txt can result in inefficient crawling, wasted crawl budget, and potential indexing of pages you want to keep private (like admin areas, staging sites, or duplicate content).',
+        useCase: 'seo',
+        howTo: howToSteps
       });
     }
 

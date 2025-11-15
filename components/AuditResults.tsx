@@ -3857,45 +3857,6 @@ function renderSectionResults(
             </div>
           </div>
 
-          {/* Detection Quality Info */}
-          {results.source && (
-            <div className="bg-gray-50 rounded-lg p-4 border">
-              <h4 className="font-semibold mb-2 text-sm">Detection Quality</h4>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-gray-600">Source:</span>
-                  <div className={`font-medium ${
-                    results.source === 'direct' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {results.source === 'direct' ? 'Direct Website Analysis' : 'Manual Analysis'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Confidence:</span>
-                  <div className={`font-medium ${
-                    results.confidence === 'high' ? 'text-green-600' :
-                    results.confidence === 'medium' ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                    {results.confidence === 'high' ? 'High' :
-                     results.confidence === 'medium' ? 'Medium' :
-                     'Low'}
-                  </div>
-                </div>
-              </div>
-              {results.confidence === 'low' && (
-                <div className="mt-2 text-xs text-orange-600">
-                  ⚠️ Results may be inaccurate. Direct analysis failed.
-                </div>
-              )}
-              {results.confidence === 'high' && results.source === 'direct' && (
-                <div className="mt-2 text-xs text-green-600">
-                  ✅ High confidence detection using professional patterns.
-                </div>
-              )}
-            </div>
-          )}
-
           {/* How Results Were Obtained */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
             <button 
