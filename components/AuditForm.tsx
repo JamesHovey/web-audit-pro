@@ -947,7 +947,13 @@ export function AuditForm() {
                     </span>
                   )}
                   {techStack.plugins && techStack.plugins.length > 0 && (
-                    <Tooltip content={techStack.plugins.join(', ')}>
+                    <Tooltip content={
+                      <ul className="list-disc list-inside space-y-1">
+                        {techStack.plugins.map((plugin: string, index: number) => (
+                          <li key={index}>{plugin}</li>
+                        ))}
+                      </ul>
+                    }>
                       <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded font-medium cursor-help">
                         Plugins: {techStack.plugins.length}
                       </span>
