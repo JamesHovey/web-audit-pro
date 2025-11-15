@@ -289,6 +289,32 @@ function mergeDetectionResults(
   const merged: DetectedPlugin[] = [...patternPlugins];
   const patternPluginNames = new Set(patternPlugins.map(p => p.name.toLowerCase()));
 
+  // Plugin variations that should be consolidated (feature names that are part of main plugin)
+  const PLUGIN_VARIATIONS: Record<string, string[]> = {
+    'wp rocket': ['lazy load by wp rocket', 'wp-rocket', 'wprocket'],
+    'yoast seo': ['yoast', 'wordpress seo by yoast'],
+    'elementor': ['elementor pro', 'elementor website builder'],
+    'woocommerce': ['woo commerce', 'woo'],
+  };
+
+  // Helper function to check if a plugin name is a variation of another
+  function isPluginVariation(pluginName: string, existingPlugins: Set<string>): string | null {
+    const nameLower = pluginName.toLowerCase();
+
+    // Check against known variations
+    for (const [mainPlugin, variations] of Object.entries(PLUGIN_VARIATIONS)) {
+      if (variations.some(v => nameLower.includes(v) || v.includes(nameLower))) {
+        // Check if the main plugin is already detected
+        if (existingPlugins.has(mainPlugin) ||
+            Array.from(existingPlugins).some(p => p.includes(mainPlugin))) {
+          return mainPlugin;
+        }
+      }
+    }
+
+    return null;
+  }
+
   // Add AI-detected plugins that weren't found by patterns
   if (platformAnalysis.pluginsByCategory) {
     for (const category in platformAnalysis.pluginsByCategory) {
@@ -296,6 +322,13 @@ function mergeDetectionResults(
 
       for (const aiPlugin of aiPlugins) {
         const aiPluginNameLower = aiPlugin.name.toLowerCase();
+
+        // First check if this is a known variation of an existing plugin
+        const mainPluginName = isPluginVariation(aiPlugin.name, patternPluginNames);
+        if (mainPluginName) {
+          console.log(`⚠️ Skipping "${aiPlugin.name}" - it's a feature/variation of "${mainPluginName}"`);
+          continue; // Skip this variation
+        }
 
         // Check for exact or partial matches (e.g., "WP Rocket" vs "wp-rocket")
         const isDuplicate = Array.from(patternPluginNames).some(patternName => {

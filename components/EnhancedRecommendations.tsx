@@ -2221,31 +2221,111 @@ export default function EnhancedRecommendations({
     }
     
     if (lowerRec.includes('images') && (lowerRec.includes('offscreen') || lowerRec.includes('defer') || lowerRec.includes('lazy'))) {
-      const baseInstructions = cms === 'WordPress' ? [
-        '📌 PLUGIN OPTIONS:',
-        'See the "Recommended Plugins & Tools" table below for plugin comparisons.',
-        'Free options: a3 Lazy Load, Jetpack, Lazy Load by WP Rocket',
-        'Premium option: WP Rocket (also includes caching, JS/CSS optimization)',
-        'Note: WordPress 5.5+ has native lazy loading built-in',
-        '',
-        '⚙️ MANUAL OPTION (No Plugin Required):',
-        '1. Add loading="lazy" attribute to images in your theme files',
-        '2. Example: <img src="image.jpg" loading="lazy" alt="Description">',
-        '3. IMPORTANT: Exclude above-the-fold images from lazy loading (first 2-3 images)',
-        '4. Ensure images have width/height attributes to prevent layout shifts',
-        '5. Test on mobile devices to ensure images load properly when scrolling',
-        '',
-        '💡 TIP: If you\'re already using a performance plugin for other issues,',
-        'check if it includes lazy loading to avoid installing multiple plugins.'
-      ] : [
-        'Add loading="lazy" attribute to img tags below the fold',
-        'Example: <img src="image.jpg" loading="lazy" alt="Description">',
-        'Use Intersection Observer API for custom lazy loading',
-        'Prioritize above-the-fold images (don\'t lazy load them)',
-        'Consider using modern image formats like WebP',
-        'JavaScript libraries: lazysizes, lozad.js, or vanilla-lazyload',
-        'Ensure images have width/height attributes to prevent layout shifts'
-      ]
+      // Check for WP Rocket and Elementor
+      const hasWPRocket = detectedPlugins?.some(p => p.toLowerCase().includes('wp rocket'));
+      const hasElementor = pageBuilder?.toLowerCase().includes('elementor');
+
+      // Build contextual instructions based on what's detected
+      let baseInstructions: string[] = [];
+
+      if (cms === 'WordPress') {
+        if (hasWPRocket && hasElementor) {
+          // Both detected - recommend WP Rocket as it's more comprehensive
+          baseInstructions = [
+            `📌 RECOMMENDED: USE WP ROCKET (DETECTED ON YOUR SITE):`,
+            '',
+            'Since you have both WP Rocket and Elementor, we recommend using WP Rocket for lazy loading as it provides more comprehensive optimization across your entire site, not just Elementor pages.',
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: Settings → WP Rocket → Media',
+            '3️⃣ Under "LazyLoad", enable these options:',
+            '   ✓ Enable for images',
+            '   ✓ Enable for iframes and videos',
+            '   ✓ Enable for CSS background images',
+            '4️⃣ Scroll down and click "Save Changes"',
+            '5️⃣ WP Rocket will automatically clear cache and apply lazy loading',
+            '',
+            '⚠️ IMPORTANT: Disable Elementor\'s lazy loading to avoid conflicts:',
+            '1. Go to: Elementor → Settings → Advanced',
+            '2. Set "Lazy Load Background Images" to "Inactive"',
+            '3. Click "Save Changes"',
+            '',
+            '💡 Why WP Rocket over Elementor for lazy loading:',
+            'Works on ALL pages (not just Elementor pages)',
+            'Handles images, iframes, videos, and CSS backgrounds',
+            'Better exclusion controls for above-the-fold content',
+            'Integrates with WP Rocket\'s other performance features',
+            ''
+          ];
+        } else if (hasWPRocket) {
+          // Only WP Rocket detected
+          baseInstructions = [
+            `📌 USE WP ROCKET (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: Settings → WP Rocket → Media',
+            '3️⃣ Under "LazyLoad", enable these options:',
+            '   ✓ Enable for images',
+            '   ✓ Enable for iframes and videos',
+            '   ✓ Enable for CSS background images',
+            '4️⃣ Scroll down and click "Save Changes"',
+            '5️⃣ WP Rocket will automatically clear cache and apply lazy loading',
+            '',
+            '💡 TIP: Test the site after enabling to ensure images load properly',
+            ''
+          ];
+        } else if (hasElementor) {
+          // Only Elementor detected
+          baseInstructions = [
+            `📌 USE ELEMENTOR (DETECTED ON YOUR SITE):`,
+            '',
+            '1️⃣ Log into your WordPress admin dashboard',
+            '2️⃣ Navigate to: Elementor → Settings → Advanced',
+            '3️⃣ Find "Lazy Load Background Images" setting',
+            '4️⃣ Set to "Active"',
+            '5️⃣ Click "Save Changes"',
+            '',
+            '⚠️ NOTE: Elementor\'s lazy loading only works on Elementor-built pages',
+            'For site-wide lazy loading, consider adding a dedicated plugin like:',
+            'WP Rocket (premium, most comprehensive)',
+            'a3 Lazy Load (free)',
+            'Jetpack (free, but requires WordPress.com connection)',
+            '',
+            '💡 WordPress 5.5+ has native lazy loading built-in for most images',
+            ''
+          ];
+        } else {
+          // Neither detected - generic WordPress instructions
+          baseInstructions = [
+            '📌 PLUGIN OPTIONS:',
+            'See the "Recommended Plugins & Tools" table below for plugin comparisons.',
+            'Premium option: WP Rocket (also includes caching, JS/CSS optimization)',
+            'Free options: a3 Lazy Load, Jetpack',
+            'Note: WordPress 5.5+ has native lazy loading built-in',
+            '',
+            '⚙️ MANUAL OPTION (No Plugin Required):',
+            '1. Add loading="lazy" attribute to images in your theme files',
+            '2. Example: <img src="image.jpg" loading="lazy" alt="Description">',
+            '3. IMPORTANT: Exclude above-the-fold images from lazy loading (first 2-3 images)',
+            '4. Ensure images have width/height attributes to prevent layout shifts',
+            '5. Test on mobile devices to ensure images load properly when scrolling',
+            '',
+            '💡 TIP: If you\'re already using a performance plugin for other issues,',
+            'check if it includes lazy loading to avoid installing multiple plugins.'
+          ];
+        }
+      } else {
+        // Non-WordPress instructions
+        baseInstructions = [
+          'Add loading="lazy" attribute to img tags below the fold',
+          'Example: <img src="image.jpg" loading="lazy" alt="Description">',
+          'Use Intersection Observer API for custom lazy loading',
+          'Prioritize above-the-fold images (don\'t lazy load them)',
+          'Consider using modern image formats like WebP',
+          'JavaScript libraries: lazysizes, lozad.js, or vanilla-lazyload',
+          'Ensure images have width/height attributes to prevent layout shifts'
+        ];
+      }
 
       return {
         title: 'Implement Lazy Loading for Images',
@@ -2257,7 +2337,7 @@ export default function EnhancedRecommendations({
           ? 'Lazy loading defers loading of offscreen images until users scroll near them. This improves initial page load speed by only loading images as users scroll to them. WordPress has native lazy loading since version 5.5, but plugins offer more advanced options.'
           : 'Lazy loading defers loading of offscreen images until users scroll near them, improving initial page load speed and reducing bandwidth usage.',
         useCase: 'lazy-loading',
-        howTo: getPluginSpecificInstructions(baseInstructions, 'images')
+        howTo: baseInstructions
       }
     }
     
