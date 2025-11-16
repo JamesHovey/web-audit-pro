@@ -65,9 +65,14 @@ async function analyzeTechStackWithClaude(
 
 1. **CMS/Platform** (WordPress, Drupal, Shopify, Wix, custom, etc.)
 2. **JavaScript Framework** (React, Vue, Angular, Next.js, Gatsby, etc.)
-3. **Hosting Provider** (if identifiable from headers/CDN)
+3. **Hosting Provider** (AWS, Google Cloud, Azure, Vercel, Netlify, etc.)
 4. **E-commerce Platform** (WooCommerce, Shopify, Magento, etc.)
 5. **CDN** (Cloudflare, CloudFront, Fastly, etc.)
+
+**IMPORTANT - DO NOT confuse hosting providers with control panels:**
+- Plesk, cPanel, DirectAdmin, ISPConfig, Webmin = CONTROL PANELS (NOT hosting providers)
+- If you find a control panel but cannot identify the actual hosting provider, return "Bespoke" for hosting
+- Control panels run ON TOP of hosting infrastructure, they are NOT the hosting provider
 
 **Current pattern detection results:**
 ${JSON.stringify(patternResults, null, 2)}
@@ -86,6 +91,7 @@ ${htmlSample}
 - Check for framework-specific patterns (__next, _react, __vue, ng-app, etc.)
 - Be conservative - if you're not sure, say "Unknown" rather than guessing
 - Extract version numbers when possible
+- If you find Plesk, cPanel, DirectAdmin, or other control panels, return "Bespoke" for hosting (not the control panel name)
 
 **Response Format (JSON only, no markdown):**
 {
@@ -93,7 +99,7 @@ ${htmlSample}
   "cmsVersion": "Version or null",
   "framework": "Framework name or null",
   "frameworkVersion": "Version or null",
-  "hosting": "Hosting provider or null",
+  "hosting": "Hosting provider or null (use 'Bespoke' if only control panel detected)",
   "ecommerce": "E-commerce platform or null",
   "cdn": "CDN provider or null",
   "confidence": "high|medium|low",
@@ -131,12 +137,24 @@ ${htmlSample}
 
     console.log('🧠 Claude AI tech stack analysis:', analysis.reasoning);
 
+    // Post-process: Filter out control panels from hosting
+    let hosting = analysis.hosting;
+    if (hosting) {
+      const controlPanels = ['plesk', 'cpanel', 'directadmin', 'ispconfig', 'webmin', 'virtualmin', 'ajenti', 'froxlor', 'sentora', 'zpanel'];
+      const hostingLower = hosting.toLowerCase();
+
+      if (controlPanels.some(panel => hostingLower.includes(panel))) {
+        console.log(`⚠️ Detected control panel "${hosting}" as hosting - converting to "Bespoke"`);
+        hosting = 'Bespoke';
+      }
+    }
+
     return {
       cms: analysis.cms || undefined,
       cmsVersion: analysis.cmsVersion || undefined,
       framework: analysis.framework || undefined,
       frameworkVersion: analysis.frameworkVersion || undefined,
-      hosting: analysis.hosting || undefined,
+      hosting: hosting || undefined,
       ecommerce: analysis.ecommerce || undefined,
       cdn: analysis.cdn || undefined,
     };
