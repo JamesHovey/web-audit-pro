@@ -90,7 +90,7 @@ const CMS_PATTERNS: CMSPattern[] = [
     name: 'Magento',
     patterns: {
       meta: ['magento'],
-      html: ['mage/cookies.js', '/skin/frontend/', 'magento', '/static/frontend/'],
+      html: ['mage/cookies.js', '/skin/frontend/', '/static/frontend/', '/media/catalog/'],
       paths: ['/magento_version']
     }
   },
@@ -567,7 +567,8 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       patternResult.ecommerce = 'Shopify'
     } else if (lowerHtml.includes('bigcommerce')) {
       patternResult.ecommerce = 'BigCommerce'
-    } else if (lowerHtml.includes('magento')) {
+    } else if (patternResult.cms === 'Magento') {
+      // Only set ecommerce if CMS is already confirmed as Magento
       patternResult.ecommerce = 'Magento'
     }
 
