@@ -76,12 +76,28 @@ export class CreditCalculator {
   ): CreditCost {
     let estimatedCost = 0
 
-    // Claude API costs per page (Sonnet 4.5 in USD, converted to GBP):
-    // - Input tokens: ~5,000 per page @ $0.003 per 1K = $0.015
-    // - Output tokens: ~2,000 per page @ $0.015 per 1K = $0.030
-    const claudeInputPerPageUSD = (5000 / 1000) * 0.003  // $0.015
-    const claudeOutputPerPageUSD = (2000 / 1000) * 0.015  // $0.030
-    const claudePerPage = this.toGBP(claudeInputPerPageUSD + claudeOutputPerPageUSD)  // ~£0.036
+    // COST OPTIMIZATION: Use different Claude models based on scope
+    // - Single page: Sonnet 4.5 (premium quality for focused analysis)
+    // - Multi-page: Haiku 3.5 (70% cheaper, excellent quality at scale)
+    const isSinglePage = scope === 'single'
+
+    // Claude Sonnet 4.5 (single page):
+    // - Input: ~5,000 tokens @ $0.003/1K = $0.015
+    // - Output: ~2,000 tokens @ $0.015/1K = $0.030
+    // - Total: $0.045 USD = £0.036 GBP
+    const claudeSonnetInputUSD = (5000 / 1000) * 0.003
+    const claudeSonnetOutputUSD = (2000 / 1000) * 0.015
+    const claudeSonnetPerPage = this.toGBP(claudeSonnetInputUSD + claudeSonnetOutputUSD)  // ~£0.036
+
+    // Claude Haiku 3.5 (multi-page):
+    // - Input: ~5,000 tokens @ $0.001/1K = $0.005
+    // - Output: ~2,000 tokens @ $0.005/1K = $0.010
+    // - Total: $0.015 USD = £0.012 GBP (70% cheaper than Sonnet!)
+    const claudeHaikuInputUSD = (5000 / 1000) * 0.001
+    const claudeHaikuOutputUSD = (2000 / 1000) * 0.005
+    const claudeHaikuPerPage = this.toGBP(claudeHaikuInputUSD + claudeHaikuOutputUSD)  // ~£0.012
+
+    const claudePerPage = isSinglePage ? claudeSonnetPerPage : claudeHaikuPerPage
 
     // Keywords Everywhere: ~10 keywords per page @ $0.0001 each
     const kePerPage = this.toGBP(10 * 0.0001)  // ~£0.0008

@@ -81,8 +81,17 @@ export default function AuditConfigurationSection({
 
   // Calculate estimated cost per audit in GBP (scales with page count)
   const estimatedCost = useMemo(() => {
-    // Per-page costs based on creditCalculator.ts estimates
-    const claudePerPage = 0.036 // Claude Sonnet 4.5 for analysis per page
+    // Use different Claude models based on audit scope for cost optimization:
+    // - Single page: Claude Sonnet 4.5 (premium quality for focused analysis)
+    // - Multi-page: Claude Haiku 3.5 (70% cheaper, excellent quality at scale)
+
+    const isSinglePage = auditScope === 'single'
+
+    // Claude costs per page
+    const claudeSonnetPerPage = 0.036 // Sonnet 4.5: Input $0.003/1K + Output $0.015/1K
+    const claudeHaikuPerPage = 0.012   // Haiku 3.5: Input $0.001/1K + Output $0.005/1K (70% cheaper)
+
+    const claudePerPage = isSinglePage ? claudeSonnetPerPage : claudeHaikuPerPage
     const cloudflarePerPage = 0.0036 // Browser rendering (3 minutes per page @ £0.09/hour)
 
     // Base costs that run once per audit (not per page)
@@ -95,7 +104,7 @@ export default function AuditConfigurationSection({
     const totalFixedCost = dnsHostingCost + quickTechCost
 
     return totalPageCost + totalFixedCost
-  }, [pageCount]) // Recalculate when page count changes
+  }, [pageCount, auditScope]) // Recalculate when page count or scope changes
 
   const formatCost = (cost: number): string => {
     if (cost < 0.01) return '< 1p'
