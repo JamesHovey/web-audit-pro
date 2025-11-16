@@ -38,7 +38,8 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
 
     if (result && (result.cms || result.framework || result.analytics || result.other.length > 0)) {
       console.log('✅ Used Direct Website Analysis + DNS-based Hosting Detection');
-      
+      console.log(`📊 CMS DETECTION RESULT: "${result.cms}" (from analyzeHTMLAndHeaders)`);
+
       // Override hosting info with DNS-based detection if available
       if (hostingInfo.provider) {
         result.hosting = hostingInfo.provider;
@@ -345,6 +346,7 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     const metaMatches = html.match(/<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"']+)["\'][^>]*>/i);
     if (metaMatches) {
       const generator = metaMatches[1];
+      console.log(`🏷️  Found generator meta tag: "${generator}"`);
       if (generator.toLowerCase().includes('wordpress')) {
         result.cms = 'WordPress';
         const versionMatch = generator.match(/wordpress\s+([\d.]+)/i);
@@ -359,6 +361,7 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Shopify';
       } else if (generator.toLowerCase().includes('magento')) {
         result.cms = 'Magento';
+        console.log(`⚠️  CMS set to Magento from generator meta tag`);
       } else if (generator.toLowerCase().includes('prestashop')) {
         result.cms = 'PrestaShop';
       } else if (generator.toLowerCase().includes('wix')) {
