@@ -1,0 +1,48 @@
+2025-11-16T10:58:15.865375189Z [inf]  🔍 Getting domain authority for: henryadams.co.uk
+2025-11-16T10:58:15.865381181Z [inf]  🔍 Quick tech detection for: https://henryadams.co.uk
+2025-11-16T10:58:15.865386233Z [inf]  ✅ Domain authority retrieved: 3.23/10 (rank: 6103377)
+2025-11-16T11:06:11.000000000Z [inf]  Starting Container
+2025-11-16T11:06:12.439577946Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-16T11:06:14.000000000Z [inf]  Stopping Container
+2025-11-16T11:06:14.141035644Z [inf]  Prisma schema loaded from prisma/schema.prisma
+2025-11-16T11:06:14.141042842Z [inf]  Datasource "db": PostgreSQL database "railway", schema "public" at "postgres.railway.internal:5432"
+2025-11-16T11:06:14.141049861Z [inf]  
+2025-11-16T11:06:14.141056541Z [inf]  4 migrations found in prisma/migrations
+2025-11-16T11:06:14.141063260Z [inf]  
+2025-11-16T11:06:14.141069876Z [inf]  
+2025-11-16T11:06:14.141076628Z [inf]  No pending migrations to apply.
+2025-11-16T11:06:14.367320119Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-16T11:06:14.411093790Z [inf]  
+2025-11-16T11:06:14.411099137Z [inf]  > web-audit-pro@1.0.9 start
+2025-11-16T11:06:14.411104158Z [inf]  > next start
+2025-11-16T11:06:14.411110771Z [inf]  
+2025-11-16T11:06:14.442819589Z [err]  npm error path /app
+2025-11-16T11:06:14.442826271Z [err]  npm error command failed
+2025-11-16T11:06:14.442855994Z [err]  npm error signal SIGTERM
+2025-11-16T11:06:14.442864206Z [err]  npm error command sh -c next start
+2025-11-16T11:06:14.442870380Z [err]  npm error A complete log of this run can be found in: /root/.npm/_logs/2025-11-15T21_22_05_745Z-debug-0.log
+2025-11-16T11:06:15.466093376Z [inf]     ▲ Next.js 15.4.6
+2025-11-16T11:06:15.466100910Z [inf]     - Local:        http://localhost:8080
+2025-11-16T11:06:15.466107514Z [inf]     - Network:      http://10.197.255.164:8080
+2025-11-16T11:06:15.466114594Z [inf]  
+2025-11-16T11:06:15.466121638Z [inf]   ✓ Starting...
+2025-11-16T11:06:16.278958366Z [err]   ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-11-16T11:06:16.278965628Z [inf]   ✓ Ready in 1216ms
+2025-11-16T11:06:20.053760130Z [err]  2025-11-16 11:06:14.210 UTC [97231] LOG:  could not receive data from client: Connection reset by peer
+2025-11-16T11:06:20.053767342Z [err]  2025-11-16 11:06:14.210 UTC [99676] LOG:  could not receive data from client: Connection reset by peer
+2025-11-16T11:06:36.724156487Z [inf]     - Site uses a static/custom framework not in our detection patterns
+2025-11-16T11:06:36.724173583Z [inf]     - Site is heavily customized/obfuscated
+2025-11-16T11:06:36.724186893Z [inf]     - Detection patterns need updating for this technology stack
+2025-11-16T11:06:36.724193230Z [inf]  ✅ Domain authority retrieved: 3.23/10 (rank: 6103377)
+2025-11-16T11:06:36.724215288Z [inf]  ⏳ Navigating to https://henryadams.co.uk for quick detection...
+2025-11-16T11:06:36.724229534Z [inf]  ✅ Page loaded, status: 200
+2025-11-16T11:06:36.724242799Z [inf]     This could mean:
+2025-11-16T11:06:36.724258024Z [inf]  📄 HTML content length: 192008 characters
+2025-11-16T11:06:36.724277578Z [inf]  📋 Response headers: cache-control, content-encoding, content-length, content-type, date, expires, server, strict-transport-security, vary, x-powered-by
+2025-11-16T11:06:36.724289754Z [inf]  🔍 Getting domain authority for: henryadams.co.uk
+2025-11-16T11:06:36.724296066Z [inf]  ⚠️ No CMS detected
+2025-11-16T11:06:36.724309536Z [inf]  🔍 Quick tech detection for: https://henryadams.co.uk
+2025-11-16T11:06:36.724315208Z [inf]  ⚠️ Quick detection complete for https://henryadams.co.uk - NO TECHNOLOGIES DETECTED
+2025-11-16T11:06:38.761896227Z [inf]  🔍 Getting domain authority for: henryadams.co.uk
+2025-11-16T11:06:38.761911848Z [inf]  ✅ Using cached tech detection for: https://henryadams.co.uk
+2025-11-16T11:06:38.761920820Z [inf]  ✅ Domain authority retrieved: 3.23/10 (rank: 6103377)
