@@ -918,7 +918,7 @@ export function AuditForm() {
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
                 </div>
               </>
-            ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework || techStack.phpVersion) ? (
+            ) : techStack && (techStack.cms || techStack.hosting || techStack.ecommerce || techStack.framework || techStack.phpVersion || techStack.plugins?.length || techStack.pageBuilder) ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   {techStack.cms && (

@@ -444,23 +444,29 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
 
     // Use browser rendering to bypass bot protection (403 errors)
     const browserResult = await BrowserService.withBrowser(async (browser, page) => {
-      // Navigate with shorter timeout for quick detection
+      console.log(`⏳ Navigating to ${cleanUrl} for quick detection...`);
+
+      // Navigate with increased timeout for reliable detection
       const response = await page.goto(cleanUrl, {
         waitUntil: 'domcontentloaded', // Faster than networkidle0
-        timeout: 10000
+        timeout: 20000 // Increased from 10s to 20s for better reliability
       });
+
+      console.log(`✅ Page loaded, status: ${response?.status()}`);
 
       // Wait for essential content to load (e.g., JavaScript-rendered CMS signatures and plugin scripts)
       // Increased from 500ms to 1500ms to match full audit detection accuracy
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const html = await page.content();
+      console.log(`📄 HTML content length: ${html.length} characters`);
 
       // Get response headers from the main document
       const headers: Record<string, string> = {};
       if (response) {
         const responseHeaders = response.headers();
         Object.assign(headers, responseHeaders);
+        console.log(`📋 Response headers:`, Object.keys(responseHeaders).join(', '));
       }
 
       return { html, headers };
@@ -476,6 +482,9 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
     if (cmsDetection) {
       result.cms = cmsDetection.name
       result.cmsVersion = cmsDetection.version
+      console.log(`✅ CMS detected: ${cmsDetection.name}${cmsDetection.version ? ` v${cmsDetection.version}` : ''}`);
+    } else {
+      console.log(`⚠️ No CMS detected`);
     }
 
     // WordPress Plugin Detection (hybrid pattern + AI detection)
@@ -644,10 +653,30 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       result.hosting = 'Google Cloud'
     }
 
+    // Log detection summary
+    const detectedItems = Object.keys(result).filter(key => {
+      const value = result[key as keyof QuickTechInfo];
+      return value && (typeof value !== 'object' || (Array.isArray(value) && value.length > 0));
+    });
+
+    if (detectedItems.length > 0) {
+      console.log(`✅ Quick detection complete for ${cleanUrl}:`, JSON.stringify(result, null, 2));
+    } else {
+      console.log(`⚠️ Quick detection complete for ${cleanUrl} - NO TECHNOLOGIES DETECTED`);
+      console.log(`   This could mean:`);
+      console.log(`   - Site uses a static/custom framework not in our detection patterns`);
+      console.log(`   - Site is heavily customized/obfuscated`);
+      console.log(`   - Detection patterns need updating for this technology stack`);
+    }
+
     return result
 
   } catch (error) {
-    console.error('Quick tech detection error:', error)
+    console.error('Quick tech detection error for', url, ':', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+
+    // Return empty result but log the error details
     return {}
   }
 }
