@@ -124,11 +124,13 @@ interface LoadingMessagesProps {
     status: 'running' | 'completed'
   }
   startTime?: Date
+  estimatedMinutes?: number
 }
 
-export default function LoadingMessages({ section, className = "", progress, startTime }: LoadingMessagesProps) {
+export default function LoadingMessages({ section, className = "", progress, startTime, estimatedMinutes }: LoadingMessagesProps) {
   const [currentActivity, setCurrentActivity] = useState(0)
-  
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+
   // Rotate waiting activities
   useEffect(() => {
     const interval = setInterval(() => {
@@ -138,11 +140,41 @@ export default function LoadingMessages({ section, className = "", progress, sta
     return () => clearInterval(interval)
   }, [])
 
+  // Update elapsed time every second
+  useEffect(() => {
+    if (!startTime) return
+
+    const interval = setInterval(() => {
+      const now = new Date()
+      const elapsed = Math.floor((now.getTime() - new Date(startTime).getTime()) / 1000)
+      setElapsedSeconds(elapsed)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [startTime])
+
+  // Format elapsed time as MM:SS
+  const formatElapsedTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Format estimated time
+  const formatEstimatedTime = (minutes?: number) => {
+    if (!minutes) return null
+    if (minutes <= 1) return '<1 min'
+    if (minutes < 60) return `<${minutes} mins`
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `<${hours}h ${mins}m`
+  }
+
   return (
     <div className={`flex flex-col items-center justify-center h-screen px-8 overflow-hidden ${className}`}>
       {/* Centered container with border only */}
       <div className="w-full max-w-4xl bg-white rounded-xl border border-gray-200 p-8 mx-auto my-auto">
-        
+
         {/* Header - Minimal */}
         <div className="text-center space-y-4">
           <div>
@@ -155,6 +187,23 @@ export default function LoadingMessages({ section, className = "", progress, sta
           </div>
         </div>
 
+        {/* Time Display */}
+        {(estimatedMinutes || startTime) && (
+          <div className="flex items-center justify-center gap-8 mb-6">
+            {estimatedMinutes && (
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Estimated Time</p>
+                <p className="text-lg font-bold text-blue-700">{formatEstimatedTime(estimatedMinutes)}</p>
+              </div>
+            )}
+            {startTime && (
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Elapsed Time</p>
+                <p className="text-lg font-bold text-gray-900">{formatElapsedTime(elapsedSeconds)}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Waiting activity with single icon matching PMW colors */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">

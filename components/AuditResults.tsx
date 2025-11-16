@@ -157,6 +157,38 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     links: []
   })
 
+  // Calculate estimated time based on audit configuration
+  const calculateEstimatedMinutes = () => {
+    const results = audit.results as any
+    if (!results) return 0
+
+    const pageCount = results.totalPages || 1
+    const configuration = results.auditConfiguration || {}
+
+    // Time estimates per page in seconds
+    const TIME_PER_PAGE = {
+      lighthouse: 8,
+      viewport: 6,
+      imageOptimization: 2,
+      seo: 1,
+      technical: 1,
+    }
+
+    const CONCURRENT_PAGES = 3
+
+    let totalSecondsPerPage = TIME_PER_PAGE.technical // Always included
+
+    if (configuration.enableLighthouse) totalSecondsPerPage += TIME_PER_PAGE.lighthouse
+    if (configuration.enableViewport) totalSecondsPerPage += TIME_PER_PAGE.viewport
+    if (configuration.enableImageOptimization) totalSecondsPerPage += TIME_PER_PAGE.imageOptimization
+    if (configuration.enableSEO) totalSecondsPerPage += TIME_PER_PAGE.seo
+
+    const totalSeconds = (pageCount * totalSecondsPerPage) / CONCURRENT_PAGES
+    return Math.ceil(totalSeconds / 60)
+  }
+
+  const estimatedMinutes = calculateEstimatedMinutes()
+
   // Section ordering and drag state
   const [sectionOrder, setSectionOrder] = useState<string[]>([
     'traffic',
@@ -573,7 +605,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 {!collapsedSections.traffic && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                      <LoadingMessages section="traffic" />
+                      <LoadingMessages section="traffic" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                     ) : (
                       <>
                         {renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)}
@@ -673,7 +705,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 {!collapsedSections.performance && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                      <LoadingMessages section="performance" />
+                      <LoadingMessages section="performance" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                     ) : (
                       <>
                         {renderSectionResults(
@@ -864,7 +896,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             {!collapsedSections.technology && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="technology" />
+                  <LoadingMessages section="technology" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : (
                   renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
                 )}
@@ -963,7 +995,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             {!collapsedSections.accessibility && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="accessibility" />
+                  <LoadingMessages section="accessibility" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : (
                   <AccessibilityResults data={audit.results?.accessibility || {}} />
                 )}
@@ -1085,7 +1117,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             {!collapsedSections.keywords && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="keywords" />
+                  <LoadingMessages section="keywords" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : audit.results?.keywords ? (
                   <>
                     <div className="space-y-4">
@@ -1109,7 +1141,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     </div>
                   </>
                 ) : (
-                  <LoadingMessages section="keywords" />
+                  <LoadingMessages section="keywords" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 )}
               </div>
             )}
@@ -1151,7 +1183,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
             </div>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="backlinks" />
+                <LoadingMessages section="backlinks" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
               ) : (
                 renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
               )}
@@ -1203,7 +1235,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                   <p className="text-red-600">Failed to generate results</p>
                 </div>
               ) : (
-                <LoadingMessages section={sectionId} />
+                <LoadingMessages section={sectionId} estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
               )}
             </div>
           </div>
