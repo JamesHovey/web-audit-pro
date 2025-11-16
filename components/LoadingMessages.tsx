@@ -4,36 +4,42 @@ import { useState, useEffect } from 'react'
 import { Search, BarChart3, Globe, Zap, Target, CheckCircle } from 'lucide-react'
 
 const WAITING_ACTIVITIES = [
-  "☕ Perfect time to grab a coffee...",
-  "🧘‍♀️ Quick meditation break? Your site's being analyzed...",
-  "🍵 Tea time! We're diving deep into your data...",
-  "🤸‍♂️ Do a quick stretch - we're crunching the numbers...",
-  "📱 Check your messages while we audit...",
-  "🎵 Play your favorite song - this won't take long...",
-  "💭 Dream about your improved rankings...",
-  "🏃‍♀️ Quick walk around the office?",
-  "🍿 Grab a snack, we're almost there...",
-  "🧠 Plan your content strategy...",
-  "📚 Bookmark that article you've been meaning to read...",
-  "🎯 Set your SEO goals for next quarter...",
-  "💪 Do 10 push-ups - stay sharp!",
-  "🌱 Water your desk plant, we've got this...",
-  "🎨 Doodle your success story...",
-  "🐕 Pet your dog - they deserve it...",
-  "🎮 Quick game break? We're processing...",
-  "📸 Take a selfie to commemorate this audit...",
-  "✨ Manifest your traffic goals...",
-  "🍕 Order lunch? We'll be done soon...",
-  "🎪 Practice your victory dance...",
-  "🔮 Predict your future rankings...",
-  "🎸 Air guitar solo time!",
-  "🌟 Count your blessings while we count your keywords...",
-  "🎭 Practice your pitch for the results...",
-  "🦄 Believe in SEO magic happening right now...",
-  "🏖️ Plan your vacation with all that new traffic...",
-  "🎯 Visualize page one rankings...",
-  "🚀 Prepare for takeoff - almost ready!",
-  "🎨 Imagine your improved conversion rates..."
+  "🔍 Analyzing HTML structure and semantic markup...",
+  "⚡ Measuring Core Web Vitals and performance metrics...",
+  "🔒 Checking SSL certificates and security headers...",
+  "📱 Testing mobile responsiveness across viewports...",
+  "🎯 Evaluating SEO meta tags and structured data...",
+  "🌐 Scanning for broken links and redirect chains...",
+  "💾 Analyzing page weight and resource optimization...",
+  "🚀 Testing server response times and TTFB...",
+  "📊 Auditing accessibility compliance (WCAG 2.1)...",
+  "🔧 Detecting CMS platform and technology stack...",
+  "🎨 Reviewing image optimization and lazy loading...",
+  "📈 Measuring JavaScript execution and bundle size...",
+  "🔐 Verifying HTTPS implementation and mixed content...",
+  "🏗️ Analyzing DOM size and rendering performance...",
+  "⚙️ Checking HTTP headers and caching strategies...",
+  "🌟 Evaluating schema markup and rich snippets...",
+  "🔎 Scanning sitemap.xml and robots.txt configuration...",
+  "💡 Testing lighthouse scores across categories...",
+  "🎪 Analyzing third-party script impact...",
+  "📋 Reviewing canonical tags and URL structure...",
+  "🛡️ Checking for common security vulnerabilities...",
+  "🎯 Measuring LCP, FID, and CLS metrics...",
+  "🔄 Testing browser caching and compression...",
+  "📊 Analyzing crawlability and indexation issues...",
+  "🌍 Checking internationalization and hreflang tags...",
+  "⚡ Evaluating render-blocking resources...",
+  "🔧 Scanning for deprecated HTML and CSS...",
+  "📱 Testing touch targets and mobile usability...",
+  "🎨 Analyzing contrast ratios for readability...",
+  "🚀 Measuring Time to Interactive (TTI)...",
+  "🔍 Checking meta descriptions and title tags...",
+  "💾 Analyzing database queries and N+1 issues...",
+  "🌐 Testing CDN configuration and asset delivery...",
+  "📈 Evaluating conversion funnel performance...",
+  "🔒 Scanning HTTP security headers (CSP, HSTS)...",
+  "🎯 Measuring First Contentful Paint (FCP)..."
 ]
 
 // Section configurations with realistic time estimates
@@ -127,7 +133,7 @@ export default function LoadingMessages({ section, className = "", progress, sta
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentActivity(prev => (prev + 1) % WAITING_ACTIVITIES.length)
-    }, 8000) // Slower rotation for better readability
+    }, 12000) // 12 seconds per message for better readability of technical content
 
     return () => clearInterval(interval)
   }, [])
