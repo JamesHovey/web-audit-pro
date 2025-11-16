@@ -675,6 +675,13 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       }
     }
 
+    // CRITICAL: Ensure hosting is always a string, never undefined or an object
+    // This prevents React rendering errors when displaying the hosting value
+    if (!patternResult.hosting || typeof patternResult.hosting !== 'string') {
+      console.warn(`⚠️ Hosting was not a string (type: ${typeof patternResult.hosting}), setting to 'Not detected'`)
+      patternResult.hosting = 'Not detected'
+    }
+
     // ============================================
     // LAYER 2: HYBRID AI ENHANCEMENT (ONLY IF NEEDED)
     // ============================================

@@ -43,14 +43,19 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
       if (hostingInfo.provider) {
         result.hosting = hostingInfo.provider;
         result.organization = hostingInfo.organization;
-        
+
         // Special handling for Cloudflare bypass attempts
         if (hostingInfo.method === 'cloudflare-bypass') {
           console.log(`🔍 Applied Cloudflare bypass result: ${hostingInfo.provider}`);
         }
       }
-      
-      
+
+      // CRITICAL: Ensure hosting is always a string, never undefined or an object
+      if (result.hosting && typeof result.hosting !== 'string') {
+        console.warn(`⚠️ Hosting was not a string (type: ${typeof result.hosting}), converting to string`)
+        result.hosting = String(result.hosting)
+      }
+
       return { ...result, source: 'direct', confidence: 'high' };
     }
     
