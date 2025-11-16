@@ -3173,12 +3173,15 @@ export default function EnhancedRecommendations({
                             if (step.trim() === '') {
                               return <div key={stepIndex} className="h-2"></div>
                             }
-                            // Step already has bullet = don't add another
-                            const hasBullet = step.trim().startsWith('•')
+                            // Check if step already has bullet or starts with emoji
+                            const trimmedStep = step.trim()
+                            const hasBullet = trimmedStep.startsWith('•')
+                            const startsWithEmoji = /^[\u{1F300}-\u{1F9FF}]/u.test(trimmedStep)
+                            const needsBullet = !hasBullet && !startsWithEmoji
                             return (
                               <div key={stepIndex} className="flex items-start gap-2">
-                                {!hasBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
-                                <span className="text-gray-700">{hasBullet ? step.trim().substring(1).trim() : step}</span>
+                                {needsBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
+                                <span className="text-gray-700">{hasBullet ? trimmedStep.substring(1).trim() : trimmedStep}</span>
                               </div>
                             )
                           })}
@@ -3234,12 +3237,15 @@ export default function EnhancedRecommendations({
                         if (step.trim() === '') {
                           return <div key={stepIndex} className="h-2"></div>
                         }
-                        // Step already has bullet = don't add another
-                        const hasBullet = step.trim().startsWith('•')
+                        // Check if step already has bullet or starts with emoji
+                        const trimmedStep = step.trim()
+                        const hasBullet = trimmedStep.startsWith('•')
+                        const startsWithEmoji = /^[\u{1F300}-\u{1F9FF}]/u.test(trimmedStep)
+                        const needsBullet = !hasBullet && !startsWithEmoji
                         return (
                           <div key={stepIndex} className="flex items-start gap-2 text-sm">
-                            {!hasBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
-                            <span className="text-gray-700">{hasBullet ? step.trim().substring(1).trim() : step}</span>
+                            {needsBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
+                            <span className="text-gray-700">{hasBullet ? trimmedStep.substring(1).trim() : trimmedStep}</span>
                           </div>
                         )
                       })}
