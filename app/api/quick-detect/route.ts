@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { BrowserService } from '@/lib/cloudflare-browser'
 import { detectPluginsHybrid } from '@/lib/hybridPluginDetection'
+import { detectTechStackHybrid } from '@/lib/hybridTechDetection'
 
 // Simple in-memory cache with 5-minute TTL
 interface CacheEntry {
@@ -532,19 +533,159 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
     const { html, headers } = browserResult;
     const lowerHtml = html.toLowerCase();
 
-    const result: QuickTechInfo = {}
+    // ============================================
+    // LAYER 1: PATTERN-BASED DETECTION (FAST, FREE)
+    // ============================================
+    console.log(`🔍 Starting pattern-based detection...`);
+
+    const patternResult: QuickTechInfo = {}
 
     // Detect CMS using comprehensive pattern matching
     const cmsDetection = detectCMS(html, lowerHtml, headers)
     if (cmsDetection) {
-      result.cms = cmsDetection.name
-      result.cmsVersion = cmsDetection.version
+      patternResult.cms = cmsDetection.name
+      patternResult.cmsVersion = cmsDetection.version
       console.log(`✅ CMS detected: ${cmsDetection.name}${cmsDetection.version ? ` v${cmsDetection.version}` : ''}`);
     } else {
-      console.log(`⚠️ No CMS detected`);
+      console.log(`⚠️ No CMS detected via patterns`);
     }
 
-    // WordPress Plugin Detection (hybrid pattern + AI detection)
+    // PHP Version Detection from headers
+    const xPoweredBy = headers['x-powered-by']?.toLowerCase() || ''
+    if (xPoweredBy.includes('php')) {
+      const phpVersionMatch = xPoweredBy.match(/php\/([0-9.]+)/i)
+      if (phpVersionMatch) {
+        patternResult.phpVersion = phpVersionMatch[1]
+      }
+    }
+
+    // E-commerce Detection (basic patterns)
+    if (patternResult.cms === 'WordPress' && lowerHtml.includes('woocommerce')) {
+      patternResult.ecommerce = 'WooCommerce'
+    } else if (patternResult.cms === 'Shopify') {
+      patternResult.ecommerce = 'Shopify'
+    } else if (lowerHtml.includes('bigcommerce')) {
+      patternResult.ecommerce = 'BigCommerce'
+    } else if (lowerHtml.includes('magento')) {
+      patternResult.ecommerce = 'Magento'
+    }
+
+    // Framework Detection with version (quick patterns)
+    if (lowerHtml.includes('next.js') || lowerHtml.includes('__next') || lowerHtml.includes('_buildmanifest')) {
+      patternResult.framework = 'Next.js'
+      const nextVersionMatch = html.match(/next[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (nextVersionMatch) {
+        patternResult.frameworkVersion = nextVersionMatch[1]
+      }
+    } else if (lowerHtml.includes('react') || lowerHtml.includes('_react')) {
+      patternResult.framework = 'React'
+      const reactVersionMatch = html.match(/react[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (reactVersionMatch) {
+        patternResult.frameworkVersion = reactVersionMatch[1]
+      }
+    } else if (lowerHtml.includes('vue.js') || lowerHtml.includes('__vue')) {
+      patternResult.framework = 'Vue.js'
+      const vueVersionMatch = html.match(/vue[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (vueVersionMatch) {
+        patternResult.frameworkVersion = vueVersionMatch[1]
+      }
+    } else if (lowerHtml.includes('angular') || lowerHtml.includes('ng-version')) {
+      patternResult.framework = 'Angular'
+      const ngVersionMatch = html.match(/ng-version=["']([0-9.]+)["']/i)
+      if (ngVersionMatch) {
+        patternResult.frameworkVersion = ngVersionMatch[1]
+      }
+    } else if (lowerHtml.includes('gatsby')) {
+      patternResult.framework = 'Gatsby'
+      const gatsbyVersionMatch = html.match(/gatsby[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (gatsbyVersionMatch) {
+        patternResult.frameworkVersion = gatsbyVersionMatch[1]
+      }
+    } else if (lowerHtml.includes('nuxt')) {
+      patternResult.framework = 'Nuxt.js'
+      const nuxtVersionMatch = html.match(/nuxt[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
+      if (nuxtVersionMatch) {
+        patternResult.frameworkVersion = nuxtVersionMatch[1]
+      }
+    }
+
+    // CDN Detection
+    if (headers['cf-ray'] || headers['cf-cache-status']) {
+      patternResult.cdn = 'Cloudflare'
+    } else if (headers['x-amz-cf-id']) {
+      patternResult.cdn = 'CloudFront'
+    } else if (headers['x-served-by'] && headers['x-served-by'].includes('fastly')) {
+      patternResult.cdn = 'Fastly'
+    }
+
+    // Hosting Detection (basic patterns)
+    const server = headers.server?.toLowerCase() || ''
+    if (patternResult.cms === 'Shopify') {
+      patternResult.hosting = 'Shopify'
+    } else if (patternResult.cms === 'Wix') {
+      patternResult.hosting = 'Wix'
+    } else if (patternResult.cms === 'Squarespace') {
+      patternResult.hosting = 'Squarespace'
+    } else if (server.includes('cloudflare') || patternResult.cdn === 'Cloudflare') {
+      patternResult.hosting = 'Cloudflare'
+    } else if (lowerHtml.includes('amazonaws.com') || patternResult.cdn === 'CloudFront') {
+      patternResult.hosting = 'AWS'
+    } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
+      patternResult.hosting = 'Vercel'
+    } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
+      patternResult.hosting = 'Netlify'
+    } else if (lowerHtml.includes('digitaloceanspaces.com') || lowerHtml.includes('cdn.digitalocean')) {
+      patternResult.hosting = 'DigitalOcean'
+    } else if (lowerHtml.includes('googleusercontent.com') || lowerHtml.includes('googleapis.com')) {
+      patternResult.hosting = 'Google Cloud'
+    }
+
+    // ============================================
+    // LAYER 2: HYBRID AI ENHANCEMENT (ONLY IF NEEDED)
+    // ============================================
+    let result: QuickTechInfo = patternResult;
+
+    try {
+      const hybridTechResult = await detectTechStackHybrid(
+        html,
+        headers,
+        cleanUrl,
+        {
+          cms: patternResult.cms,
+          cmsVersion: patternResult.cmsVersion,
+          framework: patternResult.framework,
+          frameworkVersion: patternResult.frameworkVersion,
+          hosting: patternResult.hosting,
+          ecommerce: patternResult.ecommerce,
+          cdn: patternResult.cdn,
+          phpVersion: patternResult.phpVersion,
+          confidence: 'medium',
+          matchCount: 0
+        }
+      );
+
+      // Merge hybrid results back into final result
+      result = {
+        ...result,
+        cms: hybridTechResult.cms || result.cms,
+        cmsVersion: hybridTechResult.cmsVersion || result.cmsVersion,
+        framework: hybridTechResult.framework || result.framework,
+        frameworkVersion: hybridTechResult.frameworkVersion || result.frameworkVersion,
+        hosting: hybridTechResult.hosting || result.hosting,
+        ecommerce: hybridTechResult.ecommerce || result.ecommerce,
+        cdn: hybridTechResult.cdn || result.cdn,
+        phpVersion: hybridTechResult.phpVersion || result.phpVersion,
+      };
+
+      console.log(`🎯 Hybrid detection: ${hybridTechResult.detectionMethod}, ${hybridTechResult.confidence} confidence, AI used: ${hybridTechResult.aiUsed}, Cost: $${hybridTechResult.costIncurred.toFixed(3)}`);
+
+    } catch (error) {
+      console.error('⚠️ Hybrid tech detection failed, using pattern-only results:', error);
+    }
+
+    // ============================================
+    // LAYER 3: WORDPRESS PLUGIN DETECTION (HYBRID)
+    // ============================================
     if (result.cms === 'WordPress') {
       try {
         const hybridResult = await detectPluginsHybrid('WordPress', html, headers, cleanUrl);
@@ -614,100 +755,6 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       } catch (error) {
         console.error('Hybrid plugin detection failed, skipping:', error);
       }
-    }
-
-    // PHP Version Detection from headers
-    const xPoweredBy = headers['x-powered-by']?.toLowerCase() || ''
-    if (xPoweredBy.includes('php')) {
-      const phpVersionMatch = xPoweredBy.match(/php\/([0-9.]+)/i)
-      if (phpVersionMatch) {
-        result.phpVersion = phpVersionMatch[1]
-      }
-    }
-
-    // E-commerce Detection (basic patterns)
-    if (result.cms === 'WordPress' && lowerHtml.includes('woocommerce')) {
-      result.ecommerce = 'WooCommerce'
-    } else if (result.cms === 'Shopify') {
-      result.ecommerce = 'Shopify'
-    } else if (lowerHtml.includes('bigcommerce')) {
-      result.ecommerce = 'BigCommerce'
-    } else if (lowerHtml.includes('magento')) {
-      result.ecommerce = 'Magento'
-    }
-
-    // Framework Detection with version (quick patterns)
-    if (lowerHtml.includes('next.js') || lowerHtml.includes('__next') || lowerHtml.includes('_buildmanifest')) {
-      result.framework = 'Next.js'
-      // Try to extract Next.js version from buildManifest or meta tags
-      const nextVersionMatch = html.match(/next[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
-      if (nextVersionMatch) {
-        result.frameworkVersion = nextVersionMatch[1]
-      }
-    } else if (lowerHtml.includes('react') || lowerHtml.includes('_react')) {
-      result.framework = 'React'
-      // Try to extract React version
-      const reactVersionMatch = html.match(/react[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
-      if (reactVersionMatch) {
-        result.frameworkVersion = reactVersionMatch[1]
-      }
-    } else if (lowerHtml.includes('vue.js') || lowerHtml.includes('__vue')) {
-      result.framework = 'Vue.js'
-      // Try to extract Vue version
-      const vueVersionMatch = html.match(/vue[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
-      if (vueVersionMatch) {
-        result.frameworkVersion = vueVersionMatch[1]
-      }
-    } else if (lowerHtml.includes('angular') || lowerHtml.includes('ng-version')) {
-      result.framework = 'Angular'
-      // Extract Angular version from ng-version attribute
-      const ngVersionMatch = html.match(/ng-version=["']([0-9.]+)["']/i)
-      if (ngVersionMatch) {
-        result.frameworkVersion = ngVersionMatch[1]
-      }
-    } else if (lowerHtml.includes('gatsby')) {
-      result.framework = 'Gatsby'
-      const gatsbyVersionMatch = html.match(/gatsby[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
-      if (gatsbyVersionMatch) {
-        result.frameworkVersion = gatsbyVersionMatch[1]
-      }
-    } else if (lowerHtml.includes('nuxt')) {
-      result.framework = 'Nuxt.js'
-      const nuxtVersionMatch = html.match(/nuxt[^\d]*([0-9]+\.[0-9]+\.[0-9]+)/i)
-      if (nuxtVersionMatch) {
-        result.frameworkVersion = nuxtVersionMatch[1]
-      }
-    }
-
-    // CDN Detection
-    if (headers['cf-ray'] || headers['cf-cache-status']) {
-      result.cdn = 'Cloudflare'
-    } else if (headers['x-amz-cf-id']) {
-      result.cdn = 'CloudFront'
-    } else if (headers['x-served-by'] && headers['x-served-by'].includes('fastly')) {
-      result.cdn = 'Fastly'
-    }
-
-    // Hosting Detection (basic patterns)
-    const server = headers.server?.toLowerCase() || ''
-    if (result.cms === 'Shopify') {
-      result.hosting = 'Shopify'
-    } else if (result.cms === 'Wix') {
-      result.hosting = 'Wix'
-    } else if (result.cms === 'Squarespace') {
-      result.hosting = 'Squarespace'
-    } else if (server.includes('cloudflare') || result.cdn === 'Cloudflare') {
-      result.hosting = 'Cloudflare'
-    } else if (lowerHtml.includes('amazonaws.com') || result.cdn === 'CloudFront') {
-      result.hosting = 'AWS'
-    } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
-      result.hosting = 'Vercel'
-    } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
-      result.hosting = 'Netlify'
-    } else if (lowerHtml.includes('digitaloceanspaces.com') || lowerHtml.includes('cdn.digitalocean')) {
-      result.hosting = 'DigitalOcean'
-    } else if (lowerHtml.includes('googleusercontent.com') || lowerHtml.includes('googleapis.com')) {
-      result.hosting = 'Google Cloud'
     }
 
     // Log detection summary
