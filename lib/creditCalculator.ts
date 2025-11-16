@@ -76,28 +76,48 @@ export class CreditCalculator {
   ): CreditCost {
     let estimatedCost = 0
 
-    // COST OPTIMIZATION: Use different Claude models based on scope
-    // - Single page: Sonnet 4.5 (premium quality for focused analysis)
-    // - Multi-page: Haiku 3.5 (70% cheaper, excellent quality at scale)
+    // SMART COST OPTIMIZATION STRATEGY:
+    // - Single page: Sonnet 4.5 (premium quality)
+    // - Multi-page: Smart Sampling
+    //   * AI analysis (Haiku 3.5): First 20 pages (key pages, templates)
+    //   * Pattern-only: Remaining pages (technical checks without AI)
     const isSinglePage = scope === 'single'
 
-    // Claude Sonnet 4.5 (single page):
-    // - Input: ~5,000 tokens @ $0.003/1K = $0.015
-    // - Output: ~2,000 tokens @ $0.015/1K = $0.030
-    // - Total: $0.045 USD = £0.036 GBP
-    const claudeSonnetInputUSD = (5000 / 1000) * 0.003
-    const claudeSonnetOutputUSD = (2000 / 1000) * 0.015
-    const claudeSonnetPerPage = this.toGBP(claudeSonnetInputUSD + claudeSonnetOutputUSD)  // ~£0.036
+    // Claude Sonnet 4.5 (single page only)
+    const claudeSonnetInputUSD = (5000 / 1000) * 0.003  // $0.015
+    const claudeSonnetOutputUSD = (2000 / 1000) * 0.015  // $0.030
+    const claudeSonnetPerPage = this.toGBP(claudeSonnetInputUSD + claudeSonnetOutputUSD)  // £0.036
 
-    // Claude Haiku 3.5 (multi-page):
-    // - Input: ~5,000 tokens @ $0.001/1K = $0.005
-    // - Output: ~2,000 tokens @ $0.005/1K = $0.010
-    // - Total: $0.015 USD = £0.012 GBP (70% cheaper than Sonnet!)
-    const claudeHaikuInputUSD = (5000 / 1000) * 0.001
-    const claudeHaikuOutputUSD = (2000 / 1000) * 0.005
-    const claudeHaikuPerPage = this.toGBP(claudeHaikuInputUSD + claudeHaikuOutputUSD)  // ~£0.012
+    // Claude Haiku 3.5 (multi-page AI analysis)
+    const claudeHaikuInputUSD = (5000 / 1000) * 0.001  // $0.005
+    const claudeHaikuOutputUSD = (2000 / 1000) * 0.005  // $0.010
+    const claudeHaikuPerPage = this.toGBP(claudeHaikuInputUSD + claudeHaikuOutputUSD)  // £0.012
 
-    const claudePerPage = isSinglePage ? claudeSonnetPerPage : claudeHaikuPerPage
+    // Cloudflare Browser Rendering (always needed for all pages)
+    const browserMinutesPerPage = 3
+    const browserHoursPerPage = browserMinutesPerPage / 60
+    const cloudflarePerPage = this.toGBP(0.09) * browserHoursPerPage  // £0.0036
+
+    if (isSinglePage) {
+      // Single page: Full Sonnet 4.5 analysis
+      estimatedCost = pageCount * (claudeSonnetPerPage + cloudflarePerPage)
+    } else {
+      // Multi-page: Smart Sampling
+      const aiAnalysisPages = Math.min(pageCount, 20)  // Cap AI at 20 pages
+      const patternOnlyPages = Math.max(0, pageCount - 20)  // Rest use pattern matching
+
+      // AI analysis cost
+      const aiCost = aiAnalysisPages * claudeHaikuPerPage
+
+      // Pattern-only cost (browser + basic checks, no AI)
+      const patternCostPerPage = 0.003
+      const patternCost = patternOnlyPages * patternCostPerPage
+
+      // Browser rendering for ALL pages
+      const browserCost = pageCount * cloudflarePerPage
+
+      estimatedCost = aiCost + patternCost + browserCost
+    }
 
     // Keywords Everywhere: ~10 keywords per page @ $0.0001 each
     const kePerPage = this.toGBP(10 * 0.0001)  // ~£0.0008
@@ -105,17 +125,7 @@ export class CreditCalculator {
     // Serper: 1 search per page @ $0.0003 each
     const serperPerPage = this.toGBP(0.0003)  // ~£0.00024
 
-    // Cloudflare Browser Rendering API: £0.09 per hour
-    // Estimate: ~2-5 minutes per page = 0.033-0.083 hours
-    // Conservative estimate: 3 minutes per page = 0.05 hours
-    const browserMinutesPerPage = 3
-    const browserHoursPerPage = browserMinutesPerPage / 60  // 0.05 hours
-    const cloudflarePerPage = this.toGBP(0.09) * browserHoursPerPage  // ~£0.0036
-
-    // Base cost includes Claude + Browser for all pages
-    estimatedCost += pageCount * (claudePerPage + cloudflarePerPage)
-
-    // Add keyword costs if selected
+    // Add keyword costs if selected (for all pages if enabled)
     if (sections.includes('keywords')) {
       estimatedCost += pageCount * (kePerPage + serperPerPage)
     }
@@ -127,11 +137,9 @@ export class CreditCalculator {
       estimatedCost += pageCount * extraBrowserTime
     }
 
-    // Single page minimum (covers at least one basic analysis)
-    if (scope === 'single') {
-      const minimumCost = claudePerPage + cloudflarePerPage
-      estimatedCost = Math.max(estimatedCost, minimumCost)
-    }
+    // Fixed costs (DNS + quick tech detection)
+    const fixedCost = 0.0077
+    estimatedCost += fixedCost
 
     return this.calculateCredits(estimatedCost)
   }

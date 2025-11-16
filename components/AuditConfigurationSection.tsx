@@ -81,29 +81,42 @@ export default function AuditConfigurationSection({
 
   // Calculate estimated cost per audit in GBP (scales with page count)
   const estimatedCost = useMemo(() => {
-    // Use different Claude models based on audit scope for cost optimization:
-    // - Single page: Claude Sonnet 4.5 (premium quality for focused analysis)
-    // - Multi-page: Claude Haiku 3.5 (70% cheaper, excellent quality at scale)
+    // SMART COST OPTIMIZATION STRATEGY:
+    // - Single page: Claude Sonnet 4.5 (premium quality)
+    // - Multi-page: Smart Sampling with Haiku 3.5
+    //   * AI analysis: First 20 pages (homepage, key templates, important pages)
+    //   * Pattern-only: Remaining pages (same tech stack, just different content)
 
     const isSinglePage = auditScope === 'single'
 
-    // Claude costs per page
-    const claudeSonnetPerPage = 0.036 // Sonnet 4.5: Input $0.003/1K + Output $0.015/1K
-    const claudeHaikuPerPage = 0.012   // Haiku 3.5: Input $0.001/1K + Output $0.005/1K (70% cheaper)
+    if (isSinglePage) {
+      // Single page: Premium Sonnet 4.5 analysis
+      const claudePerPage = 0.036 // Sonnet 4.5
+      const cloudflarePerPage = 0.0036 // Browser rendering (3 min)
+      const fixedCost = 0.0077 // DNS + quick tech
+      return (claudePerPage + cloudflarePerPage) * pageCount + fixedCost
+    } else {
+      // Multi-page: Smart Sampling for cost efficiency
+      const aiAnalysisPages = Math.min(pageCount, 20) // Cap AI analysis at 20 pages
+      const patternOnlyPages = Math.max(0, pageCount - 20) // Remaining use pattern matching
 
-    const claudePerPage = isSinglePage ? claudeSonnetPerPage : claudeHaikuPerPage
-    const cloudflarePerPage = 0.0036 // Browser rendering (3 minutes per page @ £0.09/hour)
+      // AI analysis costs (Haiku 3.5 - 70% cheaper than Sonnet)
+      const claudeHaikuPerPage = 0.012
+      const aiCost = aiAnalysisPages * claudeHaikuPerPage
 
-    // Base costs that run once per audit (not per page)
-    const dnsHostingCost = 0.0002 // IPinfo.io - runs once for domain
-    const quickTechCost = 0.0075 // Initial quick tech detection - runs once
+      // Pattern-only analysis (no AI, just technical checks)
+      const patternCostPerPage = 0.003 // Browser + pattern matching only
+      const patternCost = patternOnlyPages * patternCostPerPage
 
-    // Calculate total cost
-    const perPageCost = claudePerPage + cloudflarePerPage
-    const totalPageCost = perPageCost * pageCount
-    const totalFixedCost = dnsHostingCost + quickTechCost
+      // Browser rendering for ALL pages (still needed for technical checks)
+      const cloudflarePerPage = 0.0036
+      const browserCost = pageCount * cloudflarePerPage
 
-    return totalPageCost + totalFixedCost
+      // Fixed costs
+      const fixedCost = 0.0077 // DNS + quick tech
+
+      return aiCost + patternCost + browserCost + fixedCost
+    }
   }, [pageCount, auditScope]) // Recalculate when page count or scope changes
 
   const formatCost = (cost: number): string => {
