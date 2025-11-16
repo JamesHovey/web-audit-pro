@@ -304,8 +304,8 @@ function detectPlatformFromHTML(html: string, headers: Record<string, string>): 
     return 'Joomla';
   }
   
-  // Magento detection
-  if (lowerHtml.includes('mage/') || lowerHtml.includes('magento') || lowerHtml.includes('varien/')) {
+  // Magento detection (specific paths only - no generic 'magento' keyword)
+  if (lowerHtml.includes('mage/') || lowerHtml.includes('varien/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/')) {
     return 'Magento';
   }
   
@@ -359,12 +359,8 @@ function detectPlatformFromHTML(html: string, headers: Record<string, string>): 
     return 'Angular Application';
   }
   
-  // Generic CMS detection
-  if (lowerHtml.includes('/administrator/') || lowerHtml.includes('/admin/') || lowerHtml.includes('cms')) {
-    return 'Generic CMS';
-  }
-  
-  return 'Static Website';
+  // No CMS detected - return Custom instead of generic fallback
+  return 'Custom';
 }
 
 /**

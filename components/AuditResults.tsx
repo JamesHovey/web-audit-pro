@@ -1231,7 +1231,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analysing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  We&apos;re conducting a comprehensive audit of {audit?.sections?.length || 0} {audit?.sections?.length === 1 ? 'section' : 'sections'}.
+                  We&apos;re conducting a comprehensive audit.
                 </p>
                 
                 {/* Inspirational Quote */}
@@ -3725,7 +3725,7 @@ function renderSectionResults(
                 <span className="text-gray-600 text-sm">CMS:</span>
                 <div className="font-semibold text-blue-600">{results.cms || 'Not detected'}</div>
               </div>
-              {results.framework && (
+              {results.framework && results.framework !== 'Not detected' && (
                 <div>
                   <span className="text-gray-600 text-sm">Framework:</span>
                   <div className="font-semibold text-green-600">{results.framework}</div>
