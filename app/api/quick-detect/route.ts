@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { BrowserService } from '@/lib/cloudflare-browser'
 import { detectPluginsHybrid } from '@/lib/hybridPluginDetection'
 import { detectTechStackHybrid } from '@/lib/hybridTechDetection'
+import { detectHostingProvider } from '@/lib/dnsHostingDetection'
 
 // Simple in-memory cache with 5-minute TTL
 interface CacheEntry {
@@ -618,26 +619,60 @@ async function quickDetectTech(url: string): Promise<QuickTechInfo> {
       patternResult.cdn = 'Fastly'
     }
 
-    // Hosting Detection (basic patterns)
-    const server = headers.server?.toLowerCase() || ''
+    // Hosting Detection (DNS-based + platform patterns)
+    // Platform-specific hosting (where CMS = hosting provider)
     if (patternResult.cms === 'Shopify') {
       patternResult.hosting = 'Shopify'
     } else if (patternResult.cms === 'Wix') {
       patternResult.hosting = 'Wix'
     } else if (patternResult.cms === 'Squarespace') {
       patternResult.hosting = 'Squarespace'
-    } else if (server.includes('cloudflare') || patternResult.cdn === 'Cloudflare') {
-      patternResult.hosting = 'Cloudflare'
-    } else if (lowerHtml.includes('amazonaws.com') || patternResult.cdn === 'CloudFront') {
-      patternResult.hosting = 'AWS'
-    } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
-      patternResult.hosting = 'Vercel'
-    } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
-      patternResult.hosting = 'Netlify'
-    } else if (lowerHtml.includes('digitaloceanspaces.com') || lowerHtml.includes('cdn.digitalocean')) {
-      patternResult.hosting = 'DigitalOcean'
-    } else if (lowerHtml.includes('googleusercontent.com') || lowerHtml.includes('googleapis.com')) {
-      patternResult.hosting = 'Google Cloud'
+    } else {
+      // Use DNS-based detection for everything else
+      try {
+        console.log(`🔎 Attempting DNS-based hosting detection for ${url}...`)
+        const dnsResult = await detectHostingProvider(url)
+
+        if (dnsResult.provider && dnsResult.provider !== 'Bespoke') {
+          patternResult.hosting = dnsResult.provider
+          console.log(`✅ DNS hosting detection: ${dnsResult.provider} (${dnsResult.method}, ${dnsResult.confidence} confidence)`)
+        } else {
+          // Fallback to basic header/HTML patterns if DNS returns "Bespoke"
+          const server = headers.server?.toLowerCase() || ''
+
+          if (server.includes('cloudflare') || patternResult.cdn === 'Cloudflare') {
+            patternResult.hosting = 'Cloudflare'
+          } else if (lowerHtml.includes('amazonaws.com') || patternResult.cdn === 'CloudFront') {
+            patternResult.hosting = 'AWS'
+          } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
+            patternResult.hosting = 'Vercel'
+          } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
+            patternResult.hosting = 'Netlify'
+          } else if (lowerHtml.includes('digitaloceanspaces.com') || lowerHtml.includes('cdn.digitalocean')) {
+            patternResult.hosting = 'DigitalOcean'
+          } else if (lowerHtml.includes('googleusercontent.com') || lowerHtml.includes('googleapis.com')) {
+            patternResult.hosting = 'Google Cloud'
+          } else {
+            // If everything fails, use "Bespoke" from DNS detection
+            patternResult.hosting = dnsResult.provider
+            console.log(`⚠️ Could not identify hosting provider - using "${dnsResult.provider}"`)
+          }
+        }
+      } catch (error) {
+        console.error(`❌ DNS hosting detection failed:`, error)
+        // Fall back to basic patterns if DNS detection fails
+        const server = headers.server?.toLowerCase() || ''
+
+        if (server.includes('cloudflare') || patternResult.cdn === 'Cloudflare') {
+          patternResult.hosting = 'Cloudflare'
+        } else if (lowerHtml.includes('amazonaws.com') || patternResult.cdn === 'CloudFront') {
+          patternResult.hosting = 'AWS'
+        } else if (headers['x-vercel-id'] || lowerHtml.includes('_vercel') || lowerHtml.includes('vercel.app')) {
+          patternResult.hosting = 'Vercel'
+        } else if (headers['x-nf-request-id'] || lowerHtml.includes('netlify.app') || lowerHtml.includes('netlify.com/v1/')) {
+          patternResult.hosting = 'Netlify'
+        }
+      }
     }
 
     // ============================================
