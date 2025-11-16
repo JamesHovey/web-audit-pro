@@ -1,7 +1,7 @@
 // PROFESSIONAL TECHNOLOGY DETECTION
 // Using direct website analysis for cost-effective, accurate technology detection
 
-import { detectHostingProvider } from './enhancedHostingDetection';
+import { detectHostingProvider } from './dnsHostingDetection';
 import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
 import { detectDrupalModules } from './cms-detection/drupalModuleDetection';
 import { detectJoomlaExtensions } from './cms-detection/joomlaExtensionDetection';
@@ -30,24 +30,23 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
   try {
     console.log(`🔍 Analyzing tech stack for: ${url}`);
     
-    // Primary method: Direct website analysis + Enhanced hosting detection
+    // Primary method: Direct website analysis + DNS-based hosting detection
     const [result, hostingInfo] = await Promise.all([
       analyzeWebsiteDirectly(url),
       detectHostingProvider(url)
     ]);
-    
+
     if (result && (result.cms || result.framework || result.analytics || result.other.length > 0)) {
-      console.log('✅ Used Direct Website Analysis + Enhanced Hosting Detection');
+      console.log('✅ Used Direct Website Analysis + DNS-based Hosting Detection');
       
-      // Override hosting info with enhanced detection if available
+      // Override hosting info with DNS-based detection if available
       if (hostingInfo.provider) {
         result.hosting = hostingInfo.provider;
-        result.organization = hostingInfo.organization;
 
-        // Special handling for Cloudflare bypass attempts
-        if (hostingInfo.method === 'cloudflare-bypass') {
-          console.log(`🔍 Applied Cloudflare bypass result: ${hostingInfo.provider}`);
-        }
+        // DNS detection doesn't provide organization, so leave it undefined
+        // unless we want to derive it from the provider name
+
+        console.log(`🔍 Applied DNS hosting detection: ${hostingInfo.provider} (${hostingInfo.method}, ${hostingInfo.confidence} confidence)`);
       }
 
       // CRITICAL: Ensure hosting is always a string, never undefined or an object
