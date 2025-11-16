@@ -318,17 +318,20 @@ export async function POST(request: NextRequest) {
               const professionalTechStack = await detectTechStack(url)
               const techStack = professionalTechStack as unknown as Record<string, unknown>
 
+              // DEFENSIVE: Ensure plugins is always an array
+              const safePlugins = Array.isArray(professionalTechStack.plugins) ? professionalTechStack.plugins : []
+
               results.technology = {
                 cms: professionalTechStack.cms || 'Not detected',
                 framework: professionalTechStack.framework || 'Not detected',
                 pageBuilder: professionalTechStack.pageBuilder || null,
-                plugins: professionalTechStack.plugins || [],
+                plugins: safePlugins,
                 totalPlugins: (techStack.totalPlugins as number) || 0,
               }
 
               // Also add to technical results for easy access
               results.technical.cms = professionalTechStack.cms
-              results.technical.plugins = professionalTechStack.plugins || []
+              results.technical.plugins = safePlugins
               results.technical.pageBuilder = professionalTechStack.pageBuilder
 
               console.log(`✅ Technology stack detected: ${professionalTechStack.cms}`)
@@ -378,22 +381,26 @@ export async function POST(request: NextRequest) {
               // Cast to allow access to extended properties
               const techStack = professionalTechStack as unknown as Record<string, unknown>
 
+              // DEFENSIVE: Ensure all array fields are actually arrays
+              const safePlugins = Array.isArray(professionalTechStack.plugins) ? professionalTechStack.plugins : []
+              const safeOther = Array.isArray(techStack.other) ? (techStack.other as string[]) : []
+
               const baseTechnologyData = {
                 cms: professionalTechStack.cms || 'Not detected',
                 framework: professionalTechStack.framework || 'Not detected',
                 pageBuilder: professionalTechStack.pageBuilder || null,
                 ecommerce: (techStack.ecommerce as string | null) || null,
                 analytics: professionalTechStack.analytics || 'Not detected',
-                hosting: professionalTechStack.hosting || 'Not detected',
+                hosting: (typeof professionalTechStack.hosting === 'string' ? professionalTechStack.hosting : null) || 'Not detected',
                 cdn: professionalTechStack.cdn || null,
                 organization: hostingOrganization || null,
-                plugins: professionalTechStack.plugins || [],
+                plugins: safePlugins,
                 pluginAnalysis: (techStack.pluginAnalysis as Record<string, unknown> | null) || null,
                 detectedPlatform: (techStack.detectedPlatform as string) || professionalTechStack.cms,
                 totalPlugins: (techStack.totalPlugins as number) || 0,
                 technologies: [
                   'HTML5', 'CSS3', 'JavaScript',
-                  ...((techStack.other as string[]) || [])
+                  ...safeOther
                 ].filter(Boolean),
                 source: (techStack.source as string) || 'fallback',
                 confidence: professionalTechStack.confidence || 'low'
@@ -449,9 +456,12 @@ export async function POST(request: NextRequest) {
             // This ensures EnhancedRecommendations component can show plugin-specific instructions
             if (results.technology) {
               results.performance.cms = results.technology.cms
-              results.performance.plugins = results.technology.plugins || results.technical.plugins || []
+              // DEFENSIVE: Ensure plugins is always an array
+              const techPlugins = Array.isArray(results.technology.plugins) ? results.technology.plugins : []
+              const technicalPlugins = Array.isArray(results.technical.plugins) ? results.technical.plugins : []
+              results.performance.plugins = techPlugins.length > 0 ? techPlugins : technicalPlugins
               results.performance.pageBuilder = results.technology.pageBuilder || results.technical.pageBuilder
-              console.log(`✅ Preserved CMS (${results.technology.cms}) and ${Array.isArray(results.performance.plugins) ? results.performance.plugins.length : Object.keys(results.performance.plugins || {}).length} plugins in performance results`)
+              console.log(`✅ Preserved CMS (${results.technology.cms}) and ${results.performance.plugins.length} plugins in performance results`)
             }
 
             // Preserve large images data from technical audit in performance results AND root level
