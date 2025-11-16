@@ -3168,12 +3168,20 @@ export default function EnhancedRecommendations({
                               lower.includes('w3 total cache')
                             )
                           })
-                          .map((step, stepIndex) => (
-                            <div key={stepIndex} className="flex items-start gap-2">
-                              <span className="text-blue-500 text-xs mt-1">•</span>
-                              <span className="text-gray-700">{step}</span>
-                            </div>
-                          ))}
+                          .map((step, stepIndex) => {
+                            // Empty string = spacing line (no bullet)
+                            if (step.trim() === '') {
+                              return <div key={stepIndex} className="h-2"></div>
+                            }
+                            // Step already has bullet = don't add another
+                            const hasBullet = step.trim().startsWith('•')
+                            return (
+                              <div key={stepIndex} className="flex items-start gap-2">
+                                {!hasBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
+                                <span className="text-gray-700">{hasBullet ? step.trim().substring(1).trim() : step}</span>
+                              </div>
+                            )
+                          })}
                       </div>
                     </div>
                   </details>
@@ -3221,12 +3229,20 @@ export default function EnhancedRecommendations({
                     <p className="text-sm text-gray-700 mb-2">{opt.description}</p>
                     <div className="space-y-1">
                       <div className="font-medium text-gray-800 text-sm">Steps:</div>
-                      {opt.instructions.map((step: string, stepIndex: number) => (
-                        <div key={stepIndex} className="flex items-start gap-2 text-sm">
-                          <span className="text-blue-500 text-xs mt-1">•</span>
-                          <span className="text-gray-700">{step}</span>
-                        </div>
-                      ))}
+                      {opt.instructions.map((step: string, stepIndex: number) => {
+                        // Empty string = spacing line (no bullet)
+                        if (step.trim() === '') {
+                          return <div key={stepIndex} className="h-2"></div>
+                        }
+                        // Step already has bullet = don't add another
+                        const hasBullet = step.trim().startsWith('•')
+                        return (
+                          <div key={stepIndex} className="flex items-start gap-2 text-sm">
+                            {!hasBullet && <span className="text-blue-500 text-xs mt-1">•</span>}
+                            <span className="text-gray-700">{hasBullet ? step.trim().substring(1).trim() : step}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </details>

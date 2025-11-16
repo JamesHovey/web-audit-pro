@@ -391,6 +391,9 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Webflow';
       } else if (lowerHtml.includes('hubspot') || lowerHtml.includes('hs-scripts.com')) {
         result.cms = 'HubSpot CMS';
+      } else {
+        // No CMS detected - mark as custom-built
+        result.cms = 'Custom';
       }
     }
     
