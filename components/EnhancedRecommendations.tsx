@@ -3173,10 +3173,11 @@ export default function EnhancedRecommendations({
                             if (step.trim() === '') {
                               return <div key={stepIndex} className="h-2"></div>
                             }
-                            // Check if step already has bullet or starts with emoji
+                            // Check if step already has bullet or starts with emoji/symbol
                             const trimmedStep = step.trim()
                             const hasBullet = trimmedStep.startsWith('•')
-                            const startsWithEmoji = /^[\u{1F300}-\u{1F9FF}]/u.test(trimmedStep)
+                            // Comprehensive emoji detection including all common emoji ranges
+                            const startsWithEmoji = /^[\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}\u{1F000}-\u{1FAFF}]/u.test(trimmedStep)
                             const needsBullet = !hasBullet && !startsWithEmoji
                             return (
                               <div key={stepIndex} className="flex items-start gap-2">
@@ -3237,10 +3238,11 @@ export default function EnhancedRecommendations({
                         if (step.trim() === '') {
                           return <div key={stepIndex} className="h-2"></div>
                         }
-                        // Check if step already has bullet or starts with emoji
+                        // Check if step already has bullet or starts with emoji/symbol
                         const trimmedStep = step.trim()
                         const hasBullet = trimmedStep.startsWith('•')
-                        const startsWithEmoji = /^[\u{1F300}-\u{1F9FF}]/u.test(trimmedStep)
+                        // Comprehensive emoji detection including all common emoji ranges
+                        const startsWithEmoji = /^[\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}\u{1F000}-\u{1FAFF}]/u.test(trimmedStep)
                         const needsBullet = !hasBullet && !startsWithEmoji
                         return (
                           <div key={stepIndex} className="flex items-start gap-2 text-sm">
