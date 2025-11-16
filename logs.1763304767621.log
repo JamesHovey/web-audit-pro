@@ -1,0 +1,274 @@
+2025-11-16T14:15:17.000000000Z [inf]  Starting Container
+2025-11-16T14:15:18.587114457Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-16T14:15:19.017000305Z [inf]  Prisma schema loaded from prisma/schema.prisma
+2025-11-16T14:15:19.017009884Z [inf]  Datasource "db": PostgreSQL database "railway", schema "public" at "postgres.railway.internal:5432"
+2025-11-16T14:15:19.580590288Z [inf]  
+2025-11-16T14:15:19.580598257Z [inf]  4 migrations found in prisma/migrations
+2025-11-16T14:15:19.580609051Z [inf]  
+2025-11-16T14:15:19.580615373Z [inf]  
+2025-11-16T14:15:19.580621969Z [inf]  No pending migrations to apply.
+2025-11-16T14:15:19.580629990Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-16T14:15:19.598799589Z [inf]  > next start
+2025-11-16T14:15:19.598809993Z [inf]  
+2025-11-16T14:15:19.598904679Z [inf]  
+2025-11-16T14:15:19.598909843Z [inf]  > web-audit-pro@1.2.2 start
+2025-11-16T14:15:19.962768128Z [inf]     ▲ Next.js 15.4.6
+2025-11-16T14:15:19.962777575Z [inf]     - Local:        http://localhost:8080
+2025-11-16T14:15:19.962785562Z [inf]     - Network:      http://10.244.154.11:8080
+2025-11-16T14:15:19.962792199Z [inf]  
+2025-11-16T14:15:19.962798163Z [inf]   ✓ Starting...
+2025-11-16T14:15:20.674266535Z [err]   ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-11-16T14:15:20.791807605Z [inf]   ✓ Ready in 1049ms
+2025-11-16T14:49:08.632060625Z [inf]     🌐 Querying IPinfo.io for IP 164.177.133.16...
+2025-11-16T14:49:08.632069365Z [inf]     API Response: {
+2025-11-16T14:49:08.632071189Z [inf]  📄 HTML content length: 192564 characters
+2025-11-16T14:49:08.632076693Z [inf]    "ip": "164.177.133.16",
+2025-11-16T14:49:08.632082501Z [inf]  📋 Response headers: cache-control, content-encoding, content-length, content-type, date, expires, server, strict-transport-security, vary, x-powered-by
+2025-11-16T14:49:08.632084385Z [inf]    "hostname": "1063983-db2.rockitdesign.co.uk",
+2025-11-16T14:49:08.632095598Z [inf]  🔍 Starting pattern-based detection...
+2025-11-16T14:49:08.632096840Z [inf]     Cleaned domain: henryadams.co.uk
+2025-11-16T14:49:08.632101970Z [inf]  ⚠️ No CMS detected via patterns
+2025-11-16T14:49:08.632105553Z [inf]  🔍 DNS Layer 1: Checking nameservers for henryadams.co.uk...
+2025-11-16T14:49:08.632108985Z [inf]  🔎 Attempting DNS-based hosting detection for https://henryadams.co.uk...
+2025-11-16T14:49:08.632113135Z [inf]     Found nameservers: ns1072.ui-dns.de, ns1072.ui-dns.biz, ns1072.ui-dns.org, ns1072.ui-dns.com
+2025-11-16T14:49:08.632116350Z [inf]  
+2025-11-16T14:49:08.632120392Z [inf]     ⚠️ No nameserver patterns matched
+2025-11-16T14:49:08.632126888Z [inf]  🔍 DNS Layer 2: Resolving IP address for henryadams.co.uk...
+2025-11-16T14:49:08.632131621Z [inf]     Found IP: 164.177.133.16
+2025-11-16T14:49:08.632153063Z [inf]  🔍 Getting domain authority for: henryadams.co.uk
+2025-11-16T14:49:08.632159403Z [inf]  🔍 Quick tech detection for: https://henryadams.co.uk
+2025-11-16T14:49:08.632167254Z [inf]  ✅ Domain authority retrieved: 3.23/10 (rank: 6103377)
+2025-11-16T14:49:08.632175068Z [inf]  ⏳ Navigating to https://henryadams.co.uk for quick detection...
+2025-11-16T14:49:08.632176860Z [inf]  🔎 Starting DNS-based hosting detection for https://henryadams.co.uk
+2025-11-16T14:49:08.632182588Z [inf]  ✅ Page loaded, status: 200
+2025-11-16T14:49:08.635962104Z [inf]    "city": "London",
+2025-11-16T14:49:08.635967552Z [inf]    "region": "England",
+2025-11-16T14:49:08.635973516Z [inf]    "country": "GB",
+2025-11-16T14:49:08.635979079Z [inf]    "loc": "51.5085,-0.1257",
+2025-11-16T14:49:08.635984702Z [inf]    "org": "AS15395 Rackspace Ltd.",
+2025-11-16T14:49:08.635989944Z [inf]    "postal": "E1W",
+2025-11-16T14:49:08.635996155Z [inf]    "timezone": "Europe/London"
+2025-11-16T14:49:08.636001408Z [inf]  }
+2025-11-16T14:49:08.636006626Z [inf]     📌 Using organization name: Rackspace Ltd.
+2025-11-16T14:49:08.636011814Z [inf]  ✅ Hosting detected via IP/ASN: Rackspace Ltd.
+2025-11-16T14:49:08.636022346Z [inf]  
+2025-11-16T14:49:08.636029051Z [inf]  ✅ DNS hosting detection: Rackspace Ltd. (ip-asn, medium confidence)
+2025-11-16T14:49:08.636034192Z [inf]  🔄 Starting hybrid tech stack detection for https://henryadams.co.uk
+2025-11-16T14:49:08.636039277Z [inf]  📊 Pattern detection: 1 technologies found, medium confidence
+2025-11-16T14:49:08.636046961Z [inf]  🧠 Only 1 technologies detected, AI can find more - using Claude AI
+2025-11-16T14:49:13.648526885Z [inf]  🧠 Claude AI tech stack analysis: Custom-built website for Henry Adams estate agents. No clear CMS signatures detected. Hosting confirmed as Rackspace via previous pattern detection. Nginx server detected in headers. Uses Plesk control panel, but this does not determine the actual hosting provider.
+2025-11-16T14:49:13.648531328Z [inf]  ✅ Claude AI analysis complete in 5519ms
+2025-11-16T14:49:13.648536268Z [inf]  📊 Final results: 2 technologies (1 added by AI)
+2025-11-16T14:49:13.648540747Z [inf]  🎯 Hybrid detection: ai-enhanced, medium confidence, AI used: true, Cost: $0.010
+2025-11-16T14:49:13.648545826Z [inf]  ✅ Quick detection complete for https://henryadams.co.uk: {
+2025-11-16T14:49:13.648551758Z [inf]    "hosting": "Rackspace Ltd.",
+2025-11-16T14:49:13.648556751Z [inf]    "cms": "Custom"
+2025-11-16T14:49:13.648561438Z [inf]  }
+2025-11-16T14:49:17.659599402Z [inf]  📊 Audit configuration: maxPages=250, smartSampling=true, scope=single
+2025-11-16T14:49:22.758454619Z [inf]  💾 [Audit Start] Memory: 83MB used / 90MB total
+2025-11-16T14:49:22.758460288Z [inf]  Processing section 1/1: performance
+2025-11-16T14:49:22.758466130Z [inf]  🔧 Running technical audit...
+2025-11-16T14:49:22.758472779Z [inf]  🔧 Starting technical audit for https://henryadams.co.uk (scope: single)
+2025-11-16T14:49:22.758478784Z [inf]  🤖 Checking robots.txt compliance for https://henryadams.co.uk
+2025-11-16T14:49:22.758484647Z [inf]  🌐 Fetching main page with browser rendering: https://henryadams.co.uk
+2025-11-16T14:49:41.876540069Z [inf]  📸 Captured 43 images from browser network activity
+2025-11-16T14:49:41.952231793Z [inf]  📍 Final URL after redirects: https://www.henryadams.co.uk/
+2025-11-16T14:49:41.953609240Z [inf]  🔍 Validating structured data...
+2025-11-16T14:49:41.957624963Z [inf]  📊 Structured data: 0 items found, 0 invalid
+2025-11-16T14:49:42.050962381Z [inf]  Could not get size for https://secure.hiss3lark.com/178675.png: fetch failed
+2025-11-16T14:49:42.050970984Z [inf]  📊 Image analysis: 26 from browser, 0 fetched, 26 total
+2025-11-16T14:49:48.780208985Z [inf]  ✓ Robots.txt found at https://henryadams.co.uk/robots.txt
+2025-11-16T14:49:48.780217316Z [inf]  🔍 Single page audit - analyzing main URL only
+2025-11-16T14:49:48.780226060Z [inf]  📊 Analyzing Core Web Vitals for all discovered pages...
+2025-11-16T14:49:48.780233833Z [inf]  ⚡ Processing pages in parallel (3 at a time)
+2025-11-16T14:49:48.872437620Z [inf]  📊 Analyzing performance for https://henryadams.co.uk
+2025-11-16T14:49:48.872443951Z [inf]  📊 Analyzing performance for https://henryadams.co.uk (real data)
+2025-11-16T14:49:48.872451354Z [inf]  💾 Cached: https://henryadams.co.uk (expires in 24h)
+2025-11-16T14:49:48.872457416Z [inf]  📊 Calculating aggregate performance metrics...
+2025-11-16T14:49:48.872463165Z [inf]  ✅ Aggregate metrics calculated from 1 pages
+2025-11-16T14:49:48.872468459Z [inf]  📊 Analyzing text-to-HTML ratio...
+2025-11-16T14:49:48.872475186Z [inf]  📈 Text-to-HTML ratio: 1/1 pages have low ratio
+2025-11-16T14:49:48.872481899Z [inf]  🖼️ Analyzing images across discovered pages...
+2025-11-16T14:49:48.872488034Z [inf]  📊 Analyzing images on 0 pages (scope: single, limit: 0)
+2025-11-16T14:49:48.872495022Z [inf]  ⚡ Analyzing images on 0 pages in parallel
+2025-11-16T14:49:48.872501717Z [inf]  📸 Found 0 images using legacy formats
+2025-11-16T14:49:48.872508234Z [inf]  📦 Detecting unminified JavaScript and CSS files...
+2025-11-16T14:49:48.872514220Z [inf]  🔍 Scanning for unminified JS/CSS files on https://henryadams.co.uk
+2025-11-16T14:49:48.872520592Z [inf]  Found 30 JavaScript files and 13 CSS files
+2025-11-16T14:49:49.163169700Z [inf]  Could not analyze file https://secure.hiss3lark.com/js/178675.js: TypeError: fetch failed
+2025-11-16T14:49:49.163183208Z [inf]      at async p (.next/server/chunks/6011.js:1:11399)
+2025-11-16T14:49:49.163206302Z [inf]      at async q (.next/server/chunks/6011.js:1:13255)
+2025-11-16T14:49:49.163214690Z [inf]      at async u (.next/server/chunks/6011.js:1:25674)
+2025-11-16T14:49:49.163223515Z [inf]      at async Timeout._onTimeout (.next/server/app/api/audit/route.js:73:6307) {
+2025-11-16T14:49:49.163231560Z [inf]    [cause]: [Error: unable to verify the first certificate] {
+2025-11-16T14:49:49.163240036Z [inf]      code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+2025-11-16T14:49:49.163247709Z [inf]    }
+2025-11-16T14:49:49.163255323Z [inf]  }
+2025-11-16T14:49:49.805920636Z [inf]  🖥️ Starting viewport responsiveness analysis for: https://henryadams.co.uk
+2025-11-16T14:49:49.805927929Z [inf]  📱 Analyzing Desktop Standard (1920x1080)
+2025-11-16T14:49:49.805932567Z [inf]  📱 Analyzing Laptop (1440x900)
+2025-11-16T14:49:49.805936895Z [inf]  📱 Analyzing Tablet Portrait (768x1024)
+2025-11-16T14:49:49.805941670Z [inf]  📱 Analyzing Mobile Standard (375x667)
+2025-11-16T14:49:49.805947286Z [inf]  ✅ Viewport analysis complete. Overall score: 100/100
+2025-11-16T14:49:49.805952593Z [inf]  ✅ Viewport analysis complete. Score: 100/100
+2025-11-16T14:49:49.805954737Z [inf]  Found 0 subdomain(s) to check
+2025-11-16T14:49:49.805960123Z [inf]  🔒 Checking HSTS support...
+2025-11-16T14:49:49.805964968Z [inf]  ✅ All subdomains protected by main domain's includeSubdomains directive
+2025-11-16T14:49:49.805966401Z [inf]  🔒 Checking HSTS support for henryadams.co.uk...
+2025-11-16T14:49:49.805971949Z [inf]  Main domain HSTS: ✅ Enabled
+2025-11-16T14:49:49.805976526Z [inf]    → Includes subdomains: ✅ Yes
+2025-11-16T14:49:49.805987232Z [inf]  🤖 Checking for llms.txt...
+2025-11-16T14:49:49.805994824Z [inf]  🤖 Checking for llms.txt at https://henryadams.co.uk/llms.txt...
+2025-11-16T14:49:49.806066169Z [inf]  ✅ Found 5 unminified JavaScript files and 7 unminified CSS files
+2025-11-16T14:49:49.806072609Z [inf]  ⚠️  Found 12 unminified files:
+2025-11-16T14:49:49.806077845Z [inf]     - 5 JavaScript files
+2025-11-16T14:49:49.806082732Z [inf]     - 7 CSS files
+2025-11-16T14:49:49.806087146Z [inf]  📱 Analyzing viewport responsiveness...
+2025-11-16T14:49:49.874662309Z [inf]  ❌ llms.txt not found (404)
+2025-11-16T14:49:49.874673412Z [inf]  ⚠️  llms.txt not found - consider adding one for better LLM understanding
+2025-11-16T14:49:49.881714014Z [inf]  ✅ Technical audit complete for https://henryadams.co.uk
+2025-11-16T14:49:49.881721928Z [inf]     - Large images found: 0
+2025-11-16T14:49:49.881727786Z [inf]     - 404 errors found: 0
+2025-11-16T14:49:49.881734898Z [inf]  📊 Discovered 1 total pages during technical audit
+2025-11-16T14:49:49.881741719Z [inf]  🔍 Running technology stack detection...
+2025-11-16T14:49:49.881747755Z [inf]  🔍 Analyzing tech stack for: https://henryadams.co.uk
+2025-11-16T14:49:49.881753846Z [inf]  
+2025-11-16T14:49:49.881759666Z [inf]  🔎 Starting DNS-based hosting detection for https://henryadams.co.uk
+2025-11-16T14:49:49.881766356Z [inf]     Cleaned domain: henryadams.co.uk
+2025-11-16T14:49:49.881773827Z [inf]  🔍 DNS Layer 1: Checking nameservers for henryadams.co.uk...
+2025-11-16T14:49:49.899248393Z [inf]     Found nameservers: ns1072.ui-dns.biz, ns1072.ui-dns.de, ns1072.ui-dns.org, ns1072.ui-dns.com
+2025-11-16T14:49:49.899259593Z [inf]     ⚠️ No nameserver patterns matched
+2025-11-16T14:49:49.899265849Z [inf]  🔍 DNS Layer 2: Resolving IP address for henryadams.co.uk...
+2025-11-16T14:49:49.914364860Z [inf]     Found IP: 164.177.133.16
+2025-11-16T14:49:49.914381313Z [inf]     🌐 Querying IPinfo.io for IP 164.177.133.16...
+2025-11-16T14:49:50.044308831Z [inf]    "org": "AS15395 Rackspace Ltd.",
+2025-11-16T14:49:50.044316287Z [inf]     API Response: {
+2025-11-16T14:49:50.044318274Z [inf]    "postal": "E1W",
+2025-11-16T14:49:50.044323726Z [inf]    "timezone": "Europe/London"
+2025-11-16T14:49:50.044328763Z [inf]  }
+2025-11-16T14:49:50.044332562Z [inf]    "ip": "164.177.133.16",
+2025-11-16T14:49:50.044333767Z [inf]     📌 Using organization name: Rackspace Ltd.
+2025-11-16T14:49:50.044339205Z [inf]  ✅ Hosting detected via IP/ASN: Rackspace Ltd.
+2025-11-16T14:49:50.044342913Z [inf]    "hostname": "1063983-db2.rockitdesign.co.uk",
+2025-11-16T14:49:50.044345346Z [inf]  
+2025-11-16T14:49:50.044350061Z [inf]    "city": "London",
+2025-11-16T14:49:50.044357996Z [inf]    "region": "England",
+2025-11-16T14:49:50.044365115Z [inf]    "country": "GB",
+2025-11-16T14:49:50.044371567Z [inf]    "loc": "51.5085,-0.1257",
+2025-11-16T14:49:52.088379249Z [inf]  🔄 Running Magento extension detection...
+2025-11-16T14:49:52.088389791Z [inf]  🔍 Analyzing Magento extensions...
+2025-11-16T14:49:52.090497405Z [inf]  📊 Magento extension analysis complete: 2 extensions detected
+2025-11-16T14:49:52.090506202Z [inf]  ✅ Magento extension detection complete: 2 extensions detected
+2025-11-16T14:49:52.090512805Z [inf]  ✅ Used Direct Website Analysis + DNS-based Hosting Detection
+2025-11-16T14:49:52.090518831Z [inf]  📊 CMS DETECTION RESULT: "Magento" (from analyzeHTMLAndHeaders)
+2025-11-16T14:49:52.090524509Z [inf]  🔍 Applied DNS hosting detection: Rackspace Ltd. (ip-asn, medium confidence)
+2025-11-16T14:49:52.090530392Z [inf]  ✅ Technology stack detection completed
+2025-11-16T14:49:52.174896054Z [inf]  ✅ HTML content fetched for Claude analysis
+2025-11-16T14:49:52.174907913Z [inf]  ⏭️  Skipping WordPress plugin detection - CMS is Magento
+2025-11-16T14:49:52.174915219Z [inf]  🚀 Running enhanced PageSpeed analysis with Claude...
+2025-11-16T14:49:52.174921750Z [inf]  🚀 Starting enhanced PageSpeed analysis with Claude for https://henryadams.co.uk
+2025-11-16T14:49:52.174928947Z [inf]  🔍 Analyzing real PageSpeed data for: https://henryadams.co.uk
+2025-11-16T14:49:52.174936329Z [inf]  ⚠️ No API key found, using free tier limits
+2025-11-16T14:49:52.177357633Z [inf]  ⚠️ No API key found, using free tier limits
+2025-11-16T14:49:52.213405822Z [err]  PageSpeed API Error Details: {
+2025-11-16T14:49:52.213417487Z [err]    status: 429,
+2025-11-16T14:49:52.213424225Z [err]    statusText: 'Too Many Requests',
+2025-11-16T14:49:52.213429859Z [err]    url: 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https%3A%2F%2Fhenryadams.co.uk&strategy=desktop&category=performance',
+2025-11-16T14:49:52.213436792Z [err]    response: '{\n' +
+2025-11-16T14:49:52.213443643Z [err]      '  "error": {\n' +
+2025-11-16T14:49:52.213451017Z [err]      '    "code": 429,\n' +
+2025-11-16T14:49:52.213459178Z [err]      `    "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'.",\n` +
+2025-11-16T14:49:52.213466783Z [err]      '    "errors": [\n' +
+2025-11-16T14:49:52.213474335Z [err]      '      {\n' +
+2025-11-16T14:49:52.213481779Z [err]      `        "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'.",\n` +
+2025-11-16T14:49:52.213489455Z [err]      '        "domain": "global",\n' +
+2025-11-16T14:49:52.213507331Z [err]      '        "reason": "rateLimitExceeded"\n' +
+2025-11-16T14:49:52.213514420Z [err]      '      }\n' +
+2025-11-16T14:49:52.213521726Z [err]      '    ],\n' +
+2025-11-16T14:49:52.213528138Z [err]      '    "st'
+2025-11-16T14:49:52.213534851Z [err]  }
+2025-11-16T14:49:52.213547378Z [err]  PageSpeed Insights API error: Error: PageSpeed API error: 429 - Too Many Requests
+2025-11-16T14:49:52.213554061Z [err]      at n.runPageSpeedAnalysis (.next/server/chunks/5955.js:242:4349)
+2025-11-16T14:49:52.213560214Z [err]      at async n.analyzePerformance (.next/server/chunks/5955.js:242:2987)
+2025-11-16T14:49:52.213566182Z [err]      at async o (.next/server/chunks/5955.js:242:7336)
+2025-11-16T14:49:52.216788112Z [err]      at async Timeout._onTimeout (.next/server/app/api/audit/route.js:73:8281)
+2025-11-16T14:49:52.216795632Z [inf]  📄 Falling back to web scraping PageSpeed Insights
+2025-11-16T14:49:52.216802618Z [inf]  🧠 Running Claude AI analyses...
+2025-11-16T14:49:52.216809025Z [inf]  🧠 Analyzing performance with Claude for https://henryadams.co.uk
+2025-11-16T14:49:52.216815653Z [inf]  🔍 Analyzing Technical SEO with Claude for https://henryadams.co.uk
+2025-11-16T14:49:52.216821391Z [inf]  🖼️ Analyzing image optimization with Claude for https://henryadams.co.uk
+2025-11-16T14:49:52.251161225Z [err]  PageSpeed API Error Details: {
+2025-11-16T14:49:52.251169732Z [err]    status: 429,
+2025-11-16T14:49:52.251180234Z [err]    statusText: 'Too Many Requests',
+2025-11-16T14:49:52.251187196Z [err]    url: 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https%3A%2F%2Fhenryadams.co.uk&strategy=mobile&category=performance',
+2025-11-16T14:49:52.251195134Z [err]    response: '{\n' +
+2025-11-16T14:49:52.251203127Z [err]      '  "error": {\n' +
+2025-11-16T14:49:52.251209968Z [err]      '    "code": 429,\n' +
+2025-11-16T14:49:52.251220630Z [err]      `    "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'.",\n` +
+2025-11-16T14:49:52.251227638Z [err]      '    "errors": [\n' +
+2025-11-16T14:49:52.251235822Z [err]      '      {\n' +
+2025-11-16T14:49:52.251242824Z [err]      `        "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'.",\n` +
+2025-11-16T14:49:52.251249326Z [err]      '        "domain": "global",\n' +
+2025-11-16T14:49:52.251256399Z [err]      '        "reason": "rateLimitExceeded"\n' +
+2025-11-16T14:49:52.251262971Z [err]      '      }\n' +
+2025-11-16T14:49:52.251268819Z [err]      '    ],\n' +
+2025-11-16T14:49:52.251277251Z [err]      '    "st'
+2025-11-16T14:49:52.251283716Z [err]  }
+2025-11-16T14:50:12.240687393Z [inf]  ✅ Claude Technical SEO analysis complete for https://henryadams.co.uk
+2025-11-16T14:50:12.240695164Z [inf]  📄 First 500 chars: {
+2025-11-16T14:50:12.240696538Z [err]  Failed to parse Claude image optimization response: SyntaxError: Unexpected token K in JSON at position 286
+2025-11-16T14:50:12.240703753Z [err]      at JSON.parse (<anonymous>)
+2025-11-16T14:50:12.240704508Z [inf]    "overallScore": 82,
+2025-11-16T14:50:12.240709741Z [err]      at l (.next/server/chunks/5955.js:242:580)
+2025-11-16T14:50:12.240716392Z [inf]    "optimizationPotential": "medium",
+2025-11-16T14:50:12.240716603Z [err]      at async o (.next/server/chunks/5955.js:242:7425)
+2025-11-16T14:50:12.240721631Z [inf]        "svg": 5
+2025-11-16T14:50:12.240724171Z [inf]    "estimatedSavings": {
+2025-11-16T14:50:12.240725056Z [err]      at async Timeout._onTimeout (.next/server/app/api/audit/route.js:73:8281)
+2025-11-16T14:50:12.240732495Z [inf]      "totalSizeReduction": "1.2 MB",
+2025-11-16T14:50:12.240737106Z [inf]  📄 Raw response length: 8226 chars
+2025-11-16T14:50:12.240737921Z [inf]      },
+2025-11-16T14:50:12.240741019Z [inf]      "loadTimeImprovement": "0.5 seconds",
+2025-11-16T14:50:12.240748541Z [inf]      "bandwidthSavings": "25% reduction"
+2025-11-16T14:50:12.240750745Z [inf]      "contextuallyImportant": 80
+2025-11-16T14:50:12.240758053Z [inf]    },
+2025-11-16T14:50:12.240763153Z [inf]    },
+2025-11-16T14:50:12.240766588Z [inf]    "imageAnalysis": {
+2025-11-16T14:50:12.240774943Z [inf]      "totalImages": 116,
+2025-11-16T14:50:12.240781321Z [inf]      "largeImages": 0,
+2025-11-16T14:50:12.240787828Z [inf]      "averageSize": 21 KB,
+2025-11-16T14:50:12.240794140Z [inf]      "formatDistribution": {
+2025-11-16T14:50:12.240800281Z [inf]        "jpg": 60,
+2025-11-16T14:50:12.240806319Z [inf]        "png": 30,
+2025-11-16T14:50:12.240812526Z [inf]        "gif": 5,
+2025-11-16T14:50:12.241797979Z [inf]    "recommendations": [
+2025-11-16T14:50:12.241807434Z [inf]      {
+2025-11-16T14:50:12.241814863Z [inf]        "category": "compression",
+2025-11-16T14:50:12.241821950Z [inf]  
+2025-11-16T14:50:12.241828985Z [inf]  📄 Last 200 chars: bsite has a good foundation for image optimization, and the recommended changes can further enhance the user experience and website performance, especially for users in different geographic locations.
+2025-11-16T14:50:18.206987485Z [inf]  ✅ Preserved technical issues in results: {"missingMetaTitles":0,"missingMetaDescriptions":0,"missingH1Tags":0,"httpErrors":0,"shortTitles":0,"longTitles":0,"invalidStructuredData":0,"lowTextHtmlRatio":1,"unminifiedFiles":12,"missingLlmsTxt":1}
+2025-11-16T14:50:18.207000551Z [inf]  🧠 Running Claude technology intelligence analysis...
+2025-11-16T14:50:18.207007468Z [inf]  🧠 Analyzing technology stack with Claude for https://henryadams.co.uk
+2025-11-16T14:50:18.207043195Z [err]  Claude performance analysis failed: Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"},"request_id":null}
+2025-11-16T14:50:18.207049372Z [err]      at av.generate (.next/server/chunks/1561.js:1:2296)
+2025-11-16T14:50:18.207055408Z [err]      at bW.makeStatusError (.next/server/chunks/1561.js:6:4529)
+2025-11-16T14:50:18.207061339Z [err]      at bW.makeRequest (.next/server/chunks/1561.js:6:7784)
+2025-11-16T14:50:18.207066846Z [err]      at async f (.next/server/chunks/5955.js:79:59)
+2025-11-16T14:50:18.207074283Z [err]      at async o (.next/server/chunks/5955.js:242:7425)
+2025-11-16T14:50:18.207079903Z [err]      at async Timeout._onTimeout (.next/server/app/api/audit/route.js:73:8281) {
+2025-11-16T14:50:18.207084878Z [err]    status: 529,
+2025-11-16T14:50:18.207090937Z [err]    headers: [HeadersList],
+2025-11-16T14:50:18.207099453Z [err]    requestID: 'req_011CVBkjHdm2f2jS7r5V5YrH',
+2025-11-16T14:50:18.207105217Z [err]    error: [Object]
+2025-11-16T14:50:18.207111270Z [err]  }
+2025-11-16T14:50:18.207117416Z [inf]  ✅ Claude AI analyses complete for https://henryadams.co.uk
+2025-11-16T14:50:18.207124248Z [inf]  ✅ Preserved CMS (Magento) and 0 plugins in performance results
+2025-11-16T14:50:38.207100323Z [inf]  ✅ Claude technology analysis complete for https://henryadams.co.uk
+2025-11-16T14:50:38.207107788Z [inf]  ✅ Claude technology analysis completed
+2025-11-16T14:50:38.207112884Z [inf]  🎯 Running universal performance & conversion analysis...
+2025-11-16T14:50:38.207117682Z [inf]  ✅ Universal performance analysis completed: Conversion Score 51/100, 8 issues found
+2025-11-16T14:50:38.207122956Z [inf]  📱 Viewport analysis skipped (disabled for memory optimization)
+2025-11-16T14:50:38.207127351Z [inf]  💾 [After performance] Memory: 91MB used / 99MB total
+2025-11-16T14:50:38.207131423Z [inf]  ✅ Completed section 1/1: performance
+2025-11-16T14:50:38.207138124Z [inf]  💾 [All Sections Complete] Memory: 91MB used / 99MB total
+2025-11-16T14:50:38.207143879Z [inf]  📊 Usage metrics: 1.15 browser minutes
