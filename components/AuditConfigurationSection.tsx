@@ -79,15 +79,23 @@ export default function AuditConfigurationSection({
     return `~${hours}h ${mins}m`
   }
 
-  // Calculate estimated cost per audit in GBP (memoized to prevent re-renders)
+  // Calculate estimated cost per audit in GBP (scales with page count)
   const estimatedCost = useMemo(() => {
-    // Base costs (per audit, runs once regardless of page count)
-    const quickTechDetectionCost = 0.0075 // Claude 3.5 Haiku for hybrid tech/plugin detection ~$0.01 USD = £0.0075 GBP
-    const dnsHostingCost = 0.0002 // IPinfo.io - mostly free via nameserver patterns, occasional IP lookup
+    // Per-page costs based on creditCalculator.ts estimates
+    const claudePerPage = 0.036 // Claude Sonnet 4.5 for analysis per page
+    const cloudflarePerPage = 0.0036 // Browser rendering (3 minutes per page @ £0.09/hour)
 
-    // Total base cost per audit (not multiplied by page count)
-    return quickTechDetectionCost + dnsHostingCost
-  }, []) // Empty deps - cost is constant
+    // Base costs that run once per audit (not per page)
+    const dnsHostingCost = 0.0002 // IPinfo.io - runs once for domain
+    const quickTechCost = 0.0075 // Initial quick tech detection - runs once
+
+    // Calculate total cost
+    const perPageCost = claudePerPage + cloudflarePerPage
+    const totalPageCost = perPageCost * pageCount
+    const totalFixedCost = dnsHostingCost + quickTechCost
+
+    return totalPageCost + totalFixedCost
+  }, [pageCount]) // Recalculate when page count changes
 
   const formatCost = (cost: number): string => {
     if (cost < 0.01) return '< 1p'
