@@ -1300,23 +1300,6 @@ export function AuditForm() {
                             </div>
                           </div>
 
-                          {/* Cost Estimate */}
-                          <div className="p-2 bg-amber-100 rounded border border-amber-300">
-                            <p className="text-xs font-medium text-amber-900 mb-1">💰 Estimated Cost Impact</p>
-                            <p className="text-xs text-amber-800">
-                              {pageLimit === null
-                                ? 'Unlimited analysis may result in higher API costs (Keywords Everywhere & Serper)'
-                                : pageLimit <= 25
-                                  ? 'Low cost - minimal API usage'
-                                  : pageLimit <= 50
-                                    ? 'Moderate cost - balanced analysis'
-                                    : pageLimit <= 100
-                                      ? 'Higher cost - comprehensive analysis'
-                                      : 'Very high cost - extensive API usage'
-                              }
-                            </p>
-                          </div>
-
                           <button
                             type="button"
                             onClick={() => setShowPageLimitControls(false)}
