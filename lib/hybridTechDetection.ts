@@ -69,6 +69,12 @@ async function analyzeTechStackWithClaude(
 4. **E-commerce Platform** (WooCommerce, Shopify, Magento, etc.)
 5. **CDN** (Cloudflare, CloudFront, Fastly, etc.)
 
+**CRITICAL - CMS DETECTION RULES:**
+- ONLY identify a CMS if you find EXPLICIT evidence (wp-content, drupal.js, shopify CDN, etc.)
+- If there's NO clear CMS signature, return "Custom" (not null, not a guess)
+- DO NOT infer WordPress/Magento/etc from generic HTML structure, jQuery, or common patterns
+- NEVER guess a CMS - if unsure, return "Custom"
+
 **IMPORTANT - DO NOT confuse hosting providers with control panels:**
 - Plesk, cPanel, DirectAdmin, ISPConfig, Webmin = CONTROL PANELS (NOT hosting providers)
 - If you find a control panel but cannot identify the actual hosting provider, return "Bespoke" for hosting
@@ -83,19 +89,26 @@ ${headersSummary}
 **HTML Sample (first 8000 chars):**
 ${htmlSample}
 
-**IMPORTANT INSTRUCTIONS:**
+**DETECTION REQUIREMENTS:**
+- WordPress: MUST have wp-content/, wp-includes/, or generator meta tag
+- Magento: MUST have mage/, /skin/frontend/, or Mage.Cookies
+- Drupal: MUST have /sites/default/, drupal.js, or Drupal meta tag
+- Shopify: MUST have cdn.shopify.com or shopify-analytics
+- If none of the above → return "Custom" for cms
+
+**OTHER INSTRUCTIONS:**
 - If pattern detection already found something with high confidence, DON'T override it unless you're very certain it's wrong
 - Look for meta tags (generator, platform, etc.)
 - Look for unique script URLs, CSS files, HTML comments
 - Look for data attributes, class names, ID patterns
 - Check for framework-specific patterns (__next, _react, __vue, ng-app, etc.)
-- Be conservative - if you're not sure, say "Unknown" rather than guessing
+- Be conservative - if you're not sure, return "Custom" or null rather than guessing
 - Extract version numbers when possible
 - If you find Plesk, cPanel, DirectAdmin, or other control panels, return "Bespoke" for hosting (not the control panel name)
 
 **Response Format (JSON only, no markdown):**
 {
-  "cms": "Platform name or null",
+  "cms": "WordPress|Drupal|Shopify|Custom|null (use 'Custom' for sites with no identifiable CMS)",
   "cmsVersion": "Version or null",
   "framework": "Framework name or null",
   "frameworkVersion": "Version or null",
@@ -103,7 +116,7 @@ ${htmlSample}
   "ecommerce": "E-commerce platform or null",
   "cdn": "CDN provider or null",
   "confidence": "high|medium|low",
-  "reasoning": "Brief explanation of key indicators found"
+  "reasoning": "Brief explanation of key indicators found (or lack thereof for Custom sites)"
 }`;
 
   try {
