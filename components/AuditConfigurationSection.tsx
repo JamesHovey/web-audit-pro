@@ -79,7 +79,7 @@ export default function AuditConfigurationSection({
     return `~${hours}h ${mins}m`
   }
 
-  // Calculate estimated cost per audit in GBP (scales with page count)
+  // Calculate estimated cost per audit in GBP (scales with page count and configuration)
   const estimatedCost = useMemo(() => {
     // SMART COST OPTIMIZATION STRATEGY:
     // - Single page: Claude Sonnet 4.5 (premium quality)
@@ -89,12 +89,26 @@ export default function AuditConfigurationSection({
 
     const isSinglePage = auditScope === 'single'
 
+    // Cloudflare browser rendering: £0.09 per hour = £0.0015 per minute = £0.000025 per second
+    const costPerSecond = 0.09 / 3600 // £0.000025 per second
+
+    // Calculate additional browser time based on enabled features
+    let additionalSecondsPerPage = 0
+    if (configuration.enableLighthouse) additionalSecondsPerPage += TIME_PER_PAGE.lighthouse // +8s
+    if (configuration.enableViewport) additionalSecondsPerPage += TIME_PER_PAGE.viewport // +6s
+    if (configuration.enableImageOptimization) additionalSecondsPerPage += TIME_PER_PAGE.imageOptimization // +2s
+    if (configuration.enableSEO) additionalSecondsPerPage += TIME_PER_PAGE.seo // +1s
+    // Technical is always included in base cost
+
+    const additionalBrowserCostPerPage = additionalSecondsPerPage * costPerSecond
+
     if (isSinglePage) {
       // Single page: Premium Sonnet 4.5 analysis
       const claudePerPage = 0.036 // Sonnet 4.5
-      const cloudflarePerPage = 0.0036 // Browser rendering (3 min)
+      const baseBrowserPerPage = 0.0036 // Base browser rendering (3 min)
+      const totalBrowserPerPage = baseBrowserPerPage + additionalBrowserCostPerPage
       const fixedCost = 0.0077 // DNS + quick tech
-      return (claudePerPage + cloudflarePerPage) * pageCount + fixedCost
+      return (claudePerPage + totalBrowserPerPage) * pageCount + fixedCost
     } else {
       // Multi-page: Smart Sampling for cost efficiency
       const aiAnalysisPages = Math.min(pageCount, 20) // Cap AI analysis at 20 pages
@@ -108,16 +122,17 @@ export default function AuditConfigurationSection({
       const patternCostPerPage = 0.003 // Browser + pattern matching only
       const patternCost = patternOnlyPages * patternCostPerPage
 
-      // Browser rendering for ALL pages (still needed for technical checks)
-      const cloudflarePerPage = 0.0036
-      const browserCost = pageCount * cloudflarePerPage
+      // Browser rendering for ALL pages (base + additional features)
+      const baseBrowserPerPage = 0.0036
+      const totalBrowserPerPage = baseBrowserPerPage + additionalBrowserCostPerPage
+      const browserCost = pageCount * totalBrowserPerPage
 
       // Fixed costs
       const fixedCost = 0.0077 // DNS + quick tech
 
       return aiCost + patternCost + browserCost + fixedCost
     }
-  }, [pageCount, auditScope]) // Recalculate when page count or scope changes
+  }, [pageCount, auditScope, configuration]) // Recalculate when page count, scope, or configuration changes
 
   const formatCost = (cost: number): string => {
     if (cost < 0.01) return '< 1p'
