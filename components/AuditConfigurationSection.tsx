@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Tooltip from './Tooltip'
 
 export interface AuditConfiguration {
@@ -77,6 +77,22 @@ export default function AuditConfigurationSection({
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return `~${hours}h ${mins}m`
+  }
+
+  // Calculate estimated cost per audit in GBP (memoized to prevent re-renders)
+  const estimatedCost = useMemo(() => {
+    // Base costs (per audit, runs once regardless of page count)
+    const quickTechDetectionCost = 0.0075 // Claude 3.5 Haiku for hybrid tech/plugin detection ~$0.01 USD = £0.0075 GBP
+    const dnsHostingCost = 0.0002 // IPinfo.io - mostly free via nameserver patterns, occasional IP lookup
+
+    // Total base cost per audit (not multiplied by page count)
+    return quickTechDetectionCost + dnsHostingCost
+  }, []) // Empty deps - cost is constant
+
+  const formatCost = (cost: number): string => {
+    if (cost < 0.01) return '< 1p'
+    if (cost < 1) return `${Math.ceil(cost * 100)}p`
+    return `£${cost.toFixed(2)}`
   }
 
   return (
@@ -272,9 +288,14 @@ export default function AuditConfigurationSection({
 
       {/* Estimated Time & Email Notification */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-900">Estimated Time (First Audit):</span>
-          <span className="text-lg font-bold text-blue-700">{formatTime(estimatedMinutes)}</span>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-blue-900">Estimated Time (First Audit):</span>
+            <span className="text-lg font-bold text-blue-700">{formatTime(estimatedMinutes)}</span>
+          </div>
+          <div className="flex items-center justify-end">
+            <span className="text-xs text-blue-600">Estimated cost: {formatCost(estimatedCost)}</span>
+          </div>
         </div>
 
         <div className="space-y-1">
