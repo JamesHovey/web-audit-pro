@@ -385,10 +385,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
       } else if (lowerHtml.includes('shopify') && (lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify-analytics'))) {
         result.cms = 'Shopify';
         console.log('🔍 CMS set to Shopify via file path detection');
-      } else if (lowerHtml.includes('mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento')) {
+      } else if (lowerHtml.includes('/js/mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento')) {
         // Log which specific pattern matched
         const magentoPatterns = {
-          'mage/': lowerHtml.includes('mage/'),
+          '/js/mage/': lowerHtml.includes('/js/mage/'),
           '/skin/frontend/': lowerHtml.includes('/skin/frontend/'),
           '/media/catalog/': lowerHtml.includes('/media/catalog/'),
           'mage.cookies': lowerHtml.includes('mage.cookies'),

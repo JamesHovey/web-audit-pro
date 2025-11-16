@@ -305,7 +305,7 @@ function detectPlatformFromHTML(html: string, headers: Record<string, string>): 
   }
   
   // Magento detection (specific paths only - no generic 'magento' keyword)
-  if (lowerHtml.includes('mage/') || lowerHtml.includes('varien/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/')) {
+  if (lowerHtml.includes('/js/mage/') || lowerHtml.includes('varien/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/')) {
     return 'Magento';
   }
   
