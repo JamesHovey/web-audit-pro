@@ -375,27 +375,47 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     if (!result.cms) {
       if (lowerHtml.includes('/wp-content/') || lowerHtml.includes('/wp-includes/') || lowerHtml.includes('wp-emoji')) {
         result.cms = 'WordPress';
+        console.log('🔍 CMS set to WordPress via file path detection');
       } else if (lowerHtml.includes('/sites/default/files/') || lowerHtml.includes('drupal.js')) {
         result.cms = 'Drupal';
+        console.log('🔍 CMS set to Drupal via file path detection');
       } else if (lowerHtml.includes('/media/jui/') || lowerHtml.includes('joomla')) {
         result.cms = 'Joomla';
+        console.log('🔍 CMS set to Joomla via file path detection');
       } else if (lowerHtml.includes('shopify') && (lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify-analytics'))) {
         result.cms = 'Shopify';
+        console.log('🔍 CMS set to Shopify via file path detection');
       } else if (lowerHtml.includes('mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento')) {
+        // Log which specific pattern matched
+        const magentoPatterns = {
+          'mage/': lowerHtml.includes('mage/'),
+          '/skin/frontend/': lowerHtml.includes('/skin/frontend/'),
+          '/media/catalog/': lowerHtml.includes('/media/catalog/'),
+          'mage.cookies': lowerHtml.includes('mage.cookies'),
+          'var/magento': lowerHtml.includes('var/magento')
+        };
+        const matchedPatterns = Object.entries(magentoPatterns).filter(([_, matched]) => matched).map(([pattern]) => pattern);
+        console.log(`⚠️  CMS set to Magento via file path detection. Matched patterns: ${matchedPatterns.join(', ')}`);
         result.cms = 'Magento';
       } else if (lowerHtml.includes('prestashop') || lowerHtml.includes('/modules/blockwishlist/') || lowerHtml.includes('/modules/blockcart/') || lowerHtml.includes('/themes/classic/') || lowerHtml.includes('/modules/ps_')) {
         result.cms = 'PrestaShop';
+        console.log('🔍 CMS set to PrestaShop via file path detection');
       } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
         result.cms = 'Squarespace';
+        console.log('🔍 CMS set to Squarespace via file path detection');
       } else if (lowerHtml.includes('wix.com') || lowerHtml.includes('wixstatic.com')) {
         result.cms = 'Wix';
+        console.log('🔍 CMS set to Wix via file path detection');
       } else if (lowerHtml.includes('webflow.com') || lowerHtml.includes('webflow-assets')) {
         result.cms = 'Webflow';
+        console.log('🔍 CMS set to Webflow via file path detection');
       } else if (lowerHtml.includes('hubspot') || lowerHtml.includes('hs-scripts.com')) {
         result.cms = 'HubSpot CMS';
+        console.log('🔍 CMS set to HubSpot CMS via file path detection');
       } else {
         // No CMS detected - mark as custom-built
         result.cms = 'Custom';
+        console.log('🔍 No CMS detected - marked as Custom');
       }
     }
     
