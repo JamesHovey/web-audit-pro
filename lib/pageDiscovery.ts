@@ -200,7 +200,7 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
     }
   });
   
-  return Array.from(uniquePages.values()).slice(0, 80); // Increased limit
+  return Array.from(uniquePages.values()); // No limit - return all discovered pages
 }
 
 async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?: string): Promise<DiscoveredPage[]> {
