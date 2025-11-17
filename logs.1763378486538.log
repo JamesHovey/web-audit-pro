@@ -1,0 +1,138 @@
+2025-11-17T11:19:43.000000000Z [inf]  Starting Container
+2025-11-17T11:19:44.585484156Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-17T11:19:45.563841771Z [inf]  Prisma schema loaded from prisma/schema.prisma
+2025-11-17T11:19:45.563848460Z [inf]  Datasource "db": PostgreSQL database "railway", schema "public" at "postgres.railway.internal:5432"
+2025-11-17T11:19:45.563861868Z [inf]  
+2025-11-17T11:19:45.563869831Z [inf]  4 migrations found in prisma/migrations
+2025-11-17T11:19:45.563875884Z [inf]  
+2025-11-17T11:19:45.563882432Z [inf]  
+2025-11-17T11:19:45.563889552Z [inf]  No pending migrations to apply.
+2025-11-17T11:19:45.723663300Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-17T11:19:45.749461595Z [inf]  
+2025-11-17T11:19:45.749468595Z [inf]  > web-audit-pro@1.5.11 start
+2025-11-17T11:19:45.749473901Z [inf]  > next start
+2025-11-17T11:19:45.749480330Z [inf]  
+2025-11-17T11:19:46.554208883Z [inf]   ✓ Starting...
+2025-11-17T11:19:46.554326887Z [inf]     ▲ Next.js 15.4.6
+2025-11-17T11:19:46.554332050Z [inf]     - Local:        http://localhost:8080
+2025-11-17T11:19:46.554337549Z [inf]     - Network:      http://10.210.9.36:8080
+2025-11-17T11:19:46.554342579Z [inf]  
+2025-11-17T11:19:46.782918196Z [err]   ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-11-17T11:19:46.941253096Z [inf]   ✓ Ready in 982ms
+2025-11-17T11:20:37.270695471Z [inf]  ✅ Page loaded, status: 200
+2025-11-17T11:20:37.270702312Z [inf]  🔄 Starting hybrid tech stack detection for https://pmwcom.co.uk
+2025-11-17T11:20:37.270705060Z [inf]  📄 HTML content length: 529275 characters
+2025-11-17T11:20:37.270712404Z [inf]  📋 Response headers: alt-svc, cf-cache-status, cf-ray, content-encoding, content-type, date, last-modified, nel, priority, report-to, server, server-timing, vary, x-content-type-options, x-frame-options, x-xss-protection
+2025-11-17T11:20:37.270713488Z [inf]  📊 Pattern detection: 3 technologies found, high confidence
+2025-11-17T11:20:37.270718853Z [inf]  🔍 Starting pattern-based detection...
+2025-11-17T11:20:37.270736197Z [inf]  ✅ CMS detected: WordPress v6.8.3
+2025-11-17T11:20:37.270736449Z [inf]  🔍 Quick tech detection for: https://pmwcom.co.uk
+2025-11-17T11:20:37.270745169Z [inf]  ✅ Domain authority retrieved: 3.2/10 (rank: 6487103)
+2025-11-17T11:20:37.270746308Z [inf]  🔎 Attempting DNS-based hosting detection for https://pmwcom.co.uk...
+2025-11-17T11:20:37.270754176Z [inf]  ⏳ Navigating to https://pmwcom.co.uk for quick detection...
+2025-11-17T11:20:37.270754846Z [inf]  
+2025-11-17T11:20:37.270761552Z [inf]  🔎 Starting DNS-based hosting detection for https://pmwcom.co.uk
+2025-11-17T11:20:37.270767927Z [inf]     Found nameservers: cortney.ns.cloudflare.com, lex.ns.cloudflare.com
+2025-11-17T11:20:37.270772712Z [inf]  ✅ Hosting detected via nameservers: Cloudflare
+2025-11-17T11:20:37.270776816Z [inf]     ✅ Matched nameserver pattern: cortney.ns.cloudflare.com → Cloudflare
+2025-11-17T11:20:37.270782854Z [inf]  🔍 Getting domain authority for: pmwcom.co.uk
+2025-11-17T11:20:37.270793941Z [inf]  
+2025-11-17T11:20:37.270802613Z [inf]  ✅ DNS hosting detection: Cloudflare (nameserver, high confidence)
+2025-11-17T11:20:37.270805699Z [inf]     Cleaned domain: pmwcom.co.uk
+2025-11-17T11:20:37.270818285Z [inf]  🔍 DNS Layer 1: Checking nameservers for pmwcom.co.uk...
+2025-11-17T11:20:37.274924040Z [inf]  ✅ Pattern detection found 3 technologies with high confidence - skipping AI
+2025-11-17T11:20:37.274929906Z [inf]  🎯 Hybrid detection: pattern-only, high confidence, AI used: false, Cost: $0.000
+2025-11-17T11:20:37.274935713Z [inf]  🔄 Starting hybrid plugin detection for https://pmwcom.co.uk (WordPress)
+2025-11-17T11:20:37.274942170Z [inf]  ✅ Pattern matching complete: 9 extensions detected in 76ms
+2025-11-17T11:20:37.274947784Z [inf]  ✅ Pattern matching sufficient: 7 high-confidence WordPress plugins detected, pattern matching sufficient
+2025-11-17T11:20:37.274952550Z [inf]  ⚠️ Filtered out non-plugin: Cloudflare CDN
+2025-11-17T11:20:37.274958204Z [inf]  ⚠️ Filtered out non-plugin: Google Analytics 4
+2025-11-17T11:20:37.274963675Z [inf]  ⚠️ Filtered out non-plugin: Google Tag Manager
+2025-11-17T11:20:37.274969648Z [inf]  ⚠️ Filtered out non-plugin: jQuery
+2025-11-17T11:20:37.274976329Z [inf]  ⚠️ Filtered out non-plugin: Google Analytics
+2025-11-17T11:20:37.274982335Z [inf]  ✅ Quick detection complete for https://pmwcom.co.uk: {
+2025-11-17T11:20:37.274988450Z [inf]    "cms": "WordPress",
+2025-11-17T11:20:37.274994433Z [inf]    "cmsVersion": "6.8.3",
+2025-11-17T11:20:37.275000379Z [inf]    "cdn": "Cloudflare",
+2025-11-17T11:20:37.275006602Z [inf]    "hosting": "Cloudflare",
+2025-11-17T11:20:37.275013464Z [inf]    "plugins": [
+2025-11-17T11:20:37.275019760Z [inf]      "SEOPress",
+2025-11-17T11:20:37.275026663Z [inf]      "WP Rocket",
+2025-11-17T11:20:37.275032682Z [inf]      "Elementor",
+2025-11-17T11:20:37.275039266Z [inf]      "Elementor Pro"
+2025-11-17T11:20:37.275044913Z [inf]    ],
+2025-11-17T11:20:37.275051263Z [inf]    "pageBuilder": "Elementor"
+2025-11-17T11:20:37.275057461Z [inf]  }
+2025-11-17T11:20:37.275063564Z [inf]  
+2025-11-17T11:20:37.275069913Z [inf]  === ENHANCED PAGE DISCOVERY FOR pmwcom.co.uk ===
+2025-11-17T11:20:37.275306055Z [inf]      Sample URLs: https://pmwcom.co.uk/services/photography/, https://pmwcom.co.uk/services/event-management/, https://pmwcom.co.uk/services/project-management/
+2025-11-17T11:20:37.275348719Z [inf]  Target: 500 pages maximum
+2025-11-17T11:20:37.275354188Z [inf]  Step 1: Comprehensive sitemap analysis...
+2025-11-17T11:20:37.275359612Z [inf]  ✓ Found sitemap: https://pmwcom.co.uk/sitemap.xml
+2025-11-17T11:20:37.275364923Z [inf]    Processing sitemap index: https://pmwcom.co.uk/sitemap.xml
+2025-11-17T11:20:37.275370474Z [inf]    Found 4 child sitemaps
+2025-11-17T11:20:37.275375217Z [inf]    Fetching child sitemap: https://pmwcom.co.uk/post-sitemap1.xml
+2025-11-17T11:20:37.275380156Z [inf]      Parsing XML content, length: 9227
+2025-11-17T11:20:37.275385303Z [inf]      Found 28 URL blocks
+2025-11-17T11:20:37.275390105Z [inf]      Extracted 28 valid URLs from sitemap
+2025-11-17T11:20:37.275396612Z [inf]      Sample URLs: https://pmwcom.co.uk/about/blog/, https://pmwcom.co.uk/about/blog/meta-says-no-thanks-to-the-social-media-content-copycats/, https://pmwcom.co.uk/about/blog/from-whassup-to-whats-next-how-tv-advertising-has-changed/
+2025-11-17T11:20:37.275401343Z [inf]    Child sitemap yielded 28 pages
+2025-11-17T11:20:37.275406288Z [inf]    Checking paginated sitemap: https://pmwcom.co.uk/post-sitemap2.xml
+2025-11-17T11:20:37.275410937Z [inf]      Parsing XML content, length: 424
+2025-11-17T11:20:37.275415392Z [inf]      No URL blocks found, trying simple <loc> parsing
+2025-11-17T11:20:37.275420134Z [inf]      No <loc> tags found, trying alternative patterns
+2025-11-17T11:20:37.275425033Z [inf]      Extracted 0 valid URLs from sitemap
+2025-11-17T11:20:37.275430446Z [inf]    Fetching child sitemap: https://pmwcom.co.uk/page-sitemap1.xml
+2025-11-17T11:20:37.275436009Z [inf]      Parsing XML content, length: 13443
+2025-11-17T11:20:37.275475398Z [inf]      Found 42 URL blocks
+2025-11-17T11:20:37.275481423Z [inf]      Extracted 42 valid URLs from sitemap
+2025-11-17T11:20:37.277732395Z [inf]    Child sitemap yielded 42 pages
+2025-11-17T11:20:37.277739024Z [inf]    Checking paginated sitemap: https://pmwcom.co.uk/page-sitemap2.xml
+2025-11-17T11:20:37.277745657Z [inf]      Parsing XML content, length: 424
+2025-11-17T11:20:37.277752029Z [inf]      No URL blocks found, trying simple <loc> parsing
+2025-11-17T11:20:37.277767779Z [inf]      No <loc> tags found, trying alternative patterns
+2025-11-17T11:20:37.277774297Z [inf]      Extracted 0 valid URLs from sitemap
+2025-11-17T11:20:37.277790223Z [inf]    Fetching child sitemap: https://pmwcom.co.uk/category-sitemap1.xml
+2025-11-17T11:20:37.277795691Z [inf]      Parsing XML content, length: 435
+2025-11-17T11:20:37.277810708Z [inf]      Found 1 URL blocks
+2025-11-17T11:20:37.277816708Z [inf]      Extracted 1 valid URLs from sitemap
+2025-11-17T11:20:37.277827615Z [inf]      Sample URLs: https://pmwcom.co.uk/about/blog/category/blogs/
+2025-11-17T11:20:37.277834624Z [inf]    Child sitemap yielded 1 pages
+2025-11-17T11:20:37.277840327Z [inf]    Checking paginated sitemap: https://pmwcom.co.uk/category-sitemap2.xml
+2025-11-17T11:20:37.277876513Z [inf]      Parsing XML content, length: 363
+2025-11-17T11:20:37.277882909Z [inf]      No URL blocks found, trying simple <loc> parsing
+2025-11-17T11:20:37.277888746Z [inf]      No <loc> tags found, trying alternative patterns
+2025-11-17T11:20:37.277895732Z [inf]      Extracted 0 valid URLs from sitemap
+2025-11-17T11:20:37.277901507Z [inf]    Fetching child sitemap: https://pmwcom.co.uk/post_tag-sitemap1.xml
+2025-11-17T11:20:37.277908210Z [inf]      Parsing XML content, length: 363
+2025-11-17T11:20:37.277914675Z [inf]      No URL blocks found, trying simple <loc> parsing
+2025-11-17T11:20:37.277921055Z [inf]      No <loc> tags found, trying alternative patterns
+2025-11-17T11:20:37.277927992Z [inf]      Extracted 0 valid URLs from sitemap
+2025-11-17T11:20:37.277934054Z [inf]    Child sitemap yielded 0 pages
+2025-11-17T11:20:37.280557321Z [inf]    Checking paginated sitemap: https://pmwcom.co.uk/post_tag-sitemap2.xml
+2025-11-17T11:20:37.280564677Z [inf]      Parsing XML content, length: 363
+2025-11-17T11:20:37.280569835Z [inf]      No URL blocks found, trying simple <loc> parsing
+2025-11-17T11:20:37.280577671Z [inf]      No <loc> tags found, trying alternative patterns
+2025-11-17T11:20:37.280583701Z [inf]      Extracted 0 valid URLs from sitemap
+2025-11-17T11:20:37.538837746Z [inf]  ✓ Found sitemap: https://pmwcom.co.uk/sitemap_index.xml
+2025-11-17T11:20:37.538848766Z [inf]    Processing sitemap index: https://pmwcom.co.uk/sitemap_index.xml
+2025-11-17T11:20:37.538856268Z [inf]    Found 4 child sitemaps
+2025-11-17T11:20:38.243269380Z [inf]  ✓ Found sitemap: https://pmwcom.co.uk/wp-sitemap.xml
+2025-11-17T11:20:38.243280683Z [inf]    Processing sitemap index: https://pmwcom.co.uk/wp-sitemap.xml
+2025-11-17T11:20:38.243289179Z [inf]    Found 4 child sitemaps
+2025-11-17T11:20:39.215568970Z [inf]  ✓ Found sitemap: https://pmwcom.co.uk/sitemap/sitemap.xml
+2025-11-17T11:20:39.215576569Z [inf]    Processing sitemap index: https://pmwcom.co.uk/sitemap/sitemap.xml
+2025-11-17T11:20:39.215583040Z [inf]    Found 4 child sitemaps
+2025-11-17T11:20:42.173435994Z [inf]  📋 Total pages collected from all sitemaps before deduplication: 71
+2025-11-17T11:20:42.173442909Z [inf]  🔍 Unique pages after deduplication: 70
+2025-11-17T11:20:42.173448698Z [inf]  📊 discoverFromSitemap returned 70 total pages
+2025-11-17T11:20:42.173464617Z [inf]  ✅ Added 69 sitemap pages to discovered set (70 total)
+2025-11-17T11:20:42.173471149Z [inf]  Step 2: Multi-level internal link discovery...
+2025-11-17T11:20:42.173477146Z [inf]    Crawling depth 1...
+2025-11-17T11:20:48.863767124Z [inf]    Crawling depth 2...
+2025-11-17T11:20:54.188425447Z [inf]  Found 46 additional pages from crawling
+2025-11-17T11:20:54.188433213Z [inf]  Step 3: Checking common page patterns...
+2025-11-17T11:20:58.814667671Z [inf]  Found 5 pages from common patterns
+2025-11-17T11:20:58.814674550Z [inf]  📦 Total discovered before slicing: 72 pages (maxPages: 500)
+2025-11-17T11:20:58.814679976Z [inf]  ✓ Discovery complete: 72 pages found
+2025-11-17T11:20:58.814684896Z [inf]  Sources: { sitemap: 69, internalLinks: 2, homepage: 1 }
