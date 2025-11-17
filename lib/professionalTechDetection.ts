@@ -166,6 +166,8 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
 
         // Categorize plugins for easy access (excluding non-plugins)
         const categorized: Record<string, any[]> = {};
+        const pluginNames: string[] = [];
+
         for (const plugin of hybridResult.detectedPlugins) {
           // Skip if not an actual WordPress plugin
           if (!isActualPlugin(plugin.name)) {
@@ -178,12 +180,18 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
             categorized[category] = [];
           }
           categorized[category].push(plugin);
+
+          // Also collect plugin names for the flat array
+          pluginNames.push(plugin.name);
         }
 
-        result.plugins = categorized;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        // Store categorized plugins in pluginAnalysis, flat array in plugins
+        result.plugins = pluginNames;
+        result.pluginsByCategory = categorized;
 
         // Update total plugin count (excluding filtered items)
-        const actualPluginCount = Object.values(categorized).reduce((sum, plugins) => sum + plugins.length, 0);
+        const actualPluginCount = pluginNames.length;
         result.totalPlugins = actualPluginCount;
 
         // Update specific fields based on detected plugins
@@ -203,6 +211,7 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         result.missingEssentials = missingEssentials;
 
         console.log(`✅ Hybrid plugin detection complete: ${actualPluginCount} actual WordPress plugins detected (${hybridResult.totalPluginsDetected - actualPluginCount} non-plugins filtered out)`);
+        console.log(`📦 Plugin names stored in flat array: ${pluginNames.slice(0, 5).join(', ')}${pluginNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
@@ -234,9 +243,13 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         };
 
         result.totalPlugins = drupalResult.totalModules;
-        result.plugins = drupalResult.modulesByCategory;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        const moduleNames: string[] = Object.values(drupalResult.modulesByCategory).flat().map((m: any) => m.displayName);
+        result.plugins = moduleNames;
+        result.pluginsByCategory = drupalResult.modulesByCategory;
 
         console.log(`✅ Drupal module detection complete: ${drupalResult.totalModules} modules detected`);
+        console.log(`📦 Module names stored in flat array: ${moduleNames.slice(0, 5).join(', ')}${moduleNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('Drupal module detection failed:', error);
       }
@@ -254,9 +267,13 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         };
 
         result.totalPlugins = joomlaResult.totalExtensions;
-        result.plugins = joomlaResult.extensionsByCategory;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        const extensionNames: string[] = Object.values(joomlaResult.extensionsByCategory).flat().map((e: any) => e.displayName);
+        result.plugins = extensionNames;
+        result.pluginsByCategory = joomlaResult.extensionsByCategory;
 
         console.log(`✅ Joomla extension detection complete: ${joomlaResult.totalExtensions} extensions detected`);
+        console.log(`📦 Extension names stored in flat array: ${extensionNames.slice(0, 5).join(', ')}${extensionNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('Joomla extension detection failed:', error);
       }
@@ -274,9 +291,13 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         };
 
         result.totalPlugins = shopifyResult.totalApps;
-        result.plugins = shopifyResult.appsByCategory;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        const appNames: string[] = Object.values(shopifyResult.appsByCategory).flat().map((a: any) => a.displayName);
+        result.plugins = appNames;
+        result.pluginsByCategory = shopifyResult.appsByCategory;
 
         console.log(`✅ Shopify app detection complete: ${shopifyResult.totalApps} apps detected`);
+        console.log(`📦 App names stored in flat array: ${appNames.slice(0, 5).join(', ')}${appNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('Shopify app detection failed:', error);
       }
@@ -294,9 +315,13 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         };
 
         result.totalPlugins = magentoResult.totalExtensions;
-        result.plugins = magentoResult.extensionsByCategory;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        const extensionNames: string[] = Object.values(magentoResult.extensionsByCategory).flat().map((e: any) => e.displayName);
+        result.plugins = extensionNames;
+        result.pluginsByCategory = magentoResult.extensionsByCategory;
 
         console.log(`✅ Magento extension detection complete: ${magentoResult.totalExtensions} extensions detected`);
+        console.log(`📦 Extension names stored in flat array: ${extensionNames.slice(0, 5).join(', ')}${extensionNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('Magento extension detection failed:', error);
       }
@@ -314,9 +339,13 @@ async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult
         };
 
         result.totalPlugins = prestashopResult.totalModules;
-        result.plugins = prestashopResult.modulesByCategory;
+        // CRITICAL FIX: result.plugins must be an array of strings, not an object
+        const moduleNames: string[] = Object.values(prestashopResult.modulesByCategory).flat().map((m: any) => m.displayName);
+        result.plugins = moduleNames;
+        result.pluginsByCategory = prestashopResult.modulesByCategory;
 
         console.log(`✅ PrestaShop module detection complete: ${prestashopResult.totalModules} modules detected`);
+        console.log(`📦 Module names stored in flat array: ${moduleNames.slice(0, 5).join(', ')}${moduleNames.length > 5 ? '...' : ''}`);
       } catch (error) {
         console.error('PrestaShop module detection failed:', error);
       }
