@@ -1,0 +1,65 @@
+2025-11-17T11:07:59.000000000Z [inf]  Starting Container
+2025-11-17T11:08:01.284485796Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-17T11:08:02.087187720Z [inf]  Prisma schema loaded from prisma/schema.prisma
+2025-11-17T11:08:02.087193389Z [inf]  Datasource "db": PostgreSQL database "railway", schema "public" at "postgres.railway.internal:5432"
+2025-11-17T11:08:02.234269099Z [inf]  
+2025-11-17T11:08:02.234276380Z [inf]  4 migrations found in prisma/migrations
+2025-11-17T11:08:02.234282618Z [inf]  
+2025-11-17T11:08:02.938672507Z [inf]  
+2025-11-17T11:08:02.938687641Z [inf]  No pending migrations to apply.
+2025-11-17T11:08:02.938694078Z [err]  npm warn config production Use `--omit=dev` instead.
+2025-11-17T11:08:02.938700095Z [inf]  
+2025-11-17T11:08:02.938705815Z [inf]  > web-audit-pro@1.5.10 start
+2025-11-17T11:08:02.938710749Z [inf]  > next start
+2025-11-17T11:08:02.938720602Z [inf]  
+2025-11-17T11:08:02.989148796Z [inf]     ▲ Next.js 15.4.6
+2025-11-17T11:08:02.989157580Z [inf]     - Local:        http://localhost:8080
+2025-11-17T11:08:02.989164976Z [inf]     - Network:      http://10.158.240.196:8080
+2025-11-17T11:08:02.989172537Z [inf]  
+2025-11-17T11:08:02.989179721Z [inf]   ✓ Starting...
+2025-11-17T11:08:03.991865234Z [err]   ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-11-17T11:08:03.991879451Z [inf]   ✓ Ready in 975ms
+2025-11-17T11:08:53.595675983Z [inf]     ✅ Matched nameserver pattern: cortney.ns.cloudflare.com → Cloudflare
+2025-11-17T11:08:53.595688882Z [inf]  ✅ Hosting detected via nameservers: Cloudflare
+2025-11-17T11:08:53.595698338Z [inf]  
+2025-11-17T11:08:53.595705244Z [inf]  ✅ DNS hosting detection: Cloudflare (nameserver, high confidence)
+2025-11-17T11:08:53.595712133Z [inf]  🔄 Starting hybrid tech stack detection for https://pmwcom.co.uk
+2025-11-17T11:08:53.595722492Z [inf]  📊 Pattern detection: 3 technologies found, high confidence
+2025-11-17T11:08:53.595790385Z [inf]  🔍 Getting domain authority for: pmwcom.co.uk
+2025-11-17T11:08:53.595796760Z [inf]  🔍 Quick tech detection for: https://pmwcom.co.uk
+2025-11-17T11:08:53.595805481Z [inf]  ✅ Domain authority retrieved: 3.2/10 (rank: 6487103)
+2025-11-17T11:08:53.595813600Z [inf]  ⏳ Navigating to https://pmwcom.co.uk for quick detection...
+2025-11-17T11:08:53.595820897Z [inf]  ✅ Page loaded, status: 200
+2025-11-17T11:08:53.595831918Z [inf]  📄 HTML content length: 529276 characters
+2025-11-17T11:08:53.595838895Z [inf]  📋 Response headers: alt-svc, cf-cache-status, cf-ray, content-encoding, content-type, date, last-modified, nel, priority, report-to, server, server-timing, vary, x-content-type-options, x-frame-options, x-xss-protection
+2025-11-17T11:08:53.595846608Z [inf]  🔍 Starting pattern-based detection...
+2025-11-17T11:08:53.595853571Z [inf]  ✅ CMS detected: WordPress v6.8.3
+2025-11-17T11:08:53.595859218Z [inf]  🔎 Attempting DNS-based hosting detection for https://pmwcom.co.uk...
+2025-11-17T11:08:53.595868180Z [inf]  
+2025-11-17T11:08:53.595880444Z [inf]  🔎 Starting DNS-based hosting detection for https://pmwcom.co.uk
+2025-11-17T11:08:53.595887499Z [inf]     Cleaned domain: pmwcom.co.uk
+2025-11-17T11:08:53.595893813Z [inf]  🔍 DNS Layer 1: Checking nameservers for pmwcom.co.uk...
+2025-11-17T11:08:53.595899825Z [inf]     Found nameservers: cortney.ns.cloudflare.com, lex.ns.cloudflare.com
+2025-11-17T11:08:53.599189946Z [inf]  ✅ Pattern detection found 3 technologies with high confidence - skipping AI
+2025-11-17T11:08:53.599195981Z [inf]  🎯 Hybrid detection: pattern-only, high confidence, AI used: false, Cost: $0.000
+2025-11-17T11:08:53.599202865Z [inf]  🔄 Starting hybrid plugin detection for https://pmwcom.co.uk (WordPress)
+2025-11-17T11:08:53.599208775Z [inf]  ✅ Pattern matching complete: 9 extensions detected in 58ms
+2025-11-17T11:08:53.599232895Z [inf]  ✅ Pattern matching sufficient: 7 high-confidence WordPress plugins detected, pattern matching sufficient
+2025-11-17T11:08:53.599239032Z [inf]  ⚠️ Filtered out non-plugin: Cloudflare CDN
+2025-11-17T11:08:53.599247105Z [inf]  ⚠️ Filtered out non-plugin: Google Analytics 4
+2025-11-17T11:08:53.599253771Z [inf]  ⚠️ Filtered out non-plugin: Google Tag Manager
+2025-11-17T11:08:53.599262587Z [inf]  ⚠️ Filtered out non-plugin: jQuery
+2025-11-17T11:08:53.599269348Z [inf]  ⚠️ Filtered out non-plugin: Google Analytics
+2025-11-17T11:08:53.599275523Z [inf]  ✅ Quick detection complete for https://pmwcom.co.uk: {
+2025-11-17T11:08:53.599281589Z [inf]    "cms": "WordPress",
+2025-11-17T11:08:53.599287673Z [inf]    "cmsVersion": "6.8.3",
+2025-11-17T11:08:53.599294461Z [inf]    "cdn": "Cloudflare",
+2025-11-17T11:08:53.599302064Z [inf]    "hosting": "Cloudflare",
+2025-11-17T11:08:53.599308148Z [inf]    "plugins": [
+2025-11-17T11:08:53.599314008Z [inf]      "SEOPress",
+2025-11-17T11:08:53.599319989Z [inf]      "WP Rocket",
+2025-11-17T11:08:53.599326607Z [inf]      "Elementor",
+2025-11-17T11:08:53.599332443Z [inf]      "Elementor Pro"
+2025-11-17T11:08:53.599341300Z [inf]    ],
+2025-11-17T11:08:53.599347050Z [inf]    "pageBuilder": "Elementor"
+2025-11-17T11:08:53.599353228Z [inf]  }
