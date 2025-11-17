@@ -990,13 +990,33 @@ export async function performTechnicalAudit(
     // 9. Detect unminified JavaScript and CSS files
     console.log('📦 Detecting unminified JavaScript and CSS files...');
     try {
-      // Use the main page's HTML for analysis
-      const mainPageHtml = result.html || result.pages[0]?.html || '';
+      // Analyze multiple pages for more comprehensive detection (up to 10 pages)
+      const pagesWithHtml = result.pages.filter(p => p.html).slice(0, 10);
 
-      if (mainPageHtml) {
-        const unminifiedResult = await detectUnminifiedFiles(mainPageHtml, url);
+      console.log(`📄 Analyzing ${pagesWithHtml.length} pages for unminified files`);
 
-        if (unminifiedResult.totalUnminified > 0) {
+      if (pagesWithHtml.length > 0) {
+        const allJsFiles = new Set<string>();
+        const allCssFiles = new Set<string>();
+
+        // Analyze each page
+        for (const page of pagesWithHtml) {
+          try {
+            const unminifiedResult = await detectUnminifiedFiles(page.html!, page.url);
+
+            // Collect unique unminified files across all pages
+            unminifiedResult.javascriptFiles.forEach(file => allJsFiles.add(file.url));
+            unminifiedResult.cssFiles.forEach(file => allCssFiles.add(file.url));
+          } catch (err) {
+            console.log(`⚠️  Could not analyze ${page.url} for unminified files`);
+          }
+        }
+
+        // If we found any unminified files, analyze the main page for details
+        if (allJsFiles.size > 0 || allCssFiles.size > 0) {
+          const mainPageHtml = result.html || result.pages[0]?.html || '';
+          const unminifiedResult = await detectUnminifiedFiles(mainPageHtml, url);
+
           result.unminifiedFiles = unminifiedResult;
           result.issues.unminifiedFiles = unminifiedResult.totalUnminified;
 
@@ -1010,6 +1030,8 @@ export async function performTechnicalAudit(
         if (onProgress) {
           await onProgress('analyzing_files', 1, 1, 'File minification check complete');
         }
+      } else {
+        console.log(`⚠️  No pages with HTML available for unminified file detection`);
       }
     } catch (_error) {
       console.error('Unminified file detection failed:', error);
@@ -1030,8 +1052,12 @@ export async function performTechnicalAudit(
     // Only perform if we have multiple pages (makes sense for 'all' or 'custom' audits with multiple pages)
     if (pageDiscovery && pageDiscovery.pages.length > 1) {
       console.log('🔗 Analyzing internal linking structure...');
+      const pagesWithHtmlForLinks = result.pages.filter(p => p.html).length;
+      console.log(`📄 ${pagesWithHtmlForLinks} out of ${result.pages.length} pages have HTML for link analysis`);
+
       try {
-        const internalLinkAnalysis = analyzeInternalLinks(pageDiscovery.pages, domain);
+        // Use result.pages instead of pageDiscovery.pages to include HTML content
+        const internalLinkAnalysis = analyzeInternalLinks(result.pages, domain);
 
         // Store analysis results
         result.internalLinkAnalysis = internalLinkAnalysis;
@@ -1091,7 +1117,7 @@ export async function performTechnicalAudit(
     // 12. Check for permanent redirects (301/308)
     // Only perform if we have multiple pages
     if (pageDiscovery && pageDiscovery.pages.length > 1) {
-      console.log('🔄 Checking for permanent redirects...');
+      console.log(`🔄 Checking ${pageDiscovery.pages.length} pages for permanent redirects...`);
       try {
         const redirectAnalysis = await analyzePermanentRedirects(pageDiscovery.pages, domain);
 
@@ -1099,9 +1125,15 @@ export async function performTechnicalAudit(
           result.permanentRedirects = redirectAnalysis;
           result.issues.permanentRedirects = redirectAnalysis.totalRedirects;
 
-          console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects`);
+          console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects (301/308)`);
+          redirectAnalysis.redirects.slice(0, 5).forEach(redirect => {
+            console.log(`   ${redirect.statusCode}: ${redirect.fromUrl} → ${redirect.toUrl}`);
+          });
+          if (redirectAnalysis.totalRedirects > 5) {
+            console.log(`   ... and ${redirectAnalysis.totalRedirects - 5} more`);
+          }
         } else {
-          console.log(`✅ No permanent redirects found`);
+          console.log(`✅ No permanent redirects found (checked ${pageDiscovery.pages.length} URLs)`);
         }
 
         if (onProgress) {
@@ -1116,16 +1148,24 @@ export async function performTechnicalAudit(
     // 13. Check HSTS (HTTP Strict Transport Security) support
     // Check main domain and subdomains for HSTS headers
     if (pageDiscovery && pageDiscovery.pages.length >= 1) {
-      console.log('🔒 Checking HSTS support...');
+      console.log('🔒 Checking HSTS support for main domain and subdomains...');
       try {
         const hstsAnalysis = await analyzeHSTSSupport(url, pageDiscovery.pages, domain);
 
         result.hstsAnalysis = hstsAnalysis;
 
+        console.log(`📊 HSTS check results:`);
+        console.log(`   - Main domain (${hstsAnalysis.mainDomain.domain}): ${hstsAnalysis.mainDomain.hasHSTS ? '✅ HSTS enabled' : '⚠️  HSTS NOT enabled'}`);
+        console.log(`   - Subdomains checked: ${hstsAnalysis.totalSubdomainsChecked}`);
+        console.log(`   - Subdomains without HSTS: ${hstsAnalysis.subdomainsWithoutHSTS.length}`);
+
         // Count subdomains without HSTS as an issue
         if (hstsAnalysis.subdomainsWithoutHSTS.length > 0) {
           result.issues.subdomainsWithoutHSTS = hstsAnalysis.subdomainsWithoutHSTS.length;
-          console.log(`⚠️  Found ${hstsAnalysis.subdomainsWithoutHSTS.length} subdomain(s) without HSTS`);
+          console.log(`⚠️  Subdomains without HSTS:`);
+          hstsAnalysis.subdomainsWithoutHSTS.forEach(subdomain => {
+            console.log(`   - ${subdomain}`);
+          });
         } else if (hstsAnalysis.totalSubdomainsChecked > 0) {
           console.log(`✅ All ${hstsAnalysis.totalSubdomainsChecked} subdomain(s) have HSTS enabled`);
         }
