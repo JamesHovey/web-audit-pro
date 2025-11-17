@@ -603,8 +603,11 @@ export async function performTechnicalAudit(
     // Add performance metrics to ALL pages with parallel chunked processing
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
     if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
-    const maxDetailedAnalysis = 20; // Only fetch HTML for first 20 pages (for performance)
+    // Fetch HTML for up to 100 pages to enable proper text-HTML ratio and structured data analysis
+    // This matches what tools like SEMrush do for comprehensive audits
+    const maxDetailedAnalysis = Math.min(100, pageDiscovery.pages.length);
     const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
+    console.log(`📄 Will fetch HTML for ${maxDetailedAnalysis} pages (out of ${pageDiscovery.pages.length} total)`);
 
     // Process pages in chunks of 3 (safe for Railway free tier)
     const CONCURRENT_PAGES = 3;
@@ -772,19 +775,35 @@ export async function performTechnicalAudit(
     const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
     const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
     const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
-    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400);
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
     result.issues.missingH1Tags = pagesWithMissingH1.length;
     result.issues.httpErrors = pagesWithHttpErrors.length;
 
+    // Log status code distribution for debugging
+    const statusCodeCounts: Record<number, number> = {};
+    pageDiscovery.pages.forEach(page => {
+      statusCodeCounts[page.statusCode] = (statusCodeCounts[page.statusCode] || 0) + 1;
+    });
+    console.log(`📊 Status code distribution across ${pageDiscovery.pages.length} pages:`);
+    Object.entries(statusCodeCounts)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .forEach(([code, count]) => {
+        const icon = Number(code) >= 400 ? '🚨' : '✅';
+        console.log(`   ${icon} ${code}: ${count} pages`);
+      });
+
     // Log 4XX detection for debugging
     if (pagesWithHttpErrors.length > 0) {
       console.log(`🚨 Found ${pagesWithHttpErrors.length} pages with 4XX status codes:`);
-      pagesWithHttpErrors.forEach(page => {
+      pagesWithHttpErrors.slice(0, 10).forEach(page => {
         console.log(`   ${page.statusCode} - ${page.url}`);
       });
+      if (pagesWithHttpErrors.length > 10) {
+        console.log(`   ... and ${pagesWithHttpErrors.length - 10} more`);
+      }
     } else {
       console.log(`✅ No pages with 4XX status codes detected`);
     }
@@ -801,16 +820,69 @@ export async function performTechnicalAudit(
     console.log('📊 Analyzing text-to-HTML ratio...');
     try {
       const { analyzePagesTextHtmlRatio } = await import('./textHtmlRatioAnalyzer');
-      const pagesWithHtml = pageDiscovery.pages.filter(p => p.html);
+      // FIX: Use result.pages (which has HTML) instead of pageDiscovery.pages (which doesn't)
+      const pagesWithHtml = result.pages.filter(p => p.html);
+
+      console.log(`📄 Found ${pagesWithHtml.length} pages with HTML content for ratio analysis`);
 
       if (pagesWithHtml.length > 0) {
         const ratioAnalysis = analyzePagesTextHtmlRatio(pagesWithHtml);
         result.textHtmlRatio = ratioAnalysis;
         result.issues.lowTextHtmlRatio = ratioAnalysis.pagesWithLowRatio;
         console.log(`📈 Text-to-HTML ratio: ${ratioAnalysis.pagesWithLowRatio}/${ratioAnalysis.totalPages} pages have low ratio`);
+      } else {
+        console.log('⚠️  No pages with HTML content available for text-HTML ratio analysis');
       }
     } catch (error) {
       console.error('❌ Text-to-HTML ratio analysis failed:', error);
+    }
+
+    // 7.6. Aggregate structured data from all pages (multi-page audits only)
+    if (scope !== 'single') {
+      console.log('🔍 Analyzing structured data across all pages...');
+      try {
+        const { validateStructuredData } = await import('./structuredDataValidator');
+        const pagesWithHtml = result.pages.filter(p => p.html);
+
+        let totalStructuredDataItems = 0;
+        let totalValidItems = 0;
+        let totalInvalidItems = 0;
+        const allStructuredDataItems: any[] = [];
+
+        for (const page of pagesWithHtml) {
+          try {
+            const pageStructuredData = await validateStructuredData(page.html!);
+            totalStructuredDataItems += pageStructuredData.totalItems;
+            totalValidItems += pageStructuredData.validItems;
+            totalInvalidItems += pageStructuredData.invalidItems;
+
+            // Add page URL to each item
+            pageStructuredData.items.forEach(item => {
+              allStructuredDataItems.push({
+                ...item,
+                pageUrl: page.url
+              });
+            });
+          } catch (err) {
+            console.log(`⚠️  Could not analyze structured data for ${page.url}`);
+          }
+        }
+
+        if (totalStructuredDataItems > 0) {
+          result.structuredData = {
+            totalItems: totalStructuredDataItems,
+            validItems: totalValidItems,
+            invalidItems: totalInvalidItems,
+            items: allStructuredDataItems
+          };
+          result.issues.invalidStructuredData = totalInvalidItems;
+          console.log(`📊 Structured data across ${pagesWithHtml.length} pages: ${totalStructuredDataItems} items found, ${totalInvalidItems} invalid`);
+        } else {
+          console.log(`ℹ️  No structured data found across ${pagesWithHtml.length} pages`);
+        }
+      } catch (error) {
+        console.error('❌ Structured data analysis failed:', error);
+      }
     }
 
     // 8. Analyze images from discovered pages with scope-based limits
