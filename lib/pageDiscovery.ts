@@ -73,20 +73,39 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
     });
     console.log(`✅ Added ${sources.sitemap} sitemap pages to discovered set (${discoveredPages.size} total)`);
 
-    // 3. Multi-level crawling of internal links (SKIP IN QUICK MODE)
-    if (!quick) {
-      console.log('Step 2: Multi-level internal link discovery...');
-      const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages);
-      crawledPages.forEach(page => {
-        const normalizedUrl = normalizeUrl(page.url);
-        if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
-          discoveredPages.set(normalizedUrl, page);
-          sources.internalLinks++;
-        }
-      });
-      console.log(`Found ${crawledPages.length} additional pages from crawling`);
+    // 3. Multi-level crawling of internal links
+    // Quick mode: Only crawl if sitemap found < 10 pages (fallback for sites without good sitemaps)
+    // Full mode: Always do deep crawling
+    const needsCrawling = !quick || sources.sitemap < 10;
+
+    if (needsCrawling) {
+      if (quick) {
+        console.log(`Step 2: Light crawling (sitemap only found ${sources.sitemap} pages, need fallback)...`);
+        // Light crawl for quick mode: depth 2, 20 URLs per level
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 2, 20);
+        crawledPages.forEach(page => {
+          const normalizedUrl = normalizeUrl(page.url);
+          if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+            discoveredPages.set(normalizedUrl, page);
+            sources.internalLinks++;
+          }
+        });
+        console.log(`Found ${crawledPages.length} additional pages from light crawling`);
+      } else {
+        console.log('Step 2: Deep crawling for comprehensive discovery...');
+        // Full crawl: depth 5, 50 URLs per level
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 5, 50);
+        crawledPages.forEach(page => {
+          const normalizedUrl = normalizeUrl(page.url);
+          if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+            discoveredPages.set(normalizedUrl, page);
+            sources.internalLinks++;
+          }
+        });
+        console.log(`Found ${crawledPages.length} additional pages from deep crawling`);
+      }
     } else {
-      console.log('Step 2: Skipping deep crawling (quick mode)');
+      console.log(`Step 2: Skipping crawling (sitemap found ${sources.sitemap} pages, sufficient for quick mode)`);
     }
 
     // 4. Check for common page patterns and structures
@@ -578,14 +597,16 @@ function getPageTitleFromUrl(url: string): string {
 
 // Multi-level crawling of internal links
 async function crawlInternalLinks(
-  baseUrl: string, 
-  remainingSlots: number, 
-  alreadyFound: Map<string, DiscoveredPage>
+  baseUrl: string,
+  remainingSlots: number,
+  alreadyFound: Map<string, DiscoveredPage>,
+  maxDepth: number = 5, // Configurable depth: 2 for quick mode, 5 for full mode
+  urlsPerDepth: number = 50 // Configurable URLs per depth: 20 for quick, 50 for full
 ): Promise<DiscoveredPage[]> {
   const newPages: DiscoveredPage[] = [];
-  
+
   if (remainingSlots <= 0) return newPages;
-  
+
   // Get key pages to crawl for more links
   const keyPagesToCrawl = [
     baseUrl,
@@ -606,8 +627,7 @@ async function crawlInternalLinks(
     `${baseUrl}/portfolio`,
     `${baseUrl}/work`
   ];
-  
-  const maxDepth = 5; // Increased from 2 to match SEMrush-style deep crawling
+
   const processedUrls = new Set<string>();
 
   for (let depth = 0; depth < maxDepth && newPages.length < remainingSlots; depth++) {
@@ -617,7 +637,7 @@ async function crawlInternalLinks(
       Array.from(alreadyFound.keys())
         .concat(newPages.map(p => p.url))
         .filter(url => !processedUrls.has(url))
-        .slice(0, 50); // Increased from 10 to 50 URLs per depth for more thorough discovery
+        .slice(0, urlsPerDepth);
 
     console.log(`  Processing ${urlsToProcess.length} URLs at depth ${depth + 1}`);
     const depthStartCount = newPages.length;
