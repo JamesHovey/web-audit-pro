@@ -1125,9 +1125,16 @@ export function AuditForm() {
                   <div className="ml-7 mt-3 space-y-3">
                     {/* Page Discovery Status */}
                     {isCountingPages ? (
-                      <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                        <LoadingSpinner size="sm" />
-                        <span className="text-blue-700">Discovering all pages...</span>
+                      <div className="space-y-2">
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <LoadingSpinner size="sm" />
+                            <span className="text-sm font-semibold text-blue-900">Discovering all pages...</span>
+                          </div>
+                          <p className="text-xs text-blue-700">
+                            This may take 30 seconds to 5 minutes depending on site size and structure.
+                          </p>
+                        </div>
                       </div>
                     ) : allPagesCount !== null ? (
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -1163,24 +1170,6 @@ export function AuditForm() {
                         </p>
                       </div>
                     ) : null}
-
-                    {/* Discovery Warnings - Show if sitemap was blocked or incomplete */}
-                    {discoveryWarnings.length > 0 && (
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                          <div className="flex-1">
-                            {discoveryWarnings.map((warning, index) => (
-                              <p key={index} className="text-sm text-amber-900">
-                                {warning}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Page Limit Notice - Only show when limiting is actually happening */}
                     {allPagesCount !== null && (pageLimit === null || allPagesCount > pageLimit) && (
