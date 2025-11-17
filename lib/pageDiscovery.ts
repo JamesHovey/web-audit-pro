@@ -100,7 +100,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
       } else {
         // Full mode - always crawl
         if (sources.sitemap < 10) {
-          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using comprehensive crawling method - this will take 2-5 minutes for thorough discovery.`);
+          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using comprehensive crawling method - this may take 30 seconds to 5 minutes depending on site size.`);
         }
         console.log('Step 2: Deep crawling for comprehensive discovery...');
         // Full crawl: depth 5, 50 URLs per level
