@@ -204,10 +204,25 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     'keywords'
   ])
   const [draggedSection, setDraggedSection] = useState<string | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Update elapsed time every second when audit is running
+  useEffect(() => {
+    if (audit.status !== "running" || !audit.createdAt) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const start = new Date(audit.createdAt);
+      const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
+      setElapsedSeconds(elapsed);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [audit.status, audit.createdAt])
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({
@@ -1270,7 +1285,27 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                 <p className="text-gray-600 mb-6 text-center">
                   We&apos;re conducting a comprehensive audit.
                 </p>
-                
+
+                {/* Time Display - ADDED */}
+                {audit.createdAt && (
+                  <div className="flex items-center justify-center gap-8 mb-6">
+                    {estimatedMinutes && estimatedMinutes > 0 && (
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Estimated Time</p>
+                        <p className="text-lg font-bold text-blue-700">
+                          {estimatedMinutes <= 1 ? '<1 min' : estimatedMinutes < 60 ? `<${estimatedMinutes} mins` : `<${Math.floor(estimatedMinutes / 60)}h ${estimatedMinutes % 60}m`}
+                        </p>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600">Elapsed Time</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Inspirational Quote */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
                   <p className="text-center text-gray-700 italic mb-2">
@@ -1280,7 +1315,7 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
                     Background: {currentTheme.name}
                   </p>
                 </div>
-                
+
                 {audit.results?.progress && (
                   <div className="mb-6">
                     <p className="text-sm text-gray-600 mb-2 text-center">
