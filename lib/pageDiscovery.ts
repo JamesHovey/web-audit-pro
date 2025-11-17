@@ -61,6 +61,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     // 2. Try comprehensive sitemap discovery
     console.log('Step 1: Comprehensive sitemap analysis...');
     const sitemapPages = await discoverFromSitemap(cleanUrl);
+    console.log(`📊 discoverFromSitemap returned ${sitemapPages.length} total pages`);
     sitemapPages.forEach(page => {
       const normalizedUrl = normalizeUrl(page.url);
       if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
@@ -68,7 +69,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
         sources.sitemap++;
       }
     });
-    console.log(`Found ${sitemapPages.length} pages from sitemaps`);
+    console.log(`✅ Added ${sources.sitemap} sitemap pages to discovered set (${discoveredPages.size} total)`);
     
     // 3. Multi-level crawling of internal links
     console.log('Step 2: Multi-level internal link discovery...');
@@ -108,6 +109,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     }
   }
   
+  console.log(`📦 Total discovered before slicing: ${discoveredPages.size} pages (maxPages: ${maxPages})`);
   const pages = Array.from(discoveredPages.values())
     .slice(0, maxPages)
     .sort((a, b) => {
@@ -115,7 +117,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       const priority = { homepage: 0, sitemap: 1, 'internal-link': 2 };
       return priority[a.source] - priority[b.source];
     });
-  
+
   console.log(`✓ Discovery complete: ${pages.length} pages found`);
   console.log('Sources:', sources);
   
@@ -193,13 +195,15 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
   }
   
   // Remove duplicates and limit results
+  console.log(`📋 Total pages collected from all sitemaps before deduplication: ${pages.length}`);
   const uniquePages = new Map<string, DiscoveredPage>();
   pages.forEach(page => {
     if (!uniquePages.has(page.url)) {
       uniquePages.set(page.url, page);
     }
   });
-  
+
+  console.log(`🔍 Unique pages after deduplication: ${uniquePages.size}`);
   return Array.from(uniquePages.values()); // No limit - return all discovered pages
 }
 
