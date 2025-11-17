@@ -603,11 +603,20 @@ export async function performTechnicalAudit(
     // Add performance metrics to ALL pages with parallel chunked processing
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
     if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
-    // Fetch HTML for up to 100 pages to enable proper text-HTML ratio and structured data analysis
-    // This matches what tools like SEMrush do for comprehensive audits
-    const maxDetailedAnalysis = Math.min(100, pageDiscovery.pages.length);
-    const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
-    console.log(`📄 Will fetch HTML for ${maxDetailedAnalysis} pages (out of ${pageDiscovery.pages.length} total)`);
+    // Fetch HTML for up to 200 pages to enable proper text-HTML ratio and structured data analysis
+    // Increased from 100 to ensure blog posts and all content pages are analyzed
+    const maxDetailedAnalysis = Math.min(200, pageDiscovery.pages.length);
+
+    // Prioritize blog posts and articles for structured data analysis
+    const pagesToAnalyze = [...pageDiscovery.pages].sort((a, b) => {
+      const aIsBlog = a.url.includes('/blog/') || a.url.includes('/article/') || a.url.includes('/post/');
+      const bIsBlog = b.url.includes('/blog/') || b.url.includes('/article/') || b.url.includes('/post/');
+      if (aIsBlog && !bIsBlog) return -1; // a comes first
+      if (!aIsBlog && bIsBlog) return 1; // b comes first
+      return 0; // Keep original order
+    });
+
+    console.log(`📄 Will fetch HTML for ${maxDetailedAnalysis} pages (out of ${pageDiscovery.pages.length} total, blog posts prioritized)`);
 
     // Process pages in chunks of 3 (safe for Railway free tier)
     const CONCURRENT_PAGES = 3;
