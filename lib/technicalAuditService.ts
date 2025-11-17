@@ -1,6 +1,38 @@
 // Real technical audit service that analyzes actual website data
 import { discoverRealPages } from './realPageDiscovery';
 import { analyzeViewportResponsiveness } from './viewportAnalysisService';
+import { getCachedPageData, setCachedPageData, clearExpiredCache } from './auditCache';
+import { BrowserService } from './cloudflare-browser';
+import { RobotsService } from './robotsService';
+import { detectUnminifiedFiles } from './unminifiedFileDetection';
+
+// Transparent User-Agent for legal compliance
+const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit Tool)';
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 WebAuditPro/1.0';
+
+/**
+ * Process items in parallel chunks to avoid overwhelming the server
+ * @param items - Array of items to process
+ * @param chunkSize - Number of items to process in parallel
+ * @param processor - Async function to process each item
+ */
+async function processInChunks<T, R>(
+  items: T[],
+  chunkSize: number,
+  processor: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    const chunkResults = await Promise.all(
+      chunk.map((item, chunkIndex) => processor(item, i + chunkIndex))
+    );
+    results.push(...chunkResults);
+  }
+
+  return results;
+}
 
 interface PagePerformanceMetrics {
   desktop: {
@@ -49,11 +81,168 @@ interface TechnicalAuditResult {
     pageUrl: string;
     sizeKB: number;
   }>;
+  legacyFormatImages?: Array<{
+    imageUrl: string;
+    pageUrl: string;
+    currentFormat: string;
+    suggestedFormat: string;
+    sizeKB: number;
+  }>;
+  unminifiedFiles?: {
+    totalUnminified: number;
+    javascriptFiles: Array<{
+      url: string;
+      sizeKB?: number;
+      reason: string;
+    }>;
+    cssFiles: Array<{
+      url: string;
+      sizeKB?: number;
+      reason: string;
+    }>;
+  };
+  titleLengthIssues?: {
+    tooShort: Array<{ url: string; title: string; length: number }>;
+    tooLong: Array<{ url: string; title: string; length: number }>;
+  };
+  internalLinkAnalysis?: {
+    pagesWithOneIncomingLink: Array<{
+      url: string;
+      incomingLinkCount: number;
+      linkingPage: string;
+    }>;
+    orphanedSitemapPages: Array<{
+      url: string;
+      inSitemap: boolean;
+      incomingLinkCount: number;
+    }>;
+    trueOrphanPages: Array<{
+      url: string;
+      incomingLinkCount: number;
+      discoveryMethod: string;
+    }>;
+    pagesWithBrokenLinks: Array<{
+      url: string;
+      brokenLinkCount: number;
+      brokenLinks: Array<{ targetUrl: string; anchorText: string }>;
+    }>;
+    pagesWithNofollowLinks: Array<{
+      url: string;
+      nofollowLinkCount: number;
+      nofollowLinks: Array<{ targetUrl: string; anchorText: string }>;
+    }>;
+    linkDepthAnalysis: {
+      pagesDeepInSite: Array<{
+        url: string;
+        depth: number; // clicks from homepage
+      }>;
+      averageDepth: number;
+      maxDepth: number;
+    };
+    anchorTextAnalysis: {
+      genericAnchors: Array<{
+        url: string;
+        anchorText: string;
+        count: number;
+      }>;
+      overOptimized: Array<{
+        url: string;
+        anchorText: string;
+        count: number;
+      }>;
+    };
+    deepLinkRatio: {
+      homepageLinks: number;
+      deepContentLinks: number;
+      ratio: number; // deep / total
+    };
+    totalPagesAnalyzed: number;
+  };
+  permanentRedirects?: {
+    totalRedirects: number;
+    redirects: Array<{
+      fromUrl: string;
+      toUrl: string;
+      statusCode: number; // 301 or 308
+      redirectType: 'permanent';
+    }>;
+  };
+  hstsAnalysis?: {
+    mainDomain: {
+      domain: string;
+      hasHSTS: boolean;
+      includesSubdomains: boolean;
+      maxAge?: number;
+      header?: string;
+    };
+    subdomainsWithoutHSTS: Array<{
+      subdomain: string;
+      hasHSTS: boolean;
+      reason: string;
+    }>;
+    totalSubdomainsChecked: number;
+  };
+  llmsTxt?: {
+    exists: boolean;
+    url?: string;
+    content?: string;
+    isValid?: boolean;
+    sizeBytes?: number;
+    errors?: string[];
+  };
   issues: {
     missingMetaTitles: number;
     missingMetaDescriptions: number;
     missingH1Tags: number;
     httpErrors: number;
+    invalidStructuredData?: number;
+    lowTextHtmlRatio?: number;
+    unminifiedFiles?: number;
+    shortTitles?: number;
+    longTitles?: number;
+    pagesWithOneIncomingLink?: number;
+    orphanedSitemapPages?: number;
+    trueOrphanPages?: number;
+    pagesWithBrokenLinks?: number;
+    pagesWithNofollowLinks?: number;
+    pagesDeepInSite?: number;
+    genericAnchors?: number;
+    poorDeepLinkRatio?: number;
+    permanentRedirects?: number;
+    subdomainsWithoutHSTS?: number;
+    missingLlmsTxt?: number;
+    missingRobotsTxt?: number;
+  };
+  issuePages?: {
+    missingMetaTitles?: string[];
+    missingMetaDescriptions?: string[];
+    missingH1Tags?: string[];
+    httpErrors?: string[];
+  };
+  textHtmlRatio?: {
+    totalPages: number;
+    pagesWithLowRatio: number;
+    pages: Array<{
+      url: string;
+      textLength: number;
+      htmlLength: number;
+      ratio: number;
+      status: 'good' | 'warning' | 'poor';
+    }>;
+  };
+  structuredData?: {
+    totalItems: number;
+    validItems: number;
+    invalidItems: number;
+    items: Array<{
+      type: string;
+      format: string;
+      location: string;
+      isValid: boolean;
+      errors: string[];
+      warnings: string[];
+    }>;
+    recommendations: string[];
   };
   notFoundErrors: Array<{
     brokenUrl: string;
@@ -69,12 +258,30 @@ interface TechnicalAuditResult {
   html?: string; // Raw HTML content of the main page (single page audits only)
 }
 
+// Progress callback type
+export type ProgressCallback = (stage: string, current: number, total: number, message: string) => Promise<void>;
+
 export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
-  specifiedPages: string[] = [url]
+  specifiedPages: string[] = [url],
+  onProgress?: ProgressCallback
 ): Promise<TechnicalAuditResult> {
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
+
+  // Check robots.txt compliance
+  console.log(`🤖 Checking robots.txt compliance for ${url}`);
+  const robotsCheck = await RobotsService.isAllowed(url, 'WebAuditPro');
+
+  if (!robotsCheck.allowed) {
+    console.warn(`⚠️ Audit blocked by robots.txt: ${robotsCheck.reason}`);
+    throw new Error(`This website's robots.txt disallows automated auditing. Reason: ${robotsCheck.reason}`);
+  }
+
+  if (robotsCheck.crawlDelay) {
+    console.log(`⏱️ Robots.txt requests crawl delay of ${robotsCheck.crawlDelay} seconds`);
+    // Note: We'll respect this in our batch processing
+  }
 
   // Normalize URL
   const baseUrl = new URL(url);
@@ -86,11 +293,18 @@ export async function performTechnicalAudit(
     pages: [],
     largeImages: 0,
     largeImageDetails: [],
+    legacyFormatImages: [],
+    titleLengthIssues: {
+      tooShort: [],
+      tooLong: []
+    },
     issues: {
       missingMetaTitles: 0,
       missingMetaDescriptions: 0,
       missingH1Tags: 0,
       httpErrors: 0,
+      shortTitles: 0,
+      longTitles: 0
     },
     notFoundErrors: [],
     sitemapStatus: 'missing',
@@ -100,47 +314,198 @@ export async function performTechnicalAudit(
   };
 
   try {
-    // 1. Fetch main page HTML
-    console.log(`🌐 Fetching main page: ${url}`);
-    const mainPageResponse = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
-    });
-    
-    console.log(`📍 Final URL after redirects: ${mainPageResponse.url}`);
-    
-    if (!mainPageResponse.ok) {
-      console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
-      return result;
+    // 1. Fetch main page HTML using Puppeteer for JavaScript-rendered content
+    console.log(`🌐 Fetching main page with browser rendering: ${url}`);
+    let html: string;
+    let finalUrl = url;
+    let statusCode = 200;
+    let browserImageData: Map<string, { sizeKB: number; transferSizeKB: number }> = new Map();
+
+    try {
+      // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
+      const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+        // Track image network requests to capture their sizes
+        const imageNetworkData = new Map<string, { sizeKB: number; transferSizeKB: number }>();
+
+        // Enable network monitoring via CDP (Chrome DevTools Protocol)
+        const client = await page.target().createCDPSession();
+        await client.send('Network.enable');
+
+        // Listen to network responses
+        client.on('Network.responseReceived', (params: any) => {
+          const { response, type } = params;
+
+          // Only track image requests
+          if (type === 'Image' || response.mimeType?.startsWith('image/')) {
+            const url = response.url;
+            const headers = response.headers || {};
+            const contentLength = headers['content-length'] || headers['Content-Length'];
+
+            if (contentLength) {
+              const bytes = parseInt(contentLength, 10);
+              if (!isNaN(bytes) && bytes > 0) {
+                imageNetworkData.set(url, {
+                  sizeKB: Math.round(bytes / 1024),
+                  transferSizeKB: Math.round(bytes / 1024) // Will be updated with actual transfer size
+                });
+              }
+            }
+          }
+        });
+
+        // Also listen for loading finished to get actual transfer sizes
+        client.on('Network.loadingFinished', async (params: any) => {
+          const { requestId, encodedDataLength } = params;
+
+          // Get request details to find the URL
+          try {
+            const requestDetails = await client.send('Network.getResponseBody', { requestId });
+            // encodedDataLength is the actual compressed transfer size
+            if (encodedDataLength > 0) {
+              // We need to match this to a URL - will update existing entry if found
+              // For now, we'll use the encodedDataLength as transferSize
+            }
+          } catch (e) {
+            // getResponseBody may fail for images, that's ok
+          }
+        });
+
+        await BrowserService.goto(page, url);
+
+        // Wait a moment for JavaScript to execute and images to load
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Get Resource Timing API data for even more accurate image sizes
+        const resourceTimingData = await page.evaluate(() => {
+          return performance.getEntriesByType('resource')
+            .filter((r: any) => r.initiatorType === 'img' || r.initiatorType === 'image')
+            .map((r: any) => ({
+              url: r.name,
+              transferSize: r.transferSize, // Actual bytes transferred (compressed)
+              encodedBodySize: r.encodedBodySize, // Compressed size
+              decodedBodySize: r.decodedBodySize // Uncompressed size
+            }));
+        });
+
+        // Merge Resource Timing data with CDP data (Resource Timing is more accurate)
+        for (const resource of resourceTimingData) {
+          if (resource.transferSize > 0) {
+            imageNetworkData.set(resource.url, {
+              sizeKB: Math.round(resource.decodedBodySize / 1024), // Uncompressed size
+              transferSizeKB: Math.round(resource.transferSize / 1024) // Actual transfer (compressed)
+            });
+          }
+        }
+
+        console.log(`📸 Captured ${imageNetworkData.size} images from browser network activity`);
+
+        const renderedHtml = await page.content();
+        const pageUrl = page.url();
+
+        return {
+          html: renderedHtml,
+          url: pageUrl,
+          imageData: imageNetworkData
+        };
+      });
+
+      html = browserResult.html;
+      finalUrl = browserResult.url;
+      browserImageData = browserResult.imageData;
+      console.log(`📍 Final URL after redirects: ${finalUrl}`);
+    } catch (browserError) {
+      // Fallback to simple fetch if browser rendering fails
+      console.warn('Browser rendering failed, falling back to simple fetch:', browserError);
+      const mainPageResponse = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (!mainPageResponse.ok) {
+        console.error(`Failed to fetch main page: ${mainPageResponse.status}`);
+        return result;
+      }
+
+      html = await mainPageResponse.text();
+      finalUrl = mainPageResponse.url;
+      statusCode = mainPageResponse.status;
+      console.log(`📍 Final URL after redirects (fetch): ${finalUrl}`);
     }
-    
-    const html = await mainPageResponse.text();
     
     // 2. Analyze page structure
     const pageAnalysis = analyzePageStructure(html);
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-    const pageTitle = titleMatch ? titleMatch[1].trim() : 'No title';
+    const pageTitle = pageAnalysis.titleText || 'No title';
 
-    if (!pageAnalysis.hasTitle) result.issues.missingMetaTitles++;
+    // Track title issues
+    if (!pageAnalysis.hasTitle) {
+      result.issues.missingMetaTitles++;
+    } else {
+      // Check title length
+      if (pageAnalysis.isTitleTooShort) {
+        result.issues.shortTitles = (result.issues.shortTitles || 0) + 1;
+        result.titleLengthIssues!.tooShort.push({
+          url: finalUrl,
+          title: pageAnalysis.titleText,
+          length: pageAnalysis.titleLength
+        });
+      }
+      if (pageAnalysis.isTitleTooLong) {
+        result.issues.longTitles = (result.issues.longTitles || 0) + 1;
+        result.titleLengthIssues!.tooLong.push({
+          url: finalUrl,
+          title: pageAnalysis.titleText,
+          length: pageAnalysis.titleLength
+        });
+      }
+    }
+
     if (!pageAnalysis.hasDescription) result.issues.missingMetaDescriptions++;
     if (!pageAnalysis.hasH1) result.issues.missingH1Tags++;
-    
+
+    // 2.5. Validate structured data (schema markup)
+    console.log('🔍 Validating structured data...');
+    try {
+      const { validateStructuredData } = await import('./structuredDataValidator');
+      const structuredDataResult = await validateStructuredData(html);
+      result.structuredData = structuredDataResult;
+      result.issues.invalidStructuredData = structuredDataResult.invalidItems;
+      console.log(`📊 Structured data: ${structuredDataResult.totalItems} items found, ${structuredDataResult.invalidItems} invalid`);
+    } catch (error) {
+      console.error('❌ Structured data validation failed:', error);
+    }
+
     // 3. Find and analyze all images from main page
-    const mainPageImages = await findAndAnalyzeImages(html, url);
-    result.largeImageDetails = mainPageImages.largeImages;
+    try {
+      const mainPageImages = await findAndAnalyzeImages(html, finalUrl, browserImageData);
+      result.largeImageDetails = mainPageImages.largeImages;
+      result.legacyFormatImages = mainPageImages.legacyFormatImages;
+    } catch (error) {
+      console.error('❌ Image analysis failed for main page:', error);
+      result.largeImageDetails = [];
+      result.legacyFormatImages = [];
+    }
     
     // 4. Find and check all links for 404s
-    const links = findAllLinks(html, url);
-    const brokenLinks = await checkLinksFor404s(links, url);
-    result.notFoundErrors = brokenLinks;
-    result.issues.httpErrors = brokenLinks.length;
+    try {
+      const links = findAllLinks(html, url);
+      const brokenLinks = await checkLinksFor404s(links, url);
+      result.notFoundErrors = brokenLinks;
+      result.issues.httpErrors = brokenLinks.length;
+    } catch (error) {
+      console.error('❌ Link checking failed:', error);
+      result.notFoundErrors = [];
+      result.issues.httpErrors = 0;
+    }
     
     // 5. Check for sitemap
     result.sitemapStatus = await checkSitemap(baseUrl);
-    
+
     // 6. Check for robots.txt
     result.robotsTxtStatus = await checkRobotsTxt(baseUrl);
+    if (result.robotsTxtStatus === 'missing') {
+      result.issues.missingRobotsTxt = 1;
+    }
     
     // 7. Discover pages based on scope
     let pageDiscovery;
@@ -155,7 +520,7 @@ export async function performTechnicalAudit(
         pages: [{
           url: url,
           title: pageTitle,
-          statusCode: mainPageResponse.status,
+          statusCode: statusCode,
           hasTitle: pageAnalysis.hasTitle,
           hasDescription: pageAnalysis.hasDescription,
           hasH1: pageAnalysis.hasH1,
@@ -225,20 +590,49 @@ export async function performTechnicalAudit(
     } else {
       // scope === 'all' - discover all pages
       console.log('🔍 Discovering all website pages...');
+      if (onProgress) await onProgress('discovering_pages', 0, 100, 'Discovering website pages...');
       pageDiscovery = await discoverRealPages(url);
+      if (onProgress) await onProgress('discovering_pages', 100, 100, `Found ${pageDiscovery.totalPages} pages`);
     }
 
     result.totalPages = pageDiscovery.totalPages;
-    
-    // Add performance metrics to ALL pages (limit detailed analysis but provide metrics for all)
+
+    // Clear expired cache entries before starting
+    clearExpiredCache();
+
+    // Add performance metrics to ALL pages with parallel chunked processing
     console.log('📊 Analyzing Core Web Vitals for all discovered pages...');
+    if (onProgress) await onProgress('analyzing_metadata', 0, result.totalPages, 'Analyzing page metadata...');
     const maxDetailedAnalysis = 20; // Only fetch HTML for first 20 pages (for performance)
     const pagesToAnalyze = pageDiscovery.pages; // Analyze ALL pages
-    
-    const pagesWithPerformance = await Promise.all(
-      pagesToAnalyze.map(async (page, index) => {
+
+    // Process pages in chunks of 3 (safe for Railway free tier)
+    const CONCURRENT_PAGES = 3;
+    console.log(`⚡ Processing pages in parallel (${CONCURRENT_PAGES} at a time)`);
+
+    const pagesWithPerformance = await processInChunks(
+      pagesToAnalyze,
+      CONCURRENT_PAGES,
+      async (page, index) => {
         let performance: PagePerformanceMetrics | undefined;
         let pageHtml: string | undefined = undefined;
+
+        // Check cache first
+        const cached = getCachedPageData(page.url);
+        if (cached && cached.lighthouse) {
+          console.log(`⚡ Using cached data for ${page.url}`);
+          return {
+            url: page.url,
+            title: page.title,
+            statusCode: page.statusCode,
+            hasTitle: page.hasTitle,
+            hasDescription: page.hasDescription,
+            hasH1: page.hasH1,
+            imageCount: page.imageCount,
+            performance: cached.lighthouse,
+            html: pageHtml
+          };
+        }
 
         try {
           // Only do detailed HTML fetching for first N pages to avoid timeouts
@@ -297,12 +691,26 @@ export async function performTechnicalAudit(
             console.log(`📊 Generating simulated performance for ${page.url} (beyond fetch limit)`);
           }
         } catch (_error) {
-          console.log(`Could not analyze performance for ${page.url}:`, error.message);
+          console.log(`Could not analyze performance for ${page.url}:`, _error instanceof Error ? _error.message : String(_error));
           // Still provide basic performance metrics so page appears in table
           performance = {
             desktop: { lcp: 3500, cls: 0.15, inp: 300, score: 40 },
             mobile: { lcp: 5000, cls: 0.25, inp: 450, score: 25 }
           };
+        }
+
+        // Cache the performance data for future audits
+        if (performance) {
+          setCachedPageData(page.url, {
+            lighthouse: performance,
+            metadata: {
+              title: page.title,
+              description: page.hasDescription ? 'Present' : 'Missing',
+              hasH1: page.hasH1,
+              imageCount: page.imageCount,
+              statusCode: page.statusCode
+            }
+          });
         }
 
         return {
@@ -316,9 +724,9 @@ export async function performTechnicalAudit(
           performance,
           html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
         };
-      })
+      }
     );
-    
+
     // All pages now have performance data
     result.pages = pagesWithPerformance;
     result.sitemapStatus = pageDiscovery.sitemapStatus;
@@ -360,44 +768,173 @@ export async function performTechnicalAudit(
       console.log(`✅ Aggregate metrics calculated from ${pagesWithMetrics.length} pages`);
     }
     
-    // Count issues across all discovered pages
-    result.issues.missingMetaTitles = pageDiscovery.pages.filter(p => !p.hasTitle).length;
-    result.issues.missingMetaDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription).length;
-    result.issues.missingH1Tags = pageDiscovery.pages.filter(p => !p.hasH1).length;
-    result.issues.httpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400).length;
-    
-    // 8. Analyze images from discovered pages (check up to 10 pages for performance)
-    console.log('🖼️ Analyzing images across discovered pages...');
-    // For single page, don't analyze additional pages (already analyzed main page)
-    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, 10);
+    // Count issues across all discovered pages and collect page URLs
+    const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
+    const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
+    const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400);
 
-    for (const page of pagesToCheck) {
-      if (page.url === url) continue; // Skip main page (already analyzed)
-      
-      try {
-        const pageResponse = await fetch(page.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (pageResponse.ok) {
-          const pageHtml = await pageResponse.text();
-          const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
-          
-          // Add large images from this page to the results
-          result.largeImageDetails.push(...pageImages.largeImages);
-        }
-      } catch (_error) {
-        console.log(`Could not analyze images for ${page.url}`);
+    result.issues.missingMetaTitles = pagesWithMissingTitles.length;
+    result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
+    result.issues.missingH1Tags = pagesWithMissingH1.length;
+    result.issues.httpErrors = pagesWithHttpErrors.length;
+
+    // Store page URLs for each issue type (limit to 20 pages per issue type for performance)
+    result.issuePages = {
+      missingMetaTitles: pagesWithMissingTitles.slice(0, 20).map(p => p.url),
+      missingMetaDescriptions: pagesWithMissingDescriptions.slice(0, 20).map(p => p.url),
+      missingH1Tags: pagesWithMissingH1.slice(0, 20).map(p => p.url),
+      httpErrors: pagesWithHttpErrors.slice(0, 20).map(p => p.url)
+    };
+
+    // 7.5. Analyze text-to-HTML ratio for pages with HTML content
+    console.log('📊 Analyzing text-to-HTML ratio...');
+    try {
+      const { analyzePagesTextHtmlRatio } = await import('./textHtmlRatioAnalyzer');
+      const pagesWithHtml = pageDiscovery.pages.filter(p => p.html);
+
+      if (pagesWithHtml.length > 0) {
+        const ratioAnalysis = analyzePagesTextHtmlRatio(pagesWithHtml);
+        result.textHtmlRatio = ratioAnalysis;
+        result.issues.lowTextHtmlRatio = ratioAnalysis.pagesWithLowRatio;
+        console.log(`📈 Text-to-HTML ratio: ${ratioAnalysis.pagesWithLowRatio}/${ratioAnalysis.totalPages} pages have low ratio`);
       }
+    } catch (error) {
+      console.error('❌ Text-to-HTML ratio analysis failed:', error);
     }
-    
+
+    // 8. Analyze images from discovered pages with scope-based limits
+    console.log('🖼️ Analyzing images across discovered pages...');
+
+    // Determine how many pages to analyze based on scope
+    let pageLimit = 0;
+    if (scope === 'single') {
+      pageLimit = 0; // Already analyzed main page
+    } else if (scope === 'all') {
+      pageLimit = 50; // Scan up to 50 pages for all discoverable pages
+    } else if (scope === 'custom' || scope === 'multi') {
+      // For custom/multi, analyze all specified pages
+      pageLimit = specifiedPages.length;
+    }
+
+    const pagesToCheck = scope === 'single' ? [] : pageDiscovery.pages.slice(0, pageLimit);
+    console.log(`📊 Analyzing images on ${pagesToCheck.length} pages (scope: ${scope}, limit: ${pageLimit})`);
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', 0, pagesToCheck.length, 'Analyzing images across pages...');
+    }
+
+    // Process images in parallel chunks
+    const imagePagesToProcess = pagesToCheck.filter(page => page.url !== url); // Skip main page
+    console.log(`⚡ Analyzing images on ${imagePagesToProcess.length} pages in parallel`);
+
+    await processInChunks(
+      imagePagesToProcess,
+      CONCURRENT_PAGES, // Same concurrency as metadata analysis
+      async (page, i) => {
+        try {
+          // Check cache for page HTML
+          const cached = getCachedPageData(page.url);
+          let pageHtml: string | undefined;
+
+          if (cached && cached.images) {
+            console.log(`⚡ Using cached image data for ${page.url}`);
+            // Add cached images to results
+            if (cached.images.length > 0) {
+              const largeImages = cached.images.filter(img => img.sizeKB > 100);
+              result.largeImageDetails.push(...largeImages.map(img => ({
+                imageUrl: img.url,
+                pageUrl: page.url,
+                sizeKB: img.sizeKB
+              })));
+            }
+            return;
+          }
+
+          // Fetch page HTML if not cached
+          const pageResponse = await fetch(page.url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            signal: AbortSignal.timeout(10000)
+          });
+
+          if (pageResponse.ok) {
+            pageHtml = await pageResponse.text();
+            const pageImages = await findAndAnalyzeImages(pageHtml, page.url);
+
+            // Cache image data
+            setCachedPageData(page.url, {
+              images: pageImages.largeImages.map(img => ({
+                url: img.imageUrl,
+                sizeKB: img.sizeKB,
+                format: 'unknown'
+              }))
+            });
+
+            // Add large images from this page to the results
+          result.largeImageDetails.push(...pageImages.largeImages);
+
+            // Add legacy format images from this page
+            if (result.legacyFormatImages) {
+              result.legacyFormatImages.push(...pageImages.legacyFormatImages);
+            }
+          }
+
+          // Report progress every 5 pages
+          if (onProgress && (i + 1) % 5 === 0) {
+            await onProgress('analyzing_images', i + 1, imagePagesToProcess.length, `Analyzed images on ${i + 1} of ${imagePagesToProcess.length} pages`);
+          }
+        } catch (_error) {
+          console.log(`Could not analyze images for ${page.url}`);
+        }
+      }
+    );
+
+    if (onProgress && pagesToCheck.length > 0) {
+      await onProgress('analyzing_images', pagesToCheck.length, pagesToCheck.length, 'Image analysis complete');
+    }
+
     // Sort all large images by size and limit to top 20
     result.largeImageDetails.sort((a, b) => b.sizeKB - a.sizeKB);
     result.largeImageDetails = result.largeImageDetails.slice(0, 20);
     result.largeImages = result.largeImageDetails.length;
-    
-    // 9. Analyze viewport responsiveness
+
+    // Sort all legacy format images by size and limit to top 50
+    if (result.legacyFormatImages) {
+      result.legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+      result.legacyFormatImages = result.legacyFormatImages.slice(0, 50);
+      console.log(`📸 Found ${result.legacyFormatImages.length} images using legacy formats`);
+    }
+
+    // 9. Detect unminified JavaScript and CSS files
+    console.log('📦 Detecting unminified JavaScript and CSS files...');
+    try {
+      // Use the main page's HTML for analysis
+      const mainPageHtml = result.html || result.pages[0]?.html || '';
+
+      if (mainPageHtml) {
+        const unminifiedResult = await detectUnminifiedFiles(mainPageHtml, url);
+
+        if (unminifiedResult.totalUnminified > 0) {
+          result.unminifiedFiles = unminifiedResult;
+          result.issues.unminifiedFiles = unminifiedResult.totalUnminified;
+
+          console.log(`⚠️  Found ${unminifiedResult.totalUnminified} unminified files:`);
+          console.log(`   - ${unminifiedResult.javascriptFiles.length} JavaScript files`);
+          console.log(`   - ${unminifiedResult.cssFiles.length} CSS files`);
+        } else {
+          console.log(`✅ All JavaScript and CSS files appear to be minified`);
+        }
+
+        if (onProgress) {
+          await onProgress('analyzing_files', 1, 1, 'File minification check complete');
+        }
+      }
+    } catch (_error) {
+      console.error('Unminified file detection failed:', error);
+      // Don't fail the entire audit if this check fails
+    }
+
+    // 10. Analyze viewport responsiveness
     console.log('📱 Analyzing viewport responsiveness...');
     try {
       result.viewportAnalysis = await analyzeViewportResponsiveness(url);
@@ -406,7 +943,150 @@ export async function performTechnicalAudit(
       console.error('Viewport analysis failed:', error);
       result.viewportAnalysis = null;
     }
-    
+
+    // 11. Analyze internal linking structure
+    // Only perform if we have multiple pages (makes sense for 'all' or 'custom' audits with multiple pages)
+    if (pageDiscovery && pageDiscovery.pages.length > 1) {
+      console.log('🔗 Analyzing internal linking structure...');
+      try {
+        const internalLinkAnalysis = analyzeInternalLinks(pageDiscovery.pages, domain);
+
+        // Store analysis results
+        result.internalLinkAnalysis = internalLinkAnalysis;
+
+        // Track all issue counts
+        if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
+          result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithOneIncomingLink.length} pages with only one incoming internal link`);
+        }
+
+        if (internalLinkAnalysis.orphanedSitemapPages.length > 0) {
+          result.issues.orphanedSitemapPages = internalLinkAnalysis.orphanedSitemapPages.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.orphanedSitemapPages.length} orphaned pages in sitemap`);
+        }
+
+        if (internalLinkAnalysis.trueOrphanPages.length > 0) {
+          result.issues.trueOrphanPages = internalLinkAnalysis.trueOrphanPages.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.trueOrphanPages.length} true orphan pages (0 incoming links)`);
+        }
+
+        if (internalLinkAnalysis.pagesWithBrokenLinks.length > 0) {
+          result.issues.pagesWithBrokenLinks = internalLinkAnalysis.pagesWithBrokenLinks.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithBrokenLinks.length} pages with broken internal links`);
+        }
+
+        if (internalLinkAnalysis.pagesWithNofollowLinks.length > 0) {
+          result.issues.pagesWithNofollowLinks = internalLinkAnalysis.pagesWithNofollowLinks.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.pagesWithNofollowLinks.length} pages with nofollow internal links`);
+        }
+
+        if (internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length > 0) {
+          result.issues.pagesDeepInSite = internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.linkDepthAnalysis.pagesDeepInSite.length} pages deep in site (4+ clicks from homepage)`);
+        }
+
+        if (internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length > 0) {
+          result.issues.genericAnchors = internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length;
+          console.log(`⚠️  Found ${internalLinkAnalysis.anchorTextAnalysis.genericAnchors.length} instances of generic anchor text`);
+        }
+
+        if (internalLinkAnalysis.deepLinkRatio.ratio < 0.6) {
+          result.issues.poorDeepLinkRatio = 1;
+          console.log(`⚠️  Poor deep link ratio: ${(internalLinkAnalysis.deepLinkRatio.ratio * 100).toFixed(1)}% (should be ≥60%)`);
+        }
+
+        console.log(`✅ Internal link analysis complete - analyzed ${internalLinkAnalysis.totalPagesAnalyzed} pages`);
+
+        if (onProgress) {
+          await onProgress('analyzing_links', 1, 1, 'Internal link analysis complete');
+        }
+      } catch (_error) {
+        console.error('Internal link analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
+    // 12. Check for permanent redirects (301/308)
+    // Only perform if we have multiple pages
+    if (pageDiscovery && pageDiscovery.pages.length > 1) {
+      console.log('🔄 Checking for permanent redirects...');
+      try {
+        const redirectAnalysis = await analyzePermanentRedirects(pageDiscovery.pages, domain);
+
+        if (redirectAnalysis.totalRedirects > 0) {
+          result.permanentRedirects = redirectAnalysis;
+          result.issues.permanentRedirects = redirectAnalysis.totalRedirects;
+
+          console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects`);
+        } else {
+          console.log(`✅ No permanent redirects found`);
+        }
+
+        if (onProgress) {
+          await onProgress('checking_redirects', 1, 1, 'Redirect analysis complete');
+        }
+      } catch (_error) {
+        console.error('Redirect analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
+    // 13. Check HSTS (HTTP Strict Transport Security) support
+    // Check main domain and subdomains for HSTS headers
+    if (pageDiscovery && pageDiscovery.pages.length >= 1) {
+      console.log('🔒 Checking HSTS support...');
+      try {
+        const hstsAnalysis = await analyzeHSTSSupport(url, pageDiscovery.pages, domain);
+
+        result.hstsAnalysis = hstsAnalysis;
+
+        // Count subdomains without HSTS as an issue
+        if (hstsAnalysis.subdomainsWithoutHSTS.length > 0) {
+          result.issues.subdomainsWithoutHSTS = hstsAnalysis.subdomainsWithoutHSTS.length;
+          console.log(`⚠️  Found ${hstsAnalysis.subdomainsWithoutHSTS.length} subdomain(s) without HSTS`);
+        } else if (hstsAnalysis.totalSubdomainsChecked > 0) {
+          console.log(`✅ All ${hstsAnalysis.totalSubdomainsChecked} subdomain(s) have HSTS enabled`);
+        }
+
+        // Also warn if main domain doesn't have HSTS
+        if (!hstsAnalysis.mainDomain.hasHSTS) {
+          console.log(`⚠️  Main domain does not have HSTS enabled`);
+        }
+
+        if (onProgress) {
+          await onProgress('checking_hsts', 1, 1, 'HSTS analysis complete');
+        }
+      } catch (_error) {
+        console.error('HSTS analysis failed:', error);
+        // Don't fail the entire audit if this check fails
+      }
+    }
+
+    // 14. Check for llms.txt file
+    // https://llmstxt.org/ - Standard for providing context to LLMs
+    console.log('🤖 Checking for llms.txt...');
+    try {
+      const llmsTxtCheck = await checkLlmsTxt(url);
+      result.llmsTxt = llmsTxtCheck;
+
+      if (!llmsTxtCheck.exists) {
+        result.issues.missingLlmsTxt = 1;
+        console.log(`⚠️  llms.txt not found - consider adding one for better LLM understanding`);
+      } else if (llmsTxtCheck.isValid) {
+        console.log(`✅ llms.txt found and valid`);
+      } else {
+        result.issues.missingLlmsTxt = 1;
+        console.log(`⚠️  llms.txt found but has validation errors`);
+      }
+
+      if (onProgress) {
+        await onProgress('checking_llmstxt', 1, 1, 'llms.txt check complete');
+      }
+    } catch (_error) {
+      console.error('llms.txt check failed:', error);
+      // Don't fail the entire audit if this check fails
+    }
+
   } catch (_error) {
     console.error('Technical audit error:', error);
   }
@@ -418,9 +1098,60 @@ export async function performTechnicalAudit(
   return result;
 }
 
-function analyzePageStructure(html: string) {
+/**
+ * Extract title tag text from HTML
+ */
+function extractTitleText(html: string): string {
+  const match = html.match(/<title[^>]*>(.*?)<\/title>/is);
+  if (match && match[1]) {
+    // Decode HTML entities and trim whitespace
+    return match[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .trim();
+  }
+  return '';
+}
+
+/**
+ * Analyze title tag quality (existence and length)
+ * SEMrush standards:
+ * - Too short: < 30 characters (not enough descriptive text)
+ * - Optimal: 30-60 characters (displays well in search results)
+ * - Too long: > 70 characters (gets truncated in search results)
+ */
+function analyzeTitleTag(html: string): {
+  hasTitle: boolean;
+  titleText: string;
+  titleLength: number;
+  isTooShort: boolean;
+  isTooLong: boolean;
+} {
+  const titleText = extractTitleText(html);
+  const hasTitle = titleText.length > 0;
+  const titleLength = titleText.length;
+
   return {
-    hasTitle: /<title[^>]*>.*<\/title>/is.test(html),
+    hasTitle,
+    titleText,
+    titleLength,
+    isTooShort: hasTitle && titleLength < 30,
+    isTooLong: titleLength > 70
+  };
+}
+
+function analyzePageStructure(html: string) {
+  const titleAnalysis = analyzeTitleTag(html);
+
+  return {
+    hasTitle: titleAnalysis.hasTitle,
+    titleText: titleAnalysis.titleText,
+    titleLength: titleAnalysis.titleLength,
+    isTitleTooShort: titleAnalysis.isTooShort,
+    isTitleTooLong: titleAnalysis.isTooLong,
     hasDescription: hasMetaDescription(html),
     hasH1: hasH1Tag(html),
   };
@@ -474,89 +1205,1065 @@ function hasH1Tag(html: string): boolean {
   return false;
 }
 
-async function findAndAnalyzeImages(html: string, pageUrl: string) {
+// Analyze image format and suggest modern alternatives
+function analyzeImageFormat(imageUrl: string): {
+  currentFormat: string;
+  isModern: boolean;
+  suggestedFormat: string;
+} {
+  const url = imageUrl.toLowerCase();
+
+  // Modern formats - no conversion needed
+  if (url.match(/\.(webp|avif|jxl)(\?|$|#)/)) {
+    return { currentFormat: 'Modern (WebP/AVIF)', isModern: true, suggestedFormat: 'N/A' };
+  }
+
+  // Legacy formats - should be converted
+  if (url.match(/\.(jpe?g)(\?|$|#)/)) {
+    return { currentFormat: 'JPEG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.png(\?|$|#)/)) {
+    return { currentFormat: 'PNG', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.gif(\?|$|#)/)) {
+    return { currentFormat: 'GIF', isModern: false, suggestedFormat: 'WebP' };
+  }
+  if (url.match(/\.bmp(\?|$|#)/)) {
+    return { currentFormat: 'BMP', isModern: false, suggestedFormat: 'WebP' };
+  }
+
+  // Unknown format or no extension
+  return { currentFormat: 'Unknown', isModern: true, suggestedFormat: 'N/A' };
+}
+
+async function findAndAnalyzeImages(
+  html: string,
+  pageUrl: string,
+  browserImageData?: Map<string, { sizeKB: number; transferSizeKB: number }>
+) {
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const images: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
   const largeImages: Array<{ imageUrl: string; pageUrl: string; sizeKB: number }> = [];
+  const legacyFormatImages: Array<{ imageUrl: string; pageUrl: string; currentFormat: string; suggestedFormat: string; sizeKB: number }> = [];
 
   let match;
   const checkedUrls = new Set<string>();
+  const imageUrls: string[] = [];
 
+  // First pass: collect all image URLs
   while ((match = imageRegex.exec(html)) !== null) {
     const imgSrc = match[1];
     if (!imgSrc || checkedUrls.has(imgSrc)) continue;
     checkedUrls.add(imgSrc);
 
-    // Convert relative URLs to absolute
-    let imageUrl = imgSrc;
     try {
       // Skip data URLs and SVGs early
       if (imgSrc.startsWith('data:') || imgSrc.endsWith('.svg')) continue;
 
       // Always use URL constructor for proper normalization
+      let imageUrl: string;
       if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
-        // Valid absolute URL - use directly but validate
         imageUrl = new URL(imgSrc).href;
       } else {
-        // Relative URL or malformed URL - resolve against base
         const base = new URL(pageUrl);
         imageUrl = new URL(imgSrc, base).href;
       }
 
-      // Try to get image size via HEAD request
-      const sizeKB = await getImageSize(imageUrl);
-
-      if (sizeKB > 0) {
-        const imageData = { imageUrl, pageUrl, sizeKB };
-        images.push(imageData);
-
-        // Track images over 100KB
-        if (sizeKB > 100) {
-          largeImages.push(imageData);
-        }
-      }
+      imageUrls.push(imageUrl);
     } catch (_error) {
-      console.log(`Could not check image ${imgSrc}:`, error);
+      // Skip malformed URLs
+      continue;
     }
   }
+
+  // Process images - prioritize browser-captured data
+  const BATCH_SIZE = 10; // Process 10 images at a time
+  const MAX_FAILURES = 50; // Circuit breaker: stop if too many fail
+  let failureCount = 0;
+  let browserDataUsed = 0;
+  let fetchedData = 0;
+
+  for (let i = 0; i < imageUrls.length; i += BATCH_SIZE) {
+    // Circuit breaker: stop processing if too many failures
+    if (failureCount >= MAX_FAILURES) {
+      console.log(`⚠️ Stopped image analysis: ${failureCount} consecutive failures (circuit breaker)`);
+      break;
+    }
+
+    const batch = imageUrls.slice(i, i + BATCH_SIZE);
+
+    // Process batch concurrently
+    const results = await Promise.allSettled(
+      batch.map(async (imageUrl) => {
+        // Strategy 1: Check if we have browser-captured data for this image (BEST!)
+        if (browserImageData && browserImageData.has(imageUrl)) {
+          const browserData = browserImageData.get(imageUrl)!;
+          return {
+            imageUrl,
+            sizeKB: browserData.sizeKB,
+            source: 'browser' as const
+          };
+        }
+
+        // Strategy 2: Fall back to fetching (for images not loaded by browser)
+        const sizeKB = await getImageSize(imageUrl, pageUrl);
+        return {
+          imageUrl,
+          sizeKB,
+          source: 'fetch' as const
+        };
+      })
+    );
+
+    // Process results
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { imageUrl, sizeKB, source } = result.value;
+
+        if (source === 'browser') {
+          browserDataUsed++;
+        } else if (sizeKB > 0) {
+          fetchedData++;
+        }
+
+        if (sizeKB > 0) {
+          failureCount = 0; // Reset failure counter on success
+          const imageData = { imageUrl, pageUrl, sizeKB };
+          images.push(imageData);
+
+          // Track images over 100KB
+          if (sizeKB > 100) {
+            largeImages.push(imageData);
+          }
+
+          // Check image format and track legacy formats (prioritize larger images >100KB)
+          const formatAnalysis = analyzeImageFormat(imageUrl);
+          if (!formatAnalysis.isModern && sizeKB > 100) {
+            legacyFormatImages.push({
+              imageUrl,
+              pageUrl,
+              currentFormat: formatAnalysis.currentFormat,
+              suggestedFormat: formatAnalysis.suggestedFormat,
+              sizeKB
+            });
+          }
+        } else if (source === 'fetch') {
+          failureCount++;
+        }
+      } else {
+        failureCount++;
+      }
+    }
+
+    // Small delay between batches to avoid overwhelming the server (only for fetched images)
+    if (i + BATCH_SIZE < imageUrls.length && fetchedData > 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  console.log(`📊 Image analysis: ${browserDataUsed} from browser, ${fetchedData} fetched, ${images.length} total`);
 
   // Sort large images by size (largest first)
   largeImages.sort((a, b) => b.sizeKB - a.sizeKB);
 
-  return { images, largeImages };
+  // Sort legacy format images by size (largest first)
+  legacyFormatImages.sort((a, b) => b.sizeKB - a.sizeKB);
+
+  return { images, largeImages, legacyFormatImages };
 }
 
-async function getImageSize(imageUrl: string): Promise<number> {
+// Cache for failed image URLs to avoid re-fetching
+const failedImageCache = new Set<string>();
+
+async function getImageSize(imageUrl: string, referrer?: string): Promise<number> {
+  // Skip if we've already failed to fetch this image
+  if (failedImageCache.has(imageUrl)) {
+    return 0;
+  }
+
   try {
-    const response = await fetch(imageUrl, {
+    // Strategy 1: Try HEAD request first (fastest, most efficient)
+    const headResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('HEAD timeout')), 3500)
+      )
+    ]);
+
+    if (headResponse.ok) {
+      const contentLength = headResponse.headers.get('content-length');
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024); // Convert to KB
+        }
+      }
+    }
+
+    // Strategy 2: If HEAD failed or no content-length, try GET with range request
+    const rangeResponse = await Promise.race([
+      fetch(imageUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Range': 'bytes=0-1023', // Only fetch first 1KB to check
+          ...(referrer ? { 'Referer': referrer } : {})
+        },
+        signal: AbortSignal.timeout(3000)
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('Range timeout')), 3500)
+      )
+    ]);
+
+    if (rangeResponse.ok || rangeResponse.status === 206) {
+      const contentLength = rangeResponse.headers.get('content-length');
+      const contentRange = rangeResponse.headers.get('content-range');
+
+      // Parse content-range: bytes 0-1023/12345
+      if (contentRange) {
+        const match = contentRange.match(/bytes \d+-\d+\/(\d+)/);
+        if (match) {
+          const totalBytes = parseInt(match[1], 10);
+          if (!isNaN(totalBytes) && totalBytes > 0) {
+            return Math.round(totalBytes / 1024);
+          }
+        }
+      }
+
+      if (contentLength) {
+        const bytes = parseInt(contentLength, 10);
+        if (!isNaN(bytes) && bytes > 0) {
+          return Math.round(bytes / 1024);
+        }
+      }
+    }
+
+  } catch (error) {
+    // Only log if it's not a timeout (reduce noise)
+    if (error instanceof Error && !error.message.includes('timeout') && !error.message.includes('aborted')) {
+      console.log(`Could not get size for ${imageUrl}: ${error.message}`);
+    }
+    // Cache failed URL to avoid retrying
+    failedImageCache.add(imageUrl);
+  }
+
+  return 0;
+}
+
+/**
+ * Analyze internal linking structure across all pages - SOPHISTICATED VERSION
+ * Includes: link depth, orphans, broken links, nofollow, anchor text, deep link ratio
+ */
+function analyzeInternalLinks(
+  pagesData: Array<{ url: string; html?: string; source?: string; statusCode?: number }>,
+  domain: string
+) {
+  console.log(`🔗 Starting sophisticated internal link analysis for ${pagesData.length} pages...`);
+
+  // Build a map of page URL -> array of pages that link to it
+  const incomingLinksMap = new Map<string, Set<string>>();
+
+  // Track which pages came from sitemap
+  const sitemapPages = new Set<string>();
+
+  // Track all link details (with anchor text and nofollow status)
+  interface LinkDetails {
+    sourceUrl: string;
+    targetUrl: string;
+    anchorText: string;
+    isNofollow: boolean;
+    isBroken: boolean;
+  }
+  const allLinkDetails: LinkDetails[] = [];
+
+  // Track broken links per page
+  const brokenLinksPerPage = new Map<string, Array<{ targetUrl: string; anchorText: string }>>();
+
+  // Track nofollow links per page
+  const nofollowLinksPerPage = new Map<string, Array<{ targetUrl: string; anchorText: string }>>();
+
+  // Track anchor text usage
+  const anchorTextMap = new Map<string, Map<string, number>>(); // url -> anchor text -> count
+
+  // Count homepage vs deep links
+  let homepageLinks = 0;
+  let deepContentLinks = 0;
+
+  // Initialize map with all discovered pages
+  for (const page of pagesData) {
+    const normalizedUrl = normalizeUrl(page.url);
+    if (!incomingLinksMap.has(normalizedUrl)) {
+      incomingLinksMap.set(normalizedUrl, new Set());
+    }
+
+    // Track pages from sitemap
+    if (page.source === 'sitemap') {
+      sitemapPages.add(normalizedUrl);
+    }
+  }
+
+  // Extract all links with rich details (anchor text, nofollow, etc.)
+  for (const sourcePage of pagesData) {
+    if (!sourcePage.html) continue;
+
+    const sourceUrl = normalizeUrl(sourcePage.url);
+    const enrichedLinks = extractLinksWithDetails(sourcePage.html, sourcePage.url);
+
+    // Filter to internal links only (same domain)
+    const internalLinks = enrichedLinks.filter(link => {
+      try {
+        const linkHost = new URL(link.targetUrl).hostname;
+        return linkHost === domain || linkHost === `www.${domain}` || linkHost === domain.replace('www.', '');
+      } catch {
+        return false;
+      }
+    });
+
+    // Process each internal link
+    for (const link of internalLinks) {
+      const normalizedTarget = normalizeUrl(link.targetUrl);
+
+      // Skip self-links
+      if (normalizedTarget === sourceUrl) continue;
+
+      // Check if link is to homepage or deep content
+      const isHomepageLink = isHomepage(normalizedTarget);
+      if (isHomepageLink) {
+        homepageLinks++;
+      } else {
+        deepContentLinks++;
+      }
+
+      // Record incoming link
+      if (!incomingLinksMap.has(normalizedTarget)) {
+        incomingLinksMap.set(normalizedTarget, new Set());
+      }
+      incomingLinksMap.get(normalizedTarget)!.add(sourceUrl);
+
+      // Track broken internal links (if target page exists in our data)
+      const targetPage = pagesData.find(p => normalizeUrl(p.url) === normalizedTarget);
+      const isBroken = targetPage && targetPage.statusCode && targetPage.statusCode >= 400;
+
+      if (isBroken) {
+        if (!brokenLinksPerPage.has(sourceUrl)) {
+          brokenLinksPerPage.set(sourceUrl, []);
+        }
+        brokenLinksPerPage.get(sourceUrl)!.push({
+          targetUrl: link.targetUrl,
+          anchorText: link.anchorText
+        });
+      }
+
+      // Track nofollow internal links
+      if (link.isNofollow) {
+        if (!nofollowLinksPerPage.has(sourceUrl)) {
+          nofollowLinksPerPage.set(sourceUrl, []);
+        }
+        nofollowLinksPerPage.get(sourceUrl)!.push({
+          targetUrl: link.targetUrl,
+          anchorText: link.anchorText
+        });
+      }
+
+      // Track anchor text
+      if (!anchorTextMap.has(normalizedTarget)) {
+        anchorTextMap.set(normalizedTarget, new Map());
+      }
+      const anchorTextCount = anchorTextMap.get(normalizedTarget)!;
+      anchorTextCount.set(link.anchorText, (anchorTextCount.get(link.anchorText) || 0) + 1);
+
+      // Store link details
+      allLinkDetails.push({
+        sourceUrl,
+        targetUrl: normalizedTarget,
+        anchorText: link.anchorText,
+        isNofollow: link.isNofollow,
+        isBroken: isBroken || false
+      });
+    }
+  }
+
+  // 1. Find pages with exactly 1 incoming link
+  const pagesWithOneIncomingLink: Array<{
+    url: string;
+    incomingLinkCount: number;
+    linkingPage: string;
+  }> = [];
+
+  for (const [pageUrl, incomingPages] of incomingLinksMap.entries()) {
+    if (incomingPages.size === 1) {
+      const linkingPage = Array.from(incomingPages)[0];
+      pagesWithOneIncomingLink.push({
+        url: pageUrl,
+        incomingLinkCount: 1,
+        linkingPage
+      });
+    }
+  }
+
+  // 2. Find orphaned sitemap pages (in sitemap but no incoming links)
+  const orphanedSitemapPages: Array<{
+    url: string;
+    inSitemap: boolean;
+    incomingLinkCount: number;
+  }> = [];
+
+  for (const sitemapPageUrl of sitemapPages) {
+    const incomingPages = incomingLinksMap.get(sitemapPageUrl);
+    if (!incomingPages || incomingPages.size === 0) {
+      orphanedSitemapPages.push({
+        url: sitemapPageUrl,
+        inSitemap: true,
+        incomingLinkCount: 0
+      });
+    }
+  }
+
+  // 3. Find TRUE orphan pages (0 incoming links from ANY page)
+  const trueOrphanPages: Array<{
+    url: string;
+    incomingLinkCount: number;
+    discoveryMethod: string;
+  }> = [];
+
+  for (const page of pagesData) {
+    const normalizedUrl = normalizeUrl(page.url);
+    const incomingPages = incomingLinksMap.get(normalizedUrl);
+    if (!incomingPages || incomingPages.size === 0) {
+      trueOrphanPages.push({
+        url: page.url,
+        incomingLinkCount: 0,
+        discoveryMethod: page.source || 'unknown'
+      });
+    }
+  }
+
+  // 4. Pages with broken internal links
+  const pagesWithBrokenLinks: Array<{
+    url: string;
+    brokenLinkCount: number;
+    brokenLinks: Array<{ targetUrl: string; anchorText: string }>;
+  }> = [];
+
+  for (const [sourceUrl, brokenLinks] of brokenLinksPerPage.entries()) {
+    pagesWithBrokenLinks.push({
+      url: sourceUrl,
+      brokenLinkCount: brokenLinks.length,
+      brokenLinks: brokenLinks.slice(0, 10) // Limit to 10 examples
+    });
+  }
+
+  // 5. Pages with nofollow internal links
+  const pagesWithNofollowLinks: Array<{
+    url: string;
+    nofollowLinkCount: number;
+    nofollowLinks: Array<{ targetUrl: string; anchorText: string }>;
+  }> = [];
+
+  for (const [sourceUrl, nofollowLinks] of nofollowLinksPerPage.entries()) {
+    pagesWithNofollowLinks.push({
+      url: sourceUrl,
+      nofollowLinkCount: nofollowLinks.length,
+      nofollowLinks: nofollowLinks.slice(0, 10) // Limit to 10 examples
+    });
+  }
+
+  // 6. Link Depth Analysis (BFS from homepage)
+  const homepageUrl = normalizeUrl(`https://${domain}`);
+  const linkDepthMap = calculateLinkDepth(homepageUrl, incomingLinksMap, allLinkDetails);
+
+  const pagesDeepInSite: Array<{ url: string; depth: number }> = [];
+  let totalDepth = 0;
+  let maxDepth = 0;
+  let pageCount = 0;
+
+  for (const [url, depth] of linkDepthMap.entries()) {
+    if (depth > 3) { // Pages more than 3 clicks deep
+      pagesDeepInSite.push({ url, depth });
+    }
+    totalDepth += depth;
+    maxDepth = Math.max(maxDepth, depth);
+    pageCount++;
+  }
+
+  const averageDepth = pageCount > 0 ? totalDepth / pageCount : 0;
+
+  // Sort by depth (deepest first)
+  pagesDeepInSite.sort((a, b) => b.depth - a.depth);
+
+  // 7. Anchor Text Analysis
+  const genericAnchorPatterns = ['click here', 'read more', 'learn more', 'here', 'this', 'link', 'more'];
+  const genericAnchors: Array<{ url: string; anchorText: string; count: number }> = [];
+  const overOptimized: Array<{ url: string; anchorText: string; count: number }> = [];
+
+  for (const [url, anchorTexts] of anchorTextMap.entries()) {
+    for (const [anchorText, count] of anchorTexts.entries()) {
+      const lowerAnchor = anchorText.toLowerCase().trim();
+
+      // Check for generic anchor text
+      if (genericAnchorPatterns.some(pattern => lowerAnchor === pattern || lowerAnchor.includes(pattern))) {
+        genericAnchors.push({ url, anchorText, count });
+      }
+
+      // Check for over-optimization (same anchor text used many times)
+      if (count >= 5) {
+        overOptimized.push({ url, anchorText, count });
+      }
+    }
+  }
+
+  // Sort by count (most used first)
+  genericAnchors.sort((a, b) => b.count - a.count);
+  overOptimized.sort((a, b) => b.count - a.count);
+
+  // 8. Deep Link Ratio
+  const totalLinks = homepageLinks + deepContentLinks;
+  const deepLinkRatio = totalLinks > 0 ? deepContentLinks / totalLinks : 0;
+
+  console.log(`📊 Sophisticated analysis complete:`);
+  console.log(`   - ${pagesWithOneIncomingLink.length} pages with 1 incoming link`);
+  console.log(`   - ${orphanedSitemapPages.length} orphaned sitemap pages`);
+  console.log(`   - ${trueOrphanPages.length} true orphan pages (0 links)`);
+  console.log(`   - ${pagesWithBrokenLinks.length} pages with broken internal links`);
+  console.log(`   - ${pagesWithNofollowLinks.length} pages with nofollow internal links`);
+  console.log(`   - ${pagesDeepInSite.length} pages 4+ clicks deep (avg: ${averageDepth.toFixed(1)}, max: ${maxDepth})`);
+  console.log(`   - ${genericAnchors.length} generic anchors, ${overOptimized.length} over-optimized`);
+  console.log(`   - Deep link ratio: ${(deepLinkRatio * 100).toFixed(1)}% (${deepContentLinks} deep / ${totalLinks} total)`);
+
+  return {
+    pagesWithOneIncomingLink,
+    orphanedSitemapPages,
+    trueOrphanPages,
+    pagesWithBrokenLinks,
+    pagesWithNofollowLinks,
+    linkDepthAnalysis: {
+      pagesDeepInSite: pagesDeepInSite.slice(0, 20), // Limit to top 20
+      averageDepth,
+      maxDepth
+    },
+    anchorTextAnalysis: {
+      genericAnchors: genericAnchors.slice(0, 20), // Top 20
+      overOptimized: overOptimized.slice(0, 20) // Top 20
+    },
+    deepLinkRatio: {
+      homepageLinks,
+      deepContentLinks,
+      ratio: deepLinkRatio
+    },
+    totalPagesAnalyzed: pagesData.length
+  };
+}
+
+/**
+ * Extract links with anchor text and rel attributes
+ */
+function extractLinksWithDetails(html: string, pageUrl: string): Array<{
+  targetUrl: string;
+  anchorText: string;
+  isNofollow: boolean;
+}> {
+  const linkRegex = /<a\s+([^>]+)>([^<]*)<\/a>/gi;
+  const links: Array<{ targetUrl: string; anchorText: string; isNofollow: boolean }> = [];
+  const baseUrl = new URL(pageUrl);
+
+  let match;
+  while ((match = linkRegex.exec(html)) !== null) {
+    const attributes = match[1];
+    const anchorText = match[2].trim() || '';
+
+    // Extract href
+    const hrefMatch = attributes.match(/href=["']([^"']+)["']/i);
+    if (!hrefMatch) continue;
+
+    const href = hrefMatch[1];
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      continue;
+    }
+
+    // Check for nofollow
+    const relMatch = attributes.match(/rel=["']([^"']+)["']/i);
+    const isNofollow = relMatch ? relMatch[1].toLowerCase().includes('nofollow') : false;
+
+    try {
+      // Resolve URL
+      let linkUrl: string;
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        linkUrl = new URL(href).href;
+      } else {
+        linkUrl = new URL(href, baseUrl).href;
+      }
+
+      links.push({
+        targetUrl: linkUrl,
+        anchorText: anchorText || '(no text)',
+        isNofollow
+      });
+    } catch (_error) {
+      // Invalid URL, skip
+    }
+  }
+
+  return links;
+}
+
+/**
+ * Calculate link depth from homepage using BFS
+ */
+function calculateLinkDepth(
+  homepageUrl: string,
+  incomingLinksMap: Map<string, Set<string>>,
+  allLinks: Array<{ sourceUrl: string; targetUrl: string }>
+): Map<string, number> {
+  const depthMap = new Map<string, number>();
+  const queue: Array<{ url: string; depth: number }> = [{ url: homepageUrl, depth: 0 }];
+  const visited = new Set<string>();
+
+  // Build outgoing links map for BFS
+  const outgoingLinksMap = new Map<string, Set<string>>();
+  for (const link of allLinks) {
+    if (!outgoingLinksMap.has(link.sourceUrl)) {
+      outgoingLinksMap.set(link.sourceUrl, new Set());
+    }
+    outgoingLinksMap.get(link.sourceUrl)!.add(link.targetUrl);
+  }
+
+  // BFS from homepage
+  while (queue.length > 0) {
+    const { url, depth } = queue.shift()!;
+
+    if (visited.has(url)) continue;
+    visited.add(url);
+
+    depthMap.set(url, depth);
+
+    // Add linked pages to queue
+    const outgoingLinks = outgoingLinksMap.get(url);
+    if (outgoingLinks) {
+      for (const targetUrl of outgoingLinks) {
+        if (!visited.has(targetUrl)) {
+          queue.push({ url: targetUrl, depth: depth + 1 });
+        }
+      }
+    }
+  }
+
+  return depthMap;
+}
+
+/**
+ * Check if a URL is a homepage
+ */
+function isHomepage(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname === '/' || urlObj.pathname === '';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Normalize URL for comparison (remove trailing slash, fragments, etc.)
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Remove trailing slash, hash, and query params for comparison
+    let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+    // Remove trailing slash unless it's the root
+    if (normalized.endsWith('/') && normalized !== `${urlObj.protocol}//${urlObj.hostname}/`) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Check if a URL has a permanent redirect (301 or 308)
+ * Returns redirect information if found, null otherwise
+ */
+async function checkForPermanentRedirect(url: string): Promise<{
+  hasRedirect: boolean;
+  statusCode?: number;
+  finalUrl?: string;
+} | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD', // Use HEAD to avoid downloading content
+      redirect: 'manual', // Don't follow redirects automatically
+      headers: {
+        'User-Agent': USER_AGENT
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+
+    // Check if it's a permanent redirect (301 or 308)
+    if (response.status === 301 || response.status === 308) {
+      const location = response.headers.get('location');
+      if (location) {
+        // Resolve relative redirect URLs
+        const finalUrl = new URL(location, url).href;
+        return {
+          hasRedirect: true,
+          statusCode: response.status,
+          finalUrl
+        };
+      }
+    }
+
+    // No permanent redirect
+    return {
+      hasRedirect: false
+    };
+  } catch (error) {
+    console.log(`Could not check redirect for ${url}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Analyze permanent redirects across discovered pages
+ */
+async function analyzePermanentRedirects(
+  pagesData: Array<{ url: string }>,
+  domain: string
+): Promise<{
+  totalRedirects: number;
+  redirects: Array<{
+    fromUrl: string;
+    toUrl: string;
+    statusCode: number;
+    redirectType: 'permanent';
+  }>;
+}> {
+  const permanentRedirects: Array<{
+    fromUrl: string;
+    toUrl: string;
+    statusCode: number;
+    redirectType: 'permanent';
+  }> = [];
+
+  console.log(`🔄 Checking ${pagesData.length} URLs for permanent redirects...`);
+
+  // Check each URL for redirects (in batches to avoid overwhelming)
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < pagesData.length; i += BATCH_SIZE) {
+    const batch = pagesData.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(page => checkForPermanentRedirect(page.url))
+    );
+
+    results.forEach((result, index) => {
+      if (result && result.hasRedirect && result.finalUrl && result.statusCode) {
+        permanentRedirects.push({
+          fromUrl: batch[index].url,
+          toUrl: result.finalUrl,
+          statusCode: result.statusCode,
+          redirectType: 'permanent'
+        });
+      }
+    });
+  }
+
+  console.log(`✅ Found ${permanentRedirects.length} permanent redirects`);
+
+  return {
+    totalRedirects: permanentRedirects.length,
+    redirects: permanentRedirects
+  };
+}
+
+/**
+ * Check if a domain has HSTS (HTTP Strict Transport Security) enabled
+ */
+async function checkHSTSHeader(url: string): Promise<{
+  hasHSTS: boolean;
+  includesSubdomains: boolean;
+  maxAge?: number;
+  header?: string;
+} | null> {
+  try {
+    // Must use HTTPS to check HSTS header
+    const httpsUrl = url.replace(/^http:/, 'https:');
+
+    const response = await fetch(httpsUrl, {
       method: 'HEAD',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+      headers: {
+        'User-Agent': USER_AGENT
+      },
       signal: AbortSignal.timeout(5000)
     });
-    
-    if (!response.ok) return 0;
-    
-    const contentLength = response.headers.get('content-length');
-    if (contentLength) {
-      const bytes = parseInt(contentLength, 10);
-      return Math.round(bytes / 1024); // Convert to KB
+
+    const hstsHeader = response.headers.get('strict-transport-security');
+
+    if (!hstsHeader) {
+      return {
+        hasHSTS: false,
+        includesSubdomains: false
+      };
     }
-    
-    // If no content-length header, try to fetch the image
-    const imageResponse = await fetch(imageUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-      signal: AbortSignal.timeout(10000)
-    });
-    
-    if (imageResponse.ok) {
-      const blob = await imageResponse.blob();
-      return Math.round(blob.size / 1024);
-    }
-  } catch (_error) {
-    console.log(`Could not get size for ${imageUrl}`);
+
+    // Parse HSTS header
+    // Format: "max-age=31536000; includeSubDomains; preload"
+    const includesSubdomains = hstsHeader.toLowerCase().includes('includesubdomains');
+    const maxAgeMatch = hstsHeader.match(/max-age=(\d+)/i);
+    const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1]) : undefined;
+
+    return {
+      hasHSTS: true,
+      includesSubdomains,
+      maxAge,
+      header: hstsHeader
+    };
+  } catch (error) {
+    console.log(`Could not check HSTS for ${url}:`, error);
+    return null;
   }
-  
-  return 0;
+}
+
+/**
+ * Extract unique subdomains from discovered pages
+ */
+function extractSubdomains(pagesData: Array<{ url: string }>, mainDomain: string): string[] {
+  const subdomains = new Set<string>();
+
+  for (const page of pagesData) {
+    try {
+      const urlObj = new URL(page.url);
+      const hostname = urlObj.hostname;
+
+      // Check if this is a subdomain of the main domain
+      if (hostname !== mainDomain && hostname.endsWith(`.${mainDomain}`)) {
+        subdomains.add(hostname);
+      }
+
+      // Also check for www variant
+      const mainWithoutWww = mainDomain.replace(/^www\./, '');
+      if (hostname !== mainWithoutWww && hostname.endsWith(`.${mainWithoutWww}`)) {
+        subdomains.add(hostname);
+      }
+    } catch {
+      // Skip invalid URLs
+    }
+  }
+
+  return Array.from(subdomains);
+}
+
+/**
+ * Analyze HSTS support for main domain and subdomains
+ */
+async function analyzeHSTSSupport(
+  mainUrl: string,
+  pagesData: Array<{ url: string }>,
+  domain: string
+): Promise<{
+  mainDomain: {
+    domain: string;
+    hasHSTS: boolean;
+    includesSubdomains: boolean;
+    maxAge?: number;
+    header?: string;
+  };
+  subdomainsWithoutHSTS: Array<{
+    subdomain: string;
+    hasHSTS: boolean;
+    reason: string;
+  }>;
+  totalSubdomainsChecked: number;
+}> {
+  console.log(`🔒 Checking HSTS support for ${domain}...`);
+
+  // Check main domain HSTS
+  const mainDomainHSTS = await checkHSTSHeader(mainUrl);
+
+  const mainDomainResult = {
+    domain,
+    hasHSTS: mainDomainHSTS?.hasHSTS || false,
+    includesSubdomains: mainDomainHSTS?.includesSubdomains || false,
+    maxAge: mainDomainHSTS?.maxAge,
+    header: mainDomainHSTS?.header
+  };
+
+  console.log(`Main domain HSTS: ${mainDomainResult.hasHSTS ? '✅ Enabled' : '❌ Disabled'}`);
+  if (mainDomainResult.hasHSTS && mainDomainResult.includesSubdomains) {
+    console.log(`  → Includes subdomains: ✅ Yes`);
+  }
+
+  // Extract subdomains from discovered pages
+  const subdomains = extractSubdomains(pagesData, domain);
+  console.log(`Found ${subdomains.length} subdomain(s) to check`);
+
+  const subdomainsWithoutHSTS: Array<{
+    subdomain: string;
+    hasHSTS: boolean;
+    reason: string;
+  }> = [];
+
+  // If main domain has includeSubdomains, subdomains are automatically protected
+  if (mainDomainResult.hasHSTS && mainDomainResult.includesSubdomains) {
+    console.log(`✅ All subdomains protected by main domain's includeSubdomains directive`);
+    return {
+      mainDomain: mainDomainResult,
+      subdomainsWithoutHSTS: [],
+      totalSubdomainsChecked: subdomains.length
+    };
+  }
+
+  // Check each subdomain individually (in batches)
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < subdomains.length; i += BATCH_SIZE) {
+    const batch = subdomains.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(subdomain => checkHSTSHeader(`https://${subdomain}`))
+    );
+
+    results.forEach((result, index) => {
+      const subdomain = batch[index];
+
+      if (!result) {
+        subdomainsWithoutHSTS.push({
+          subdomain,
+          hasHSTS: false,
+          reason: 'Could not check HSTS (connection failed)'
+        });
+      } else if (!result.hasHSTS) {
+        subdomainsWithoutHSTS.push({
+          subdomain,
+          hasHSTS: false,
+          reason: 'No HSTS header found'
+        });
+      }
+    });
+  }
+
+  console.log(`✅ HSTS check complete: ${subdomainsWithoutHSTS.length} subdomain(s) without HSTS`);
+
+  return {
+    mainDomain: mainDomainResult,
+    subdomainsWithoutHSTS,
+    totalSubdomainsChecked: subdomains.length
+  };
+}
+
+/**
+ * Check for llms.txt file (LLM-friendly information about the website)
+ * https://llmstxt.org/ - Standard for providing context to LLMs
+ */
+async function checkLlmsTxt(baseUrl: string): Promise<{
+  exists: boolean;
+  url?: string;
+  content?: string;
+  isValid?: boolean;
+  sizeBytes?: number;
+  errors?: string[];
+}> {
+  try {
+    const urlObj = new URL(baseUrl);
+    const llmsTxtUrl = `${urlObj.protocol}//${urlObj.hostname}/llms.txt`;
+
+    console.log(`🤖 Checking for llms.txt at ${llmsTxtUrl}...`);
+
+    const response = await fetch(llmsTxtUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': USER_AGENT
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`❌ llms.txt not found (404)`);
+        return {
+          exists: false,
+          url: llmsTxtUrl
+        };
+      }
+      console.log(`⚠️  llms.txt returned status ${response.status}`);
+      return {
+        exists: false,
+        url: llmsTxtUrl,
+        errors: [`HTTP ${response.status}: ${response.statusText}`]
+      };
+    }
+
+    const content = await response.text();
+    const sizeBytes = new Blob([content]).size;
+
+    // Basic validation: llms.txt should be plain text and contain some content
+    const errors: string[] = [];
+    const isValid = validateLlmsTxt(content, errors);
+
+    console.log(`✅ llms.txt found (${sizeBytes} bytes)${isValid ? '' : ' - has validation errors'}`);
+
+    return {
+      exists: true,
+      url: llmsTxtUrl,
+      content: content.substring(0, 1000), // Store first 1000 chars for preview
+      isValid,
+      sizeBytes,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  } catch (error) {
+    console.log(`Could not check llms.txt:`, error);
+    return {
+      exists: false,
+      errors: ['Connection failed']
+    };
+  }
+}
+
+/**
+ * Validate llms.txt content
+ */
+function validateLlmsTxt(content: string, errors: string[]): boolean {
+  let isValid = true;
+
+  // Check if empty
+  if (!content || content.trim().length === 0) {
+    errors.push('File is empty');
+    return false;
+  }
+
+  // Check if too small (likely not meaningful)
+  if (content.trim().length < 50) {
+    errors.push('File is too short (less than 50 characters)');
+    isValid = false;
+  }
+
+  // Check if it looks like HTML instead of plain text
+  if (content.includes('<!DOCTYPE') || content.includes('<html')) {
+    errors.push('File appears to be HTML instead of plain text');
+    isValid = false;
+  }
+
+  // Check if it's a 404 page masquerading as llms.txt
+  if (content.toLowerCase().includes('not found') && content.toLowerCase().includes('404')) {
+    errors.push('File appears to be a 404 error page');
+    isValid = false;
+  }
+
+  // Optional: Check for markdown sections (common llms.txt format)
+  const hasMarkdownHeaders = /^#\s+/m.test(content);
+  if (!hasMarkdownHeaders) {
+    // Not an error, just a note
+    errors.push('Note: llms.txt typically uses Markdown format with headers');
+  }
+
+  return isValid;
 }
 
 function findAllLinks(html: string, pageUrl: string): string[] {

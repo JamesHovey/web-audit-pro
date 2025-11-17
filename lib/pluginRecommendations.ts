@@ -29,7 +29,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 28650,
     activeInstalls: '5+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $99/year',
+    pricingDetails: 'Free version available. Premium: £99/year',
     url: 'https://wordpress.org/plugins/wordpress-seo/',
     freeTierLimits: 'Free version covers all basic SEO needs',
     pros: [
@@ -56,7 +56,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 6850,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version very comprehensive. Pro: $59/year',
+    pricingDetails: 'Free version very comprehensive. Pro: £59/year',
     url: 'https://wordpress.org/plugins/seo-by-rank-math/',
     freeTierLimits: 'Free version includes most features, even schema markup',
     pros: [
@@ -83,7 +83,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4520,
     activeInstalls: '3+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $49.60/year',
+    pricingDetails: 'Free version available. Premium: £49.60/year',
     url: 'https://wordpress.org/plugins/all-in-one-seo-pack/',
     freeTierLimits: 'Free version covers basic SEO',
     pros: [
@@ -111,7 +111,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 1280,
     activeInstalls: '400,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free: 20MB/month. Lite: $4.99/month (unlimited). Growth: $9.99/month',
+    pricingDetails: 'Free: 20MB/month. Lite: £4.99/month (unlimited). Growth: £9.99/month',
     url: 'https://wordpress.org/plugins/imagify/',
     freeTierLimits: '20MB of images per month',
     pros: [
@@ -138,7 +138,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 3640,
     activeInstalls: '400,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free: 100 images/month. One-time credits: $9.99 for 10,000 images',
+    pricingDetails: 'Free: 100 images/month. One-time credits: £9.99 for 10,000 images',
     url: 'https://wordpress.org/plugins/shortpixel-image-optimiser/',
     freeTierLimits: '100 images per month',
     pros: [
@@ -165,7 +165,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 2340,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free: Local optimization. Premium: $7/month for cloud compression',
+    pricingDetails: 'Free: Local optimization. Premium: £7/month for cloud compression',
     url: 'https://wordpress.org/plugins/ewww-image-optimizer/',
     freeTierLimits: 'Unlimited with local optimization',
     pros: [
@@ -192,7 +192,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4520,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free: 5MB per image limit. Pro: $6/month',
+    pricingDetails: 'Free: 5MB per image limit. Pro: £6/month',
     url: 'https://wordpress.org/plugins/wp-smushit/',
     freeTierLimits: '5MB max file size, 50 images bulk optimization',
     pros: [
@@ -215,13 +215,13 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     name: 'WP Rocket',
     slug: 'wp-rocket',
     category: 'performance',
-    useCase: ['caching', 'minification', 'lazy-loading', 'performance-optimization'],
-    description: 'Premium caching plugin with comprehensive performance features',
+    useCase: ['caching', 'minification', 'lazy-loading', 'performance-optimization', 'javascript-optimization', 'css-optimization'],
+    description: 'Premium all-in-one performance plugin - handles caching, JS/CSS optimization, lazy loading, and more',
     rating: 4.9,
     reviews: 8950,
     activeInstalls: '2+ million',
     cost: 'Paid',
-    pricingDetails: 'Single: $59/year. Plus: $119/year. Infinite: $299/year',
+    pricingDetails: 'Single: £59/year. Plus: £119/year. Infinite: £299/year',
     url: 'https://wp-rocket.me/',
     pros: [
       'Best overall performance plugin',
@@ -248,7 +248,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 3840,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version very comprehensive. Pro: $99/year',
+    pricingDetails: 'Free version very comprehensive. Pro: £99/year',
     url: 'https://wordpress.org/plugins/w3-total-cache/',
     freeTierLimits: 'Free version includes most features',
     pros: [
@@ -352,7 +352,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 4120,
     activeInstalls: '1+ million',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Premium: $49.99 one-time',
+    pricingDetails: 'Free version available. Premium: £49.99 one-time',
     url: 'https://wordpress.org/plugins/wp-fastest-cache/',
     pros: [
       'Easy to use',
@@ -380,7 +380,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 1850,
     activeInstalls: '200,000+',
     cost: 'Freemium',
-    pricingDetails: 'Free version available. Pro: $69/year',
+    pricingDetails: 'Free version available. Pro: £69/year',
     url: 'https://wordpress.org/plugins/wp-asset-clean-up/',
     pros: [
       'Reduce plugin bloat',
@@ -406,7 +406,7 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
     reviews: 2150,
     activeInstalls: '200,000+',
     cost: 'Paid',
-    pricingDetails: 'Personal: $24.95/year. Business: $49.95/year',
+    pricingDetails: 'Personal: £24.95/year. Business: £49.95/year',
     url: 'https://perfmatters.io/',
     pros: [
       'Very lightweight',
@@ -422,6 +422,88 @@ export const WORDPRESS_PLUGINS: PluginMetadata[] = [
       'Limited cache features'
     ],
     bestFor: 'Performance-focused sites wanting lightweight optimization'
+  },
+
+  // Lazy Loading Plugins
+  {
+    name: 'a3 Lazy Load',
+    slug: 'a3-lazy-load',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization'],
+    description: 'Simple, effective lazy loading for images with automatic configuration',
+    rating: 4.7,
+    reviews: 840,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/a3-lazy-load/',
+    pros: [
+      'Completely free',
+      'Works automatically after activation',
+      'Lazy loads images, iframes, and videos',
+      'Mobile optimized',
+      'No configuration needed',
+      'Lightweight'
+    ],
+    cons: [
+      'Basic features only',
+      'No advanced options',
+      'Limited customization'
+    ],
+    bestFor: 'Sites wanting simple, free lazy loading without configuration'
+  },
+  {
+    name: 'Jetpack',
+    slug: 'jetpack',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization', 'security'],
+    description: 'All-in-one WordPress plugin with free lazy loading, CDN, and security features',
+    rating: 3.9,
+    reviews: 5280,
+    activeInstalls: '5+ million',
+    cost: 'Freemium',
+    pricingDetails: 'Free: Lazy loading + basic features. Premium: from £3.50/month',
+    url: 'https://wordpress.org/plugins/jetpack/',
+    freeTierLimits: 'Free tier includes lazy loading, CDN, basic security',
+    pros: [
+      'Free lazy loading',
+      'Free CDN for images',
+      'Security features included',
+      'Very active development',
+      'WordPress.com integration'
+    ],
+    cons: [
+      'Heavy plugin (many features)',
+      'Can slow down admin area',
+      'Some features require paid plan',
+      'Connects to WordPress.com'
+    ],
+    bestFor: 'Sites already using Jetpack or wanting multiple features in one plugin'
+  },
+  {
+    name: 'Lazy Load by WP Rocket',
+    slug: 'rocket-lazy-load',
+    category: 'performance',
+    useCase: ['lazy-loading', 'performance-optimization'],
+    description: 'Free standalone lazy loading plugin from the WP Rocket team',
+    rating: 4.4,
+    reviews: 520,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/rocket-lazy-load/',
+    pros: [
+      'Completely free',
+      'From trusted WP Rocket team',
+      'Lightweight',
+      'Lazy loads images and iframes',
+      'YouTube video thumbnails',
+      'Easy to configure'
+    ],
+    cons: [
+      'No longer actively developed',
+      'Basic features compared to paid WP Rocket',
+      'Missing some advanced options'
+    ],
+    bestFor: 'Sites wanting free lazy loading from a reputable developer'
   }
 ]
 
@@ -436,7 +518,7 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
     reviews: 12500,
     activeInstalls: 'Web-based',
     cost: 'Freemium',
-    pricingDetails: 'Free: 20 images at a time. API: $25 for 500 compressions',
+    pricingDetails: 'Free: 20 images at a time. API: £25 for 500 compressions',
     url: 'https://tinypng.com/',
     freeTierLimits: '20 images per upload session',
     pros: [
@@ -503,6 +585,170 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
       'No WebP support in free version'
     ],
     bestFor: 'Mac users wanting local batch optimization'
+  },
+
+  // Redirect Management Plugins
+  {
+    name: 'Redirection',
+    slug: 'redirection',
+    category: 'seo',
+    useCase: ['redirects', '404-errors', 'seo-optimization'],
+    description: 'Most popular redirect manager for WordPress with comprehensive 404 monitoring',
+    rating: 4.8,
+    reviews: 2150,
+    activeInstalls: '2+ million',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/redirection/',
+    pros: [
+      'Completely free',
+      'Track 404 errors automatically',
+      'Import/export redirects',
+      'Regular expressions support',
+      'Conditional redirects',
+      'Monitor all redirects'
+    ],
+    cons: [
+      'Can be complex for beginners',
+      'No premium support',
+      'Interface could be more modern'
+    ],
+    bestFor: 'Sites needing comprehensive redirect management and 404 tracking'
+  },
+  {
+    name: 'Simple 301 Redirects',
+    slug: 'simple-301-redirects',
+    category: 'seo',
+    useCase: ['redirects', '404-errors'],
+    description: 'Lightweight plugin for simple 301 redirects without extra features',
+    rating: 4.5,
+    reviews: 284,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/simple-301-redirects/',
+    pros: [
+      'Extremely simple and lightweight',
+      'No learning curve',
+      'Fast and efficient',
+      'No database bloat',
+      'Perfect for basic needs'
+    ],
+    cons: [
+      'No 404 monitoring',
+      'No wildcard redirects',
+      'Limited to simple redirects',
+      'No advanced features'
+    ],
+    bestFor: 'Users wanting simple redirect functionality without complexity'
+  },
+  {
+    name: 'Safe Redirect Manager',
+    slug: 'safe-redirect-manager',
+    category: 'seo',
+    useCase: ['redirects', '404-errors'],
+    description: 'Developer-friendly redirect plugin by 10up with clean interface',
+    rating: 4.7,
+    reviews: 147,
+    activeInstalls: '100,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/safe-redirect-manager/',
+    pros: [
+      'Clean, modern interface',
+      'Supports HTTP status codes',
+      'Wildcard redirects',
+      'Import/export',
+      'Developer hooks available',
+      'No database overhead'
+    ],
+    cons: [
+      'No 404 monitoring',
+      'Fewer features than Redirection',
+      'Less popular/tested'
+    ],
+    bestFor: 'Developers and users wanting a clean, efficient redirect solution'
+  },
+
+  // Schema/Structured Data Plugins
+  {
+    name: 'Schema Pro',
+    slug: 'wp-schema-pro',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Premium schema plugin with visual builder and comprehensive schema types',
+    rating: 4.9,
+    reviews: 428,
+    activeInstalls: '200,000+',
+    cost: 'Paid',
+    pricingDetails: '£63/year for single site',
+    url: 'https://wpschema.com/',
+    pros: [
+      'Visual schema builder',
+      'Supports 20+ schema types',
+      'Automatic schema generation',
+      'Works with any theme/builder',
+      'Regular updates for Google changes',
+      'Excellent support'
+    ],
+    cons: [
+      'Premium only (no free version)',
+      'Annual subscription required',
+      'May be overkill for simple sites'
+    ],
+    bestFor: 'Professional sites needing comprehensive schema management'
+  },
+  {
+    name: 'Schema & Structured Data for WP',
+    slug: 'schema-and-structured-data-for-wp',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Free schema plugin supporting multiple schema types with easy setup',
+    rating: 4.5,
+    reviews: 582,
+    activeInstalls: '100,000+',
+    cost: 'Freemium',
+    pricingDetails: 'Free version available. Pro: £79/year',
+    url: 'https://wordpress.org/plugins/schema-and-structured-data-for-wp/',
+    freeTierLimits: 'Free version includes 35+ schema types',
+    pros: [
+      'Generous free version',
+      'Supports 35+ schema types',
+      'Automatic schema insertion',
+      'Compatible with major themes',
+      'Google validation tools integration',
+      'Regular updates'
+    ],
+    cons: [
+      'Interface less intuitive than Schema Pro',
+      'Some advanced features require Pro',
+      'Limited customization in free version'
+    ],
+    bestFor: 'Sites wanting comprehensive free schema without complexity'
+  },
+  {
+    name: 'WP SEO Structured Data Schema',
+    slug: 'wp-seo-structured-data-schema',
+    category: 'seo',
+    useCase: ['schema-markup', 'seo-optimization'],
+    description: 'Lightweight free schema plugin with focus on essential schema types',
+    rating: 4.4,
+    reviews: 234,
+    activeInstalls: '50,000+',
+    cost: 'Free',
+    url: 'https://wordpress.org/plugins/wp-seo-structured-data-schema/',
+    pros: [
+      'Completely free',
+      'Lightweight and fast',
+      'Easy setup wizard',
+      'No coding required',
+      'Automatic JSON-LD output',
+      'Works with all themes'
+    ],
+    cons: [
+      'Limited schema types',
+      'Basic features only',
+      'Less frequent updates',
+      'Smaller user base'
+    ],
+    bestFor: 'Simple sites needing basic Organization and Article schemas'
   }
 ]
 
@@ -532,10 +778,19 @@ export function getPluginsByUseCase(useCase: string, installedPlugins: string[] 
 
 // Helper function to check if a plugin is already installed
 export function isPluginInstalled(plugin: PluginMetadata, installedPlugins: string[]): boolean {
-  return installedPlugins.some(installed =>
-    installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-    installed.toLowerCase().includes(plugin.slug)
-  )
+  return installedPlugins.some(installed => {
+    const installedLower = installed.toLowerCase()
+    const pluginNameLower = plugin.name.toLowerCase()
+    const pluginSlugLower = plugin.slug.toLowerCase()
+
+    // Bidirectional matching: check if either contains the other
+    return (
+      installedLower.includes(pluginNameLower) ||
+      pluginNameLower.includes(installedLower) ||
+      installedLower.includes(pluginSlugLower) ||
+      pluginSlugLower.includes(installedLower)
+    )
+  })
 }
 
 // Map issue types to use cases
@@ -600,10 +855,19 @@ export function getInstalledPlugins(
   installedPluginNames: string[]
 ): PluginMetadata[] {
   return allPlugins.filter(plugin =>
-    installedPluginNames.some(installed =>
-      installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-      installed.toLowerCase().includes(plugin.slug)
-    )
+    installedPluginNames.some(installed => {
+      const installedLower = installed.toLowerCase()
+      const pluginNameLower = plugin.name.toLowerCase()
+      const pluginSlugLower = plugin.slug.toLowerCase()
+
+      // Bidirectional matching: check if either contains the other
+      return (
+        installedLower.includes(pluginNameLower) ||
+        pluginNameLower.includes(installedLower) ||
+        installedLower.includes(pluginSlugLower) ||
+        pluginSlugLower.includes(installedLower)
+      )
+    })
   )
 }
 
@@ -615,11 +879,20 @@ export function getNonInstalledPlugins(
   const installedPlugins = getInstalledPlugins(allPlugins, installedPluginNames)
 
   return allPlugins.filter(plugin => {
-    // Exclude installed plugins
-    const isInstalled = installedPluginNames.some(installed =>
-      installed.toLowerCase().includes(plugin.name.toLowerCase()) ||
-      installed.toLowerCase().includes(plugin.slug)
-    )
+    // Exclude installed plugins - use bidirectional matching
+    const isInstalled = installedPluginNames.some(installed => {
+      const installedLower = installed.toLowerCase()
+      const pluginNameLower = plugin.name.toLowerCase()
+      const pluginSlugLower = plugin.slug.toLowerCase()
+
+      // Bidirectional matching: check if either contains the other
+      return (
+        installedLower.includes(pluginNameLower) ||
+        pluginNameLower.includes(installedLower) ||
+        installedLower.includes(pluginSlugLower) ||
+        pluginSlugLower.includes(installedLower)
+      )
+    })
 
     if (isInstalled) return false
 

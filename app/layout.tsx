@@ -4,6 +4,7 @@ import { Geist_Mono } from "next/font/google";
 import HydrationFix from "@/components/HydrationFix";
 import Providers from "@/components/Providers";
 import AccessGate from "@/components/AccessGate";
+import VersionDisplay from "@/components/VersionDisplay";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -39,6 +40,7 @@ export default async function RootLayout({
             {children}
           </AccessGate>
         </Providers>
+        <VersionDisplay />
       </body>
     </html>
   );

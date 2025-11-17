@@ -1,8 +1,15 @@
 // PROFESSIONAL TECHNOLOGY DETECTION
 // Using direct website analysis for cost-effective, accurate technology detection
 
-import { detectHostingProvider } from './enhancedHostingDetection';
-import { detectUniversalPlugins } from './claudePluginDetection';
+import { detectHostingProvider } from './dnsHostingDetection';
+import { detectPluginsHybrid, generateDetectionSummary, checkMissingEssentials } from './hybridPluginDetection';
+import { detectDrupalModules } from './cms-detection/drupalModuleDetection';
+import { detectJoomlaExtensions } from './cms-detection/joomlaExtensionDetection';
+import { detectShopifyApps } from './cms-detection/shopifyAppDetection';
+import { detectMagentoExtensions } from './cms-detection/magentoExtensionDetection';
+import { detectPrestashopModules } from './cms-detection/prestashopModuleDetection';
+import { BrowserService } from './cloudflare-browser';
+import { detectWordPressPlugins } from './pluginDetectionService';
 
 interface TechStackResult {
   cms?: string;
@@ -23,27 +30,32 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
   try {
     console.log(`🔍 Analyzing tech stack for: ${url}`);
     
-    // Primary method: Direct website analysis + Enhanced hosting detection
+    // Primary method: Direct website analysis + DNS-based hosting detection
     const [result, hostingInfo] = await Promise.all([
       analyzeWebsiteDirectly(url),
       detectHostingProvider(url)
     ]);
-    
+
     if (result && (result.cms || result.framework || result.analytics || result.other.length > 0)) {
-      console.log('✅ Used Direct Website Analysis + Enhanced Hosting Detection');
-      
-      // Override hosting info with enhanced detection if available
+      console.log('✅ Used Direct Website Analysis + DNS-based Hosting Detection');
+      console.log(`📊 CMS DETECTION RESULT: "${result.cms}" (from analyzeHTMLAndHeaders)`);
+
+      // Override hosting info with DNS-based detection if available
       if (hostingInfo.provider) {
         result.hosting = hostingInfo.provider;
-        result.organization = hostingInfo.organization;
-        
-        // Special handling for Cloudflare bypass attempts
-        if (hostingInfo.method === 'cloudflare-bypass') {
-          console.log(`🔍 Applied Cloudflare bypass result: ${hostingInfo.provider}`);
-        }
+
+        // DNS detection doesn't provide organization, so leave it undefined
+        // unless we want to derive it from the provider name
+
+        console.log(`🔍 Applied DNS hosting detection: ${hostingInfo.provider} (${hostingInfo.method}, ${hostingInfo.confidence} confidence)`);
       }
-      
-      
+
+      // CRITICAL: Ensure hosting is always a string, never undefined or an object
+      if (result.hosting && typeof result.hosting !== 'string') {
+        console.warn(`⚠️ Hosting was not a string (type: ${typeof result.hosting}), converting to string`)
+        result.hosting = String(result.hosting)
+      }
+
       return { ...result, source: 'direct', confidence: 'high' };
     }
     
@@ -64,58 +76,252 @@ export async function detectTechStack(url: string): Promise<TechStackResult> {
 }
 
 // Direct website analysis function that fetches and analyzes a URL
+// Uses Puppeteer to bypass bot protection (403 errors)
 async function analyzeWebsiteDirectly(url: string): Promise<Omit<TechStackResult, 'source' | 'confidence'> | null> {
   try {
     const cleanUrl = url.startsWith('http') ? url : `https://${url}`;
-    
-    const response = await fetch(cleanUrl, {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
-      },
-      timeout: 10000
+
+    // Use browser rendering to bypass bot protection (same as quick-detect)
+    const browserResult = await BrowserService.withBrowser(async (browser, page) => {
+      const response = await page.goto(cleanUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000
+      });
+
+      // Wait for JavaScript to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const html = await page.content();
+
+      // Get response headers
+      const headers: Record<string, string> = {};
+      if (response) {
+        const responseHeaders = response.headers();
+        Object.assign(headers, responseHeaders);
+      }
+
+      return { html, headers };
     });
-    
-    if (!response.ok) {
-      console.log(`Direct analysis failed: ${response.status} ${response.statusText}`);
-      return null;
-    }
-    
-    const html = await response.text();
-    const headers = Object.fromEntries(response.headers.entries());
-    
+
+    const { html, headers } = browserResult;
     const result = await analyzeHTMLAndHeaders(html, headers, cleanUrl);
     
-    // Universal Claude-powered plugin detection for all CMS platforms
-    console.log('🧠 Running Claude-powered universal plugin detection...');
-    try {
-      const pluginAnalysis = await detectUniversalPlugins(html, headers, cleanUrl, result.cms);
-      
-      // Enhance the result with Claude plugin analysis
-      result.pluginAnalysis = pluginAnalysis;
-      result.detectedPlatform = pluginAnalysis.platform;
-      
-      // Update plugins with categorized results
-      if (pluginAnalysis.totalPluginsDetected > 0) {
-        result.plugins = pluginAnalysis.pluginsByCategory;
-        result.totalPlugins = pluginAnalysis.totalPluginsDetected;
-        
+    // Hybrid Plugin Detection (Pattern Matching + AI) - Only for WordPress
+    if (result.cms === 'WordPress') {
+      console.log('🔄 Running hybrid plugin detection for WordPress (Pattern + AI)...');
+      try {
+        const platform = result.cms;
+        const hybridResult = await detectPluginsHybrid(platform, html, headers, cleanUrl);
+
+        // Log detection summary
+        console.log(generateDetectionSummary(hybridResult));
+
+        // Enhance the result with hybrid detection
+        result.pluginAnalysis = hybridResult.platformAnalysis;
+        result.detectedPlatform = hybridResult.platformAnalysis?.platform || platform;
+        result.totalPlugins = hybridResult.totalPluginsDetected;
+
+        // Filter out non-WordPress-plugins (analytics, CDNs, libraries, etc.)
+        const NON_PLUGIN_KEYWORDS = [
+          'google analytics',
+          'google analytics 4',
+          'ga4',
+          'gtag',
+          'jquery',
+          'cloudfront',
+          'cloudflare',
+          'fastly',
+          'akamai',
+          'facebook pixel',
+          'google tag manager',
+          'gtm',
+          'hotjar',
+          'mixpanel',
+          'segment',
+          'amplitude',
+          'heap',
+          'bootstrap',
+          'tailwind',
+          'font awesome',
+          'react',
+          'vue',
+          'angular',
+          'next.js',
+          'gatsby',
+          'nuxt',
+          'nginx',
+          'apache',
+          'litespeed',
+          'iis',
+          'aws',
+          'azure',
+          'google cloud',
+          'digitalocean'
+        ];
+
+        const isActualPlugin = (pluginName: string): boolean => {
+          const lowerName = pluginName.toLowerCase().trim();
+          return !NON_PLUGIN_KEYWORDS.some(keyword => lowerName.includes(keyword));
+        };
+
+        // Categorize plugins for easy access (excluding non-plugins)
+        const categorized: Record<string, any[]> = {};
+        for (const plugin of hybridResult.detectedPlugins) {
+          // Skip if not an actual WordPress plugin
+          if (!isActualPlugin(plugin.name)) {
+            console.log(`⚠️ Filtered out non-plugin: ${plugin.name}`);
+            continue;
+          }
+
+          const category = plugin.category || 'other';
+          if (!categorized[category]) {
+            categorized[category] = [];
+          }
+          categorized[category].push(plugin);
+        }
+
+        result.plugins = categorized;
+
+        // Update total plugin count (excluding filtered items)
+        const actualPluginCount = Object.values(categorized).reduce((sum, plugins) => sum + plugins.length, 0);
+        result.totalPlugins = actualPluginCount;
+
         // Update specific fields based on detected plugins
-        const ecommercePlugins = pluginAnalysis.pluginsByCategory.ecommerce;
+        const ecommercePlugins = categorized.ecommerce;
         if (ecommercePlugins && ecommercePlugins.length > 0) {
           result.ecommerce = ecommercePlugins[0].name;
         }
-        
-        const pageBuilders = pluginAnalysis.pluginsByCategory['page-builder'];
+
+        const pageBuilders = categorized['page-builder'];
         if (pageBuilders && pageBuilders.length > 0) {
           result.pageBuilder = pageBuilders[0].name;
         }
+
+        // Check for missing essential plugins (use only actual plugins)
+        const actualPlugins = Object.values(categorized).flat();
+        const missingEssentials = checkMissingEssentials(platform, actualPlugins);
+        result.missingEssentials = missingEssentials;
+
+        console.log(`✅ Hybrid plugin detection complete: ${actualPluginCount} actual WordPress plugins detected (${hybridResult.totalPluginsDetected - actualPluginCount} non-plugins filtered out)`);
+      } catch (error) {
+        console.error('Hybrid plugin detection failed, continuing with basic detection:', error);
       }
-      
-      console.log(`✅ Claude plugin analysis complete: ${pluginAnalysis.totalPluginsDetected} plugins detected for ${pluginAnalysis.platform}`);
-    } catch (error) {
-      console.error('Claude plugin detection failed, continuing with basic detection:', error);
+    } else if (result.cms === 'Drupal') {
+      // Drupal Module Detection
+      console.log('🔄 Running Drupal module detection...');
+      try {
+        const drupalResult = detectDrupalModules(html, headers);
+
+        // Enhance the result with Drupal module detection
+        result.pluginAnalysis = {
+          platform: 'Drupal',
+          totalPluginsDetected: drupalResult.totalModules,
+          pluginsByCategory: drupalResult.modulesByCategory,
+          securityAssessment: {
+            vulnerablePlugins: drupalResult.securityRisks.map(m => ({
+              name: m.displayName,
+              severity: m.security?.severity || 'low',
+              cve: undefined
+            })),
+            riskLevel: drupalResult.securityRisks.length > 0 ? 'medium' : 'low'
+          },
+          performanceAssessment: {
+            heavyPlugins: drupalResult.performanceImpact.map(m => m.displayName),
+            overallImpact: drupalResult.performanceImpact.length > 2 ? 'high' :
+                           drupalResult.performanceImpact.length > 0 ? 'medium' : 'low'
+          },
+          recommendations: drupalResult.recommendations
+        };
+
+        result.totalPlugins = drupalResult.totalModules;
+        result.plugins = drupalResult.modulesByCategory;
+
+        console.log(`✅ Drupal module detection complete: ${drupalResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('Drupal module detection failed:', error);
+      }
+    } else if (result.cms === 'Joomla') {
+      // Joomla Extension Detection
+      console.log('🔄 Running Joomla extension detection...');
+      try {
+        const joomlaResult = detectJoomlaExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Joomla',
+          totalPluginsDetected: joomlaResult.totalExtensions,
+          pluginsByCategory: joomlaResult.extensionsByCategory,
+          recommendations: joomlaResult.recommendations
+        };
+
+        result.totalPlugins = joomlaResult.totalExtensions;
+        result.plugins = joomlaResult.extensionsByCategory;
+
+        console.log(`✅ Joomla extension detection complete: ${joomlaResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Joomla extension detection failed:', error);
+      }
+    } else if (result.cms === 'Shopify') {
+      // Shopify App Detection
+      console.log('🔄 Running Shopify app detection...');
+      try {
+        const shopifyResult = detectShopifyApps(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Shopify',
+          totalPluginsDetected: shopifyResult.totalApps,
+          pluginsByCategory: shopifyResult.appsByCategory,
+          recommendations: shopifyResult.recommendations
+        };
+
+        result.totalPlugins = shopifyResult.totalApps;
+        result.plugins = shopifyResult.appsByCategory;
+
+        console.log(`✅ Shopify app detection complete: ${shopifyResult.totalApps} apps detected`);
+      } catch (error) {
+        console.error('Shopify app detection failed:', error);
+      }
+    } else if (result.cms === 'Magento') {
+      // Magento Extension Detection
+      console.log('🔄 Running Magento extension detection...');
+      try {
+        const magentoResult = detectMagentoExtensions(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'Magento',
+          totalPluginsDetected: magentoResult.totalExtensions,
+          pluginsByCategory: magentoResult.extensionsByCategory,
+          recommendations: magentoResult.recommendations
+        };
+
+        result.totalPlugins = magentoResult.totalExtensions;
+        result.plugins = magentoResult.extensionsByCategory;
+
+        console.log(`✅ Magento extension detection complete: ${magentoResult.totalExtensions} extensions detected`);
+      } catch (error) {
+        console.error('Magento extension detection failed:', error);
+      }
+    } else if (result.cms === 'PrestaShop') {
+      // PrestaShop Module Detection
+      console.log('🔄 Running PrestaShop module detection...');
+      try {
+        const prestashopResult = detectPrestashopModules(html, headers);
+
+        result.pluginAnalysis = {
+          platform: 'PrestaShop',
+          totalPluginsDetected: prestashopResult.totalModules,
+          pluginsByCategory: prestashopResult.modulesByCategory,
+          recommendations: prestashopResult.recommendations
+        };
+
+        result.totalPlugins = prestashopResult.totalModules;
+        result.plugins = prestashopResult.modulesByCategory;
+
+        console.log(`✅ PrestaShop module detection complete: ${prestashopResult.totalModules} modules detected`);
+      } catch (error) {
+        console.error('PrestaShop module detection failed:', error);
+      }
+    } else {
+      console.log(`⏭️  Skipping extension detection - CMS is ${result.cms || 'Unknown'} (extension detection available for WordPress, Drupal, Joomla, Shopify, Magento, PrestaShop)`);
     }
     
     return result;
@@ -140,6 +346,7 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     const metaMatches = html.match(/<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"']+)["\'][^>]*>/i);
     if (metaMatches) {
       const generator = metaMatches[1];
+      console.log(`🏷️  Found generator meta tag: "${generator}"`);
       if (generator.toLowerCase().includes('wordpress')) {
         result.cms = 'WordPress';
         const versionMatch = generator.match(/wordpress\s+([\d.]+)/i);
@@ -152,6 +359,11 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
         result.cms = 'Joomla';
       } else if (generator.toLowerCase().includes('shopify')) {
         result.cms = 'Shopify';
+      } else if (generator.toLowerCase().includes('magento')) {
+        result.cms = 'Magento';
+        console.log(`⚠️  CMS set to Magento from generator meta tag`);
+      } else if (generator.toLowerCase().includes('prestashop')) {
+        result.cms = 'PrestaShop';
       } else if (generator.toLowerCase().includes('wix')) {
         result.cms = 'Wix';
       } else if (generator.toLowerCase().includes('squarespace')) {
@@ -163,20 +375,47 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     if (!result.cms) {
       if (lowerHtml.includes('/wp-content/') || lowerHtml.includes('/wp-includes/') || lowerHtml.includes('wp-emoji')) {
         result.cms = 'WordPress';
+        console.log('🔍 CMS set to WordPress via file path detection');
       } else if (lowerHtml.includes('/sites/default/files/') || lowerHtml.includes('drupal.js')) {
         result.cms = 'Drupal';
+        console.log('🔍 CMS set to Drupal via file path detection');
       } else if (lowerHtml.includes('/media/jui/') || lowerHtml.includes('joomla')) {
         result.cms = 'Joomla';
+        console.log('🔍 CMS set to Joomla via file path detection');
       } else if (lowerHtml.includes('shopify') && (lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify-analytics'))) {
         result.cms = 'Shopify';
+        console.log('🔍 CMS set to Shopify via file path detection');
+      } else if (lowerHtml.includes('/js/mage/') || lowerHtml.includes('/skin/frontend/') || lowerHtml.includes('/media/catalog/') || lowerHtml.includes('mage.cookies') || lowerHtml.includes('var/magento')) {
+        // Log which specific pattern matched
+        const magentoPatterns = {
+          '/js/mage/': lowerHtml.includes('/js/mage/'),
+          '/skin/frontend/': lowerHtml.includes('/skin/frontend/'),
+          '/media/catalog/': lowerHtml.includes('/media/catalog/'),
+          'mage.cookies': lowerHtml.includes('mage.cookies'),
+          'var/magento': lowerHtml.includes('var/magento')
+        };
+        const matchedPatterns = Object.entries(magentoPatterns).filter(([_, matched]) => matched).map(([pattern]) => pattern);
+        console.log(`⚠️  CMS set to Magento via file path detection. Matched patterns: ${matchedPatterns.join(', ')}`);
+        result.cms = 'Magento';
+      } else if (lowerHtml.includes('prestashop') || lowerHtml.includes('/modules/blockwishlist/') || lowerHtml.includes('/modules/blockcart/') || lowerHtml.includes('/themes/classic/') || lowerHtml.includes('/modules/ps_')) {
+        result.cms = 'PrestaShop';
+        console.log('🔍 CMS set to PrestaShop via file path detection');
       } else if (lowerHtml.includes('squarespace') || lowerHtml.includes('squarespace-cdn')) {
         result.cms = 'Squarespace';
+        console.log('🔍 CMS set to Squarespace via file path detection');
       } else if (lowerHtml.includes('wix.com') || lowerHtml.includes('wixstatic.com')) {
         result.cms = 'Wix';
+        console.log('🔍 CMS set to Wix via file path detection');
       } else if (lowerHtml.includes('webflow.com') || lowerHtml.includes('webflow-assets')) {
         result.cms = 'Webflow';
+        console.log('🔍 CMS set to Webflow via file path detection');
       } else if (lowerHtml.includes('hubspot') || lowerHtml.includes('hs-scripts.com')) {
         result.cms = 'HubSpot CMS';
+        console.log('🔍 CMS set to HubSpot CMS via file path detection');
+      } else {
+        // No CMS detected - mark as custom-built
+        result.cms = 'Custom';
+        console.log('🔍 No CMS detected - marked as Custom');
       }
     }
     
@@ -197,11 +436,21 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
       result.framework = 'Svelte';
     }
     
-    // ANALYTICS DETECTION
-    if (lowerHtml.includes('google-analytics') || lowerHtml.includes('gtag') || lowerHtml.includes('ga(')) {
-      result.analytics = 'Google Analytics';
-    } else if (lowerHtml.includes('gtm.js') || lowerHtml.includes('googletagmanager')) {
-      result.analytics = 'Google Tag Manager';
+    // ANALYTICS DETECTION (enhanced for async-loaded scripts)
+    if (lowerHtml.includes('google-analytics') ||
+        lowerHtml.includes('gtag') ||
+        lowerHtml.includes('ga(') ||
+        lowerHtml.includes('googletagmanager.com/gtag/') ||
+        lowerHtml.includes('ga.js') ||
+        lowerHtml.includes('analytics.js') ||
+        lowerHtml.includes('g-') || // GA4 measurement IDs
+        lowerHtml.includes('gtm-') || // GTM IDs
+        lowerHtml.includes('ua-')) { // Universal Analytics
+      if (lowerHtml.includes('gtm.js') || lowerHtml.includes('googletagmanager')) {
+        result.analytics = 'Google Tag Manager';
+      } else {
+        result.analytics = 'Google Analytics';
+      }
     } else if (lowerHtml.includes('adobe-analytics') || lowerHtml.includes('omniture')) {
       result.analytics = 'Adobe Analytics';
     } else if (lowerHtml.includes('matomo') || lowerHtml.includes('piwik')) {
@@ -210,6 +459,10 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
       result.analytics = 'Hotjar';
     } else if (lowerHtml.includes('mixpanel')) {
       result.analytics = 'Mixpanel';
+    } else if (lowerHtml.includes('plausible')) {
+      result.analytics = 'Plausible';
+    } else if (lowerHtml.includes('fathom')) {
+      result.analytics = 'Fathom Analytics';
     }
     
     // CDN DETECTION
@@ -230,44 +483,63 @@ async function analyzeHTMLAndHeaders(html: string, headers: Record<string, strin
     if (server.includes('litespeed')) result.other.push('LiteSpeed');
     if (server.includes('iis')) result.other.push('Microsoft IIS');
     
-    // HOSTING DETECTION from headers and patterns
-    if (server.includes('cloudflare')) {
-      result.hosting = 'Cloudflare';
-    } else if (server.includes('amazonaws') || lowerHtml.includes('amazonaws.com')) {
-      result.hosting = 'Amazon Web Services (AWS)';
+    // HOSTING DETECTION from headers and patterns (Enhanced)
+    // Check multiple sources for accurate detection
+    if (headers['x-powered-by']?.toLowerCase().includes('wpe')) {
+      result.hosting = 'WP Engine';
+    } else if (headers['x-kinsta-cache'] || lowerHtml.includes('kinsta.com')) {
+      result.hosting = 'Kinsta';
+    } else if (headers['x-pantheon-styx-hostname'] || lowerHtml.includes('pantheon')) {
+      result.hosting = 'Pantheon';
+    } else if (headers['x-flywheel-site'] || lowerHtml.includes('getflywheel')) {
+      result.hosting = 'Flywheel';
+    } else if (headers['x-siteground-hash'] || lowerHtml.includes('siteground')) {
+      result.hosting = 'SiteGround';
+    } else if (headers['x-ah-environment'] || lowerHtml.includes('acquia')) {
+      result.hosting = 'Acquia';
+    } else if (server.includes('cloudflare') || headers['cf-ray']) {
+      // Note: Cloudflare is often a CDN, not origin hosting
+      result.hosting = 'Cloudflare Pages';
+    } else if (headers['x-github-request-id'] || lowerHtml.includes('github.io')) {
+      result.hosting = 'GitHub Pages';
+    } else if (server.includes('amazonaws') || lowerHtml.includes('amazonaws.com') || lowerHtml.includes('aws')) {
+      result.hosting = 'AWS';
     } else if (lowerHtml.includes('digitalocean') || lowerHtml.includes('do-spaces')) {
       result.hosting = 'DigitalOcean';
-    } else if (lowerHtml.includes('googleusercontent') || lowerHtml.includes('googleapis')) {
-      result.hosting = 'Google Cloud Platform';
+    } else if (lowerHtml.includes('googleusercontent') || lowerHtml.includes('googleapis') || lowerHtml.includes('gcp')) {
+      result.hosting = 'Google Cloud';
     } else if (lowerHtml.includes('azure') || lowerHtml.includes('azurewebsites')) {
       result.hosting = 'Microsoft Azure';
     } else if (lowerHtml.includes('netlify') || headers['x-nf-request-id']) {
       result.hosting = 'Netlify';
     } else if (lowerHtml.includes('vercel') || headers['x-vercel-id']) {
       result.hosting = 'Vercel';
+    } else if (headers['x-served-by']?.includes('heroku') || lowerHtml.includes('herokuapp')) {
+      result.hosting = 'Heroku';
+    } else if (lowerHtml.includes('railway.app') || headers['x-railway']) {
+      result.hosting = 'Railway';
+    } else if (lowerHtml.includes('render.com')) {
+      result.hosting = 'Render';
+    } else if (headers['x-drupal-cache'] || headers['x-drupal-dynamic-cache']) {
+      result.hosting = 'Drupal Hosting';
+    } else if (server.includes('nginx') && !result.hosting) {
+      // Generic fallback for nginx without specific host
+      result.hosting = 'VPS/Dedicated Server (Nginx)';
+    } else if (server.includes('apache') && !result.hosting) {
+      // Generic fallback for apache without specific host
+      result.hosting = 'VPS/Dedicated Server (Apache)';
+    } else if (server.includes('litespeed') && !result.hosting) {
+      result.hosting = 'LiteSpeed Server';
     }
     
-    // E-COMMERCE DETECTION (strict)
+    // WordPress Plugin Detection (Sophisticated - uses shared service)
     if (result.cms === 'WordPress') {
-      if (lowerHtml.includes('woocommerce') && 
-          (lowerHtml.includes('wc-ajax') || lowerHtml.includes('/wp-content/plugins/woocommerce/'))) {
-        result.plugins.push('WooCommerce');
+      const wpDetection = detectWordPressPlugins(html);
+      if (wpDetection.plugins && wpDetection.plugins.length > 0) {
+        result.plugins = wpDetection.plugins;
       }
-    }
-    
-    // WordPress Plugin Detection
-    if (result.cms === 'WordPress') {
-      if (lowerHtml.includes('yoast') && lowerHtml.includes('yoast_wpseo')) {
-        result.plugins.push('Yoast SEO');
-      }
-      if (lowerHtml.includes('elementor')) {
-        result.pageBuilder = 'Elementor';
-      }
-      if (lowerHtml.includes('divi-theme') || lowerHtml.includes('et_pb_')) {
-        result.pageBuilder = 'Divi';
-      }
-      if (lowerHtml.includes('wpbakery') || lowerHtml.includes('js_composer')) {
-        result.pageBuilder = 'WPBakery';
+      if (wpDetection.pageBuilder) {
+        result.pageBuilder = wpDetection.pageBuilder;
       }
     }
     

@@ -61,6 +61,7 @@ NEXTAUTH_URL=https://your-app.up.railway.app
 
 # API Keys
 ANTHROPIC_API_KEY=<your-anthropic-key>
+IPINFO_API_KEY=<your-ipinfo-token>
 KEYWORDS_EVERYWHERE_API_KEY=<your-ke-key>
 SERPER_API_KEY=<your-serper-key>
 GOOGLE_PAGESPEED_API_KEY=<your-google-key>
@@ -76,6 +77,17 @@ openssl rand -base64 32
 ```
 
 Copy the output and paste as `NEXTAUTH_SECRET` value.
+
+### API Key Details:
+
+**Required:**
+- **ANTHROPIC_API_KEY** - Claude AI for hybrid tech detection and plugin analysis (sign up at https://console.anthropic.com)
+- **IPINFO_API_KEY** - DNS-based hosting detection, 50K free requests/month (sign up at https://ipinfo.io)
+
+**Optional (for enhanced features):**
+- **KEYWORDS_EVERYWHERE_API_KEY** - Keyword volume/CPC data
+- **SERPER_API_KEY** - SERP data
+- **GOOGLE_PAGESPEED_API_KEY** - PageSpeed Insights data
 
 ---
 
@@ -151,6 +163,7 @@ NEXTAUTH_URL=https://your-app.up.railway.app
 
 # API Keys
 ANTHROPIC_API_KEY=<your-key>
+IPINFO_API_KEY=<your-ipinfo-token>
 KEYWORDS_EVERYWHERE_API_KEY=<your-key>
 SERPER_API_KEY=<your-key>
 GOOGLE_PAGESPEED_API_KEY=<your-key>
