@@ -175,14 +175,33 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
                 pages.push(...childPages);
                 console.log(`  Child sitemap yielded ${childPages.length} pages`);
 
-                // Check for paginated WordPress sitemaps (e.g., wp-sitemap-posts-post-1.xml -> -2.xml, -3.xml)
-                if (childSitemapUrl.match(/wp-sitemap-.*-(\d+)\.xml$/)) {
-                  const baseSitemapUrl = childSitemapUrl.replace(/-(\d+)\.xml$/, '');
-                  const firstPage = parseInt(childSitemapUrl.match(/-(\d+)\.xml$/)?.[1] || '1');
+                // Check for paginated sitemaps (WordPress core & SEO plugin formats)
+                // WordPress core: wp-sitemap-posts-post-1.xml -> wp-sitemap-posts-post-2.xml
+                // SEOPress/Yoast: post-sitemap1.xml -> post-sitemap2.xml
+                const wpCoreMatch = childSitemapUrl.match(/wp-sitemap-.*-(\d+)\.xml$/);
+                const seoPluginMatch = childSitemapUrl.match(/(.*-sitemap)(\d+)\.xml$/);
+
+                if (wpCoreMatch || seoPluginMatch) {
+                  let baseSitemapUrl: string;
+                  let firstPage: number;
+
+                  if (seoPluginMatch) {
+                    // SEO plugin format (SEOPress, Yoast, etc.): post-sitemap1.xml
+                    baseSitemapUrl = seoPluginMatch[1]; // "post-sitemap"
+                    firstPage = parseInt(seoPluginMatch[2]); // "1"
+                  } else {
+                    // WordPress core format: wp-sitemap-posts-post-1.xml
+                    baseSitemapUrl = childSitemapUrl.replace(/-(\d+)\.xml$/, '');
+                    firstPage = parseInt(wpCoreMatch![1]);
+                  }
 
                   // Check for additional pages (up to 10 pages = 500 URLs)
                   for (let pageNum = firstPage + 1; pageNum <= firstPage + 10; pageNum++) {
-                    const paginatedUrl = `${baseSitemapUrl}-${pageNum}.xml`;
+                    // Build URL based on format
+                    const paginatedUrl = seoPluginMatch
+                      ? `${baseSitemapUrl}${pageNum}.xml` // SEOPress/Yoast: post-sitemap2.xml
+                      : `${baseSitemapUrl}-${pageNum}.xml`; // WordPress core: wp-sitemap-posts-post-2.xml
+
                     if (foundSitemaps.has(paginatedUrl)) continue;
 
                     try {
