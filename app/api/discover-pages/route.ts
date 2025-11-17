@@ -4,7 +4,7 @@ import type { DiscoverPagesRequestBody } from '@/types/api'
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json() as DiscoverPagesRequestBody
+    const { url, quick } = await request.json() as DiscoverPagesRequestBody
 
     if (!url) {
       return NextResponse.json(
@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Discover pages - set high limit to find all pages (user can limit audit separately)
-    const result = await discoverPages(url, 500)
+    // Use quick mode (skip deep crawling) when quick=true for faster dashboard preview
+    const result = await discoverPages(url, 500, quick || false)
 
     return NextResponse.json(result)
 

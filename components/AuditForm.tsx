@@ -588,7 +588,7 @@ export function AuditForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: urlToDiscover }),
+        body: JSON.stringify({ url: urlToDiscover, quick: true }), // Use quick mode for dashboard preview
       })
 
       if (!response.ok) {
@@ -657,7 +657,7 @@ export function AuditForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: urlToDiscover }),
+        body: JSON.stringify({ url: urlToDiscover, quick: true }), // Use quick mode for dashboard preview
       })
 
       if (!response.ok) {

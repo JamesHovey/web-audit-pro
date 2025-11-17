@@ -73,4 +73,5 @@ export interface ResetPasswordRequestBody {
 
 export interface DiscoverPagesRequestBody {
   url: string;
+  quick?: boolean; // Skip deep crawling for faster discovery (sitemap + patterns only)
 }

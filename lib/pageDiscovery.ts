@@ -17,7 +17,8 @@ interface PageDiscoveryResult {
 }
 
 // Discover pages from multiple sources with deep crawling
-export async function discoverPages(baseUrl: string, maxPages: number = 100): Promise<PageDiscoveryResult> {
+// @param quick - If true, skip deep crawling for faster discovery (sitemap + patterns only)
+export async function discoverPages(baseUrl: string, maxPages: number = 100, quick: boolean = false): Promise<PageDiscoveryResult> {
   // Ensure URL has protocol
   let normalizedBaseUrl = baseUrl;
   if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
@@ -28,13 +29,14 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
   const cleanUrl = normalizedBaseUrl.replace(/\/$/, '');
   const baseUrlObj = new URL(cleanUrl);
   const domain = baseUrlObj.hostname;
-  
-  console.log(`\n=== ENHANCED PAGE DISCOVERY FOR ${domain} ===`);
+
+  console.log(`\n=== ${quick ? 'QUICK' : 'ENHANCED'} PAGE DISCOVERY FOR ${domain} ===`);
   console.log(`Target: ${maxPages} pages maximum`);
-  
+  console.log(`Mode: ${quick ? 'Quick (sitemap + patterns only)' : 'Full (sitemap + crawling + patterns)'}`);
+
   const discoveredPages = new Map<string, DiscoveredPage>();
   const sources = { sitemap: 0, internalLinks: 0, homepage: 0 };
-  
+
   // Helper function to normalize URLs for deduplication
   const normalizeUrl = (url: string): string => {
     try {
@@ -47,7 +49,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       return url.replace(/\/$/, '');
     }
   };
-  
+
   try {
     // 1. Always include the homepage first
     const normalizedHomepage = normalizeUrl(cleanUrl);
@@ -57,7 +59,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       source: 'homepage'
     });
     sources.homepage++;
-    
+
     // 2. Try comprehensive sitemap discovery
     console.log('Step 1: Comprehensive sitemap analysis...');
     const sitemapPages = await discoverFromSitemap(cleanUrl);
@@ -70,21 +72,25 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       }
     });
     console.log(`✅ Added ${sources.sitemap} sitemap pages to discovered set (${discoveredPages.size} total)`);
-    
-    // 3. Multi-level crawling of internal links
-    console.log('Step 2: Multi-level internal link discovery...');
-    const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages);
-    crawledPages.forEach(page => {
-      const normalizedUrl = normalizeUrl(page.url);
-      if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
-        discoveredPages.set(normalizedUrl, page);
-        sources.internalLinks++;
-      }
-    });
-    console.log(`Found ${crawledPages.length} additional pages from crawling`);
-    
+
+    // 3. Multi-level crawling of internal links (SKIP IN QUICK MODE)
+    if (!quick) {
+      console.log('Step 2: Multi-level internal link discovery...');
+      const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages);
+      crawledPages.forEach(page => {
+        const normalizedUrl = normalizeUrl(page.url);
+        if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+          discoveredPages.set(normalizedUrl, page);
+          sources.internalLinks++;
+        }
+      });
+      console.log(`Found ${crawledPages.length} additional pages from crawling`);
+    } else {
+      console.log('Step 2: Skipping deep crawling (quick mode)');
+    }
+
     // 4. Check for common page patterns and structures
-    console.log('Step 3: Checking common page patterns...');
+    console.log(`Step ${quick ? '2' : '3'}: Checking common page patterns...`);
     const patternPages = await discoverCommonPatterns(cleanUrl, discoveredPages);
     patternPages.forEach(page => {
       const normalizedUrl = normalizeUrl(page.url);
