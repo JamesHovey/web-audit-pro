@@ -14,6 +14,7 @@ interface PageDiscoveryResult {
     internalLinks: number;
     homepage: number;
   };
+  warnings?: string[]; // User-facing warnings (e.g., sitemap blocked, using fallback)
 }
 
 // Discover pages from multiple sources with deep crawling
@@ -36,6 +37,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
 
   const discoveredPages = new Map<string, DiscoveredPage>();
   const sources = { sitemap: 0, internalLinks: 0, homepage: 0 };
+  const warnings: string[] = [];
 
   // Helper function to normalize URLs for deduplication
   const normalizeUrl = (url: string): string => {
@@ -80,6 +82,10 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
 
     if (needsCrawling) {
       if (quick) {
+        // Quick mode with fallback
+        if (sources.sitemap < 10) {
+          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using alternative discovery method - this may take 30-60 seconds.`);
+        }
         console.log(`Step 2: Light crawling (sitemap only found ${sources.sitemap} pages, need fallback)...`);
         // Light crawl for quick mode: depth 2, 20 URLs per level
         const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 2, 20);
@@ -92,6 +98,10 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
         });
         console.log(`Found ${crawledPages.length} additional pages from light crawling`);
       } else {
+        // Full mode - always crawl
+        if (sources.sitemap < 10) {
+          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using comprehensive crawling method - this will take 2-5 minutes for thorough discovery.`);
+        }
         console.log('Step 2: Deep crawling for comprehensive discovery...');
         // Full crawl: depth 5, 50 URLs per level
         const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 5, 50);
@@ -145,11 +155,15 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
 
   console.log(`✓ Discovery complete: ${pages.length} pages found`);
   console.log('Sources:', sources);
-  
+  if (warnings.length > 0) {
+    console.log('⚠️ Warnings:', warnings);
+  }
+
   return {
     pages,
     totalFound: pages.length,
-    sources
+    sources,
+    warnings: warnings.length > 0 ? warnings : undefined
   };
 }
 
