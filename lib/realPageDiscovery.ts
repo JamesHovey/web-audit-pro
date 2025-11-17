@@ -207,67 +207,88 @@ export class RealPageDiscovery {
     const urlPattern = /<url>([\s\S]*?)<\/url>/g;
     const pages: DiscoveredPage[] = [];
     let match;
+    let parsedCount = 0;
+    let skippedCount = 0;
 
     // Remove limit - parse all URLs from sitemap (not just first 50)
     while ((match = urlPattern.exec(xml)) !== null) {
-      const urlBlock = match[1];
+      parsedCount++;
 
-      const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
-      if (!locMatch) continue;
-
-      let pageUrl = locMatch[1].trim();
-
-      // Normalize and validate the URL from sitemap
+      // CRITICAL FIX: Wrap each page processing in try-catch
+      // If any single page fails, continue with the next URLs
       try {
-        // Fix malformed URLs like "http:/example.com" (missing one slash)
-        // by validating through URL constructor
-        const urlObj = new URL(pageUrl);
+        const urlBlock = match[1];
 
-        // Additional validation: ensure URL has a valid hostname
-        if (!urlObj.hostname || urlObj.hostname.length === 0) {
-          console.log(`Invalid URL in sitemap (no hostname): ${pageUrl}`);
-          continue; // Skip URLs without hostnames
+        const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
+        if (!locMatch) {
+          skippedCount++;
+          continue;
         }
 
-        pageUrl = urlObj.href; // Use normalized version
-      } catch {
-        console.log(`Invalid URL in sitemap: ${pageUrl}`);
-        continue; // Skip invalid URLs
+        let pageUrl = locMatch[1].trim();
+
+        // Normalize and validate the URL from sitemap
+        try {
+          // Fix malformed URLs like "http:/example.com" (missing one slash)
+          // by validating through URL constructor
+          const urlObj = new URL(pageUrl);
+
+          // Additional validation: ensure URL has a valid hostname
+          if (!urlObj.hostname || urlObj.hostname.length === 0) {
+            console.log(`Invalid URL in sitemap (no hostname): ${pageUrl}`);
+            skippedCount++;
+            continue; // Skip URLs without hostnames
+          }
+
+          pageUrl = urlObj.href; // Use normalized version
+        } catch {
+          console.log(`Invalid URL in sitemap: ${pageUrl}`);
+          skippedCount++;
+          continue; // Skip invalid URLs
+        }
+
+        if (this.visitedUrls.has(pageUrl)) {
+          skippedCount++;
+          continue;
+        }
+        this.visitedUrls.add(pageUrl);
+
+        // Extract optional sitemap data
+        const lastModMatch = urlBlock.match(/<lastmod>(.*?)<\/lastmod>/);
+        const priorityMatch = urlBlock.match(/<priority>(.*?)<\/priority>/);
+        const changeFreqMatch = urlBlock.match(/<changefreq>(.*?)<\/changefreq>/);
+
+        // Analyze the page (may throw exception if fetch fails)
+        const pageAnalysis = await this.analyzePage(pageUrl);
+
+        // Log if non-200 status code detected
+        if (pageAnalysis.statusCode !== 200) {
+          console.log(`⚠️  Status ${pageAnalysis.statusCode} - ${pageUrl}`);
+        }
+
+        pages.push({
+          url: pageUrl,
+          title: pageAnalysis.title,
+          statusCode: pageAnalysis.statusCode,
+          lastModified: lastModMatch?.[1],
+          priority: priorityMatch ? parseFloat(priorityMatch[1]) : undefined,
+          changeFreq: changeFreqMatch?.[1],
+          source: 'sitemap',
+          hasTitle: pageAnalysis.hasTitle,
+          hasDescription: pageAnalysis.hasDescription,
+          hasH1: pageAnalysis.hasH1,
+          imageCount: pageAnalysis.imageCount,
+          linkCount: pageAnalysis.linkCount
+        });
+      } catch (pageError) {
+        // Log the error but continue parsing remaining URLs
+        console.log(`⚠️  Failed to analyze page from sitemap (continuing with others):`, pageError.message);
+        skippedCount++;
+        continue;
       }
-
-      if (this.visitedUrls.has(pageUrl)) continue;
-      this.visitedUrls.add(pageUrl);
-
-      // Extract optional sitemap data
-      const lastModMatch = urlBlock.match(/<lastmod>(.*?)<\/lastmod>/);
-      const priorityMatch = urlBlock.match(/<priority>(.*?)<\/priority>/);
-      const changeFreqMatch = urlBlock.match(/<changefreq>(.*?)<\/changefreq>/);
-
-      // Analyze the page
-      const pageAnalysis = await this.analyzePage(pageUrl);
-
-      // Log if non-200 status code detected
-      if (pageAnalysis.statusCode !== 200) {
-        console.log(`⚠️  Status ${pageAnalysis.statusCode} - ${pageUrl}`);
-      }
-
-      pages.push({
-        url: pageUrl,
-        title: pageAnalysis.title,
-        statusCode: pageAnalysis.statusCode,
-        lastModified: lastModMatch?.[1],
-        priority: priorityMatch ? parseFloat(priorityMatch[1]) : undefined,
-        changeFreq: changeFreqMatch?.[1],
-        source: 'sitemap',
-        hasTitle: pageAnalysis.hasTitle,
-        hasDescription: pageAnalysis.hasDescription,
-        hasH1: pageAnalysis.hasH1,
-        imageCount: pageAnalysis.imageCount,
-        linkCount: pageAnalysis.linkCount
-      });
     }
 
-    console.log(`📊 Parsed ${pages.length} URLs from sitemap`);
+    console.log(`📊 Parsed ${pages.length} URLs from sitemap (${parsedCount} total, ${skippedCount} skipped/failed)`);
     return pages;
   }
 
