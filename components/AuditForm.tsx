@@ -159,6 +159,8 @@ export function AuditForm() {
   const [allPagesCount, setAllPagesCount] = useState<number | null>(null) // Count of discovered pages
   const [allDiscoveredPagesList, setAllDiscoveredPagesList] = useState<{url: string}[]>([]) // Full list of discovered pages
   const [isCountingPages, setIsCountingPages] = useState(false)
+  const [discoveryProgress, setDiscoveryProgress] = useState(0) // Progress percentage (0-100)
+  const [discoveryMessage, setDiscoveryMessage] = useState('') // Current progress message
   const [discoveryWarnings, setDiscoveryWarnings] = useState<string[]>([]) // Warnings from page discovery (e.g., sitemap blocked)
   const [excludedPaths, setExcludedPaths] = useState<string[]>([]) // Paths to exclude (e.g., /blog)
   const [excludeInput, setExcludeInput] = useState('')
@@ -650,8 +652,10 @@ export function AuditForm() {
       return // Skip API call
     }
 
-    // No cache, proceed with API call - FULL discovery for "All Discoverable Pages"
+    // No cache, proceed with SSE streaming - FULL discovery for "All Discoverable Pages"
     setIsCountingPages(true)
+    setDiscoveryProgress(0)
+    setDiscoveryMessage('Initializing page discovery...')
 
     try {
       const response = await fetch('/api/discover-pages', {
@@ -666,30 +670,84 @@ export function AuditForm() {
         throw new Error('Failed to discover pages')
       }
 
-      const data = await response.json()
-      // Store full list of pages for filtering
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pagesList = (data.pages || []).map((page: any) => ({ url: page.url }))
-      setAllDiscoveredPagesList(pagesList)
-      setAllPagesCount(data.totalFound || 0)
+      // Read the SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
 
-      // Store warnings if any
-      if (data.warnings && data.warnings.length > 0) {
-        setDiscoveryWarnings(data.warnings)
-      } else {
-        setDiscoveryWarnings([])
+      if (!reader) {
+        throw new Error('No response body')
       }
 
-      // Cache the results
-      cachePageDiscovery(urlToDiscover, data.pages, data.totalFound)
+      let buffer = ''
+      let finalResult: any = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE messages (separated by \n\n)
+        const messages = buffer.split('\n\n')
+        buffer = messages.pop() || '' // Keep incomplete message in buffer
+
+        for (const message of messages) {
+          if (!message.trim() || !message.startsWith('data: ')) continue
+
+          try {
+            const data = JSON.parse(message.replace('data: ', ''))
+
+            if (data.type === 'complete') {
+              // Final result received
+              finalResult = data.result
+            } else if (data.type === 'error') {
+              throw new Error(data.error)
+            } else {
+              // Progress update
+              if (data.progress !== undefined) {
+                setDiscoveryProgress(data.progress)
+              }
+              if (data.message) {
+                setDiscoveryMessage(data.message)
+              }
+            }
+          } catch (parseError) {
+            console.error('Error parsing SSE message:', parseError)
+          }
+        }
+      }
+
+      if (finalResult) {
+        // Store full list of pages for filtering
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pagesList = (finalResult.pages || []).map((page: any) => ({ url: page.url }))
+        setAllDiscoveredPagesList(pagesList)
+        setAllPagesCount(finalResult.totalFound || 0)
+
+        // Store warnings if any
+        if (finalResult.warnings && finalResult.warnings.length > 0) {
+          setDiscoveryWarnings(finalResult.warnings)
+        } else {
+          setDiscoveryWarnings([])
+        }
+
+        // Cache the results
+        cachePageDiscovery(urlToDiscover, finalResult.pages, finalResult.totalFound)
+      } else {
+        throw new Error('No result received from server')
+      }
 
     } catch (err) {
       console.error('Failed to count pages:', err)
       setAllDiscoveredPagesList([])
       setAllPagesCount(0)
       setDiscoveryWarnings([])
+      setDiscoveryMessage('Discovery failed')
     } finally {
       setIsCountingPages(false)
+      setDiscoveryProgress(100)
     }
   }
 
@@ -1127,11 +1185,32 @@ export function AuditForm() {
                     {isCountingPages ? (
                       <div className="space-y-2">
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-3">
                             <LoadingSpinner size="sm" />
                             <span className="text-sm font-semibold text-blue-900">Discovering all pages...</span>
                           </div>
-                          <p className="text-xs text-blue-700">
+
+                          {/* Progress Bar */}
+                          <div className="space-y-2">
+                            <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+                              <div
+                                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                style={{ width: `${discoveryProgress}%` }}
+                              ></div>
+                            </div>
+
+                            {/* Progress Message */}
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-blue-700">
+                                {discoveryMessage || 'Initializing...'}
+                              </p>
+                              <span className="text-xs font-medium text-blue-900">
+                                {discoveryProgress}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-blue-600 mt-2">
                             This may take 30 seconds to 5 minutes depending on site size and structure.
                           </p>
                         </div>

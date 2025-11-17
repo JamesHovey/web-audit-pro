@@ -19,7 +19,13 @@ interface PageDiscoveryResult {
 
 // Discover pages from multiple sources with deep crawling
 // @param quick - If true, skip deep crawling for faster discovery (sitemap + patterns only)
-export async function discoverPages(baseUrl: string, maxPages: number = 100, quick: boolean = false): Promise<PageDiscoveryResult> {
+// @param onProgress - Optional callback to report progress (percentage 0-100, message)
+export async function discoverPages(
+  baseUrl: string,
+  maxPages: number = 100,
+  quick: boolean = false,
+  onProgress?: (progress: number, message: string) => void
+): Promise<PageDiscoveryResult> {
   // Ensure URL has protocol
   let normalizedBaseUrl = baseUrl;
   if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
@@ -53,6 +59,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
   };
 
   try {
+    // Report starting progress
+    onProgress?.(5, 'Starting page discovery...');
+
     // 1. Always include the homepage first
     const normalizedHomepage = normalizeUrl(cleanUrl);
     discoveredPages.set(normalizedHomepage, {
@@ -64,6 +73,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
 
     // 2. Try comprehensive sitemap discovery
     console.log('Step 1: Comprehensive sitemap analysis...');
+    onProgress?.(10, 'Analyzing XML sitemaps...');
     const sitemapPages = await discoverFromSitemap(cleanUrl);
     console.log(`📊 discoverFromSitemap returned ${sitemapPages.length} total pages`);
     sitemapPages.forEach(page => {
@@ -74,6 +84,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
       }
     });
     console.log(`✅ Added ${sources.sitemap} sitemap pages to discovered set (${discoveredPages.size} total)`);
+    onProgress?.(40, `Found ${sources.sitemap} pages from sitemaps`);
 
     // 3. Multi-level crawling of internal links
     // Quick mode: Only crawl if sitemap found < 10 pages (fallback for sites without good sitemaps)
@@ -87,8 +98,9 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
           warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using alternative discovery method - this may take 30-60 seconds.`);
         }
         console.log(`Step 2: Light crawling (sitemap only found ${sources.sitemap} pages, need fallback)...`);
+        onProgress?.(45, 'Crawling internal links (light mode)...');
         // Light crawl for quick mode: depth 2, 20 URLs per level
-        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 2, 20);
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 2, 20, onProgress);
         crawledPages.forEach(page => {
           const normalizedUrl = normalizeUrl(page.url);
           if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
@@ -97,14 +109,16 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
           }
         });
         console.log(`Found ${crawledPages.length} additional pages from light crawling`);
+        onProgress?.(75, `Found ${crawledPages.length} pages from crawling`);
       } else {
         // Full mode - always crawl
         if (sources.sitemap < 10) {
           warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using comprehensive crawling method - this may take 30 seconds to 5 minutes depending on site size.`);
         }
         console.log('Step 2: Deep crawling for comprehensive discovery...');
+        onProgress?.(45, 'Deep crawling for comprehensive discovery...');
         // Full crawl: depth 5, 50 URLs per level
-        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 5, 50);
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 5, 50, onProgress);
         crawledPages.forEach(page => {
           const normalizedUrl = normalizeUrl(page.url);
           if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
@@ -113,13 +127,16 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
           }
         });
         console.log(`Found ${crawledPages.length} additional pages from deep crawling`);
+        onProgress?.(85, `Found ${crawledPages.length} pages from deep crawling`);
       }
     } else {
       console.log(`Step 2: Skipping crawling (sitemap found ${sources.sitemap} pages, sufficient for quick mode)`);
+      onProgress?.(75, 'Skipping crawl - sufficient pages found in sitemap');
     }
 
     // 4. Check for common page patterns and structures
     console.log(`Step ${quick ? '2' : '3'}: Checking common page patterns...`);
+    onProgress?.(90, 'Checking common page patterns...');
     const patternPages = await discoverCommonPatterns(cleanUrl, discoveredPages);
     patternPages.forEach(page => {
       const normalizedUrl = normalizeUrl(page.url);
@@ -129,7 +146,8 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
       }
     });
     console.log(`Found ${patternPages.length} pages from common patterns`);
-    
+    onProgress?.(95, `Finalizing results...`);
+
   } catch (error) {
     console.error('Page discovery error:', error);
     // Ensure homepage is always included
@@ -158,6 +176,8 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100, qui
   if (warnings.length > 0) {
     console.log('⚠️ Warnings:', warnings);
   }
+
+  onProgress?.(100, `Discovery complete: ${pages.length} pages found`);
 
   return {
     pages,
@@ -615,7 +635,8 @@ async function crawlInternalLinks(
   remainingSlots: number,
   alreadyFound: Map<string, DiscoveredPage>,
   maxDepth: number = 5, // Configurable depth: 2 for quick mode, 5 for full mode
-  urlsPerDepth: number = 50 // Configurable URLs per depth: 20 for quick, 50 for full
+  urlsPerDepth: number = 50, // Configurable URLs per depth: 20 for quick, 50 for full
+  onProgress?: (progress: number, message: string) => void
 ): Promise<DiscoveredPage[]> {
   const newPages: DiscoveredPage[] = [];
 
@@ -646,6 +667,10 @@ async function crawlInternalLinks(
 
   for (let depth = 0; depth < maxDepth && newPages.length < remainingSlots; depth++) {
     console.log(`  Crawling depth ${depth + 1}/${maxDepth}...`);
+
+    // Calculate progress percentage (45-85% range, distributed across depths)
+    const depthProgress = 45 + Math.floor((40 / maxDepth) * depth);
+    onProgress?.(depthProgress, `Crawling depth ${depth + 1}/${maxDepth}...`);
 
     const urlsToProcess = depth === 0 ? keyPagesToCrawl :
       Array.from(alreadyFound.keys())
