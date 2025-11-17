@@ -779,6 +779,16 @@ export async function performTechnicalAudit(
     result.issues.missingH1Tags = pagesWithMissingH1.length;
     result.issues.httpErrors = pagesWithHttpErrors.length;
 
+    // Log 4XX detection for debugging
+    if (pagesWithHttpErrors.length > 0) {
+      console.log(`🚨 Found ${pagesWithHttpErrors.length} pages with 4XX status codes:`);
+      pagesWithHttpErrors.forEach(page => {
+        console.log(`   ${page.statusCode} - ${page.url}`);
+      });
+    } else {
+      console.log(`✅ No pages with 4XX status codes detected`);
+    }
+
     // Store page URLs for each issue type (limit to 20 pages per issue type for performance)
     result.issuePages = {
       missingMetaTitles: pagesWithMissingTitles.slice(0, 20).map(p => p.url),

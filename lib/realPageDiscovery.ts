@@ -240,6 +240,11 @@ export class RealPageDiscovery {
       // Analyze the page
       const pageAnalysis = await this.analyzePage(pageUrl);
 
+      // Log if non-200 status code detected
+      if (pageAnalysis.statusCode !== 200) {
+        console.log(`⚠️  Status ${pageAnalysis.statusCode} - ${pageUrl}`);
+      }
+
       pages.push({
         url: pageUrl,
         title: pageAnalysis.title,
@@ -341,7 +346,12 @@ export class RealPageDiscovery {
         try {
           console.log(`🌐 Using browser rendering for: ${url}`);
           const browserResult = await BrowserService.withBrowser(async (browser, page) => {
-            await BrowserService.goto(page, url);
+            const response = await BrowserService.goto(page, url);
+
+            // Capture HTTP status code from navigation response
+            if (response) {
+              statusCode = response.status();
+            }
 
             // Wait a moment for JavaScript to execute
             await new Promise(resolve => setTimeout(resolve, 1000));
