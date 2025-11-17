@@ -999,8 +999,18 @@ export async function performTechnicalAudit(
     // 9. Detect unminified JavaScript and CSS files
     console.log('📦 Detecting unminified JavaScript and CSS files...');
     try {
-      // Analyze multiple pages for more comprehensive detection (up to 10 pages)
-      const pagesWithHtml = result.pages.filter(p => p.html).slice(0, 10);
+      // Analyze up to 50 pages for comprehensive detection (increased from 10)
+      // Prioritize pages likely to have custom scripts (blog posts, services, etc.)
+      const pagesWithHtml = result.pages.filter(p => p.html)
+        .sort((a, b) => {
+          // Prioritize blog posts and service pages (more likely to have custom JS/CSS)
+          const aIsBlog = a.url.includes('/blog/') || a.url.includes('/services/') || a.url.includes('/products/');
+          const bIsBlog = b.url.includes('/blog/') || b.url.includes('/services/') || b.url.includes('/products/');
+          if (aIsBlog && !bIsBlog) return -1;
+          if (!aIsBlog && bIsBlog) return 1;
+          return 0;
+        })
+        .slice(0, 50);
 
       console.log(`📄 Analyzing ${pagesWithHtml.length} pages for unminified files`);
 
