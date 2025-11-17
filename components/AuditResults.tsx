@@ -40,26 +40,31 @@ interface AuditResultsProps {
 }
 
 const INSPIRATIONAL_QUOTES = [
-  "Great SEO is a marathon, not a sprint. Stay consistent and patient.",
-  "Every website has potential waiting to be unlocked.",
-  "Quality content is the foundation of strong organic traffic.",
-  "Your competitors are optimizing right now. Let's get you ahead.",
-  "SEO isn't about gaming the system, it's about learning how to play by the rules.",
-  "The best time to plant a tree was 20 years ago. The second best time is now.",
-  "Success in SEO comes from understanding your audience, not just algorithms.",
-  "Small improvements compound into remarkable results.",
-  "Every click represents a real person looking for answers.",
-  "Your website is working 24/7. Make sure it's working smart.",
-  "Behind every search is a human with a problem to solve.",
-  "Good SEO makes your website easier to understand for both users and search engines.",
-  "The journey to page one starts with a single optimization.",
-  "Data drives decisions. Insights drive success.",
-  "Your content should answer questions before they're asked.",
-  "Building authority takes time, but the results last.",
-  "Every audit brings you closer to your goals.",
-  "Focus on user experience and search rankings will follow.",
-  "Technical SEO is the foundation. Content is the house.",
-  "Patience and persistence are SEO superpowers."
+  "Analyzing Core Web Vitals to optimize user experience and search rankings.",
+  "Scanning for broken links and crawlability issues across your site.",
+  "Evaluating mobile responsiveness and viewport performance.",
+  "Checking SSL certificates and security headers for visitor protection.",
+  "Reviewing meta tags and structured data for search visibility.",
+  "Measuring page load speeds and identifying performance bottlenecks.",
+  "Auditing image optimization and lazy loading implementation.",
+  "Assessing accessibility compliance for inclusive web experiences.",
+  "Detecting CMS platforms and analyzing technology stack efficiency.",
+  "Examining HTML structure and semantic markup quality.",
+  "Testing JavaScript execution and bundle size optimization.",
+  "Verifying HTTPS implementation and mixed content issues.",
+  "Analyzing DOM size and rendering performance metrics.",
+  "Inspecting HTTP headers and caching strategies.",
+  "Validating schema markup for rich snippet eligibility.",
+  "Reviewing sitemap.xml and robots.txt configurations.",
+  "Measuring Largest Contentful Paint and Cumulative Layout Shift.",
+  "Checking for render-blocking resources and optimization opportunities.",
+  "Scanning for deprecated HTML and CSS that could affect performance.",
+  "Evaluating contrast ratios and readability standards.",
+  "Analyzing Time to Interactive for optimal user engagement.",
+  "Reviewing meta descriptions and title tag optimization.",
+  "Testing CDN configuration and asset delivery performance.",
+  "Examining internal linking structure and navigation hierarchy.",
+  "Scanning for duplicate content and canonicalization issues."
 ]
 
 const BACKGROUND_THEMES = [
@@ -302,15 +307,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
     setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
     setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
     
-    // Rotate quotes every 3 seconds
+    // Rotate quotes every 12 seconds
     const quoteInterval = setInterval(() => {
       setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
-    }, 3000)
-    
-    // Rotate background themes every 5 seconds (slower than quotes)
+    }, 12000)
+
+    // Rotate background themes every 18 seconds (slower than quotes)
     const themeInterval = setInterval(() => {
       setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
-    }, 5000)
+    }, 18000)
     
     return () => {
       clearInterval(quoteInterval)
