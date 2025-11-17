@@ -531,17 +531,18 @@ function isValidPageUrl(url: string, baseUrl: string): boolean {
     // Must be same domain (allowing www/non-www variations)
     if (urlHostname !== baseHostname) return false;
     
-    // Skip common non-page URLs
+    // Skip common non-page URLs (but be conservative to match SEMrush)
     const skipPatterns = [
-      /\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|xml|txt)$/i,
+      /\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|xml|txt|zip|exe|dmg)$/i,
       /\/wp-admin\//,
+      /\/wp-content\/uploads\//,
       /\/admin\//,
       /\/api\//,
-      /\/feed\//,
+      /\/feed\/?$/,
       /\?.*attachment_id=/,
-      /#/
+      /#.+$/ // Only skip URLs with fragments, not just #
     ];
-    
+
     return !skipPatterns.some(pattern => pattern.test(url));
     
   } catch {
@@ -593,41 +594,47 @@ async function crawlInternalLinks(
     `${baseUrl}/work`
   ];
   
-  const maxDepth = 2; // Limit crawling depth
+  const maxDepth = 5; // Increased from 2 to match SEMrush-style deep crawling
   const processedUrls = new Set<string>();
-  
+
   for (let depth = 0; depth < maxDepth && newPages.length < remainingSlots; depth++) {
-    console.log(`  Crawling depth ${depth + 1}...`);
-    
-    const urlsToProcess = depth === 0 ? keyPagesToCrawl : 
+    console.log(`  Crawling depth ${depth + 1}/${maxDepth}...`);
+
+    const urlsToProcess = depth === 0 ? keyPagesToCrawl :
       Array.from(alreadyFound.keys())
         .concat(newPages.map(p => p.url))
         .filter(url => !processedUrls.has(url))
-        .slice(0, 10); // Limit URLs per depth
-    
+        .slice(0, 50); // Increased from 10 to 50 URLs per depth for more thorough discovery
+
+    console.log(`  Processing ${urlsToProcess.length} URLs at depth ${depth + 1}`);
+    const depthStartCount = newPages.length;
+
     for (const pageUrl of urlsToProcess) {
       if (processedUrls.has(pageUrl) || newPages.length >= remainingSlots) continue;
-      
+
       processedUrls.add(pageUrl);
-      
+
       try {
         const pageLinks = await extractLinksFromPage(pageUrl, baseUrl);
-        
+
         pageLinks.forEach(page => {
-          if (newPages.length < remainingSlots && 
-              !alreadyFound.has(page.url) && 
+          if (newPages.length < remainingSlots &&
+              !alreadyFound.has(page.url) &&
               !newPages.find(p => p.url === page.url)) {
             newPages.push(page);
           }
         });
-        
+
         // Small delay to be respectful
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
       } catch (error) {
         console.log(`Could not crawl ${pageUrl}:`, error);
       }
     }
+
+    const pagesFoundThisDepth = newPages.length - depthStartCount;
+    console.log(`  ✓ Depth ${depth + 1} complete: found ${pagesFoundThisDepth} new pages (${newPages.length} total)`);
   }
   
   return newPages;
