@@ -9,21 +9,21 @@ import { BrowserService } from './cloudflare-browser';
 function hasH1Tag(html: string): boolean {
   // Remove comments and CDATA sections first
   const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, '').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
-  
+
   // Multiple detection methods for reliability
   const patterns = [
     /<h1[^>]*>[\s\S]*?<\/h1>/i,           // Standard pattern
     /<h1[^>]*>[^<]*[\w\s][^<]*<\/h1>/i,    // H1 with text content
     /<h1\b[^>]*>(?:(?!<\/h1>)[\s\S])*[a-zA-Z0-9](?:(?!<\/h1>)[\s\S])*<\/h1>/i  // H1 containing alphanumeric
   ];
-  
+
   // Try each pattern
   for (const pattern of patterns) {
     if (pattern.test(cleanHtml)) {
       return true;
     }
   }
-  
+
   // Additional check: Look for opening h1 tag and closing h1 tag separately
   const hasOpeningTag = /<h1[^>]*>/i.test(cleanHtml);
   const hasClosingTag = /<\/h1>/i.test(cleanHtml);
@@ -32,6 +32,13 @@ function hasH1Tag(html: string): boolean {
     // If both tags exist, consider it valid even if content is empty
     // Elementor and other page builders often use H1 tags with nested elements
     // or content filled by JavaScript (e.g., <h1 class="elementor-heading-title"><span>...</span></h1>)
+
+    // Extract the H1 for logging (helpful for debugging)
+    const h1Match = cleanHtml.match(/<h1[^>]*>[\s\S]{0,200}/i);
+    if (h1Match) {
+      console.log(`✓ H1 tag found: ${h1Match[0].substring(0, 100)}...`);
+    }
+
     return true;
   }
 
@@ -457,9 +464,22 @@ export class RealPageDiscovery {
         }
       }
 
+      // Debug logging for metadata detection issues
+      if (!hasTitle || !hasDescription || !hasH1) {
+        console.log(`⚠️  Metadata issues for ${url}:`);
+        console.log(`   - Has title tag: ${hasTitle}`);
+        console.log(`   - Has meta description: ${hasDescription}`);
+        console.log(`   - Has H1 tag: ${hasH1}`);
+        console.log(`   - HTML length: ${html.length} characters`);
+
+        // Show snippet of HTML for debugging
+        const htmlSnippet = html.substring(0, 500);
+        console.log(`   - HTML snippet: ${htmlSnippet.substring(0, 200)}...`);
+      }
+
       return {
         title,
-        statusCode: response.status,
+        statusCode, // Use the local statusCode variable, not response.status
         hasTitle,
         hasDescription,
         hasH1,

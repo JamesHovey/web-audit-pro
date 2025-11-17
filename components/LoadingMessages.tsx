@@ -189,7 +189,7 @@ export default function LoadingMessages({ section, className = "", progress, sta
 
         {/* Time Display */}
         {(estimatedMinutes || startTime) && (
-          <div className="flex items-center justify-center gap-8 mb-6">
+          <div className="flex items-center justify-center gap-8 mt-8 mb-6">
             {estimatedMinutes && (
               <div className="text-center">
                 <p className="text-sm text-gray-600">Estimated Time</p>
