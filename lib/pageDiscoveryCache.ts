@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v3' // Increment to invalidate old caches
+const CACHE_VERSION = 'v4' // Increment to invalidate old caches (v1.5.8: Force fresh discovery after sitemap fix)
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
