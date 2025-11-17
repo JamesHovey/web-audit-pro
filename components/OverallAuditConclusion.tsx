@@ -5,6 +5,13 @@ import { HelpCircle } from 'lucide-react'
 import { ClaudeConclusionService, type AuditData, type ConclusionResult } from '../lib/claudeConclusionService'
 import Tooltip from './Tooltip'
 
+// Utility function to clean up text that has both bullets and numbers (e.g., "• 1." → "1.")
+function cleanBulletNumberDuplicates(text: string): string {
+  // Remove bullet points that are immediately followed by numbers
+  // Matches: "• 1.", "• 2.", "- 1.", "· 1." etc. and removes the bullet
+  return text.replace(/^[•·\-]\s*(\d+\.)/gm, '$1').trim();
+}
+
 interface OverallAuditConclusionProps {
   results: {
     brandedKeywordsList?: Array<Record<string, unknown>>
@@ -350,7 +357,7 @@ export default function OverallAuditConclusion({ results, domain }: OverallAudit
           </div>
           
           <p className="text-gray-800 mb-4 bg-white p-4 rounded-lg border">
-            {claudeConclusions.executiveSummary}
+            {cleanBulletNumberDuplicates(claudeConclusions.executiveSummary)}
           </p>
 
           {claudeConclusions.keyInsights.length > 0 && (
@@ -359,7 +366,7 @@ export default function OverallAuditConclusion({ results, domain }: OverallAudit
                 <h4 className="font-semibold text-blue-900 mb-2">🔍 Key Insights</h4>
                 <ul className="text-blue-800 text-sm space-y-1">
                   {claudeConclusions.keyInsights.map((insight, index) => (
-                    <li key={index}>• {insight}</li>
+                    <li key={index}>• {cleanBulletNumberDuplicates(insight)}</li>
                   ))}
                 </ul>
               </div>
@@ -369,7 +376,7 @@ export default function OverallAuditConclusion({ results, domain }: OverallAudit
                   <h4 className="font-semibold text-purple-900 mb-2">🎯 Industry-Specific Advice</h4>
                   <ul className="text-purple-800 text-sm space-y-1">
                     {claudeConclusions.industrySpecificAdvice.map((advice, index) => (
-                      <li key={index}>• {advice}</li>
+                      <li key={index}>• {cleanBulletNumberDuplicates(advice)}</li>
                     ))}
                   </ul>
                 </div>
@@ -408,13 +415,13 @@ export default function OverallAuditConclusion({ results, domain }: OverallAudit
                       <span className={`text-xs font-bold uppercase px-2 py-1 rounded ${getPriorityTextColor(item.priority)} bg-white`}>
                         {item.priority} Priority
                       </span>
-                      <span className="font-medium text-gray-900">{item.title}</span>
+                      <span className="font-medium text-gray-900">{cleanBulletNumberDuplicates(item.title)}</span>
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                         {item.category}
                       </span>
                     </div>
                     <p className={`text-sm ${getPriorityTextColor(item.priority)} mb-2`}>
-                      <strong>Description:</strong> {item.description}
+                      <strong>Description:</strong> {cleanBulletNumberDuplicates(item.description)}
                     </p>
                     <div className="flex items-center gap-4 text-xs">
                       <span className={`${getPriorityTextColor(item.priority)}`}>

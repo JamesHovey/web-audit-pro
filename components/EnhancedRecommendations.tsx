@@ -2086,9 +2086,10 @@ export default function EnhancedRecommendations({
     }
     
     // Add page builder-specific instructions
+    // NOTE: These are best practice recommendations, not detected actual settings
     if (pageBuilder && recommendationType === 'css') {
       if (pageBuilder === 'Elementor') {
-        pluginInstructions.splice(1, 0, '🎨 In Elementor: Go to Settings → Advanced → Set "CSS Print Method" to "Internal Embedding" for better loading')
+        pluginInstructions.splice(1, 0, '🎨 Elementor Best Practice: Go to Settings → Advanced → Set "CSS Print Method" to "Internal Embedding" for better loading')
       } else if (pageBuilder === 'Divi') {
         pluginInstructions.splice(1, 0, '🎨 In Divi: Go to Theme Options → Builder → Advanced → Enable "Static CSS File Generation"')
       } else if (pageBuilder === 'Fusion Builder (Avada)') {
@@ -2106,7 +2107,7 @@ export default function EnhancedRecommendations({
     
     if (pageBuilder && recommendationType === 'fonts') {
       if (pageBuilder === 'Elementor') {
-        pluginInstructions.splice(1, 0, '🎨 In Elementor: Go to Settings → Advanced → Set "Google Fonts Display" to "swap" for better loading')
+        pluginInstructions.splice(1, 0, '🎨 Elementor Best Practice: Go to Settings → Advanced → Set "Google Fonts Display" to "swap" for better loading')
       } else if (pageBuilder === 'Divi') {
         pluginInstructions.splice(1, 0, '🎨 In Divi: Go to Theme Options → General → Performance → Disable unused Google Fonts')
       }
