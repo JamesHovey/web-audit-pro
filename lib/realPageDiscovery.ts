@@ -27,15 +27,14 @@ function hasH1Tag(html: string): boolean {
   // Additional check: Look for opening h1 tag and closing h1 tag separately
   const hasOpeningTag = /<h1[^>]*>/i.test(cleanHtml);
   const hasClosingTag = /<\/h1>/i.test(cleanHtml);
-  
+
   if (hasOpeningTag && hasClosingTag) {
-    // Extract content between first h1 opening and closing tags
-    const h1Match = cleanHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    if (h1Match && h1Match[1].trim().length > 0) {
-      return true;
-    }
+    // If both tags exist, consider it valid even if content is empty
+    // Elementor and other page builders often use H1 tags with nested elements
+    // or content filled by JavaScript (e.g., <h1 class="elementor-heading-title"><span>...</span></h1>)
+    return true;
   }
-  
+
   return false;
 }
 
