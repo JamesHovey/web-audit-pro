@@ -174,6 +174,31 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
                 const childPages = await parseSingleSitemap(childSitemapUrl, baseUrl);
                 pages.push(...childPages);
                 console.log(`  Child sitemap yielded ${childPages.length} pages`);
+
+                // Check for paginated WordPress sitemaps (e.g., wp-sitemap-posts-post-1.xml -> -2.xml, -3.xml)
+                if (childSitemapUrl.match(/wp-sitemap-.*-(\d+)\.xml$/)) {
+                  const baseSitemapUrl = childSitemapUrl.replace(/-(\d+)\.xml$/, '');
+                  const firstPage = parseInt(childSitemapUrl.match(/-(\d+)\.xml$/)?.[1] || '1');
+
+                  // Check for additional pages (up to 10 pages = 500 URLs)
+                  for (let pageNum = firstPage + 1; pageNum <= firstPage + 10; pageNum++) {
+                    const paginatedUrl = `${baseSitemapUrl}-${pageNum}.xml`;
+                    if (foundSitemaps.has(paginatedUrl)) continue;
+
+                    try {
+                      console.log(`  Checking paginated sitemap: ${paginatedUrl}`);
+                      const paginatedPages = await parseSingleSitemap(paginatedUrl, baseUrl);
+                      if (paginatedPages.length === 0) break; // No more pages
+
+                      foundSitemaps.add(paginatedUrl);
+                      pages.push(...paginatedPages);
+                      console.log(`  Paginated sitemap yielded ${paginatedPages.length} pages`);
+                    } catch {
+                      console.log(`  No more paginated sitemaps at page ${pageNum}`);
+                      break; // Stop checking if we get an error (404)
+                    }
+                  }
+                }
               } catch (error) {
                 console.log(`Could not fetch child sitemap: ${childSitemapUrl}`);
               }
