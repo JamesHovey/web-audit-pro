@@ -13,7 +13,6 @@ import KeywordCompetitionTable from './KeywordCompetitionTable'
 import RecommendedKeywordTable from './RecommendedKeywordTable'
 import PaidAdvertisingOpportunities from './PaidAdvertisingOpportunities'
 import { PageDetailsModal } from './PageDetailsModal'
-import TechnologyStackConclusion from './TechnologyStackConclusion'
 import KeywordAnalysisConclusion from './KeywordAnalysisConclusion'
 import AccessibilityConclusion from './AccessibilityConclusion'
 import AccessibilityResults from './AccessibilityResults'
@@ -23,6 +22,7 @@ import ViewportResponsiveAnalysis from './ViewportResponsiveAnalysis'
 import BrandedVsNonBrandedChart from './BrandedVsNonBrandedChart'
 import { exportAuditToPDF } from '@/lib/pdfExportService'
 import SectionExportButtons from './SectionExportButtons'
+import DetectedPluginsTable from './DetectedPluginsTable'
 // import AuditSummary from './AuditSummary' // DISABLED: Claude API temporarily disabled
 
 interface Audit {
@@ -37,30 +37,34 @@ interface Audit {
 
 interface AuditResultsProps {
   audit: Audit
-  showViewSelector?: boolean
 }
 
 const INSPIRATIONAL_QUOTES = [
-  "Great SEO is a marathon, not a sprint. Stay consistent and patient.",
-  "Every website has potential waiting to be unlocked.",
-  "Quality content is the foundation of strong organic traffic.",
-  "Your competitors are optimizing right now. Let's get you ahead.",
-  "SEO isn't about gaming the system, it's about learning how to play by the rules.",
-  "The best time to plant a tree was 20 years ago. The second best time is now.",
-  "Success in SEO comes from understanding your audience, not just algorithms.",
-  "Small improvements compound into remarkable results.",
-  "Every click represents a real person looking for answers.",
-  "Your website is working 24/7. Make sure it's working smart.",
-  "Behind every search is a human with a problem to solve.",
-  "Good SEO makes your website easier to understand for both users and search engines.",
-  "The journey to page one starts with a single optimization.",
-  "Data drives decisions. Insights drive success.",
-  "Your content should answer questions before they're asked.",
-  "Building authority takes time, but the results last.",
-  "Every audit brings you closer to your goals.",
-  "Focus on user experience and search rankings will follow.",
-  "Technical SEO is the foundation. Content is the house.",
-  "Patience and persistence are SEO superpowers."
+  "Analyzing Core Web Vitals to optimize user experience and search rankings.",
+  "Scanning for broken links and crawlability issues across your site.",
+  "Evaluating mobile responsiveness and viewport performance.",
+  "Checking SSL certificates and security headers for visitor protection.",
+  "Reviewing meta tags and structured data for search visibility.",
+  "Measuring page load speeds and identifying performance bottlenecks.",
+  "Auditing image optimization and lazy loading implementation.",
+  "Assessing accessibility compliance for inclusive web experiences.",
+  "Detecting CMS platforms and analyzing technology stack efficiency.",
+  "Examining HTML structure and semantic markup quality.",
+  "Testing JavaScript execution and bundle size optimization.",
+  "Verifying HTTPS implementation and mixed content issues.",
+  "Analyzing DOM size and rendering performance metrics.",
+  "Inspecting HTTP headers and caching strategies.",
+  "Validating schema markup for rich snippet eligibility.",
+  "Reviewing sitemap.xml and robots.txt configurations.",
+  "Measuring Largest Contentful Paint and Cumulative Layout Shift.",
+  "Checking for render-blocking resources and optimization opportunities.",
+  "Scanning for deprecated HTML and CSS that could affect performance.",
+  "Evaluating contrast ratios and readability standards.",
+  "Analyzing Time to Interactive for optimal user engagement.",
+  "Reviewing meta descriptions and title tag optimization.",
+  "Testing CDN configuration and asset delivery performance.",
+  "Examining internal linking structure and navigation hierarchy.",
+  "Scanning for duplicate content and canonicalization issues."
 ]
 
 const BACKGROUND_THEMES = [
@@ -111,7 +115,7 @@ const SECTION_LABELS = {
   accessibility: "Accessibility"
 }
 
-export function AuditResults({ audit: initialAudit, showViewSelector = false }: AuditResultsProps) {
+export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const router = useRouter()
   const [audit, setAudit] = useState(initialAudit)
   const [isPolling, setIsPolling] = useState(audit.status === "pending" || audit.status === "running")
@@ -119,16 +123,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
   const [showResults, setShowResults] = useState(audit.status === "completed")
   const [currentQuote, setCurrentQuote] = useState(INSPIRATIONAL_QUOTES[0])
   const [currentTheme, setCurrentTheme] = useState(BACKGROUND_THEMES[0])
-  const [currentView, setCurrentView] = useState<'executive' | 'manager' | 'developer'>(
-    (audit.results?.auditView as 'executive' | 'manager' | 'developer') || 'executive'
-  )
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
-    traffic: true,
-    performance: true,
-    technology: true,
-    accessibility: true,
-    keywords: false,  // Always expanded for keyword audits
-    viewport: false  // Always expanded so it runs automatically
+    traffic: false,      // Open by default
+    performance: false,  // Open by default
+    technology: false,   // Open by default
+    accessibility: false, // Open by default
+    keywords: false,     // Open by default
+    viewport: false      // Open by default
   })
   const [showCoreWebVitalsGuide, setShowCoreWebVitalsGuide] = useState(false)
   const [showNonBrandedKeywordsGuide, setShowNonBrandedKeywordsGuide] = useState(false)
@@ -161,6 +162,43 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     links: []
   })
 
+  // Calculate estimated time based on audit configuration
+  const calculateEstimatedMinutes = () => {
+    const results = audit.results as any
+
+    // Get page count from results or use a default estimate
+    const pageCount = results?.totalPages || 50 // Default to 50 pages if not yet calculated
+    const configuration = results?.auditConfiguration || {
+      enableLighthouse: true,
+      enableViewport: true,
+      enableImageOptimization: true,
+      enableSEO: true
+    }
+
+    // Time estimates per page in seconds
+    const TIME_PER_PAGE = {
+      lighthouse: 8,
+      viewport: 6,
+      imageOptimization: 2,
+      seo: 1,
+      technical: 1,
+    }
+
+    const CONCURRENT_PAGES = 3
+
+    let totalSecondsPerPage = TIME_PER_PAGE.technical // Always included
+
+    if (configuration.enableLighthouse) totalSecondsPerPage += TIME_PER_PAGE.lighthouse
+    if (configuration.enableViewport) totalSecondsPerPage += TIME_PER_PAGE.viewport
+    if (configuration.enableImageOptimization) totalSecondsPerPage += TIME_PER_PAGE.imageOptimization
+    if (configuration.enableSEO) totalSecondsPerPage += TIME_PER_PAGE.seo
+
+    const totalSeconds = (pageCount * totalSecondsPerPage) / CONCURRENT_PAGES
+    return Math.ceil(totalSeconds / 60)
+  }
+
+  const estimatedMinutes = calculateEstimatedMinutes()
+
   // Section ordering and drag state
   const [sectionOrder, setSectionOrder] = useState<string[]>([
     'traffic',
@@ -171,45 +209,25 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     'keywords'
   ])
   const [draggedSection, setDraggedSection] = useState<string | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
 
-  // Update collapsed sections when view changes
+  // Update elapsed time every second when audit is running
   useEffect(() => {
-    if (currentView === 'executive') {
-      // Collapse all sections except summary and keywords
-      setCollapsedSections({
-        traffic: true,
-        performance: true,
-        technology: true,
-        accessibility: true,
-        keywords: false, // Always expanded for keyword audits
-        viewport: true
-      })
-    } else if (currentView === 'manager') {
-      // Expand key sections, collapse detailed sections
-      setCollapsedSections({
-        traffic: false,
-        performance: false,
-        technology: true,
-        accessibility: false,
-        keywords: false, // Always expanded for keyword audits
-        viewport: true
-      })
-    } else if (currentView === 'developer') {
-      // Expand everything
-      setCollapsedSections({
-        traffic: false,
-        performance: false,
-        technology: false,
-        accessibility: false,
-        keywords: false, // Always expanded for keyword audits
-        viewport: false
-      })
-    }
-  }, [currentView])
+    if (audit.status !== "running" || !audit.createdAt) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const start = new Date(audit.createdAt);
+      const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
+      setElapsedSeconds(elapsed);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [audit.status, audit.createdAt])
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({
@@ -289,15 +307,15 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
     setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
     setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
     
-    // Rotate quotes every 3 seconds
+    // Rotate quotes every 12 seconds
     const quoteInterval = setInterval(() => {
       setCurrentQuote(INSPIRATIONAL_QUOTES[Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length)])
-    }, 3000)
-    
-    // Rotate background themes every 5 seconds (slower than quotes)
+    }, 12000)
+
+    // Rotate background themes every 18 seconds (slower than quotes)
     const themeInterval = setInterval(() => {
       setCurrentTheme(BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)])
-    }, 5000)
+    }, 18000)
     
     return () => {
       clearInterval(quoteInterval)
@@ -525,107 +543,17 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       {/* Only show results when audit is complete */}
       {showResults ? (
         <>
-          {/* View Switcher */}
-          {showViewSelector && (
-            <div className="card-pmw mb-6">
-              <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Audit View</h3>
-                  <p className="text-sm text-gray-600">Choose your preferred level of detail</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Executive View */}
-                <button
-                  onClick={() => setCurrentView('executive')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'executive'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Executive View</h4>
-                    {currentView === 'executive' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Summary only - perfect for presentations</p>
-                </button>
-
-                {/* Manager View */}
-                <button
-                  onClick={() => setCurrentView('manager')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'manager'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Manager View</h4>
-                    {currentView === 'manager' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Key insights + priority issues</p>
-                </button>
-
-                {/* Developer View */}
-                <button
-                  onClick={() => setCurrentView('developer')}
-                  className={`p-4 border-2 rounded-lg transition-all text-left ${
-                    currentView === 'developer'
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                    <h4 className="font-semibold text-gray-900">Developer View</h4>
-                    {currentView === 'developer' && (
-                      <div className="ml-auto w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600">Full technical details</p>
-                </button>
-              </div>
-              </div>
-            </div>
-          )}
-
-          {/* Audit Summary - FIRST SECTION */}
-          {audit.results && (
+          {/* Audit Summary - REMOVED PER USER REQUEST */}
+          {/* {audit.results && (
             <AuditSummary
               auditResults={audit.results}
               onNavigateToSection={openSectionAndScroll}
               defaultCollapsed={currentView === 'developer'}
             />
-          )}
+          )} */}
 
-          {/* Traffic Section - Full Width */}
-          {audit?.sections?.includes('traffic') && (
+          {/* Traffic Section - HIDDEN PER USER REQUEST */}
+          {/* {audit?.sections?.includes('traffic') && (
             <div
               className={`card-pmw transition-all ${
                 collapsedSections.traffic ? 'cursor-move hover:shadow-lg' : ''
@@ -681,7 +609,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                         auditUrl={audit.url}
                       />
                     </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('traffic')}>
+                  <button
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSection('traffic')
+                    }}
+                  >
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.traffic ? '' : 'rotate-180'}`}
                       fill="none"
@@ -696,7 +630,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 {!collapsedSections.traffic && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                      <LoadingMessages section="traffic" />
+                      <LoadingMessages section="traffic" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                     ) : (
                       <>
                         {renderSectionResults("traffic", audit.results?.traffic || {}, setInternalLinksModal, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)}
@@ -717,7 +651,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Technology Stack - Full Width */}
           {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
@@ -775,7 +709,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                         auditUrl={audit.url}
                       />
                     </div>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('performance')}>
+                  <button
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSection('performance')
+                    }}
+                  >
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.performance ? '' : 'rotate-180'}`}
                       fill="none"
@@ -790,12 +730,12 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 {!collapsedSections.performance && (
                   <div className="mt-4">
                     {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                      <LoadingMessages section="performance" />
+                      <LoadingMessages section="performance" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                     ) : (
                       <>
                         {renderSectionResults(
                           audit?.sections?.includes('technical') ? "technical" : "performance",
-                          {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {})},
+                          {...(audit?.results?.performance || {}), ...(audit?.results?.technical || {}), cms: audit?.results?.technology?.cms || audit?.results?.performance?.cms || audit?.results?.technical?.cms},
                           undefined,
                           showMethodologyExpanded,
                           toggleMethodology,
@@ -804,8 +744,8 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                           setPerformancePagination,
                           setShowCoreWebVitalsGuide,
                           audit.results?.scope,
-                          audit.results?.technical?.plugins || audit.results?.traffic?.plugins || [],
-                          audit.results?.technical?.pageBuilder || audit.results?.traffic?.pageBuilder
+                          audit.results?.technical?.plugins || audit.results?.technology?.plugins || audit.results?.traffic?.plugins || [],
+                          audit.results?.technical?.pageBuilder || audit.results?.technology?.pageBuilder || audit.results?.traffic?.pageBuilder
                         )}
                         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                           <button
@@ -827,7 +767,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
           )}
 
       {/* Viewport Responsiveness Analysis - Full Width */}
-      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
+      {audit?.sections?.includes('technical') && audit.results?.viewportAnalysis && (
         <div
           className={`card-pmw transition-all ${
             collapsedSections.viewport ? 'cursor-move hover:shadow-lg' : ''
@@ -865,7 +805,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('viewport')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('viewport')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.viewport ? '' : 'rotate-180'}`}
                   fill="none"
@@ -899,7 +845,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
       )}
 
       {/* Technology Stack - Full Width */}
-      {audit?.sections?.includes('technology') && (
+      {(audit?.sections?.includes('performance') || audit?.sections?.includes('technical')) && (
         <div
           className={`card-pmw transition-all ${
             collapsedSections.technology ? 'cursor-move hover:shadow-lg' : ''
@@ -954,7 +900,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('technology')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('technology')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.technology ? '' : 'rotate-180'}`}
                   fill="none"
@@ -969,15 +921,9 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             {!collapsedSections.technology && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="technology" />
+                  <LoadingMessages section="technology" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : (
                   renderSectionResults("technology", audit.results?.technology || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
-                )}
-                {/* Enhanced Technology Conclusion */}
-                {audit.status === "completed" && audit?.results?.technology && (
-                  <TechnologyStackConclusion
-                    data={audit?.results?.technology}
-                  />
                 )}
                 <div className="mt-6 pt-4 border-t border-gray-200 flex justify-center">
                   <button
@@ -1053,7 +999,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     auditUrl={audit.url}
                   />
                 </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors" onClick={() => toggleSection('accessibility')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('accessibility')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.accessibility ? '' : 'rotate-180'}`}
                   fill="none"
@@ -1068,7 +1020,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             {!collapsedSections.accessibility && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="accessibility" />
+                  <LoadingMessages section="accessibility" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : (
                   <AccessibilityResults data={audit.results?.accessibility || {}} />
                 )}
@@ -1169,7 +1121,13 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 )}
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded transition-colors ml-4" onClick={() => toggleSection('keywords')}>
+              <button
+                className="p-1 hover:bg-gray-100 rounded transition-colors ml-4"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSection('keywords')
+                }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-600 transition-transform ${collapsedSections.keywords ? '' : 'rotate-180'}`}
                   fill="none"
@@ -1184,7 +1142,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             {!collapsedSections.keywords && (
               <div className="mt-4">
                 {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                  <LoadingMessages section="keywords" />
+                  <LoadingMessages section="keywords" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 ) : audit.results?.keywords ? (
                   <>
                     <div className="space-y-4">
@@ -1208,7 +1166,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     </div>
                   </>
                 ) : (
-                  <LoadingMessages section="keywords" />
+                  <LoadingMessages section="keywords" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
                 )}
               </div>
             )}
@@ -1250,7 +1208,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
             </div>
             <div className="mt-4">
               {!isHydrated || audit.status === "pending" || audit.status === "running" ? (
-                <LoadingMessages section="backlinks" />
+                <LoadingMessages section="backlinks" estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
               ) : (
                 renderSectionResults("backlinks", audit.results?.backlinks || {}, undefined, showMethodologyExpanded, toggleMethodology, setPageModalState, undefined, undefined, undefined, audit.results?.scope, undefined, undefined)
               )}
@@ -1302,7 +1260,7 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                   <p className="text-red-600">Failed to generate results</p>
                 </div>
               ) : (
-                <LoadingMessages section={sectionId} />
+                <LoadingMessages section={sectionId} estimatedMinutes={estimatedMinutes} startTime={new Date(audit.createdAt)} />
               )}
             </div>
           </div>
@@ -1330,9 +1288,29 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                 <LoadingSpinner size="lg" className="mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Analysing Website</h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  We&apos;re conducting a comprehensive audit of {audit?.sections?.length || 0} sections.
+                  We&apos;re conducting a comprehensive audit.
                 </p>
-                
+
+                {/* Time Display - ADDED */}
+                {audit.createdAt && (
+                  <div className="flex items-center justify-center gap-8 mb-6">
+                    {estimatedMinutes && estimatedMinutes > 0 && (
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Estimated Time</p>
+                        <p className="text-lg font-bold text-blue-700">
+                          {estimatedMinutes <= 1 ? '<1 min' : estimatedMinutes < 60 ? `<${estimatedMinutes} mins` : `<${Math.floor(estimatedMinutes / 60)}h ${estimatedMinutes % 60}m`}
+                        </p>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600">Elapsed Time</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Inspirational Quote */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
                   <p className="text-center text-gray-700 italic mb-2">
@@ -1342,20 +1320,21 @@ export function AuditResults({ audit: initialAudit, showViewSelector = false }: 
                     Background: {currentTheme.name}
                   </p>
                 </div>
-                
-                {audit.results?._progress && (
+
+                {audit.results?.progress && (
                   <div className="mb-6">
                     <p className="text-sm text-gray-600 mb-2 text-center">
-                      Processing: <span className="font-semibold">
-                        {SECTION_LABELS[audit.results._progress.currentSection as keyof typeof SECTION_LABELS] || audit.results._progress.currentSection}
-                      </span> ({audit.results._progress.completedSections}/{audit.results._progress.totalSections})
+                      <span className="font-semibold">{audit.results.progress.message}</span>
                     </p>
+                    {audit.results.progress.total > 0 && (
+                      <p className="text-xs text-gray-500 mb-2 text-center">
+                        {audit.results.progress.current} of {audit.results.progress.total}
+                      </p>
+                    )}
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ 
-                          width: `${(audit.results._progress.completedSections / audit.results._progress.totalSections) * 100}%` 
-                        }}
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${audit.results.progress.percentage}%` }}
                       ></div>
                     </div>
                   </div>
@@ -2695,6 +2674,286 @@ function renderSectionResults(
       return (
         <div className="space-y-6">
 
+          {/* Enhanced Recommendations - MOVED TO FIRST POSITION PER USER REQUEST */}
+          <EnhancedRecommendations
+            recommendations={results.recommendations || []}
+            desktopScore={results.desktop?.score}
+            mobileScore={results.mobile?.score}
+            lcpScore={results.desktop?.lcp || results.mobile?.lcp}
+            clsScore={results.desktop?.cls || results.mobile?.cls}
+            inpScore={results.desktop?.inp || results.mobile?.inp}
+            detectedPlugins={pluginsList || []}
+            pageBuilder={pageBuilderName}
+            cms={results.cms}
+            technicalIssues={{
+              missingH1Tags: results.issues?.missingH1Tags,
+              missingMetaTitles: results.issues?.missingMetaTitles,
+              missingMetaDescriptions: results.issues?.missingMetaDescriptions,
+              largeImages: results.largeImages || results.issues?.largeImages,
+              http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors,
+              invalidStructuredData: results.issues?.invalidStructuredData,
+              lowTextHtmlRatio: results.issues?.lowTextHtmlRatio,
+              unminifiedFiles: results.issues?.unminifiedFiles,
+              shortTitles: results.issues?.shortTitles,
+              longTitles: results.issues?.longTitles,
+              pagesWithOneIncomingLink: results.issues?.pagesWithOneIncomingLink,
+              orphanedSitemapPages: results.issues?.orphanedSitemapPages,
+              permanentRedirects: results.issues?.permanentRedirects,
+              subdomainsWithoutHSTS: results.issues?.subdomainsWithoutHSTS,
+              missingLlmsTxt: results.issues?.missingLlmsTxt,
+              missingRobotsTxt: results.issues?.missingRobotsTxt
+            }}
+            technicalAudit={{
+              unminifiedFiles: results.unminifiedFiles,
+              titleLengthIssues: results.titleLengthIssues,
+              internalLinkAnalysis: results.internalLinkAnalysis,
+              permanentRedirects: results.permanentRedirects,
+              hstsAnalysis: results.hstsAnalysis,
+              llmsTxt: results.llmsTxt,
+              robotsTxtStatus: results.robotsTxtStatus
+            }}
+            issuePages={results.issuePages}
+            largeImagesList={results.largeImagesList || results.largeImageDetails || []}
+            legacyFormatImagesList={results.legacyFormatImages || []}
+            structuredDataItems={results.structuredData?.items || []}
+            textHtmlRatioPages={results.textHtmlRatio?.pages || []}
+          />
+
+          {/* Conversion Analysis Section */}
+          {results.conversionAnalysis && (
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-gray-900">Conversion Optimization</h3>
+                  <Tooltip
+                    content={
+                      <div className="space-y-2">
+                        <p className="font-medium">Conversion-Focused Analysis</p>
+                        <p>This section identifies issues that directly impact your ability to convert visitors into customers:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-sm">
+                          <li><strong>JavaScript Errors:</strong> Broken forms/checkout</li>
+                          <li><strong>Mobile Usability:</strong> 60%+ of traffic is mobile</li>
+                          <li><strong>Accessibility:</strong> Legal compliance + better UX</li>
+                          <li><strong>Security:</strong> Trust signals for visitors</li>
+                          <li><strong>Forms:</strong> Friction in conversion process</li>
+                        </ul>
+                      </div>
+                    }
+                    position="right"
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </Tooltip>
+                </div>
+
+                {/* Conversion Score */}
+                <div className="text-center">
+                  <div className={`text-4xl font-bold ${
+                    results.conversionAnalysis.conversionScore >= 80 ? 'text-green-600' :
+                    results.conversionAnalysis.conversionScore >= 60 ? 'text-yellow-600' :
+                    results.conversionAnalysis.conversionScore >= 40 ? 'text-orange-600' :
+                    'text-red-600'
+                  }`}>
+                    {results.conversionAnalysis.conversionScore}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Conversion Score</div>
+                  <div className="text-xs text-gray-500">out of 100</div>
+                </div>
+              </div>
+
+              {/* Issues Summary */}
+              {results.conversionAnalysis.totalIssues > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-red-600">{results.conversionAnalysis.criticalIssues?.length || 0}</div>
+                    <div className="text-sm text-red-700 mt-1">Critical</div>
+                    <div className="text-xs text-red-600">Blocks conversions</div>
+                  </div>
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-orange-600">{results.conversionAnalysis.highPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-orange-700 mt-1">High Priority</div>
+                    <div className="text-xs text-orange-600">Reduces trust</div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-yellow-600">{results.conversionAnalysis.mediumPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-yellow-700 mt-1">Medium</div>
+                    <div className="text-xs text-yellow-600">Hurts usability</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-600">{results.conversionAnalysis.lowPriorityIssues?.length || 0}</div>
+                    <div className="text-sm text-blue-700 mt-1">Low</div>
+                    <div className="text-xs text-blue-600">Minor impact</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Critical Issues */}
+              {results.conversionAnalysis.criticalIssues && results.conversionAnalysis.criticalIssues.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-red-600 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Critical Issues (Fix Immediately)
+                  </h4>
+                  <div className="space-y-3">
+                    {results.conversionAnalysis.criticalIssues.map((issue: any, index: number) => (
+                      <div key={index} className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-600 text-white">
+                              {issue.category || 'CRITICAL'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-red-900">{issue.title}</h5>
+                            <p className="text-sm text-red-700 mt-1">{issue.description}</p>
+                            {issue.recommendation && (
+                              <p className="text-sm text-red-600 mt-2">
+                                <strong>Fix:</strong> {issue.recommendation}
+                              </p>
+                            )}
+                            {issue.impact && (
+                              <div className="mt-2 inline-flex items-center text-xs text-red-800 bg-red-100 px-2 py-1 rounded">
+                                💥 Impact: {issue.impact}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* High Priority Issues */}
+              {results.conversionAnalysis.highPriorityIssues && results.conversionAnalysis.highPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-orange-600 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    High Priority Issues
+                  </h4>
+                  <div className="space-y-3">
+                    {results.conversionAnalysis.highPriorityIssues.map((issue: any, index: number) => (
+                      <div key={index} className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-500 text-white">
+                              {issue.category || 'HIGH'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-orange-900">{issue.title}</h5>
+                            <p className="text-sm text-orange-700 mt-1">{issue.description}</p>
+                            {issue.recommendation && (
+                              <p className="text-sm text-orange-600 mt-2">
+                                <strong>Fix:</strong> {issue.recommendation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Medium Priority Issues */}
+              {results.conversionAnalysis.mediumPriorityIssues && results.conversionAnalysis.mediumPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <h4 className="text-lg font-semibold text-yellow-600 mb-3 flex items-center gap-2 inline-flex">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Medium Priority Issues ({results.conversionAnalysis.mediumPriorityIssues.length})
+                      </h4>
+                    </summary>
+                    <div className="space-y-2 mt-3">
+                      {results.conversionAnalysis.mediumPriorityIssues.map((issue: any, index: number) => (
+                        <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                          <div className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-400 text-yellow-900">
+                              {issue.category || 'MEDIUM'}
+                            </span>
+                            <div className="flex-1">
+                              <h5 className="font-medium text-yellow-900 text-sm">{issue.title}</h5>
+                              <p className="text-xs text-yellow-700 mt-1">{issue.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+
+              {/* Low Priority Issues */}
+              {results.conversionAnalysis.lowPriorityIssues && results.conversionAnalysis.lowPriorityIssues.length > 0 && (
+                <div className="mb-6">
+                  <details className="group">
+                    <summary className="cursor-pointer list-none">
+                      <h4 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2 inline-flex">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Low Priority Issues ({results.conversionAnalysis.lowPriorityIssues.length})
+                      </h4>
+                    </summary>
+                    <div className="space-y-2 mt-3">
+                      {results.conversionAnalysis.lowPriorityIssues.map((issue: any, index: number) => (
+                        <div key={index} className="bg-blue-50 border-l-4 border-blue-300 p-3 rounded">
+                          <div className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-300 text-blue-900">
+                              {issue.category || 'LOW'}
+                            </span>
+                            <div className="flex-1">
+                              <h5 className="font-medium text-blue-900 text-sm">{issue.title}</h5>
+                              <p className="text-xs text-blue-700 mt-1">{issue.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {results.conversionAnalysis.recommendations && results.conversionAnalysis.recommendations.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Quick Wins
+                  </h4>
+                  <ul className="space-y-2">
+                    {results.conversionAnalysis.recommendations.map((rec: string, index: number) => (
+                      <li key={index} className="text-sm text-green-800 flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* No Issues Found */}
+              {results.conversionAnalysis.totalIssues === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <h4 className="text-xl font-bold text-green-900 mb-2">Excellent! 🎉</h4>
+                  <p className="text-green-700">No major conversion issues detected. Your site is optimized for conversions.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Core Web Vitals Pass/Fail Summary */}
           {results.pages && results.pages.some((page: Record<string, unknown>) => page.performance) && (() => {
             const pagesWithMetrics = results.pages.filter((page: Record<string, unknown>) => page.performance);
@@ -3294,165 +3553,8 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* Technical Audit Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <h4 className="font-semibold text-lg">Technical Health</h4>
-              <Tooltip 
-                content={
-                  <div>
-                    <p className="font-semibold mb-2">Technical Health</p>
-                    <p className="mb-2">Core technical metrics that affect your website&apos;s performance and search ranking.</p>
-                    <div className="text-xs space-y-1">
-                      <p><strong>Security Status:</strong> HTTPS, mixed content, and certificate health</p>
-                      <p><strong>Mobile Friendly:</strong> How well your site works on mobile devices</p>
-                      <p><strong>Performance Issues:</strong> Technical problems affecting site speed</p>
-                      <p><strong>SEO Impact:</strong> Technical factors that influence search rankings</p>
-                      <p><strong>User Experience:</strong> Technical elements affecting visitor satisfaction</p>
-                    </div>
-                  </div>
-                }
-                position="top"
-              >
-                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-              </Tooltip>
-            </div>
-            
-            {/* Technical Overview */}
-            <div className={`grid ${results.scope === 'single' || results.totalPages === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-4 mb-6`}>
-              {/* Only show Total Pages for multi-page audits */}
-              {!(results.scope === 'single' || results.totalPages === 1) && (
-                <div
-                  className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
-                  onClick={() => setPageModalState({
-                    isOpen: true,
-                    title: 'All Discovered Pages',
-                    pages: results.pages || [],
-                    filterCondition: undefined
-                  })}
-                >
-                  <div className="text-2xl font-bold text-blue-600">{results.totalPages?.toLocaleString('en-GB')}</div>
-                  <div className="text-sm text-gray-600">Total Pages (Click to view)</div>
-                  {results.discoveryMethod && (
-                    <div className="text-xs text-blue-500 mt-1">Via {results.discoveryMethod}</div>
-                  )}
-                </div>
-              )}
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div
-                  className="text-2xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors"
-                  onClick={() => {
-                    const element = document.getElementById('large-images-table');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }}
-                  title="Click to view large images details"
-                >
-                  {results.largeImages ?? results.performance?.largeImages ?? results.performance?.largeImageDetails?.length ?? 0}
-                </div>
-                <div className="text-sm text-gray-600">Large Images</div>
-              </div>
-            </div>
-
-            {/* Issues Found */}
-            <div className="mb-6">
-              <h5 className="font-semibold mb-3">Issues Found</h5>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                {/* Missing Meta Titles */}
-                <div
-                  className={`flex justify-between p-2 rounded ${
-                    (results.issues?.missingMetaTitles || 0) > 0
-                      ? 'cursor-pointer hover:bg-gray-50'
-                      : ''
-                  }`}
-                  onClick={(results.issues?.missingMetaTitles || 0) > 0 ? () => setPageModalState({
-                    isOpen: true,
-                    title: (results.scope === 'single' || results.totalPages === 1)
-                      ? 'Page Missing Meta Title'
-                      : 'Pages Missing Meta Titles',
-                    pages: results.pages || [],
-                    filterCondition: (page) => !page.hasTitle
-                  }) : undefined}
-                  title={(results.issues?.missingMetaTitles || 0) > 0 ? 'Click to view details' : ''}
-                >
-                  <span className="text-gray-600">Missing Meta Titles:</span>
-                  <span className={(results.issues?.missingMetaTitles || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
-                    {results.issues?.missingMetaTitles || 0}
-                    {(results.issues?.missingMetaTitles || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
-                  </span>
-                </div>
-
-                {/* Missing Meta Descriptions */}
-                <div
-                  className={`flex justify-between p-2 rounded ${
-                    (results.issues?.missingMetaDescriptions || 0) > 0
-                      ? 'cursor-pointer hover:bg-gray-50'
-                      : ''
-                  }`}
-                  onClick={(results.issues?.missingMetaDescriptions || 0) > 0 ? () => setPageModalState({
-                    isOpen: true,
-                    title: (results.scope === 'single' || results.totalPages === 1)
-                      ? 'Page Missing Meta Description'
-                      : 'Pages Missing Meta Descriptions',
-                    pages: results.pages || [],
-                    filterCondition: (page) => !page.hasDescription
-                  }) : undefined}
-                  title={(results.issues?.missingMetaDescriptions || 0) > 0 ? 'Click to view details' : ''}
-                >
-                  <span className="text-gray-600">Missing Meta Descriptions:</span>
-                  <span className={(results.issues?.missingMetaDescriptions || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
-                    {results.issues?.missingMetaDescriptions || 0}
-                    {(results.issues?.missingMetaDescriptions || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
-                  </span>
-                </div>
-
-                {/* Missing H1 Tags */}
-                <div
-                  className={`flex justify-between p-2 rounded ${
-                    (results.issues?.missingH1Tags || 0) > 0
-                      ? 'cursor-pointer hover:bg-gray-50'
-                      : ''
-                  }`}
-                  onClick={(results.issues?.missingH1Tags || 0) > 0 ? () => setPageModalState({
-                    isOpen: true,
-                    title: (results.scope === 'single' || results.totalPages === 1)
-                      ? 'Page Missing H1 Tag'
-                      : 'Pages Missing H1 Tags',
-                    pages: results.pages || [],
-                    filterCondition: (page) => !page.hasH1
-                  }) : undefined}
-                  title={(results.issues?.missingH1Tags || 0) > 0 ? 'Click to view details' : ''}
-                >
-                  <span className="text-gray-600">Missing H1 Tags:</span>
-                  <span className={(results.issues?.missingH1Tags || 0) > 0 ? 'text-red-600 underline' : 'text-green-600'}>
-                    {results.issues?.missingH1Tags || 0}
-                    {(results.issues?.missingH1Tags || 0) > 0 && <span className="text-xs ml-1">(click)</span>}
-                  </span>
-                </div>
-
-                {/* 404 Errors - Only show for multi-page audits */}
-                {!(results.scope === 'single' || results.totalPages === 1) && (
-                  <div className="flex justify-between p-2 rounded">
-                    <span className="text-gray-600">404 Errors:</span>
-                    <span className={(results.issues?.notFoundErrors || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
-                      {results.issues?.notFoundErrors || 0}
-                    </span>
-                  </div>
-                )}
-
-                {/* Broken Internal Links */}
-                <div className="flex justify-between p-2 rounded">
-                  <span className="text-gray-600">Broken Internal Links:</span>
-                  <span className={(results.issues?.brokenInternalLinks || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
-                    {results.issues?.brokenInternalLinks || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Enhanced Recommendations */}
+          {/* Enhanced Recommendations - ALREADY MOVED TO TOP, COMMENTING OUT DUPLICATE */}
+          {/*
           <EnhancedRecommendations
             recommendations={results.recommendations || []}
             desktopScore={results.desktop?.score}
@@ -3470,68 +3572,9 @@ function renderSectionResults(
               largeImages: results.largeImages || results.issues?.largeImages,
               http404Errors: results.issues?.httpErrors || results.issues?.notFoundErrors
             }}
-          />
+          /> */}
 
-          {/* Large Images Table */}
-          {(() => {
-            const largeImages = results.largeImagesList || results.largeImageDetails || [];
-            return Array.isArray(largeImages) && largeImages.length > 0;
-          })() && (
-            <div id="large-images-table" data-subsection="image-optimization">
-              <h4 className="font-semibold mb-3 text-orange-600">⚠️ Large Images Need Optimization</h4>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-orange-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Image</th>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
-                        <th className="px-4 py-3 text-right font-medium text-orange-800">Size</th>
-                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-orange-200">
-                      {((results.largeImagesList || results.largeImageDetails || []).slice(0, 10) as Record<string, unknown>[]).map((image: Record<string, unknown>, index: number) => (
-                        <tr key={index} className="hover:bg-orange-50">
-                          <td className="px-4 py-3">
-                            <a 
-                              href={image.imageUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline break-all"
-                            >
-                              {image.imageUrl.split('/').pop() || image.imageUrl}
-                            </a>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Tooltip content={image.pageUrl}>
-                              <a 
-                                href={image.pageUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline"
-                              >
-                                {image.pageUrl.replace(/^https?:\/\//, '').substring(0, 50)}...
-                              </a>
-                            </Tooltip>
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-red-600">
-                            {(image.sizeKB || 0).toLocaleString()}KB
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {image.sizeKB > 500 ? 'Optimize urgently' : 'Compress image'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                💡 Tip: Use image compression tools like TinyPNG or WebP format to reduce file sizes without losing quality.
-              </p>
-            </div>
-          )}
+          {/* Large Images Table - MOVED TO EnhancedRecommendations component */}
 
           {/* 404 Errors Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
@@ -3675,7 +3718,7 @@ function renderSectionResults(
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-black mb-1"><strong>Majestic Lite Plan: $49.99/month</strong></div>
+                  <div className="text-sm text-black mb-1"><strong>Majestic Lite Plan: £49.99/month</strong></div>
                   <div className="text-xs text-gray-600">Most affordable professional backlink API</div>
                 </div>
                 <div className="flex gap-3">
@@ -3759,10 +3802,12 @@ function renderSectionResults(
                 <span className="text-gray-600 text-sm">CMS:</span>
                 <div className="font-semibold text-blue-600">{results.cms || 'Not detected'}</div>
               </div>
-              <div>
-                <span className="text-gray-600 text-sm">Framework:</span>
-                <div className="font-semibold text-green-600">{results.framework || 'Not detected'}</div>
-              </div>
+              {results.framework && results.framework !== 'Not detected' && (
+                <div>
+                  <span className="text-gray-600 text-sm">Framework:</span>
+                  <div className="font-semibold text-green-600">{results.framework}</div>
+                </div>
+              )}
               {results.pageBuilder && (
                 <div>
                   <span className="text-gray-600 text-sm">Page Builder:</span>
@@ -3801,8 +3846,22 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* WordPress Plugins */}
-          {results.plugins && (() => {
+          {/* CMS Extensions/Plugins/Modules */}
+          {results.plugins && (results.cms === 'WordPress' || results.cms === 'Drupal' || results.cms === 'Joomla' || results.cms === 'Shopify' || results.cms === 'Magento' || results.cms === 'PrestaShop') && (() => {
+            // Get platform-specific terminology
+            const getExtensionTerminology = (cms: string) => {
+              switch(cms) {
+                case 'WordPress': return { singular: 'Plugin', plural: 'Plugins' };
+                case 'Drupal': return { singular: 'Module', plural: 'Modules' };
+                case 'Joomla': return { singular: 'Extension', plural: 'Extensions' };
+                case 'Magento': return { singular: 'Extension', plural: 'Extensions' };
+                case 'PrestaShop': return { singular: 'Module', plural: 'Modules' };
+                case 'Shopify': return { singular: 'App', plural: 'Apps' };
+                default: return { singular: 'Extension', plural: 'Extensions' };
+              }
+            };
+            const terminology = getExtensionTerminology(results.cms);
+
             // Handle both array format and categorized object format
             let pluginsToDisplay: Record<string, unknown>[] = [];
             let isCategorized = false;
@@ -3825,47 +3884,30 @@ function renderSectionResults(
               });
             }
 
-            if (pluginsToDisplay.length === 0) return null;
-
             return (
               <div>
-                <h4 className="font-semibold mb-3">WordPress Plugins Detected ({pluginsToDisplay.length})</h4>
-                {isCategorized ? (
-                  // Display plugins grouped by category
-                  <div className="space-y-4">
-                    {Object.entries(results.plugins).map(([category, plugins]: [string, unknown]) => {
-                      if (!Array.isArray(plugins) || plugins.length === 0) return null;
-
-                      const categoryLabels: Record<string, string> = {
-                        'seo': 'SEO',
-                        'page-builder': 'Page Builder',
-                        'analytics': 'Analytics',
-                        'compliance': 'Compliance',
-                        'forms': 'Forms',
-                        'ecommerce': 'E-commerce',
-                        'security': 'Security',
-                        'performance': 'Performance',
-                        'media': 'Media',
-                        'social': 'Social Media'
-                      };
-
-                      return (
-                        <div key={category}>
-                          <h5 className="text-sm font-medium text-gray-600 mb-2">{categoryLabels[category] || category}</h5>
-                          <div className="flex flex-wrap gap-2">
-                            {plugins.map((plugin: Record<string, unknown>, index: number) => (
-                              <div key={index} className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                                <div className="font-medium text-blue-900">{plugin.name}</div>
-                                {plugin.version && plugin.version !== 'N/A' && (
-                                  <div className="text-xs text-blue-600">v{plugin.version}</div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                <h4 className="font-semibold mb-3">
+                  {results.cms} {terminology.plural}
+                  {pluginsToDisplay.length > 0 ? ` Detected (${pluginsToDisplay.length})` : ''}
+                </h4>
+                {pluginsToDisplay.length === 0 ? (
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="mb-1">
+                      <strong>No {terminology.plural.toLowerCase()} detected</strong> - This could mean:
+                    </p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>The site has no detectable {terminology.plural.toLowerCase()} installed</li>
+                      <li>The {terminology.plural.toLowerCase()} are loaded dynamically and not visible in the HTML</li>
+                      <li>The site uses custom or private {terminology.plural.toLowerCase()} that aren't in our detection database</li>
+                    </ul>
                   </div>
+                ) : null}
+                {isCategorized ? (
+                  // Display plugins in table format with metadata
+                  <DetectedPluginsTable
+                    plugins={pluginsToDisplay}
+                    terminology={terminology}
+                  />
                 ) : (
                   // Display plugins as simple list
                   <div className="flex flex-wrap gap-2">
@@ -3891,45 +3933,6 @@ function renderSectionResults(
               ))}
             </div>
           </div>
-
-          {/* Detection Quality Info */}
-          {results.source && (
-            <div className="bg-gray-50 rounded-lg p-4 border">
-              <h4 className="font-semibold mb-2 text-sm">Detection Quality</h4>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-gray-600">Source:</span>
-                  <div className={`font-medium ${
-                    results.source === 'direct' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {results.source === 'direct' ? 'Direct Website Analysis' : 'Manual Analysis'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Confidence:</span>
-                  <div className={`font-medium ${
-                    results.confidence === 'high' ? 'text-green-600' :
-                    results.confidence === 'medium' ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                    {results.confidence === 'high' ? 'High' :
-                     results.confidence === 'medium' ? 'Medium' :
-                     'Low'}
-                  </div>
-                </div>
-              </div>
-              {results.confidence === 'low' && (
-                <div className="mt-2 text-xs text-orange-600">
-                  ⚠️ Results may be inaccurate. Direct analysis failed.
-                </div>
-              )}
-              {results.confidence === 'high' && results.source === 'direct' && (
-                <div className="mt-2 text-xs text-green-600">
-                  ✅ High confidence detection using professional patterns.
-                </div>
-              )}
-            </div>
-          )}
 
           {/* How Results Were Obtained */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
@@ -3966,7 +3969,6 @@ function renderSectionResults(
                 <ul className="list-disc list-inside text-blue-700 space-y-1 leading-relaxed">
                   <li><strong>CMS & Platform:</strong> WordPress, Shopify, Webflow, Squarespace, Wix, and 100+ others</li>
                   <li><strong>Advanced analysis Plugin Detection:</strong> Identifies plugins by category (security, performance, SEO, etc.)</li>
-                  <li><strong>Technology Intelligence:</strong> Advanced analysis provides business impact analysis and recommendations</li>
                   <li><strong>Analytics & Marketing:</strong> Google Analytics, Tag Manager, Facebook Pixel, and tracking scripts</li>
                   <li><strong>Hosting & CDN:</strong> WHOIS data, IP geolocation, and Cloudflare bypass attempts</li>
                   <li><strong>Page Builders:</strong> Elementor, WPBakery, Divi, and other visual builders</li>

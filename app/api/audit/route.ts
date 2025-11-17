@@ -4,12 +4,38 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { CreditCalculator } from "@/lib/creditCalculator"
 import { createUsageTracker } from "@/lib/usageTracker"
+import { sendAuditCompletionEmail } from "@/lib/emailService"
 import type { AuditRequestBody } from "@/types/api"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as AuditRequestBody
-    const { url, sections, scope = 'single', auditView = 'executive', country = 'gb', pages = [url], pageLimit = 50, excludedPaths = [] } = body
+    const {
+      url,
+      sections,
+      scope = 'single',
+      auditView = 'executive',
+      country = 'gb',
+      pages = [url],
+      pageLimit = null, // null = use smart default
+      excludedPaths = [],
+      maxPagesPerSection,
+      useSmartSampling = true, // Enable smart sampling by default
+      auditConfiguration = {
+        enableLighthouse: true,
+        enableAccessibility: true,
+        enableImageOptimization: true,
+        enableSEO: true,
+        enableEmail: false
+      },
+      enableEmailNotification = false
+    } = body
+
+    // Smart defaults for page limits (optimized for Pro tier with 8GB RAM)
+    const defaultMaxPages = 250 // Up from 100 - safe for Pro tier
+    const effectiveMaxPages = maxPagesPerSection ?? (pageLimit === null ? defaultMaxPages : pageLimit)
+
+    console.log(`📊 Audit configuration: maxPages=${effectiveMaxPages}, smartSampling=${useSmartSampling}, scope=${scope}`)
 
     if (!url || !sections || !Array.isArray(sections)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
@@ -34,62 +60,49 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as { id: string }).id
 
-    // Calculate estimated credit cost
-    const pageCount = pages.length
-    const creditEstimate = CreditCalculator.estimateAuditCost(
-      scope as 'single' | 'custom' | 'all',
-      pageCount,
-      sections
-    )
-
-    console.log(`💰 Audit estimate: ${creditEstimate.creditsRequired} credits for ${pageCount} pages`)
-
-    // Get current user credits
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { credits: true, username: true }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Bypass credit checks for testing user
-    const isBypassUser = user.username === 'james.hovey'
-
-    if (!isBypassUser) {
-      // Check if user has sufficient credits (will deduct actual cost after audit)
-      if (!CreditCalculator.hasSufficientCredits(user.credits, creditEstimate.creditsRequired)) {
-        return NextResponse.json({
-          error: "Insufficient credits",
-          required: creditEstimate.creditsRequired,
-          available: user.credits,
-          shortfall: creditEstimate.creditsRequired - user.credits
-        }, { status: 402 }) // 402 Payment Required
-      }
-
-      console.log(`💰 User has ${user.credits} credits, estimated cost: ${creditEstimate.creditsRequired} credits`)
-    } else {
-      console.log(`🔓 Credit check bypassed for testing user: ${user.username}`)
-    }
-
-    // Create audit record with user ID and estimated cost
+    // Create audit record with user ID
     const audit = await prisma.audit.create({
       data: {
         userId,
         url,
         sections: sections,
         status: "pending",
-        estimatedCost: creditEstimate.creditsRequired,
         // Store additional audit metadata
         results: {
           scope,
           auditView, // Store the selected audit view
           pages,
-          totalPages: pages.length
+          totalPages: pages.length,
+          auditConfiguration, // Store audit configuration
+          enableEmailNotification // Store email preference
         }
       }
     })
+
+    // Create progress update function
+    const updateProgress = async (stage: string, current: number, total: number, message: string) => {
+      try {
+        await prisma.audit.update({
+          where: { id: audit.id },
+          data: {
+            results: {
+              ...(audit.results as object || {}),
+              progress: {
+                stage,
+                current,
+                total,
+                message,
+                percentage: total > 0 ? Math.round((current / total) * 100) : 0,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+        console.log(`📊 Progress: ${message} (${current}/${total})`);
+      } catch (error) {
+        console.error('Failed to update progress:', error);
+      }
+    };
 
     // Process audit sections sequentially with progress updates
     setTimeout(async () => {
@@ -101,6 +114,15 @@ export async function POST(request: NextRequest) {
         const results: Record<string, unknown> = {}
         let currentSection = 0
         const totalSections = sections.length
+        let discoveredPagesCount = pages.length // Track actual pages discovered during audit
+
+        // Memory monitoring helper
+        const logMemoryUsage = (label: string) => {
+          const memUsage = process.memoryUsage()
+          console.log(`💾 [${label}] Memory: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB used / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB total`)
+        }
+
+        logMemoryUsage('Audit Start')
 
         // Helper function to update progress
         const updateProgress = async (sectionName: string, status: 'running' | 'completed') => {
@@ -125,8 +147,10 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Process sections in parallel for better performance
-        const sectionPromises = sections.map(async (section, index) => {
+        // Process sections SEQUENTIALLY to reduce memory spikes
+        // Changed from parallel to sequential processing
+        for (let index = 0; index < sections.length; index++) {
+          const section = sections[index]
           console.log(`Processing section ${index + 1}/${totalSections}: ${section}`)
 
           await updateProgress(section, 'running')
@@ -147,6 +171,7 @@ export async function POST(request: NextRequest) {
 
           } else if (section === 'keywords') {
             const { analyzeKeywordsEnhanced } = await import('@/lib/enhancedKeywordService')
+            const { selectSmartSample, toPageInfo } = await import('@/lib/smartPageSampling')
 
             // For 'all' scope, discover and analyze all pages
             let pagesToAnalyze = [url];
@@ -157,25 +182,34 @@ export async function POST(request: NextRequest) {
               const { discoverRealPages } = await import('@/lib/realPageDiscovery');
               const pageDiscovery = await discoverRealPages(url);
 
-              // Filter out excluded paths
-              let filteredPages = pageDiscovery.pages;
-              if (excludedPaths.length > 0) {
-                const initialCount = filteredPages.length;
-                filteredPages = filteredPages.filter(page => {
-                  const pageUrl = new URL(page.url);
-                  const pathname = pageUrl.pathname;
-                  // Check if the pathname starts with any excluded path
-                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+              // Apply smart sampling or simple limit
+              let selectedPages = pageDiscovery.pages;
+
+              if (useSmartSampling && selectedPages.length > effectiveMaxPages) {
+                console.log(`🧠 Using smart sampling to select ${effectiveMaxPages} most important pages from ${selectedPages.length} discovered pages`);
+                const pageInfoList = toPageInfo(selectedPages);
+                const sampledPages = selectSmartSample(pageInfoList, {
+                  maxPages: effectiveMaxPages,
+                  excludePatterns: excludedPaths
                 });
-                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
+                pagesToAnalyze = sampledPages.map(p => p.url);
+              } else {
+                // Simple filtering for excluded paths
+                if (excludedPaths.length > 0) {
+                  const initialCount = selectedPages.length;
+                  selectedPages = selectedPages.filter(page => {
+                    const pageUrl = new URL(page.url);
+                    const pathname = pageUrl.pathname;
+                    return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                  });
+                  console.log(`🚫 Filtered out ${initialCount - selectedPages.length} pages based on excluded paths: ${excludedPaths.join(', ')}`);
+                }
+                pagesToAnalyze = selectedPages.slice(0, effectiveMaxPages).map(p => p.url);
               }
 
-              // Apply page limit (null = unlimited, otherwise use the specified limit)
-              const effectiveLimit = pageLimit === null ? filteredPages.length : pageLimit;
-              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages${pageLimit === null ? ' (unlimited)' : ` (limited to ${pageLimit})`}`);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} pages (max: ${effectiveMaxPages})`);
 
-              // Fetch HTML for each page
+              // Fetch HTML for each page (with memory limit)
               for (const pageUrl of pagesToAnalyze) {
                 try {
                   const normalizedUrl = pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`;
@@ -186,8 +220,10 @@ export async function POST(request: NextRequest) {
                   });
                   if (response.ok) {
                     const html = await response.text();
-                    pageHtmlMap.set(pageUrl, html);
-                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                    // Only store HTML up to 500KB per page to prevent memory bloat
+                    const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                    pageHtmlMap.set(pageUrl, truncatedHtml);
+                    console.log(`✅ Fetched HTML for ${pageUrl} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                   }
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -195,9 +231,9 @@ export async function POST(request: NextRequest) {
                 }
               }
             } else if (scope === 'custom') {
-              // For custom scope, use the specified pages
-              pagesToAnalyze = pages;
-              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages`);
+              // For custom scope, use the specified pages (with configurable limit)
+              pagesToAnalyze = pages.slice(0, effectiveMaxPages);
+              console.log(`📄 Analyzing keywords across ${pagesToAnalyze.length} custom pages (max: ${effectiveMaxPages})`);
 
               // Fetch HTML for each specified page
               for (const pageUrl of pagesToAnalyze) {
@@ -210,8 +246,10 @@ export async function POST(request: NextRequest) {
                   });
                   if (response.ok) {
                     const html = await response.text();
-                    pageHtmlMap.set(pageUrl, html);
-                    console.log(`✅ Fetched HTML for ${pageUrl}`);
+                    // Only store HTML up to 500KB per page to prevent memory bloat
+                    const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                    pageHtmlMap.set(pageUrl, truncatedHtml);
+                    console.log(`✅ Fetched HTML for ${pageUrl} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                   }
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -230,7 +268,10 @@ export async function POST(request: NextRequest) {
                 });
                 if (response.ok) {
                   const html = await response.text();
-                  pageHtmlMap.set(mainPage, html);
+                  // Only store HTML up to 500KB to prevent memory bloat
+                  const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) : html;
+                  pageHtmlMap.set(mainPage, truncatedHtml);
+                  console.log(`✅ Fetched HTML for ${mainPage} (${Math.round(truncatedHtml.length / 1024)}KB)`);
                 }
               } catch (error) {
                 console.log('Could not fetch HTML content for keyword analysis:', error);
@@ -252,38 +293,55 @@ export async function POST(request: NextRequest) {
               pageHtmlMap
             )
 
+            // Clear HTML content from memory after keyword analysis
+            pageHtmlMap.clear()
+            console.log('🧹 Cleared HTML content cache to free memory')
+
           } else if (section === 'technical') {
             const { performTechnicalAudit } = await import('@/lib/technicalAuditService')
+            const { detectTechStack } = await import('@/lib/professionalTechDetection')
+
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, technicalScope, pages)
+            results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
 
-            // Run viewport responsiveness analysis (if not already done)
-            if (!results.viewport) {
-              try {
-                console.log('📱 Running viewport responsiveness analysis...')
-                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url })
-                })
-
-                if (viewportResponse.ok) {
-                  const contentType = viewportResponse.headers.get('content-type')
-                  if (contentType && contentType.includes('application/json')) {
-                    results.viewport = await viewportResponse.json()
-                    console.log('✅ Viewport analysis completed')
-                  } else {
-                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
-                  }
-                } else {
-                  console.log('⚠️ Viewport analysis request failed, skipping')
-                }
-              } catch (viewportError) {
-                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
-                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
-              }
+            // Update discovered pages count from technical audit results
+            const technicalResults = results.technical as { totalPages?: number }
+            if (technicalResults.totalPages) {
+              discoveredPagesCount = technicalResults.totalPages
+              console.log(`📊 Discovered ${discoveredPagesCount} total pages during technical audit`)
             }
+
+            // Run technology stack detection for plugin recommendations
+            console.log('🔍 Running technology stack detection for technical audit...')
+            try {
+              const professionalTechStack = await detectTechStack(url)
+              const techStack = professionalTechStack as unknown as Record<string, unknown>
+
+              // DEFENSIVE: Ensure plugins is always an array
+              const safePlugins = Array.isArray(professionalTechStack.plugins) ? professionalTechStack.plugins : []
+
+              results.technology = {
+                cms: professionalTechStack.cms || 'Not detected',
+                framework: professionalTechStack.framework || 'Not detected',
+                pageBuilder: professionalTechStack.pageBuilder || null,
+                plugins: safePlugins,
+                totalPlugins: (techStack.totalPlugins as number) || 0,
+              }
+
+              // Also add to technical results for easy access
+              results.technical.cms = professionalTechStack.cms
+              results.technical.plugins = safePlugins
+              results.technical.pageBuilder = professionalTechStack.pageBuilder
+
+              console.log(`✅ Technology stack detected: ${professionalTechStack.cms}`)
+            } catch (techError) {
+              console.error('❌ Technology stack detection failed:', techError)
+            }
+
+            // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
+            // It was frequently failing and consuming resources
+            console.log('📱 Viewport analysis skipped (disabled for memory optimization)')
 
           } else if (section === 'performance') {
             // Enhanced performance analysis with Claude AI + Technology Stack Detection
@@ -296,7 +354,14 @@ export async function POST(request: NextRequest) {
             console.log('🔧 Running technical audit...')
             // Map scope: 'multi' -> 'custom' for technical audit
             const techScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, techScope, pages)
+            results.technical = await performTechnicalAudit(url, techScope, pages, updateProgress)
+
+            // Update discovered pages count from technical audit results
+            const techResults = results.technical as { totalPages?: number }
+            if (techResults.totalPages) {
+              discoveredPagesCount = techResults.totalPages
+              console.log(`📊 Discovered ${discoveredPagesCount} total pages during technical audit`)
+            }
 
             // Run technology stack detection
             console.log('🔍 Running technology stack detection...')
@@ -316,22 +381,26 @@ export async function POST(request: NextRequest) {
               // Cast to allow access to extended properties
               const techStack = professionalTechStack as unknown as Record<string, unknown>
 
+              // DEFENSIVE: Ensure all array fields are actually arrays
+              const safePlugins = Array.isArray(professionalTechStack.plugins) ? professionalTechStack.plugins : []
+              const safeOther = Array.isArray(techStack.other) ? (techStack.other as string[]) : []
+
               const baseTechnologyData = {
                 cms: professionalTechStack.cms || 'Not detected',
                 framework: professionalTechStack.framework || 'Not detected',
                 pageBuilder: professionalTechStack.pageBuilder || null,
                 ecommerce: (techStack.ecommerce as string | null) || null,
                 analytics: professionalTechStack.analytics || 'Not detected',
-                hosting: professionalTechStack.hosting || 'Not detected',
+                hosting: (typeof professionalTechStack.hosting === 'string' ? professionalTechStack.hosting : null) || 'Not detected',
                 cdn: professionalTechStack.cdn || null,
                 organization: hostingOrganization || null,
-                plugins: professionalTechStack.plugins || [],
+                plugins: safePlugins,
                 pluginAnalysis: (techStack.pluginAnalysis as Record<string, unknown> | null) || null,
                 detectedPlatform: (techStack.detectedPlatform as string) || professionalTechStack.cms,
                 totalPlugins: (techStack.totalPlugins as number) || 0,
                 technologies: [
                   'HTML5', 'CSS3', 'JavaScript',
-                  ...((techStack.other as string[]) || [])
+                  ...safeOther
                 ].filter(Boolean),
                 source: (techStack.source as string) || 'fallback',
                 confidence: professionalTechStack.confidence || 'low'
@@ -362,20 +431,38 @@ export async function POST(request: NextRequest) {
               console.log('Could not fetch HTML content for performance analysis:', error);
             }
 
-            // Detect WordPress plugins for performance recommendations
-            const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
-            const pluginDetection = detectWordPressPlugins(htmlContent)
-            console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
-
-            // Add plugin data to technical results for recommendations
+            // Detect WordPress plugins for performance recommendations (only for WordPress sites)
             const technicalResults = results.technical as Record<string, unknown>
-            technicalResults.plugins = pluginDetection.plugins
-            technicalResults.cms = pluginDetection.cms
-            technicalResults.pageBuilder = pluginDetection.pageBuilder
+            const detectedCMS = (results.technology as Record<string, unknown>)?.cms || technicalResults.cms
+
+            if (detectedCMS === 'WordPress') {
+              console.log('🔍 WordPress detected - running plugin detection...')
+              const { detectWordPressPlugins } = await import('@/lib/pluginDetectionService')
+              const pluginDetection = detectWordPressPlugins(htmlContent)
+              console.log(`🔍 Detected plugins: ${pluginDetection.plugins.join(', ') || 'None'}`)
+
+              // Add plugin data to technical results for recommendations
+              technicalResults.plugins = pluginDetection.plugins
+              technicalResults.pageBuilder = pluginDetection.pageBuilder
+            } else {
+              console.log(`⏭️  Skipping WordPress plugin detection - CMS is ${detectedCMS}`)
+            }
 
             // Run enhanced PageSpeed analysis with Claude AI
             console.log('🚀 Running enhanced PageSpeed analysis with Claude...')
             results.performance = await analyzePageSpeedWithClaude(url, htmlContent, results.technical)
+
+            // Preserve CMS and plugin data from technology/technical results in performance results
+            // This ensures EnhancedRecommendations component can show plugin-specific instructions
+            if (results.technology) {
+              results.performance.cms = results.technology.cms
+              // DEFENSIVE: Ensure plugins is always an array
+              const techPlugins = Array.isArray(results.technology.plugins) ? results.technology.plugins : []
+              const technicalPlugins = Array.isArray(results.technical.plugins) ? results.technical.plugins : []
+              results.performance.plugins = techPlugins.length > 0 ? techPlugins : technicalPlugins
+              results.performance.pageBuilder = results.technology.pageBuilder || results.technical.pageBuilder
+              console.log(`✅ Preserved CMS (${results.technology.cms}) and ${results.performance.plugins.length} plugins in performance results`)
+            }
 
             // Preserve large images data from technical audit in performance results AND root level
             // This ensures the large images table and Technical Health section can display properly
@@ -411,32 +498,50 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Run viewport responsiveness analysis (if not already done)
-            if (!results.viewport) {
+            // Run Universal Performance & Conversion Detection (NEW from Friday session!)
+            if (htmlContent) {
               try {
-                console.log('📱 Running viewport responsiveness analysis...')
-                const viewportResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/audit/viewport`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url })
-                })
+                console.log('🎯 Running universal performance & conversion analysis...')
+                const { analyzeUniversalPerformance } = await import('@/lib/universalPerformanceDetection')
 
-                if (viewportResponse.ok) {
-                  const contentType = viewportResponse.headers.get('content-type')
-                  if (contentType && contentType.includes('application/json')) {
-                    results.viewport = await viewportResponse.json()
-                    console.log('✅ Viewport analysis completed')
-                  } else {
-                    console.log('⚠️ Viewport API returned non-JSON response, skipping')
-                  }
-                } else {
-                  console.log('⚠️ Viewport analysis request failed, skipping')
+                // Get response headers (reconstruct from fetch if needed)
+                let responseHeaders: Record<string, string> = {}
+                try {
+                  const normalizedUrl = url.startsWith('http') ? url : `https://${url}`
+                  const headResponse = await fetch(normalizedUrl, {
+                    method: 'HEAD',
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                    signal: AbortSignal.timeout(5000)
+                  })
+                  headResponse.headers.forEach((value, key) => {
+                    responseHeaders[key] = value
+                  })
+                } catch (headerError) {
+                  console.log('⚠️ Could not fetch headers for universal analysis, using empty headers')
                 }
-              } catch (viewportError) {
-                const errorMessage = viewportError instanceof Error ? viewportError.message : String(viewportError)
-                console.log('⚠️ Viewport analysis error, skipping:', errorMessage)
+
+                const universalAnalysis = await analyzeUniversalPerformance(htmlContent, responseHeaders, url)
+
+                // Add to results
+                results.conversionAnalysis = {
+                  conversionScore: universalAnalysis.conversionScore,
+                  totalIssues: universalAnalysis.totalIssuesFound,
+                  criticalIssues: universalAnalysis.criticalIssues,
+                  highPriorityIssues: universalAnalysis.highPriorityIssues,
+                  mediumPriorityIssues: universalAnalysis.mediumPriorityIssues,
+                  lowPriorityIssues: universalAnalysis.lowPriorityIssues,
+                  recommendations: universalAnalysis.recommendations
+                }
+
+                console.log(`✅ Universal performance analysis completed: Conversion Score ${universalAnalysis.conversionScore}/100, ${universalAnalysis.totalIssuesFound} issues found`)
+              } catch (universalError) {
+                console.log('⚠️ Universal performance analysis failed, continuing without it:', universalError instanceof Error ? universalError.message : String(universalError))
               }
             }
+
+            // OPTIMIZATION: Viewport analysis disabled to reduce memory usage
+            // It was frequently failing and consuming resources
+            console.log('📱 Viewport analysis skipped (disabled for memory optimization)')
 
           } else if (section === 'accessibility') {
             // Website Accessibility Audit
@@ -445,6 +550,9 @@ export async function POST(request: NextRequest) {
             console.log('♿ Running accessibility audit...')
 
             // For 'all' scope, discover and analyze pages (limit for performance)
+            // Accessibility testing is resource-intensive, so use lower limits
+            const { selectSmartSample, toPageInfo } = await import('@/lib/smartPageSampling')
+            const accessibilityMaxPages = Math.min(effectiveMaxPages, 25) // Cap at 25 for accessibility
             let pagesToAnalyze = [url];
 
             if (scope === 'all') {
@@ -452,25 +560,35 @@ export async function POST(request: NextRequest) {
               const { discoverRealPages } = await import('@/lib/realPageDiscovery');
               const pageDiscovery = await discoverRealPages(url);
 
-              // Filter out excluded paths
-              let filteredPages = pageDiscovery.pages;
-              if (excludedPaths.length > 0) {
-                const initialCount = filteredPages.length;
-                filteredPages = filteredPages.filter(page => {
-                  const pageUrl = new URL(page.url);
-                  const pathname = pageUrl.pathname;
-                  return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+              // Apply smart sampling for accessibility
+              let selectedPages = pageDiscovery.pages;
+
+              if (useSmartSampling && selectedPages.length > accessibilityMaxPages) {
+                console.log(`🧠 Using smart sampling to select ${accessibilityMaxPages} most important pages from ${selectedPages.length} for accessibility audit`);
+                const pageInfoList = toPageInfo(selectedPages);
+                const sampledPages = selectSmartSample(pageInfoList, {
+                  maxPages: accessibilityMaxPages,
+                  excludePatterns: excludedPaths
                 });
-                console.log(`🚫 Filtered out ${initialCount - filteredPages.length} pages based on excluded paths`);
+                pagesToAnalyze = sampledPages.map(p => p.url);
+              } else {
+                // Simple filtering
+                if (excludedPaths.length > 0) {
+                  const initialCount = selectedPages.length;
+                  selectedPages = selectedPages.filter(page => {
+                    const pageUrl = new URL(page.url);
+                    const pathname = pageUrl.pathname;
+                    return !excludedPaths.some(excludedPath => pathname.startsWith(excludedPath));
+                  });
+                  console.log(`🚫 Filtered out ${initialCount - selectedPages.length} pages based on excluded paths`);
+                }
+                pagesToAnalyze = selectedPages.slice(0, accessibilityMaxPages).map(p => p.url);
               }
 
-              // Limit to 10 pages for accessibility testing (can be resource-intensive)
-              const effectiveLimit = Math.min(pageLimit === null ? 10 : pageLimit, 10);
-              pagesToAnalyze = filteredPages.slice(0, effectiveLimit).map(p => p.url);
-              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} pages (max 10 for performance)`);
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} pages (max: ${accessibilityMaxPages})`);
             } else if (scope === 'custom') {
-              pagesToAnalyze = pages.slice(0, 10); // Limit custom pages too
-              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} custom pages`);
+              pagesToAnalyze = pages.slice(0, accessibilityMaxPages);
+              console.log(`📄 Analyzing accessibility across ${pagesToAnalyze.length} custom pages (max: ${accessibilityMaxPages})`);
             }
 
             results.accessibility = await performAccessibilityAudit(url, scope, pagesToAnalyze)
@@ -484,18 +602,27 @@ export async function POST(request: NextRequest) {
           }
 
           await updateProgress(section, 'completed')
-          console.log(`Completed section: ${section}`)
-        })
+          currentSection++
 
-        // Wait for all sections to complete in parallel
-        await Promise.all(sectionPromises)
+          // Log memory after each section and force garbage collection
+          logMemoryUsage(`After ${section}`)
+          if (global.gc) {
+            global.gc()
+            logMemoryUsage(`After ${section} (post-GC)`)
+          }
+
+          console.log(`✅ Completed section ${index + 1}/${totalSections}: ${section}`)
+        }
+
+        // All sections completed sequentially
+        logMemoryUsage('All Sections Complete')
 
         // Add scope and pages info to results
         const finalResults = {
           ...results,
           scope,
           pages,
-          totalPages: pages.length
+          totalPages: discoveredPagesCount // Use actual discovered page count instead of initial pages.length
         }
 
         // Ensure the results are properly serializable
@@ -532,67 +659,47 @@ export async function POST(request: NextRequest) {
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
 
-        // Calculate actual cost based on usage
-        // For now, use estimates for APIs (can be enhanced later with actual API metrics)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, // keywordsEverywhereCredits - TODO: track actual usage
-          0, // serperSearches - TODO: track actual usage
-          0, // claudeInputTokens - TODO: track actual usage
-          0, // claudeOutputTokens - TODO: track actual usage
-          usageMetrics.browserMinutes
-        )
-
         console.log(`📊 Usage metrics: ${Math.round(usageMetrics.browserMinutes * 100) / 100} browser minutes`)
-        console.log(`💰 Actual cost: ${actualCost} credits (estimated was ${creditEstimate.creditsRequired})`)
 
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId}`)
-        }
-
-        // Update audit with results, actual cost, and usage metrics
-        await prisma.audit.update({
+        // Update audit with results and usage metrics
+        const completedAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })
+
+        // Send email notification
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: discoveredPagesCount, // Use actual discovered page count
+              completedAt: completedAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          // Log but don't fail the audit if email fails
+          console.error('Failed to send completion email:', emailError)
+        }
       } catch (error) {
         console.error('Error processing audit:', error)
 
         // End usage tracking even on error
         usageTracker.endBrowserSession()
         const usageMetrics = usageTracker.getMetrics()
-
-        // Calculate actual cost (even for failed audits, to track partial usage)
-        const actualCost = CreditCalculator.convertActualCostToCredits(
-          0, 0, 0, 0, usageMetrics.browserMinutes
-        )
-
-        // Deduct actual credits from user (unless bypass user)
-        if (!isBypassUser) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              credits: {
-                decrement: actualCost
-              }
-            }
-          })
-          console.log(`✅ Deducted ${actualCost} credits from user ${userId} (error fallback)`)
-        }
 
         // Fallback to mock data on error
         const { generateMockAuditResults } = await import('@/lib/mockData')
@@ -601,16 +708,37 @@ export async function POST(request: NextRequest) {
         // Ensure the mock results are properly serializable
         const safeMockResults = JSON.parse(JSON.stringify(mockResults))
 
-        await prisma.audit.update({
+        const fallbackAudit = await prisma.audit.update({
           where: { id: audit.id },
           data: {
             status: "completed",
             results: safeMockResults,
-            actualCost: actualCost,
             usageMetrics: usageMetrics,
             completedAt: new Date()
           }
         })
+
+        // Send email notification even on fallback
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, name: true }
+          })
+
+          if (user?.email) {
+            await sendAuditCompletionEmail({
+              userEmail: user.email,
+              userName: user.name || undefined,
+              auditId: audit.id,
+              url: url,
+              scope: scope,
+              totalPages: discoveredPagesCount, // Use actual discovered page count
+              completedAt: fallbackAudit.completedAt?.toISOString() || new Date().toISOString()
+            })
+          }
+        } catch (emailError) {
+          console.error('Failed to send completion email:', emailError)
+        }
       }
     }, 5000) // Increased to 5 seconds to allow for API calls
     

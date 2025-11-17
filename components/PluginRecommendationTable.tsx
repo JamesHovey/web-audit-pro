@@ -24,6 +24,8 @@ export default function PluginRecommendationTable({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [costFilter, setCostFilter] = useState<CostFilter>('all')
   const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   // Check if a plugin is installed - not currently used in UI but kept for potential future use
   const _isInstalled = (plugin: PluginMetadata): boolean => {
@@ -80,6 +82,19 @@ export default function PluginRecommendationTable({
     return sorted
   }, [filteredByMode, costFilter, sortField, sortDirection])
 
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedAndFilteredPlugins.length / itemsPerPage)
+  const paginatedPlugins = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return sortedAndFilteredPlugins.slice(startIndex, endIndex)
+  }, [sortedAndFilteredPlugins, currentPage, itemsPerPage])
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [costFilter, sortField, sortDirection])
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -107,12 +122,12 @@ export default function PluginRecommendationTable({
     }
   }
 
-  if (sortedAndFilteredPlugins.length === 0 && mode === 'installed') {
+  if (filteredByMode.length === 0 && mode === 'installed') {
     // No installed plugins - don't show this section
     return null
   }
 
-  if (sortedAndFilteredPlugins.length === 0 && mode === 'recommended') {
+  if (filteredByMode.length === 0 && mode === 'recommended') {
     // No better alternatives available
     return null
   }
@@ -207,7 +222,26 @@ export default function PluginRecommendationTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {sortedAndFilteredPlugins.map((plugin) => (
+            {sortedAndFilteredPlugins.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center">
+                  <div className="text-gray-500">
+                    <p className="font-medium mb-1">No plugins found</p>
+                    <p className="text-sm">
+                      No {costFilter !== 'all' ? costFilter.toLowerCase() : ''} plugins match this filter.
+                      {costFilter !== 'all' && (
+                        <button
+                          onClick={() => setCostFilter('all')}
+                          className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedPlugins.map((plugin) => (
               <React.Fragment key={plugin.slug}>
                 <tr className={`hover:bg-gray-50 ${mode === 'installed' ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3">
@@ -421,17 +455,62 @@ export default function PluginRecommendationTable({
         </table>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-3 border-t">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded text-sm ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Previous
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded text-sm ${
+                  currentPage === pageNum
+                    ? 'bg-blue-600 text-white font-medium'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded text-sm ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="text-xs text-gray-500 border-t pt-3">
         {mode === 'installed' ? (
           <>
-            Showing {sortedAndFilteredPlugins.length} installed plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
+            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, sortedAndFilteredPlugins.length)} of {sortedAndFilteredPlugins.length} installed plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
             {costFilter !== 'all' && ` (filtered by ${costFilter})`}
             . Sorted by {sortField} ({sortDirection === 'desc' ? 'high to low' : 'low to high'}).
           </>
         ) : (
           <>
-            Showing {sortedAndFilteredPlugins.length} recommended plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
+            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, sortedAndFilteredPlugins.length)} of {sortedAndFilteredPlugins.length} recommended plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
             {costFilter !== 'all' && ` (filtered by ${costFilter})`}
             . Sorted by {sortField} ({sortDirection === 'desc' ? 'high to low' : 'low to high'}).
             {getInstalledPlugins(plugins, installedPlugins).length > 0 && (

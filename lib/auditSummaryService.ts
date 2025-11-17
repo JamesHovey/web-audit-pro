@@ -1135,13 +1135,26 @@ function extractTechnologyInsights(technicalData: any, performanceData: any, pag
   }
 
   // No caching plugin detected (WordPress)
-  if (cms === 'WordPress' && detectedPlugins.length > 0) {
-    const hasCachingPlugin = detectedPlugins.some((plugin: string) =>
-      plugin.toLowerCase().includes('cache') ||
-      plugin.toLowerCase().includes('rocket') ||
-      plugin.toLowerCase().includes('w3') ||
-      plugin.toLowerCase().includes('litespeed')
-    )
+  if (cms === 'WordPress' && detectedPlugins && (Array.isArray(detectedPlugins) ? detectedPlugins.length > 0 : Object.keys(detectedPlugins).length > 0)) {
+    let hasCachingPlugin = false;
+
+    // Check if detectedPlugins is categorized (from hybrid detection)
+    if (!Array.isArray(detectedPlugins) && typeof detectedPlugins === 'object' && detectedPlugins.performance) {
+      // Categorized format from hybrid detection
+      hasCachingPlugin = detectedPlugins.performance.some((plugin: any) =>
+        plugin.subcategory === 'caching' || (plugin.name && plugin.name.toLowerCase().includes('cache'))
+      );
+    } else if (Array.isArray(detectedPlugins)) {
+      // Legacy array format
+      hasCachingPlugin = detectedPlugins.some((plugin: any) => {
+        const pluginStr = typeof plugin === 'string' ? plugin : (plugin?.name || '');
+        const pluginLower = pluginStr.toLowerCase();
+        return pluginLower.includes('cache') ||
+          pluginLower.includes('rocket') ||
+          pluginLower.includes('w3') ||
+          pluginLower.includes('litespeed');
+      });
+    }
 
     if (!hasCachingPlugin) {
       issues.push({
@@ -1169,18 +1182,27 @@ function extractTechnologyInsights(technicalData: any, performanceData: any, pag
   }
 
   // No SEO plugin detected (WordPress)
-  if (cms === 'WordPress' && detectedPlugins.length > 0) {
-    const hasSEOPlugin = detectedPlugins.some((plugin: string) => {
-      const pluginLower = plugin.toLowerCase()
-      return pluginLower.includes('yoast') ||
-        pluginLower.includes('rank math') ||
-        pluginLower.includes('seopress') ||
-        pluginLower.includes('aioseo') ||
-        pluginLower.includes('all in one seo') ||
-        pluginLower.includes('squirrly') ||
-        pluginLower.includes('seo framework') ||
-        (pluginLower.includes('seo') && !pluginLower.includes('image')) // Generic SEO but not image SEO
-    })
+  if (cms === 'WordPress') {
+    let hasSEOPlugin = false;
+
+    // Check if detectedPlugins is categorized (from hybrid detection)
+    if (!Array.isArray(detectedPlugins) && typeof detectedPlugins === 'object' && detectedPlugins.seo) {
+      // Categorized format from hybrid detection
+      hasSEOPlugin = detectedPlugins.seo.length > 0;
+    } else if (Array.isArray(detectedPlugins) && detectedPlugins.length > 0) {
+      // Legacy array format
+      hasSEOPlugin = detectedPlugins.some((plugin: string) => {
+        const pluginLower = plugin.toLowerCase()
+        return pluginLower.includes('yoast') ||
+          pluginLower.includes('rank math') ||
+          pluginLower.includes('seopress') ||
+          pluginLower.includes('aioseo') ||
+          pluginLower.includes('all in one seo') ||
+          pluginLower.includes('squirrly') ||
+          pluginLower.includes('seo framework') ||
+          (pluginLower.includes('seo') && !pluginLower.includes('image')) // Generic SEO but not image SEO
+      })
+    }
 
     if (!hasSEOPlugin) {
       issues.push({
