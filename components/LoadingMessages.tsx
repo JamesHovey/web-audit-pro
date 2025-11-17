@@ -187,21 +187,19 @@ export default function LoadingMessages({ section, className = "", progress, sta
           </div>
         </div>
 
-        {/* Time Display */}
-        {(estimatedMinutes || startTime) && (
+        {/* Time Display - Always show if startTime exists (audit is running) */}
+        {startTime && (
           <div className="flex items-center justify-center gap-8 mt-8 mb-6">
-            {estimatedMinutes && (
+            {estimatedMinutes && estimatedMinutes > 0 && (
               <div className="text-center">
                 <p className="text-sm text-gray-600">Estimated Time</p>
                 <p className="text-lg font-bold text-blue-700">{formatEstimatedTime(estimatedMinutes)}</p>
               </div>
             )}
-            {startTime && (
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Elapsed Time</p>
-                <p className="text-lg font-bold text-gray-900">{formatElapsedTime(elapsedSeconds)}</p>
-              </div>
-            )}
+            <div className="text-center">
+              <p className="text-sm text-gray-600">Elapsed Time</p>
+              <p className="text-lg font-bold text-gray-900">{formatElapsedTime(elapsedSeconds)}</p>
+            </div>
           </div>
         )}
 

@@ -160,10 +160,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   // Calculate estimated time based on audit configuration
   const calculateEstimatedMinutes = () => {
     const results = audit.results as any
-    if (!results) return 0
 
-    const pageCount = results.totalPages || 1
-    const configuration = results.auditConfiguration || {}
+    // Get page count from results or use a default estimate
+    const pageCount = results?.totalPages || 50 // Default to 50 pages if not yet calculated
+    const configuration = results?.auditConfiguration || {
+      enableLighthouse: true,
+      enableViewport: true,
+      enableImageOptimization: true,
+      enableSEO: true
+    }
 
     // Time estimates per page in seconds
     const TIME_PER_PAGE = {
