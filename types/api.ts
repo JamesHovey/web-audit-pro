@@ -2,6 +2,14 @@
  * Type definitions for API request and response bodies
  */
 
+export interface AuditConfiguration {
+  enableLighthouse: boolean;
+  enableViewport: boolean;
+  enableImageOptimization: boolean;
+  enableSEO: boolean;
+  enableEmail: boolean;
+}
+
 export interface AuditRequestBody {
   url: string;
   sections: string[];
@@ -10,8 +18,12 @@ export interface AuditRequestBody {
   country?: string;
   isUKCompany?: boolean;
   pages?: string[];
-  pageLimit?: number;
+  pageLimit?: number | null; // Max pages to analyze (null = use smart default based on tier)
   excludedPaths?: string[];
+  maxPagesPerSection?: number; // Override per-section page limits (keywords, technical, etc.)
+  useSmartSampling?: boolean; // Enable intelligent page selection (default: true)
+  auditConfiguration?: AuditConfiguration;
+  enableEmailNotification?: boolean;
 }
 
 export interface BusinessContentRequestBody {
@@ -61,4 +73,5 @@ export interface ResetPasswordRequestBody {
 
 export interface DiscoverPagesRequestBody {
   url: string;
+  quick?: boolean; // Skip deep crawling for faster discovery (sitemap + patterns only)
 }
