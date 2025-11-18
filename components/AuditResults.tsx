@@ -166,8 +166,15 @@ export function AuditResults({ audit: initialAudit }: AuditResultsProps) {
   const calculateEstimatedMinutes = () => {
     const results = audit.results as any
 
-    // Get page count from results or use a default estimate
-    const pageCount = results?.totalPages || 50 // Default to 50 pages if not yet calculated
+    // Get page count from multiple possible sources (in priority order)
+    // This ensures we use the actual discovered page count during the audit
+    const pageCount =
+      results?.totalPages ||
+      results?.traffic?.pageDiscovery?.totalPages ||
+      results?.traffic?.pageDiscovery?.pages?.length ||
+      results?.pageDiscovery?.totalPages ||
+      results?.pageDiscovery?.pages?.length ||
+      50 // Final fallback to 50 pages if not yet calculated
     const configuration = results?.auditConfiguration || {
       enableLighthouse: true,
       enableViewport: true,
