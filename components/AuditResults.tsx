@@ -3852,6 +3852,112 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Title Length Issues Table */}
+          {results.titleLengthIssues && (results.titleLengthIssues.tooShort?.length > 0 || results.titleLengthIssues.tooLong?.length > 0) && (
+            <div id="title-length-issues-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-orange-600">
+                ⚠️ Title Tag Length Issues ({(results.titleLengthIssues.tooShort?.length || 0) + (results.titleLengthIssues.tooLong?.length || 0)})
+              </h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Title Tag</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Issue</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Recommendation</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {/* Too Short Titles */}
+                      {results.titleLengthIssues.tooShort && results.titleLengthIssues.tooShort.map((item: Record<string, unknown>, index: number) => (
+                        <tr key={`short-${index}`} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={item.url as string}>
+                              <a
+                                href={item.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(item.url as string).replace(/^https?:\/\//, '').substring(0, 40)}
+                                {(item.url as string).length > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-700 text-xs">
+                              {(item.title as string).substring(0, 50)}
+                              {(item.title as string).length > 50 ? '...' : ''}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">
+                              {item.length} chars
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">
+                              Too Short
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            Expand to 30-60 characters
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Too Long Titles */}
+                      {results.titleLengthIssues.tooLong && results.titleLengthIssues.tooLong.map((item: Record<string, unknown>, index: number) => (
+                        <tr key={`long-${index}`} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={item.url as string}>
+                              <a
+                                href={item.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(item.url as string).replace(/^https?:\/\//, '').substring(0, 40)}
+                                {(item.url as string).length > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-700 text-xs">
+                              {(item.title as string).substring(0, 50)}
+                              {(item.title as string).length > 50 ? '...' : ''}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">
+                              {item.length} chars
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">
+                              Too Long
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            Shorten to under 70 characters
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                  {results.titleLengthIssues.tooShort?.length || 0} too short, {results.titleLengthIssues.tooLong?.length || 0} too long • Optimal: 30-60 characters
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Title tags should be 30-60 characters for optimal display in search results. Shorter titles lack context; longer titles get truncated.
+              </p>
+            </div>
+          )}
+
           {/* Structured Data Items Table */}
           {results.structuredData && results.structuredData.totalItems > 0 && (
             <div id="structured-data-table" className="mb-6">

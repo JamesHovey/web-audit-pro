@@ -19,6 +19,50 @@ export interface ManualFixInstruction {
 }
 
 export const MANUAL_FIX_INSTRUCTIONS: Record<string, ManualFixInstruction> = {
+  'title-length': {
+    issueType: 'title-length',
+    title: 'Fix Title Tag Length Issues',
+    difficulty: 'Easy',
+    estimatedTime: '5-10 minutes per page',
+    steps: [
+      'Review pages with title length issues from the table',
+      'For short titles (< 30 chars): Expand with descriptive keywords',
+      'For long titles (> 70 chars): Remove unnecessary words and focus on key terms',
+      'Include your primary keyword near the beginning',
+      'Make titles compelling to encourage clicks',
+      'Ensure each title is unique across your site',
+      'Update the <title> tag in your page\'s <head> section',
+      'Verify changes using Google\'s Rich Results Test'
+    ],
+    codeExample: `<!-- Too Short Title (Bad - 18 chars) -->
+<title>About Our Company</title>
+
+<!-- Optimal Title (Good - 54 chars) -->
+<title>About PMW Communications - Award-Winning Marketing Agency</title>
+
+<!-- Too Long Title (Bad - 78 chars) -->
+<title>About PMW Communications - Award-Winning Full-Service Marketing Agency in Sussex</title>
+
+<!-- Shortened Title (Good - 63 chars) -->
+<title>About PMW Communications - Marketing Agency in Sussex</title>`,
+    resources: [
+      {
+        title: 'Google: Create good titles and snippets',
+        url: 'https://developers.google.com/search/docs/appearance/title-link'
+      },
+      {
+        title: 'Moz: Title Tag Best Practices',
+        url: 'https://moz.com/learn/seo/title-tag'
+      }
+    ],
+    warnings: [
+      'Avoid keyword stuffing - write for humans first',
+      'Don\'t use all caps or excessive punctuation',
+      'Make sure titles accurately describe the page content',
+      'Each page should have a unique title'
+    ]
+  },
+
   'internal-linking': {
     issueType: 'internal-linking',
     title: 'Add Internal Links Manually',
