@@ -3752,6 +3752,104 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Structured Data Items Table */}
+          {results.structuredData && results.structuredData.totalItems > 0 && (
+            <div id="structured-data-table" className="mb-6">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <span className={results.structuredData.invalidItems > 0 ? 'text-orange-600' : 'text-green-600'}>
+                  {results.structuredData.invalidItems > 0 ? '⚠️' : '✅'} Structured Data Items ({results.structuredData.totalItems})
+                </span>
+              </h4>
+              <div className={`border rounded-lg overflow-hidden ${
+                results.structuredData.invalidItems > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'
+              }`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className={results.structuredData.invalidItems > 0 ? 'bg-orange-100' : 'bg-green-100'}>
+                      <tr>
+                        <th className={`px-4 py-3 text-left font-medium ${
+                          results.structuredData.invalidItems > 0 ? 'text-orange-800' : 'text-green-800'
+                        }`}>Type</th>
+                        <th className={`px-4 py-3 text-left font-medium ${
+                          results.structuredData.invalidItems > 0 ? 'text-orange-800' : 'text-green-800'
+                        }`}>Format</th>
+                        <th className={`px-4 py-3 text-left font-medium ${
+                          results.structuredData.invalidItems > 0 ? 'text-orange-800' : 'text-green-800'
+                        }`}>Location</th>
+                        <th className={`px-4 py-3 text-center font-medium ${
+                          results.structuredData.invalidItems > 0 ? 'text-orange-800' : 'text-green-800'
+                        }`}>Status</th>
+                        <th className={`px-4 py-3 text-left font-medium ${
+                          results.structuredData.invalidItems > 0 ? 'text-orange-800' : 'text-green-800'
+                        }`}>Issues</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${
+                      results.structuredData.invalidItems > 0 ? 'divide-orange-200' : 'divide-green-200'
+                    }`}>
+                      {results.structuredData.items.map((item: Record<string, unknown>, index: number) => (
+                        <tr key={index} className={`hover:${
+                          results.structuredData.invalidItems > 0 ? 'bg-orange-50' : 'bg-green-50'
+                        }`}>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-gray-900">
+                              {item.type as string}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                              {item.format as string}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-600 text-xs">
+                              {item.location as string}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.isValid
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {item.isValid ? 'Valid' : 'Invalid'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {item.isValid ? (
+                              <span className="text-green-600 text-sm">No issues</span>
+                            ) : (
+                              <div className="space-y-1">
+                                {(item.errors as string[]).map((error: string, idx: number) => (
+                                  <div key={idx} className="text-red-600 text-xs">
+                                    • {error}
+                                  </div>
+                                ))}
+                                {(item.warnings as string[]).map((warning: string, idx: number) => (
+                                  <div key={idx} className="text-orange-600 text-xs">
+                                    • {warning}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className={`px-4 py-2 text-sm ${
+                  results.structuredData.invalidItems > 0 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {results.structuredData.validItems} valid, {results.structuredData.invalidItems} invalid
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Valid structured data helps search engines understand your content and can enable rich results in search. Use Google's Rich Results Test to validate your markup.
+              </p>
+            </div>
+          )}
+
           {/* How Results Were Obtained */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
             <button 
