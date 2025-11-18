@@ -587,6 +587,147 @@ export const NON_WORDPRESS_TOOLS: PluginMetadata[] = [
     bestFor: 'Mac users wanting local batch optimization'
   },
 
+  // Internal Linking Plugins
+  {
+    name: 'Link Whisper',
+    slug: 'link-whisper',
+    category: 'seo',
+    useCase: ['internal-linking', 'seo-optimization'],
+    description: 'AI-powered internal linking plugin that suggests relevant internal links',
+    rating: 4.9,
+    reviews: 625,
+    activeInstalls: '50,000+',
+    cost: 'Paid',
+    pricingDetails: 'Starter: £77/year. Agency: £117/year',
+    url: 'https://linkwhisper.com/',
+    pros: [
+      'AI-powered link suggestions',
+      'Automatic internal linking',
+      'Link reports and analytics',
+      'Orphaned content detection',
+      'Broken link fixing',
+      'Very user-friendly'
+    ],
+    cons: [
+      'No free version',
+      'Premium pricing',
+      'Requires annual subscription'
+    ],
+    bestFor: 'Content-heavy sites wanting automated intelligent internal linking'
+  },
+  {
+    name: 'Internal Link Juicer',
+    slug: 'internal-links',
+    category: 'seo',
+    useCase: ['internal-linking', 'seo-optimization'],
+    description: 'Automatic internal linking based on keywords with customizable rules',
+    rating: 4.8,
+    reviews: 145,
+    activeInstalls: '10,000+',
+    cost: 'Freemium',
+    pricingDetails: 'Free version available. Pro: £79/year',
+    url: 'https://wordpress.org/plugins/internal-links/',
+    freeTierLimits: 'Free version has basic auto-linking features',
+    pros: [
+      'Automatic internal linking',
+      'Keyword-based linking',
+      'Link limits per post',
+      'Blacklist/whitelist support',
+      'Free version available',
+      'Easy to configure'
+    ],
+    cons: [
+      'Less intelligent than AI solutions',
+      'Can create too many links if not configured properly',
+      'Pro needed for advanced features'
+    ],
+    bestFor: 'Sites wanting affordable automated internal linking'
+  },
+  {
+    name: 'Yet Another Related Posts Plugin (YARPP)',
+    slug: 'yet-another-related-posts-plugin',
+    category: 'seo',
+    useCase: ['internal-linking', 'seo-optimization'],
+    description: 'Shows related posts to improve internal linking and user engagement',
+    rating: 4.6,
+    reviews: 845,
+    activeInstalls: '100,000+',
+    cost: 'Freemium',
+    pricingDetails: 'Free version available. Premium: £49/year',
+    url: 'https://wordpress.org/plugins/yet-another-related-posts-plugin/',
+    freeTierLimits: 'Free version has core features',
+    pros: [
+      'Completely free core features',
+      'Multiple display options',
+      'Automatic related content',
+      'Customizable algorithms',
+      'Works with any theme'
+    ],
+    cons: [
+      'Only shows related posts (not inline linking)',
+      'Can slow down sites with many posts',
+      'Premium needed for advanced matching'
+    ],
+    bestFor: 'Sites wanting to increase internal linking through related posts'
+  },
+
+  // Structured Data / Schema Plugins
+  {
+    name: 'Schema Pro',
+    slug: 'schema-pro',
+    category: 'seo',
+    useCase: ['schema-markup', 'structured-data', 'seo-optimization'],
+    description: 'Comprehensive schema markup plugin with support for 35+ schema types',
+    rating: 4.9,
+    reviews: 580,
+    activeInstalls: '200,000+',
+    cost: 'Paid',
+    pricingDetails: 'Personal: £63/year. Agency Unlimited: £188/year',
+    url: 'https://wpschema.com/',
+    pros: [
+      'Most comprehensive schema support',
+      'Visual schema editor',
+      'Automatic schema generation',
+      'Custom schema types',
+      'Google Rich Results compatible',
+      'WooCommerce support'
+    ],
+    cons: [
+      'No free version',
+      'Can be complex for beginners',
+      'Premium pricing'
+    ],
+    bestFor: 'Professional sites needing comprehensive rich results'
+  },
+  {
+    name: 'Schema & Structured Data for WP & AMP',
+    slug: 'schema-and-structured-data-for-wp',
+    category: 'seo',
+    useCase: ['schema-markup', 'structured-data', 'seo-optimization'],
+    description: 'Free schema plugin with support for many schema types and AMP',
+    rating: 4.7,
+    reviews: 612,
+    activeInstalls: '100,000+',
+    cost: 'Freemium',
+    pricingDetails: 'Free version very comprehensive. Pro: £49/year',
+    url: 'https://wordpress.org/plugins/schema-and-structured-data-for-wp/',
+    freeTierLimits: 'Free version includes 35+ schema types',
+    pros: [
+      'Generous free version',
+      'Easy to use interface',
+      'AMP compatibility',
+      'Automatic schema generation',
+      'Regular updates',
+      'Google validation'
+    ],
+    cons: [
+      'Some advanced features need Pro',
+      'Documentation could be better',
+      'Interface less polished than premium options'
+    ],
+    bestFor: 'Sites wanting free comprehensive schema markup'
+  },
+
   // Redirect Management Plugins
   {
     name: 'Redirection',
@@ -804,7 +945,18 @@ export const ISSUE_TO_USECASE: Record<string, string> = {
   'minification': 'minification',
   'css-optimization': 'css-optimization',
   'javascript-optimization': 'javascript-optimization',
-  'performance-optimization': 'performance-optimization'
+  'performance-optimization': 'performance-optimization',
+  'internal-linking': 'internal-linking',
+  'low-internal-links': 'internal-linking',
+  '404-errors': '404-errors',
+  'broken-links': '404-errors',
+  'redirects': 'redirects',
+  'structured-data': 'structured-data',
+  'schema-markup': 'schema-markup',
+  'invalid-schema': 'schema-markup',
+  'unminified-files': 'minification',
+  'unminified-javascript': 'javascript-optimization',
+  'unminified-css': 'css-optimization'
 }
 
 // Helper function to calculate a plugin's quality score
