@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["chromium"]
-
-[phases.install]
-cmds = ["PUPPETEER_SKIP_DOWNLOAD=true npm install"]
-
-[start]
-cmd = "npx prisma migrate deploy && npm start"
