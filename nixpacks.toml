@@ -1,6 +1,5 @@
 [phases.setup]
-nixPkgs = ["chromium", "nss", "freetype", "fontconfig", "libX11", "libXext", "libXrender"]
-nixLibs = ["chromium", "nss", "freetype", "fontconfig", "libX11", "libXext", "libXrender"]
+nixPkgs = ["chromium"]
 
 [phases.install]
 cmds = ["PUPPETEER_SKIP_DOWNLOAD=true npm install"]
