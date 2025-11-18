@@ -2245,7 +2245,60 @@ function renderSectionResults(
               </div>
             )}
           </div>
-          
+
+          {/* Pages Need More Internal Links Table */}
+          {(() => {
+            const lowLinkPages = results.pagesWithLowInternalLinks || results.lowInternalLinkPages || [];
+            return Array.isArray(lowLinkPages) && lowLinkPages.length > 0;
+          })() && (
+            <div id="internal-linking-table" data-subsection="internal-linking">
+              <h4 className="font-semibold mb-3 text-orange-600">⚠️ Pages Need More Internal Links</h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Incoming Links</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action Needed</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {((results.pagesWithLowInternalLinks || results.lowInternalLinkPages || []).slice(0, 10) as Record<string, unknown>[]).map((page: Record<string, unknown>, index: number) => {
+                        const incomingLinks = (page.internalLinkCount || page.incomingLinks || 0) as number;
+                        return (
+                          <tr key={index} className="hover:bg-orange-50">
+                            <td className="px-4 py-3">
+                              <Tooltip content={page.url || page.pageUrl || ''}>
+                                <a
+                                  href={page.url || page.pageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  {(page.title || (page.url || page.pageUrl).toString().split('/').pop() || 'Page').toString().substring(0, 60)}{(page.title || (page.url || page.pageUrl).toString()).length > 60 ? '...' : ''}
+                                </a>
+                              </Tooltip>
+                            </td>
+                            <td className="px-4 py-3 text-center font-medium text-red-600">
+                              {incomingLinks}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {incomingLinks === 0 ? 'Critical: Add internal links' : incomingLinks === 1 ? 'Add 2-3 more internal links' : 'Add 1-2 more internal links'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Pages with few incoming internal links may not be discovered by search engines or users. Add relevant links from related pages to improve visibility and SEO.
+              </p>
+            </div>
+          )}
+
         </div>
       );
 
