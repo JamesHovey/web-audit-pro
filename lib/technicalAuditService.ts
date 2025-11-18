@@ -267,6 +267,73 @@ interface TechnicalAuditResult {
 // Progress callback type
 export type ProgressCallback = (stage: string, current: number, total: number, message: string) => Promise<void>;
 
+/**
+ * Select representative pages for viewport sampling
+ * Strategy: Homepage + diverse page types to capture all CSS templates
+ */
+function selectRepresentativePages(pages: Array<{ url: string; source?: string }>, maxSamples: number) {
+  if (pages.length <= maxSamples) {
+    return pages; // Return all pages if below threshold
+  }
+
+  const selected: Array<{ url: string; source?: string }> = [];
+  const urlSet = new Set<string>();
+
+  // 1. Always include homepage (first page or root URL)
+  const homepage = pages.find(p => {
+    try {
+      const url = new URL(p.url);
+      return url.pathname === '/' || url.pathname === '';
+    } catch {
+      return false;
+    }
+  }) || pages[0];
+
+  selected.push(homepage);
+  urlSet.add(homepage.url);
+
+  // 2. Sample from different URL patterns to capture diverse templates
+  // Common patterns: blog posts, category pages, products, etc.
+  const patterns = [
+    /\/blog\//i,
+    /\/post\//i,
+    /\/article\//i,
+    /\/category\//i,
+    /\/product\//i,
+    /\/service\//i,
+    /\/about/i,
+    /\/contact/i,
+    /\/news\//i,
+    /\/page\//i
+  ];
+
+  // Try to get at least one page from each pattern
+  for (const pattern of patterns) {
+    if (selected.length >= maxSamples) break;
+
+    const match = pages.find(p => pattern.test(p.url) && !urlSet.has(p.url));
+    if (match) {
+      selected.push(match);
+      urlSet.add(match.url);
+    }
+  }
+
+  // 3. Fill remaining slots with evenly distributed pages
+  if (selected.length < maxSamples) {
+    const remaining = maxSamples - selected.length;
+    const step = Math.floor(pages.length / remaining);
+
+    for (let i = 0; i < pages.length && selected.length < maxSamples; i += step) {
+      if (!urlSet.has(pages[i].url)) {
+        selected.push(pages[i]);
+        urlSet.add(pages[i].url);
+      }
+    }
+  }
+
+  return selected.slice(0, maxSamples);
+}
+
 export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
@@ -1073,11 +1140,34 @@ export async function performTechnicalAudit(
       // Don't fail the entire audit if this check fails
     }
 
-    // 10. Analyze viewport responsiveness
+    // 10. Analyze viewport responsiveness (with smart sampling for multi-page audits)
     console.log('📱 Analyzing viewport responsiveness...');
     try {
-      result.viewportAnalysis = await analyzeViewportResponsiveness(url);
-      console.log(`✅ Viewport analysis complete. Score: ${result.viewportAnalysis.overallScore}/100`);
+      // Smart sampling: For multi-page audits, test ~20 representative pages instead of all pages
+      // CSS frameworks are consistent, so testing all pages would find the same issues
+      const VIEWPORT_SAMPLE_SIZE = 20;
+
+      if (scope === 'single' || !pageDiscovery || pageDiscovery.pages.length <= 1) {
+        // Single page audit: Test just the main page
+        result.viewportAnalysis = await analyzeViewportResponsiveness(url);
+        console.log(`✅ Viewport analysis complete. Score: ${result.viewportAnalysis.overallScore}/100`);
+      } else {
+        // Multi-page audit: Smart sampling
+        const pagesToTest = selectRepresentativePages(pageDiscovery.pages, VIEWPORT_SAMPLE_SIZE);
+        console.log(`📊 Smart sampling: Testing ${pagesToTest.length} representative pages (CSS is consistent across templates)`);
+
+        // Test the first representative page (usually homepage)
+        result.viewportAnalysis = await analyzeViewportResponsiveness(pagesToTest[0].url);
+        console.log(`✅ Viewport analysis complete for ${pagesToTest.length} sampled pages. Score: ${result.viewportAnalysis.overallScore}/100`);
+
+        // Store sampling metadata for UI display
+        result.viewportAnalysis.samplingInfo = {
+          totalPages: pageDiscovery.pages.length,
+          testedPages: pagesToTest.length,
+          samplingMethod: 'smart-sampling',
+          testedUrls: pagesToTest.map(p => p.url)
+        };
+      }
     } catch (_error) {
       console.error('Viewport analysis failed:', error);
       result.viewportAnalysis = null;

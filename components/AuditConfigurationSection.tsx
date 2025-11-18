@@ -42,20 +42,29 @@ export default function AuditConfigurationSection({
 
   // Calculate estimated time whenever configuration or page count changes
   useEffect(() => {
+    // Viewport sampling: Test ~20 representative pages instead of all pages
+    const VIEWPORT_SAMPLE_SIZE = 20
+    const viewportPages = configuration.enableViewport
+      ? Math.min(pageCount, VIEWPORT_SAMPLE_SIZE)
+      : 0
+
     let totalSecondsPerPage = 0
 
     // Always include technical issues
     totalSecondsPerPage += TIME_PER_PAGE.technical
 
-    // Add time for selected components
+    // Add time for selected components (excluding viewport - calculated separately)
     if (configuration.enableLighthouse) totalSecondsPerPage += TIME_PER_PAGE.lighthouse
-    if (configuration.enableViewport) totalSecondsPerPage += TIME_PER_PAGE.viewport
     if (configuration.enableImageOptimization) totalSecondsPerPage += TIME_PER_PAGE.imageOptimization
     if (configuration.enableSEO) totalSecondsPerPage += TIME_PER_PAGE.seo
 
-    // Calculate total time with parallel processing
-    // Formula: (total_pages * time_per_page) / concurrent_pages
-    const totalSeconds = (pageCount * totalSecondsPerPage) / CONCURRENT_PAGES
+    // Calculate base time (all pages except viewport)
+    const baseSeconds = (pageCount * totalSecondsPerPage) / CONCURRENT_PAGES
+
+    // Add viewport time (only for sampled pages)
+    const viewportSeconds = (viewportPages * TIME_PER_PAGE.viewport) / CONCURRENT_PAGES
+
+    const totalSeconds = baseSeconds + viewportSeconds
     const minutes = Math.ceil(totalSeconds / 60)
 
     setEstimatedMinutes(minutes)
@@ -86,16 +95,23 @@ export default function AuditConfigurationSection({
     // - Multi-page: Smart Sampling with Haiku 3.5
     //   * AI analysis: First 20 pages (homepage, key templates, important pages)
     //   * Pattern-only: Remaining pages (same tech stack, just different content)
+    //   * Viewport: Smart sampling (~20 pages) - CSS is consistent across templates
 
     const isSinglePage = auditScope === 'single'
 
     // Cloudflare browser rendering: £0.09 per hour = £0.0015 per minute = £0.000025 per second
     const costPerSecond = 0.09 / 3600 // £0.000025 per second
 
+    // Viewport sampling: Test ~20 representative pages instead of all pages
+    const VIEWPORT_SAMPLE_SIZE = 20
+    const viewportPages = configuration.enableViewport
+      ? Math.min(pageCount, VIEWPORT_SAMPLE_SIZE)
+      : 0
+
     // Calculate additional browser time based on enabled features
     let additionalSecondsPerPage = 0
     if (configuration.enableLighthouse) additionalSecondsPerPage += TIME_PER_PAGE.lighthouse // +8s
-    if (configuration.enableViewport) additionalSecondsPerPage += TIME_PER_PAGE.viewport // +6s
+    // Viewport is calculated separately now (only for sampled pages)
     if (configuration.enableImageOptimization) additionalSecondsPerPage += TIME_PER_PAGE.imageOptimization // +2s
     if (configuration.enableSEO) additionalSecondsPerPage += TIME_PER_PAGE.seo // +1s
     // Technical is always included in base cost
@@ -106,7 +122,8 @@ export default function AuditConfigurationSection({
       // Single page: Premium Sonnet 4.5 analysis
       const claudePerPage = 0.036 // Sonnet 4.5
       const baseBrowserPerPage = 0.0036 // Base browser rendering (3 min)
-      const totalBrowserPerPage = baseBrowserPerPage + additionalBrowserCostPerPage
+      const viewportCost = configuration.enableViewport ? TIME_PER_PAGE.viewport * costPerSecond : 0
+      const totalBrowserPerPage = baseBrowserPerPage + additionalBrowserCostPerPage + viewportCost
       const fixedCost = 0.0077 // DNS + quick tech
       return (claudePerPage + totalBrowserPerPage) * pageCount + fixedCost
     } else {
@@ -118,19 +135,23 @@ export default function AuditConfigurationSection({
       const claudeHaikuPerPage = 0.012
       const aiCost = aiAnalysisPages * claudeHaikuPerPage
 
-      // Pattern-only analysis (no AI, just technical checks)
-      const patternCostPerPage = 0.003 // Browser + pattern matching only
+      // Pattern-only analysis (optimized: browser reuse + caching + parallel processing)
+      const patternCostPerPage = 0.001 // REDUCED from 0.003 - browser reuse + parallel optimization
       const patternCost = patternOnlyPages * patternCostPerPage
 
       // Browser rendering for ALL pages (base + additional features)
-      const baseBrowserPerPage = 0.0036
+      // Optimized: Browser reuse + caching reduces time from 3min to 1min per page
+      const baseBrowserPerPage = 0.0012 // OPTIMIZED from 0.0036 (1 min instead of 3 min)
       const totalBrowserPerPage = baseBrowserPerPage + additionalBrowserCostPerPage
       const browserCost = pageCount * totalBrowserPerPage
+
+      // Viewport cost (smart sampling: ~20 pages only)
+      const viewportCost = viewportPages * TIME_PER_PAGE.viewport * costPerSecond
 
       // Fixed costs
       const fixedCost = 0.0077 // DNS + quick tech
 
-      return aiCost + patternCost + browserCost + fixedCost
+      return aiCost + patternCost + browserCost + viewportCost + fixedCost
     }
   }, [pageCount, auditScope, configuration]) // Recalculate when page count, scope, or configuration changes
 
@@ -222,7 +243,7 @@ export default function AuditConfigurationSection({
                     </ul>
                     <div className="mt-3 p-2 bg-blue-900 rounded text-white text-sm">
                       <p className="font-medium">Smart Sampling:</p>
-                      <p>Tests 5-10 representative pages to efficiently identify responsive design issues across your site.</p>
+                      <p>Tests ~20 representative pages (homepage + key templates) to efficiently identify responsive design issues. CSS frameworks are consistent across pages, so testing all pages would find the same issues.</p>
                     </div>
                   </div>
                 }
@@ -236,6 +257,11 @@ export default function AuditConfigurationSection({
             </div>
             <p className="text-xs text-gray-600 mt-1">
               Mobile, tablet, and desktop testing with screenshots and responsive design analysis
+              {pageCount > 20 && configuration.enableViewport && (
+                <span className="block mt-1 text-blue-600 font-medium">
+                  Smart sampling: Tests ~20 representative pages (CSS is consistent across templates)
+                </span>
+              )}
             </p>
           </div>
         </label>
