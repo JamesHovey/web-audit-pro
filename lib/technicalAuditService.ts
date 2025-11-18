@@ -249,6 +249,12 @@ interface TechnicalAuditResult {
     sourceUrl: string;
     linkType: 'internal' | 'external';
   }>;
+  pages404: Array<{
+    url: string;
+    title: string;
+    statusCode: number;
+    discoveredVia: string;
+  }>;
   sitemapStatus: 'found' | 'missing';
   robotsTxtStatus: 'found' | 'missing';
   httpsStatus: 'secure' | 'insecure';
@@ -307,6 +313,7 @@ export async function performTechnicalAudit(
       longTitles: 0
     },
     notFoundErrors: [],
+    pages404: [],
     sitemapStatus: 'missing',
     robotsTxtStatus: 'missing',
     httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure',
@@ -785,6 +792,15 @@ export async function performTechnicalAudit(
     const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
     const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
     const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
+
+    // Track pages that return 404 specifically
+    const pages404 = pageDiscovery.pages.filter(p => p.statusCode === 404);
+    result.pages404 = pages404.map(p => ({
+      url: p.url,
+      title: p.title || 'No title',
+      statusCode: p.statusCode,
+      discoveredVia: p.source || 'crawl'
+    }));
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
@@ -2456,38 +2472,50 @@ async function checkLinksFor404s(links: string[], sourceUrl: string): Promise<Ar
     sourceUrl: string;
     linkType: 'internal' | 'external';
   }> = [];
-  
+
   const sourceHost = new URL(sourceUrl).hostname;
-  
-  // Check only a sample of links to avoid overwhelming the server
-  // In production, this would be more sophisticated with rate limiting
-  const linksToCheck = links.slice(0, 20);
-  
-  for (const link of linksToCheck) {
-    try {
-      const linkHost = new URL(link).hostname;
-      const isInternal = linkHost === sourceHost;
-      
-      const response = await fetch(link, {
-        method: 'HEAD',
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(5000)
-      });
-      
-      if (response.status === 404) {
-        brokenLinks.push({
-          brokenUrl: link,
-          sourceUrl: sourceUrl,
-          linkType: isInternal ? 'internal' : 'external'
-        });
-      }
-    } catch (_error) {
-      // Network errors might indicate broken links
-      console.log(`Could not check link ${link}`);
+
+  // Check ALL links with rate limiting to avoid overwhelming the server
+  const linksToCheck = links;
+  const BATCH_SIZE = 10;
+  const DELAY_BETWEEN_BATCHES = 1000; // 1 second delay between batches
+
+  for (let i = 0; i < linksToCheck.length; i += BATCH_SIZE) {
+    const batch = linksToCheck.slice(i, i + BATCH_SIZE);
+
+    await Promise.all(
+      batch.map(async (link) => {
+        try {
+          const linkHost = new URL(link).hostname;
+          const isInternal = linkHost === sourceHost;
+
+          const response = await fetch(link, {
+            method: 'HEAD',
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            redirect: 'follow',
+            signal: AbortSignal.timeout(5000)
+          });
+
+          if (response.status === 404) {
+            brokenLinks.push({
+              brokenUrl: link,
+              sourceUrl: sourceUrl,
+              linkType: isInternal ? 'internal' : 'external'
+            });
+          }
+        } catch (_error) {
+          // Network errors might indicate broken links
+          console.log(`Could not check link ${link}`);
+        }
+      })
+    );
+
+    // Add delay between batches to be respectful to the server
+    if (i + BATCH_SIZE < linksToCheck.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
     }
   }
-  
+
   return brokenLinks;
 }
 

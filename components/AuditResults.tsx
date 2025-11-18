@@ -3629,10 +3629,78 @@ function renderSectionResults(
 
           {/* Large Images Table - MOVED TO EnhancedRecommendations component */}
 
-          {/* 404 Errors Table */}
+          {/* Pages Returning 404 Status Table */}
+          {results.pages404 && results.pages404.length > 0 && (
+            <div id="pages-404-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-red-600">❌ Pages Returning 404 Status</h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Page URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Page Title</th>
+                        <th className="px-4 py-3 text-center font-medium text-red-800">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Discovered Via</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Action Needed</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.pages404.slice(0, 20).map((page: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-red-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={page.url as string}>
+                              <a
+                                href={page.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {(page.url as string).replace(/^https?:\/\//, '').substring(0, 60)}
+                                {(page.url as string).length > 60 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-700">
+                              {(page.title as string).substring(0, 50)}
+                              {(page.title as string).length > 50 ? '...' : ''}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">
+                              {page.statusCode}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-gray-600 capitalize">
+                              {page.discoveredVia}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            Redirect or remove
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.pages404.length > 20 && (
+                  <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
+                    Showing 20 of {results.pages404.length} pages with 404 errors
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: These pages were discovered but return 404 errors. Set up 301 redirects to working pages or remove links to these pages.
+              </p>
+            </div>
+          )}
+
+          {/* Broken Links (404 Errors) Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
             <div>
-              <h4 className="font-semibold mb-3 text-red-600">❌ 404 Errors Found</h4>
+              <h4 className="font-semibold mb-3 text-red-600">❌ Broken Links Found</h4>
               <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -3653,9 +3721,9 @@ function renderSectionResults(
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <a 
-                              href={error.sourceUrl} 
-                              target="_blank" 
+                            <a
+                              href={error.sourceUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline"
                             >
