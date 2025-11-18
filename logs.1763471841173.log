@@ -1,0 +1,150 @@
+2025-11-18T12:56:36.050822078Z [inf]  
+2025-11-18T12:56:38.303985061Z [inf]  [35m[Region: europe-west4][0m
+2025-11-18T12:56:38.307414479Z [inf]  [35m==============
+2025-11-18T12:56:38.307435425Z [inf]  Using Nixpacks
+2025-11-18T12:56:38.307439017Z [inf]  ==============
+2025-11-18T12:56:38.307442017Z [inf]  [0m
+2025-11-18T12:56:38.307543247Z [inf]  context: cwd2-6rye
+2025-11-18T12:56:38.411830682Z [inf]  ╔══════════════════════════════ Nixpacks v1.38.0 ══════════════════════════════╗
+2025-11-18T12:56:38.411872398Z [inf]  ║ setup      │ chromium, nss, freetype, fontconfig, libX11, libXext,           ║
+2025-11-18T12:56:38.411876903Z [inf]  ║            │ libXrender, libnss3, libatk1.0-0, libatk-bridge2.0-0, libcups2, ║
+2025-11-18T12:56:38.411880523Z [inf]  ║            │ libgbm1, libasound2t64, libpangocairo-1.0-0, libxss1, libgtk-3- ║
+2025-11-18T12:56:38.411886170Z [inf]  ║            │ 0, libxshmfence1, libglu1, chromium                             ║
+2025-11-18T12:56:38.411890192Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:56:38.411893602Z [inf]  ║ install    │ PUPPETEER_SKIP_DOWNLOAD=true npm install                        ║
+2025-11-18T12:56:38.411896922Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:56:38.411900315Z [inf]  ║ build      │ PUPPETEER_SKIP_DOWNLOAD=true                                    ║
+2025-11-18T12:56:38.411903392Z [inf]  ║            │ DATABASE_URL="postgresql://placeholder:placeholder@placeholder: ║
+2025-11-18T12:56:38.411907265Z [inf]  ║            │ 5432/placeholder" npm install && npm run build                  ║
+2025-11-18T12:56:38.411910278Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:56:38.411913342Z [inf]  ║ start      │ npx prisma migrate deploy && npm start                          ║
+2025-11-18T12:56:38.411916306Z [inf]  ╚══════════════════════════════════════════════════════════════════════════════╝
+2025-11-18T12:56:38.620258666Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:56:38.620320969Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:56:38.620343444Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:56:38.814902409Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:56:38.830045519Z [inf]  [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-11-18T12:56:39.187233975Z [inf]  [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-11-18T12:56:39.187449301Z [inf]  [internal] load .dockerignore
+2025-11-18T12:56:39.187825203Z [inf]  [internal] load .dockerignore
+2025-11-18T12:56:39.187860130Z [inf]  [internal] load .dockerignore
+2025-11-18T12:56:39.197215161Z [inf]  [internal] load .dockerignore
+2025-11-18T12:56:39.206219528Z [inf]  [stage-0 11/11] COPY . /app
+2025-11-18T12:56:39.206247339Z [inf]  [stage-0 10/11] RUN printf '\nPATH=/app/node_modules/.bin:$PATH' >> /root/.profile
+2025-11-18T12:56:39.206261962Z [inf]  [stage-0  9/11] RUN --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-next/cache,target=/app/.next/cache --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-node_modules/cache,target=/app/node_modules/.cache PUPPETEER_SKIP_DOWNLOAD=true DATABASE_URL="postgresql://placeholder:placeholder@placeholder:5432/placeholder" npm install && npm run build
+2025-11-18T12:56:39.206270491Z [inf]  [stage-0  8/11] COPY . /app/.
+2025-11-18T12:56:39.206280818Z [inf]  [stage-0  7/11] RUN --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-/root/npm,target=/root/.npm PUPPETEER_SKIP_DOWNLOAD=true npm install
+2025-11-18T12:56:39.206287256Z [inf]  [stage-0  6/11] COPY . /app/.
+2025-11-18T12:56:39.206294123Z [inf]  [stage-0  5/11] RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2t64 libpangocairo-1.0-0 libxss1 libgtk-3-0 libxshmfence1 libglu1 chromium
+2025-11-18T12:56:39.206303445Z [inf]  [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:56:39.206310319Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:56:39.206317078Z [inf]  [internal] load build context
+2025-11-18T12:56:39.206324846Z [inf]  [stage-0  2/11] WORKDIR /app/
+2025-11-18T12:56:39.206330251Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:56:39.206346531Z [inf]  [internal] load build context
+2025-11-18T12:56:39.206355935Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:56:39.206366882Z [inf]  [internal] load build context
+2025-11-18T12:56:39.213416995Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:56:39.280665187Z [inf]  [internal] load build context
+2025-11-18T12:56:39.283044956Z [inf]  [stage-0  2/11] WORKDIR /app/
+2025-11-18T12:56:39.283087912Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:56:39.952714660Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:56:39.954061054Z [inf]  [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:56:40.08621984Z [inf]  unpacking 'https://github.com/NixOS/nixpkgs/archive/ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.tar.gz' into the Git cache...
+
+2025-11-18T12:56:55.145731183Z [err]  ERROR: failed to build: failed to receive status: rpc error: code = Unavailable desc = error reading from server: EOF
+2025-11-18T12:57:14.605648025Z [inf]  [35m[Region: europe-west4][0m
+2025-11-18T12:57:14.613170163Z [inf]  [35m==============
+2025-11-18T12:57:14.613246470Z [inf]  Using Nixpacks
+2025-11-18T12:57:14.613257297Z [inf]  ==============
+2025-11-18T12:57:14.613265548Z [inf]  [0m
+2025-11-18T12:57:14.613491006Z [inf]  context: 1ksg-Gbtv
+2025-11-18T12:57:14.817177719Z [inf]  ╔══════════════════════════════ Nixpacks v1.38.0 ══════════════════════════════╗
+2025-11-18T12:57:14.817228897Z [inf]  ║ setup      │ chromium, nss, freetype, fontconfig, libX11, libXext,           ║
+2025-11-18T12:57:14.817235658Z [inf]  ║            │ libXrender, libnss3, libatk1.0-0, libatk-bridge2.0-0, libcups2, ║
+2025-11-18T12:57:14.817240076Z [inf]  ║            │ libgbm1, libasound2t64, libpangocairo-1.0-0, libxss1, libgtk-3- ║
+2025-11-18T12:57:14.817251591Z [inf]  ║            │ 0, libxshmfence1, libglu1, chromium                             ║
+2025-11-18T12:57:14.817257903Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:57:14.817263091Z [inf]  ║ install    │ PUPPETEER_SKIP_DOWNLOAD=true npm install                        ║
+2025-11-18T12:57:14.817276746Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:57:14.817283264Z [inf]  ║ build      │ PUPPETEER_SKIP_DOWNLOAD=true                                    ║
+2025-11-18T12:57:14.817290740Z [inf]  ║            │ DATABASE_URL="postgresql://placeholder:placeholder@placeholder: ║
+2025-11-18T12:57:14.817297633Z [inf]  ║            │ 5432/placeholder" npm install && npm run build                  ║
+2025-11-18T12:57:14.817304478Z [inf]  ║──────────────────────────────────────────────────────────────────────────────║
+2025-11-18T12:57:14.817310850Z [inf]  ║ start      │ npx prisma migrate deploy && npm start                          ║
+2025-11-18T12:57:14.817317405Z [inf]  ╚══════════════════════════════════════════════════════════════════════════════╝
+2025-11-18T12:57:15.142541926Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:57:15.142637361Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:57:15.142668232Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:57:15.156629635Z [inf]  [internal] load build definition from Dockerfile
+2025-11-18T12:57:15.162347963Z [inf]  [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-11-18T12:57:15.463047044Z [inf]  [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-11-18T12:57:15.463470238Z [inf]  [internal] load .dockerignore
+2025-11-18T12:57:15.463504055Z [inf]  [internal] load .dockerignore
+2025-11-18T12:57:15.463991523Z [inf]  [internal] load .dockerignore
+2025-11-18T12:57:15.476211368Z [inf]  [internal] load .dockerignore
+2025-11-18T12:57:15.486071159Z [inf]  [stage-0 11/11] COPY . /app
+2025-11-18T12:57:15.486141322Z [inf]  [stage-0 10/11] RUN printf '\nPATH=/app/node_modules/.bin:$PATH' >> /root/.profile
+2025-11-18T12:57:15.486157584Z [inf]  [stage-0  9/11] RUN --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-next/cache,target=/app/.next/cache --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-node_modules/cache,target=/app/node_modules/.cache PUPPETEER_SKIP_DOWNLOAD=true DATABASE_URL="postgresql://placeholder:placeholder@placeholder:5432/placeholder" npm install && npm run build
+2025-11-18T12:57:15.486170659Z [inf]  [stage-0  8/11] COPY . /app/.
+2025-11-18T12:57:15.486186657Z [inf]  [stage-0  7/11] RUN --mount=type=cache,id=s/a303576d-c282-4baf-8e79-cea24df1fb20-/root/npm,target=/root/.npm PUPPETEER_SKIP_DOWNLOAD=true npm install
+2025-11-18T12:57:15.486195139Z [inf]  [stage-0  6/11] COPY . /app/.
+2025-11-18T12:57:15.486204045Z [inf]  [stage-0  5/11] RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2t64 libpangocairo-1.0-0 libxss1 libgtk-3-0 libxshmfence1 libglu1 chromium
+2025-11-18T12:57:15.486227268Z [inf]  [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:57:15.486238114Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:57:15.486247436Z [inf]  [internal] load build context
+2025-11-18T12:57:15.486264153Z [inf]  [stage-0  2/11] WORKDIR /app/
+2025-11-18T12:57:15.486275531Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:57:15.486299421Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:57:15.486311149Z [inf]  [internal] load build context
+2025-11-18T12:57:15.486845827Z [inf]  [internal] load build context
+2025-11-18T12:57:15.495732115Z [inf]  [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-11-18T12:57:15.594134436Z [inf]  [internal] load build context
+2025-11-18T12:57:15.598422451Z [inf]  [stage-0  2/11] WORKDIR /app/
+2025-11-18T12:57:15.598492794Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:57:16.280638314Z [inf]  [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:57:16.285456958Z [inf]  [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:57:16.557492231Z [inf]  unpacking 'https://github.com/NixOS/nixpkgs/archive/ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.tar.gz' into the Git cache...
+
+2025-11-18T12:57:50.489141788Z [inf]  unpacking 'https://github.com/railwayapp/nix-npm-overlay/archive/main.tar.gz' into the Git cache...
+
+2025-11-18T12:57:51.257157335Z [inf]  installing 'ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7-env'
+
+2025-11-18T12:57:51.47855457Z [inf]  error:
+       … while calling the 'derivationStrict' builtin
+         at <nix/derivation-internal.nix>:37:12:
+           36|
+           37|   strict = derivationStrict drvAttrs;
+             |            ^
+           38|
+
+       … while evaluating derivation 'ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7-env'
+         whose name attribute is located at /nix/store/lwi59jcfwk2lnrakmm1y5vw85hj3n1bi-source/pkgs/stdenv/generic/make-derivation.nix:375:7
+
+       … while evaluating attribute 'passAsFile' of derivation 'ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7-env'
+         at /nix/store/lwi59jcfwk2lnrakmm1y5vw85hj3n1bi-source/pkgs/build-support/trivial-builders/default.nix:60:9:
+           59|         inherit buildCommand name;
+           60|         passAsFile = [ "buildCommand" ]
+             |         ^
+           61|           ++ (derivationArgs.passAsFile or [ ]);
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: undefined variable 'libX11'
+       at /app/.nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix:6:81:
+            5|   let
+            6|     APPEND_LIBRARY_PATH = "${lib.makeLibraryPath [ chromium fontconfig freetype libX11 libXext libXrender nss ] }";
+             |                                                                                 ^
+            7|     myLibraries = writeText "libraries" ''
+
+2025-11-18T12:57:51.800264523Z [err]  [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:57:51.824098965Z [err]  Dockerfile:8
+2025-11-18T12:57:51.824170452Z [err]  -------------------
+2025-11-18T12:57:51.824183729Z [err]  6 |
+2025-11-18T12:57:51.824191309Z [err]  7 |     COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-11-18T12:57:51.824202597Z [err]  8 | >>> RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-11-18T12:57:51.824216629Z [err]  9 |     RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2t64 libpangocairo-1.0-0 libxss1 libgtk-3-0 libxshmfence1 libglu1 chromium
+2025-11-18T12:57:51.824225084Z [err]  10 |
+2025-11-18T12:57:51.824231910Z [err]  -------------------
+2025-11-18T12:57:51.824241570Z [err]  ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d" did not complete successfully: exit code: 1
+2025-11-18T12:57:51.833396518Z [err]  Error: Docker build failed
