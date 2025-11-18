@@ -3958,6 +3958,135 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Permanent Redirects Table */}
+          {results.permanentRedirects && results.permanentRedirects.totalRedirects > 0 && (
+            <div id="permanent-redirects-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-blue-600">
+                🔄 Permanent Redirects ({results.permanentRedirects.totalRedirects})
+              </h4>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-blue-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-blue-800">From URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-blue-800">To URL</th>
+                        <th className="px-4 py-3 text-center font-medium text-blue-800">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-blue-800">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-blue-200">
+                      {results.permanentRedirects.redirects.slice(0, 20).map((redirect: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-blue-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={redirect.fromUrl as string}>
+                              <a
+                                href={redirect.fromUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(redirect.fromUrl as string).replace(/^https?:\/\//, '').substring(0, 40)}
+                                {(redirect.fromUrl as string).length > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Tooltip content={redirect.toUrl as string}>
+                              <a
+                                href={redirect.toUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-600 hover:text-green-800 underline break-all text-xs"
+                              >
+                                {(redirect.toUrl as string).replace(/^https?:\/\//, '').substring(0, 40)}
+                                {(redirect.toUrl as string).length > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-700 font-medium">
+                              {redirect.statusCode}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            {redirect.statusCode === 301 ? 'Permanent (SEO-friendly)' : 'Permanent Resume (308)'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.permanentRedirects.totalRedirects > 20 && (
+                  <div className="px-4 py-2 bg-blue-100 text-sm text-blue-700">
+                    Showing 20 of {results.permanentRedirects.totalRedirects} permanent redirects
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Permanent redirects (301) are good for SEO when pages move. Avoid redirect chains and update internal links to point directly to final destinations.
+              </p>
+            </div>
+          )}
+
+          {/* Subdomains Without HSTS Table */}
+          {results.hstsAnalysis && results.hstsAnalysis.subdomainsWithoutHSTS && results.hstsAnalysis.subdomainsWithoutHSTS.length > 0 && (
+            <div id="hsts-issues-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-red-600">
+                🔒 Subdomains Without HSTS ({results.hstsAnalysis.subdomainsWithoutHSTS.length})
+              </h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Subdomain</th>
+                        <th className="px-4 py-3 text-center font-medium text-red-800">HSTS Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Issue</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Security Risk</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.hstsAnalysis.subdomainsWithoutHSTS.map((subdomain: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-red-50">
+                          <td className="px-4 py-3">
+                            <a
+                              href={`https://${subdomain.subdomain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline font-medium"
+                            >
+                              {subdomain.subdomain}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">
+                              Not Enabled
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-700">
+                            {subdomain.reason}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-red-600">
+                            Vulnerable to SSL stripping attacks
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.hstsAnalysis.mainDomain && (
+                  <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
+                    Main domain ({results.hstsAnalysis.mainDomain.domain}): {results.hstsAnalysis.mainDomain.hasHSTS ? '✅ HSTS enabled' : '⚠️ HSTS NOT enabled'}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: HSTS (HTTP Strict Transport Security) forces browsers to use HTTPS only. Add &quot;Strict-Transport-Security&quot; header with &quot;includeSubDomains&quot; to protect all subdomains.
+              </p>
+            </div>
+          )}
+
           {/* Structured Data Items Table */}
           {results.structuredData && results.structuredData.totalItems > 0 && (
             <div id="structured-data-table" className="mb-6">

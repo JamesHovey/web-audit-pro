@@ -273,6 +273,122 @@ export default {
       'Don\'t minify third-party libraries that are already minified',
       'Use source maps for debugging minified code in production'
     ]
+  },
+
+  'permanent-redirects': {
+    issueType: 'permanent-redirects',
+    title: 'Manage Permanent Redirects',
+    difficulty: 'Medium',
+    estimatedTime: '10-20 minutes',
+    steps: [
+      'Review the permanent redirects table to understand redirect patterns',
+      'Check for redirect chains (A→B→C) - these hurt performance',
+      'Update internal links to point directly to final destinations',
+      'Verify all redirects use 301 (permanent) status code for SEO',
+      'Consider using 308 for POST request redirects if needed',
+      'Monitor redirect performance and update regularly',
+      'Document all redirects for future reference'
+    ],
+    codeExample: `# Apache .htaccess - Good redirect practice
+# Direct 301 redirect (Good)
+Redirect 301 /old-page /new-page
+
+# Avoid redirect chains (Bad)
+# old-page → temp-page → new-page
+# Instead, redirect directly:
+Redirect 301 /old-page /new-page
+
+# Nginx - Permanent redirect
+location /old-page {
+    return 301 /new-page;
+}
+
+# Update internal links in HTML
+<!-- Before -->
+<a href="/old-page">Link</a>
+
+<!-- After - Point to final destination -->
+<a href="/new-page">Link</a>`,
+    resources: [
+      {
+        title: 'Google: Redirects and Google Search',
+        url: 'https://developers.google.com/search/docs/crawling-indexing/301-redirects'
+      },
+      {
+        title: 'MDN: HTTP Redirections',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections'
+      }
+    ],
+    warnings: [
+      'Avoid redirect chains - they slow down page load',
+      'Too many redirects can waste crawl budget',
+      'Update canonical tags if redirecting pages',
+      'Test redirects after implementation'
+    ]
+  },
+
+  'hsts-subdomains': {
+    issueType: 'hsts-subdomains',
+    title: 'Enable HSTS for Subdomains',
+    difficulty: 'Advanced',
+    estimatedTime: '30-60 minutes',
+    steps: [
+      'Ensure all subdomains are accessible via HTTPS first',
+      'Add Strict-Transport-Security header to main domain',
+      'Include the "includeSubDomains" directive',
+      'Start with a short max-age (e.g., 300 seconds) for testing',
+      'Test all subdomains thoroughly after enabling',
+      'Gradually increase max-age to 1 year (31536000 seconds)',
+      'Consider submitting to HSTS preload list',
+      'Monitor for any mixed content warnings'
+    ],
+    codeExample: `# Apache (.htaccess or httpd.conf)
+# Add HSTS header with subdomain support
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+# Nginx (nginx.conf)
+# Add to server block
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+# Node.js / Express
+app.use((req, res, next) => {
+  res.setHeader(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains; preload'
+  );
+  next();
+});
+
+# Testing stages:
+# 1. Test mode (5 minutes)
+max-age=300; includeSubDomains
+
+# 2. Staged rollout (1 week)
+max-age=604800; includeSubDomains
+
+# 3. Production (1 year)
+max-age=31536000; includeSubDomains; preload`,
+    resources: [
+      {
+        title: 'OWASP: HTTP Strict Transport Security',
+        url: 'https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html'
+      },
+      {
+        title: 'HSTS Preload List Submission',
+        url: 'https://hstspreload.org/'
+      },
+      {
+        title: 'MDN: Strict-Transport-Security',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security'
+      }
+    ],
+    warnings: [
+      'CRITICAL: Only enable after ALL subdomains support HTTPS',
+      'Start with short max-age for testing - mistakes can lock users out',
+      'includeSubDomains applies to ALL current and future subdomains',
+      'Cannot be easily undone once deployed (must wait for max-age to expire)',
+      'Test thoroughly before submitting to HSTS preload list (permanent)'
+    ]
   }
 };
 

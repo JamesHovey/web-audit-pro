@@ -954,12 +954,16 @@ export const ISSUE_TO_USECASE: Record<string, string> = {
   '404-errors': '404-errors',
   'broken-links': '404-errors',
   'redirects': 'redirects',
+  'permanent-redirects': 'redirects',
+  '301-redirects': 'redirects',
   'structured-data': 'structured-data',
   'schema-markup': 'schema-markup',
   'invalid-schema': 'schema-markup',
   'unminified-files': 'minification',
   'unminified-javascript': 'javascript-optimization',
-  'unminified-css': 'css-optimization'
+  'unminified-css': 'css-optimization',
+  'hsts-subdomains': 'security',
+  'hsts': 'security'
 }
 
 // Helper function to calculate a plugin's quality score
