@@ -10,7 +10,8 @@
     "restartPolicyMaxRetries": 10,
     "environmentVariables": {
       "PUPPETEER_SKIP_DOWNLOAD": "true",
-      "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/chromium-browser"
+      "PUPPETEER_EXECUTABLE_PATH": "chromium-browser",
+      "PUPPETEER_ARGS": "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu"
     }
   }
 }

@@ -1,10 +1,9 @@
 [phases.setup]
-nixPkgs = ["...", "chromium"]
+nixPkgs = ["chromium", "nss", "freetype", "fontconfig", "libX11", "libXext", "libXrender"]
+nixLibs = ["chromium", "nss", "freetype", "fontconfig", "libX11", "libXext", "libXrender"]
 
 [phases.install]
-cmds = [
-  "npm install"
-]
+cmds = ["PUPPETEER_SKIP_DOWNLOAD=true npm install"]
 
 [start]
 cmd = "npx prisma migrate deploy && npm start"
