@@ -1,0 +1,10 @@
+[phases.setup]
+nixPkgs = ["...", "chromium"]
+
+[phases.install]
+cmds = [
+  "npm install"
+]
+
+[start]
+cmd = "npx prisma migrate deploy && npm start"
