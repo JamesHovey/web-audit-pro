@@ -4094,8 +4094,8 @@ function renderSectionResults(
             </div>
           )}
 
-          {/* Structured Data Items Table */}
-          {results.structuredData && results.structuredData.totalItems > 0 && (
+          {/* Structured Data Items Table - Only show if there are validation issues */}
+          {results.structuredData && results.structuredData.invalidItems > 0 && (
             <div id="structured-data-table" className="mb-6">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
                 <span className={results.structuredData.invalidItems > 0 ? 'text-orange-600' : 'text-green-600'}>

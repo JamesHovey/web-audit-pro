@@ -1097,6 +1097,9 @@ export async function performTechnicalAudit(
         // Store analysis results
         result.internalLinkAnalysis = internalLinkAnalysis;
 
+        // Map to format expected by UI table
+        result.pagesWithLowInternalLinks = internalLinkAnalysis.pagesWithOneIncomingLink;
+
         // Track all issue counts
         if (internalLinkAnalysis.pagesWithOneIncomingLink.length > 0) {
           result.issues.pagesWithOneIncomingLink = internalLinkAnalysis.pagesWithOneIncomingLink.length;
