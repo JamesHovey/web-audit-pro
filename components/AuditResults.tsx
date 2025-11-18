@@ -3752,6 +3752,106 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Unminified JavaScript and CSS Files Table */}
+          {results.unminifiedFiles && results.unminifiedFiles.totalUnminified > 0 && (
+            <div id="unminified-files-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-orange-600">
+                ⚠️ Unminified JavaScript and CSS Files ({results.unminifiedFiles.totalUnminified})
+              </h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">File URL</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Type</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Size</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Reason</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Impact</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {/* JavaScript Files */}
+                      {results.unminifiedFiles.javascriptFiles && results.unminifiedFiles.javascriptFiles.map((file: Record<string, unknown>, index: number) => (
+                        <tr key={`js-${index}`} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={file.url as string}>
+                              <a
+                                href={file.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(file.url as string).split('/').pop()?.substring(0, 40)}
+                                {((file.url as string).split('/').pop()?.length || 0) > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700">
+                              JavaScript
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="text-sm text-gray-700">
+                              {file.sizeKB ? `${file.sizeKB} KB` : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            {file.reason as string}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            Slower page load
+                          </td>
+                        </tr>
+                      ))}
+                      {/* CSS Files */}
+                      {results.unminifiedFiles.cssFiles && results.unminifiedFiles.cssFiles.map((file: Record<string, unknown>, index: number) => (
+                        <tr key={`css-${index}`} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={file.url as string}>
+                              <a
+                                href={file.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(file.url as string).split('/').pop()?.substring(0, 40)}
+                                {((file.url as string).split('/').pop()?.length || 0) > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
+                              CSS
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="text-sm text-gray-700">
+                              {file.sizeKB ? `${file.sizeKB} KB` : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            {file.reason as string}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            Slower render speed
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                  {results.unminifiedFiles.javascriptFiles?.length || 0} JavaScript, {results.unminifiedFiles.cssFiles?.length || 0} CSS files not minified
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Minifying JavaScript and CSS files reduces file size by 30-50%, improving page load speed. Use build tools like Webpack, Rollup, or online minifiers.
+              </p>
+            </div>
+          )}
+
           {/* Structured Data Items Table */}
           {results.structuredData && results.structuredData.totalItems > 0 && (
             <div id="structured-data-table" className="mb-6">
