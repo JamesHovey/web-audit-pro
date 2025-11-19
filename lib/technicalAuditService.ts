@@ -1098,33 +1098,47 @@ export async function performTechnicalAudit(
       console.log(`📄 Analyzing ${pagesWithHtml.length} pages for unminified files`);
 
       if (pagesWithHtml.length > 0) {
-        const allJsFiles = new Set<string>();
-        const allCssFiles = new Set<string>();
+        // Collect unique unminified files across all pages
+        const allJsFilesMap = new Map<string, any>();
+        const allCssFilesMap = new Map<string, any>();
 
         // Analyze each page
         for (const page of pagesWithHtml) {
           try {
             const unminifiedResult = await detectUnminifiedFiles(page.html!, page.url);
 
-            // Collect unique unminified files across all pages
-            unminifiedResult.javascriptFiles.forEach(file => allJsFiles.add(file.url));
-            unminifiedResult.cssFiles.forEach(file => allCssFiles.add(file.url));
+            // Store unique unminified files (using URL as key to avoid duplicates)
+            unminifiedResult.javascriptFiles.forEach(file => {
+              if (!allJsFilesMap.has(file.url)) {
+                allJsFilesMap.set(file.url, file);
+              }
+            });
+            unminifiedResult.cssFiles.forEach(file => {
+              if (!allCssFilesMap.has(file.url)) {
+                allCssFilesMap.set(file.url, file);
+              }
+            });
           } catch (err) {
             console.log(`⚠️  Could not analyze ${page.url} for unminified files`);
           }
         }
 
-        // If we found any unminified files, analyze the main page for details
-        if (allJsFiles.size > 0 || allCssFiles.size > 0) {
-          const mainPageHtml = result.html || result.pages[0]?.html || '';
-          const unminifiedResult = await detectUnminifiedFiles(mainPageHtml, url);
+        // Combine all unique unminified files from all pages
+        const javascriptFiles = Array.from(allJsFilesMap.values());
+        const cssFiles = Array.from(allCssFilesMap.values());
+        const totalUnminified = javascriptFiles.length + cssFiles.length;
 
-          result.unminifiedFiles = unminifiedResult;
-          result.issues.unminifiedFiles = unminifiedResult.totalUnminified;
+        if (totalUnminified > 0) {
+          result.unminifiedFiles = {
+            totalUnminified,
+            javascriptFiles,
+            cssFiles
+          };
+          result.issues.unminifiedFiles = totalUnminified;
 
-          console.log(`⚠️  Found ${unminifiedResult.totalUnminified} unminified files:`);
-          console.log(`   - ${unminifiedResult.javascriptFiles.length} JavaScript files`);
-          console.log(`   - ${unminifiedResult.cssFiles.length} CSS files`);
+          console.log(`⚠️  Found ${totalUnminified} unminified files:`);
+          console.log(`   - ${javascriptFiles.length} JavaScript files`);
+          console.log(`   - ${cssFiles.length} CSS files`);
         } else {
           console.log(`✅ All JavaScript and CSS files appear to be minified`);
         }

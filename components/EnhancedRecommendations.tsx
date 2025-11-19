@@ -1613,7 +1613,7 @@ export default function EnhancedRecommendations({
         effort: 'Easy',
         icon: <FileCode className="w-4 h-4" />,
         details: 'Unminified files contain unnecessary whitespace, comments, and formatting that increase file sizes and slow down page loads. Minification removes these, significantly improving load times and reducing bandwidth usage.',
-        useCase: 'file-minification',
+        useCase: 'minification',
         howTo: cms === 'WordPress' ? [
           '🎯 RECOMMENDED SOLUTION (Easiest):',
           'Use a performance plugin to automatically minify files.',
