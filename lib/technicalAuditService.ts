@@ -2422,13 +2422,48 @@ async function analyzeHSTSSupport(
     reason: string;
   }> = [];
 
-  // If main domain has includeSubdomains, subdomains are automatically protected
+  // Add main domain to the list if it doesn't have HSTS
+  // SEMRUSH counts the main domain as a "subdomain" in their reporting
+  if (!mainDomainResult.hasHSTS) {
+    subdomainsWithoutHSTS.push({
+      subdomain: domain,
+      hasHSTS: false,
+      reason: 'No HSTS header found'
+    });
+    console.log(`⚠️  Main domain (${domain}) does not have HSTS`);
+  }
+
+  // Always check www variant separately (SEMRUSH treats www as a separate subdomain)
+  const wwwDomain = domain.startsWith('www.') ? domain : `www.${domain}`;
+  const nonWwwDomain = domain.replace(/^www\./, '');
+
+  // If the main domain is www.example.com, check example.com
+  // If the main domain is example.com, check www.example.com
+  const altDomain = domain.startsWith('www.') ? nonWwwDomain : wwwDomain;
+
+  // Check the alternate domain (www or non-www) for HSTS
+  const altDomainHSTS = await checkHSTSHeader(`https://${altDomain}`);
+  if (!altDomainHSTS || !altDomainHSTS.hasHSTS) {
+    // Only add if not already in the list
+    if (!subdomainsWithoutHSTS.find(s => s.subdomain === altDomain)) {
+      subdomainsWithoutHSTS.push({
+        subdomain: altDomain,
+        hasHSTS: false,
+        reason: altDomainHSTS ? 'No HSTS header found' : 'Could not check HSTS (connection failed)'
+      });
+      console.log(`⚠️  Alternate domain (${altDomain}) does not have HSTS`);
+    }
+  }
+
+  // If main domain has includeSubdomains, other subdomains are automatically protected
   if (mainDomainResult.hasHSTS && mainDomainResult.includesSubdomains) {
-    console.log(`✅ All subdomains protected by main domain's includeSubdomains directive`);
+    console.log(`✅ Other subdomains protected by main domain's includeSubdomains directive`);
+    // Still return the main domain and www if they don't have HSTS individually
+    // But don't check other subdomains
     return {
       mainDomain: mainDomainResult,
-      subdomainsWithoutHSTS: [],
-      totalSubdomainsChecked: subdomains.length
+      subdomainsWithoutHSTS,
+      totalSubdomainsChecked: subdomains.length + 1 // +1 for www variant
     };
   }
 
