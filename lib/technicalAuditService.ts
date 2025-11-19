@@ -860,8 +860,8 @@ export async function performTechnicalAudit(
     const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
     const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
 
-    // Track pages that return 404 specifically
-    const pages404 = pageDiscovery.pages.filter(p => p.statusCode === 404);
+    // Track pages that return 4XX status codes (404, 403, 401, etc.)
+    const pages404 = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
     result.pages404 = pages404.map(p => ({
       url: p.url,
       title: p.title || 'No title',

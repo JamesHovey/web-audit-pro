@@ -3636,10 +3636,10 @@ function renderSectionResults(
 
           {/* Large Images Table - MOVED TO EnhancedRecommendations component */}
 
-          {/* Pages Returning 404 Status Table */}
+          {/* Pages Returning 4XX Status Codes Table */}
           {results.pages404 && results.pages404.length > 0 && (
             <div id="pages-404-table" className="mb-6">
-              <h4 className="font-semibold mb-3 text-red-600">❌ Pages Returning 404 Status</h4>
+              <h4 className="font-semibold mb-3 text-red-600">❌ Pages Returning 4XX Status Codes ({results.pages404.length})</h4>
               <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -3685,7 +3685,7 @@ function renderSectionResults(
                             </span>
                           </td>
                           <td className="px-4 py-3 text-gray-600">
-                            Redirect or remove
+                            {(page.statusCode as number) === 403 ? 'Fix permissions or remove link' : 'Redirect or remove link'}
                           </td>
                         </tr>
                       ))}
@@ -3694,12 +3694,12 @@ function renderSectionResults(
                 </div>
                 {results.pages404.length > 20 && (
                   <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
-                    Showing 20 of {results.pages404.length} pages with 404 errors
+                    Showing 20 of {results.pages404.length} pages with 4XX errors
                   </div>
                 )}
               </div>
               <p className="text-xs text-gray-600 mt-2">
-                💡 Tip: These pages were discovered but return 404 errors. Set up 301 redirects to working pages or remove links to these pages.
+                💡 Tip: These pages return 4XX errors (403 Forbidden, 404 Not Found, etc.). Set up 301 redirects to working pages or remove links to these pages.
               </p>
             </div>
           )}
