@@ -72,6 +72,10 @@ interface DiscoveredPage {
   hasH1: boolean;
   imageCount: number;
   linkCount: number;
+  isRedirect?: boolean; // True if this URL redirected to another URL
+  originalUrl?: string; // Original URL before redirect (if redirected)
+  finalUrl?: string; // Final URL after redirect (if redirected)
+  redirectStatusCode?: number; // 301, 302, 307, or 308
 }
 
 interface PageDiscoveryResult {
@@ -436,6 +440,63 @@ export class RealPageDiscovery {
 
         html = await response.text();
         statusCode = response.status;
+
+        // Check if a redirect occurred by comparing response.url with requested url
+        // Normalize both URLs for comparison (remove trailing slashes, protocol differences)
+        const normalizeUrl = (u: string) => {
+          try {
+            const parsed = new URL(u);
+            return `${parsed.protocol}//${parsed.hostname}${parsed.pathname.replace(/\/$/, '')}${parsed.search}`;
+          } catch {
+            return u;
+          }
+        };
+
+        const requestedUrl = normalizeUrl(url);
+        const finalUrl = normalizeUrl(response.url);
+
+        // If URLs differ after normalization, a redirect occurred
+        if (requestedUrl !== finalUrl && response.redirected) {
+          // Detect redirect (fetch followed it automatically)
+          // We need to make a manual request to get the actual status code
+          try {
+            const manualResponse = await fetch(url, {
+              method: 'HEAD',
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              redirect: 'manual',
+              signal: AbortSignal.timeout(5000)
+            });
+
+            // If it's a permanent redirect (301 or 308), mark it
+            if (manualResponse.status === 301 || manualResponse.status === 308) {
+              // Extract basic metadata from the already-fetched HTML
+              const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+              const pageTitle = titleMatch ? titleMatch[1].trim() : 'No title';
+              const pageHasTitle = /<title[^>]*>.*<\/title>/is.test(html);
+              const pageHasDescription = hasMetaDescription(html);
+              const pageHasH1 = hasH1Tag(html);
+              const imageMatches = html.match(/<img[^>]+>/gi) || [];
+              const pageImageCount = imageMatches.length;
+
+              return {
+                title: pageTitle,
+                statusCode,
+                hasTitle: pageHasTitle,
+                hasDescription: pageHasDescription,
+                hasH1: pageHasH1,
+                imageCount: pageImageCount,
+                linkCount: 0,
+                internalLinks: [],
+                isRedirect: true,
+                originalUrl: url,
+                finalUrl: response.url,
+                redirectStatusCode: manualResponse.status
+              };
+            }
+          } catch {
+            // If manual check fails, just continue without redirect info
+          }
+        }
       }
       const baseUrl = new URL(url);
 

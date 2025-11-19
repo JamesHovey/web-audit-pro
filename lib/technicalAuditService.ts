@@ -2243,7 +2243,13 @@ async function checkForPermanentRedirect(url: string): Promise<{
  * Analyze permanent redirects across discovered pages
  */
 async function analyzePermanentRedirects(
-  pagesData: Array<{ url: string }>,
+  pagesData: Array<{
+    url: string;
+    isRedirect?: boolean;
+    originalUrl?: string;
+    finalUrl?: string;
+    redirectStatusCode?: number;
+  }>,
   domain: string
 ): Promise<{
   totalRedirects: number;
@@ -2263,27 +2269,25 @@ async function analyzePermanentRedirects(
 
   console.log(`🔄 Checking ${pagesData.length} URLs for permanent redirects...`);
 
-  // Check each URL for redirects (in batches to avoid overwhelming)
-  const BATCH_SIZE = 5;
-  for (let i = 0; i < pagesData.length; i += BATCH_SIZE) {
-    const batch = pagesData.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(
-      batch.map(page => checkForPermanentRedirect(page.url))
-    );
+  // First, collect redirects that were already detected during page discovery
+  const discoveredRedirects = pagesData.filter(page =>
+    page.isRedirect === true &&
+    page.originalUrl &&
+    page.finalUrl &&
+    page.redirectStatusCode &&
+    (page.redirectStatusCode === 301 || page.redirectStatusCode === 308)
+  );
 
-    results.forEach((result, index) => {
-      if (result && result.hasRedirect && result.finalUrl && result.statusCode) {
-        permanentRedirects.push({
-          fromUrl: batch[index].url,
-          toUrl: result.finalUrl,
-          statusCode: result.statusCode,
-          redirectType: 'permanent'
-        });
-      }
+  discoveredRedirects.forEach(page => {
+    permanentRedirects.push({
+      fromUrl: page.originalUrl!,
+      toUrl: page.finalUrl!,
+      statusCode: page.redirectStatusCode!,
+      redirectType: 'permanent'
     });
-  }
+  });
 
-  console.log(`✅ Found ${permanentRedirects.length} permanent redirects`);
+  console.log(`✅ Found ${permanentRedirects.length} permanent redirects (detected during page discovery)`);
 
   return {
     totalRedirects: permanentRedirects.length,
