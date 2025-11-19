@@ -2285,6 +2285,69 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Orphaned Sitemap Pages Table */}
+          {results.internalLinkAnalysis?.orphanedSitemapPages && results.internalLinkAnalysis.orphanedSitemapPages.length > 0 && (
+            <div id="orphaned-sitemap-table" data-subsection="orphaned-sitemap" className="mb-6">
+              <h4 className="font-semibold mb-3 text-red-600">
+                🚨 Orphaned Pages in Sitemap ({results.internalLinkAnalysis.orphanedSitemapPages.length})
+              </h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Page URL</th>
+                        <th className="px-4 py-3 text-center font-medium text-red-800">In Sitemap</th>
+                        <th className="px-4 py-3 text-center font-medium text-red-800">Incoming Links</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Action Needed</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.internalLinkAnalysis.orphanedSitemapPages.slice(0, 20).map((page: { url: string; inSitemap: boolean; incomingLinkCount: number }, index: number) => (
+                        <tr key={index} className="hover:bg-red-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={page.url}>
+                              <a
+                                href={page.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {page.url.replace(/^https?:\/\//, '').substring(0, 80)}
+                                {page.url.length > 80 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-700 font-medium">
+                              ✓ Yes
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-bold">
+                              {page.incomingLinkCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            Add 3-5 internal links from related pages
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.internalLinkAnalysis.orphanedSitemapPages.length > 20 && (
+                  <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
+                    Showing 20 of {results.internalLinkAnalysis.orphanedSitemapPages.length} orphaned sitemap pages
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                🚨 <strong>CRITICAL:</strong> These pages are in your sitemap.xml but have ZERO incoming internal links. Users cannot navigate to them, and they waste crawl budget. Add internal links from 3-5 related pages or remove them from your sitemap.
+              </p>
+            </div>
+          )}
+
         </div>
       );
 
