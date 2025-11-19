@@ -3704,6 +3704,133 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Title Length Issues - Too Short */}
+          {results.titleLengthIssues && results.titleLengthIssues.tooShort && results.titleLengthIssues.tooShort.length > 0 && (
+            <div id="title-too-short-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-orange-600">
+                ⚠️ Pages with Titles Too Short ({results.titleLengthIssues.tooShort.length})
+              </h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Issue</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {results.titleLengthIssues.tooShort.slice(0, 20).map((page: { url: string; title: string; length: number }, index: number) => (
+                        <tr key={index} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={page.url}>
+                              <a
+                                href={page.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                {page.url.length > 60 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-700">
+                              {page.title.substring(0, 50)}
+                              {page.title.length > 50 ? '...' : ''}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                              {page.length} chars
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            Expand to 30-60 characters
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.titleLengthIssues.tooShort.length > 20 && (
+                  <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                    Showing 20 of {results.titleLengthIssues.tooShort.length} pages with short titles
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Title tags should be 30-60 characters for optimal SEO. Short titles miss opportunities to include keywords and compelling copy.
+              </p>
+            </div>
+          )}
+
+          {/* Title Length Issues - Too Long */}
+          {results.titleLengthIssues && results.titleLengthIssues.tooLong && results.titleLengthIssues.tooLong.length > 0 && (
+            <div id="title-too-long-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-orange-600">
+                ⚠️ Pages with Titles Too Long ({results.titleLengthIssues.tooLong.length})
+              </h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Issue</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {results.titleLengthIssues.tooLong.slice(0, 20).map((page: { url: string; title: string; length: number }, index: number) => (
+                        <tr key={index} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={page.url}>
+                              <a
+                                href={page.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                {page.url.length > 60 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-700 font-medium">
+                              {page.title}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                              {page.length} chars
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            Shorten to 30-70 characters
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.titleLengthIssues.tooLong.length > 20 && (
+                  <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                    Showing 20 of {results.titleLengthIssues.tooLong.length} pages with long titles
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Tip: Title tags longer than 70 characters get truncated in search results. Focus on your most important keywords and keep it concise.
+              </p>
+            </div>
+          )}
+
           {/* Broken Links (404 Errors) Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
             <div>

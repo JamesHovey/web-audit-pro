@@ -874,6 +874,42 @@ export async function performTechnicalAudit(
     result.issues.missingH1Tags = pagesWithMissingH1.length;
     result.issues.httpErrors = pagesWithHttpErrors.length;
 
+    // Analyze title length for all pages
+    console.log('📏 Analyzing title lengths across all pages...');
+    pageDiscovery.pages.forEach(page => {
+      if (page.title && page.title.length > 0) {
+        const titleLength = page.title.length;
+
+        if (titleLength < 30) {
+          result.issues.shortTitles = (result.issues.shortTitles || 0) + 1;
+          result.titleLengthIssues!.tooShort.push({
+            url: page.url,
+            title: page.title,
+            length: titleLength
+          });
+        } else if (titleLength > 70) {
+          result.issues.longTitles = (result.issues.longTitles || 0) + 1;
+          result.titleLengthIssues!.tooLong.push({
+            url: page.url,
+            title: page.title,
+            length: titleLength
+          });
+        }
+      }
+    });
+
+    if (result.issues.shortTitles || result.issues.longTitles) {
+      console.log(`⚠️  Title length issues:`);
+      if (result.issues.shortTitles) {
+        console.log(`   📉 ${result.issues.shortTitles} pages with titles too short (< 30 chars)`);
+      }
+      if (result.issues.longTitles) {
+        console.log(`   📈 ${result.issues.longTitles} pages with titles too long (> 70 chars)`);
+      }
+    } else {
+      console.log(`✅ All page titles are within optimal length (30-70 chars)`);
+    }
+
     // Log status code distribution for debugging
     const statusCodeCounts: Record<number, number> = {};
     pageDiscovery.pages.forEach(page => {
