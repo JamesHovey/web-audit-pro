@@ -129,6 +129,8 @@ function validateJsonLdSchema(schema: Record<string, unknown>, blockIndex: numbe
     validatePersonSchema(schema, errors, warnings);
   } else if (type === 'BreadcrumbList') {
     validateBreadcrumbSchema(schema, errors, warnings);
+  } else if (type === 'HowTo') {
+    validateHowToSchema(schema, errors, warnings);
   }
 
   return {
@@ -286,6 +288,73 @@ function validateBreadcrumbSchema(schema: Record<string, unknown>, errors: strin
         }
       });
     }
+  }
+}
+
+/**
+ * Validate HowTo schema
+ */
+function validateHowToSchema(schema: Record<string, unknown>, errors: string[], warnings: string[]): void {
+  // Required: name
+  if (!schema.name) {
+    errors.push('HowTo: Missing required "name" property');
+  }
+
+  // Required: step
+  if (!schema.step) {
+    errors.push('HowTo: Missing required "step" property');
+  } else {
+    const steps = schema.step as Array<Record<string, unknown>>;
+
+    if (!Array.isArray(steps)) {
+      errors.push('HowTo: "step" must be an array of HowToStep or HowToSection');
+    } else if (steps.length === 0) {
+      errors.push('HowTo: "step" array cannot be empty');
+    } else {
+      // Validate each step
+      steps.forEach((step, index) => {
+        const stepType = step['@type'] as string;
+
+        if (!stepType || (stepType !== 'HowToStep' && stepType !== 'HowToSection')) {
+          errors.push(`HowTo: step ${index + 1} must have @type "HowToStep" or "HowToSection"`);
+        }
+
+        if (stepType === 'HowToStep') {
+          // HowToStep requires text or itemListElement
+          if (!step.text && !step.itemListElement) {
+            errors.push(`HowTo: step ${index + 1} missing required "text" or "itemListElement" property`);
+          }
+
+          // Optional but recommended: name, url, image
+          if (!step.name) {
+            warnings.push(`HowTo: step ${index + 1} missing recommended "name" property`);
+          }
+        }
+
+        if (stepType === 'HowToSection') {
+          // HowToSection requires name and itemListElement
+          if (!step.name) {
+            errors.push(`HowTo: section ${index + 1} missing required "name" property`);
+          }
+          if (!step.itemListElement) {
+            errors.push(`HowTo: section ${index + 1} missing required "itemListElement" property`);
+          }
+        }
+      });
+    }
+  }
+
+  // Recommended properties
+  if (!schema.image) {
+    warnings.push('HowTo: Missing recommended "image" property for rich results');
+  }
+
+  if (!schema.totalTime && !schema.estimatedCost) {
+    warnings.push('HowTo: Consider adding "totalTime" or "estimatedCost" for better rich results');
+  }
+
+  if (!schema.tool && !schema.supply) {
+    warnings.push('HowTo: Consider adding "tool" or "supply" arrays for comprehensive instructions');
   }
 }
 
