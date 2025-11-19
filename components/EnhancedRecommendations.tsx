@@ -131,6 +131,34 @@ interface EnhancedRecommendationsProps {
         statusCode: number
       }>
     }
+    hstsAnalysis?: {
+      mainDomain: {
+        domain: string
+        hasHSTS: boolean
+        includesSubdomains: boolean
+        maxAge?: number
+        header?: string
+      }
+      subdomainsWithoutHSTS: Array<{
+        subdomain: string
+        hasHSTS: boolean
+        reason: string
+      }>
+      totalSubdomainsChecked: number
+    }
+    structuredData?: {
+      totalItems: number
+      validItems: number
+      invalidItems: number
+      items: Array<{
+        type: string
+        format: string
+        location: string
+        isValid: boolean
+        errors: string[]
+        warnings: string[]
+      }>
+    }
   }
   textHtmlRatioPages?: Array<{
     url: string
@@ -2972,10 +3000,10 @@ export default function EnhancedRecommendations({
                         </div>
                       )}
 
-                      {/* Structured Data Validation Table */}
-                      {rec.title.includes('Invalid Structured Data') && structuredDataItems && structuredDataItems.length > 0 && (
+                      {/* Structured Data Validation Table - Only Invalid Items */}
+                      {rec.title.includes('Invalid Structured Data') && technicalAudit?.structuredData && technicalAudit.structuredData.invalidItems > 0 && (
                         <div className="mb-4 pb-4 border-b border-gray-300">
-                          <h5 className="font-semibold mb-3 text-red-600">❌ Structured Data Validation Results</h5>
+                          <h5 className="font-semibold mb-3 text-red-600">❌ Invalid Structured Data Items ({technicalAudit.structuredData.invalidItems})</h5>
                           <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
                             <div className="overflow-x-auto">
                               <table className="w-full text-sm">
@@ -2989,7 +3017,7 @@ export default function EnhancedRecommendations({
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-red-200">
-                                  {structuredDataItems.map((item: { type: string; format: string; location: string; isValid: boolean; errors: string[]; warnings: string[] }, idx: number) => (
+                                  {technicalAudit.structuredData.items.filter(item => !item.isValid).map((item: { type: string; format: string; location: string; isValid: boolean; errors: string[]; warnings: string[] }, idx: number) => (
                                     <tr key={idx} className={`hover:bg-red-50 ${!item.isValid ? 'bg-red-100' : ''}`}>
                                       <td className="px-4 py-3">
                                         <span className="font-medium text-gray-900">{item.type}</span>
@@ -3044,6 +3072,181 @@ export default function EnhancedRecommendations({
                           </div>
                           <p className="text-xs text-gray-600 mt-2">
                             💡 Tip: Use <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Google Rich Results Test</a> to validate your structured data and see how it appears in search results.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* HSTS Subdomains Table */}
+                      {rec.title.includes('Enable HSTS') && technicalAudit?.hstsAnalysis && technicalAudit.hstsAnalysis.subdomainsWithoutHSTS.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-red-600">🔒 Subdomains Without HSTS ({technicalAudit.hstsAnalysis.subdomainsWithoutHSTS.length})</h5>
+                          <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-red-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Subdomain</th>
+                                    <th className="px-4 py-3 text-center font-medium text-red-800">HSTS Status</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Issue</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Security Risk</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-red-200">
+                                  {technicalAudit.hstsAnalysis.subdomainsWithoutHSTS.map((subdomain, idx) => (
+                                    <tr key={idx} className="hover:bg-red-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={`https://${subdomain.subdomain}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline font-medium"
+                                        >
+                                          {subdomain.subdomain}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">
+                                          Not Enabled
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-700">
+                                        {subdomain.reason}
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-red-600">
+                                        Vulnerable to SSL stripping attacks
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.hstsAnalysis.mainDomain && (
+                              <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
+                                Main domain ({technicalAudit.hstsAnalysis.mainDomain.domain}): {technicalAudit.hstsAnalysis.mainDomain.hasHSTS ? '✅ HSTS enabled' : '⚠️ HSTS NOT enabled'}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: HSTS (HTTP Strict Transport Security) forces browsers to use HTTPS only. Add &quot;Strict-Transport-Security&quot; header with &quot;includeSubDomains&quot; to protect all subdomains.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Title Too Short Table */}
+                      {rec.title.includes('Fix Short Title Tags') && technicalAudit?.titleLengthIssues?.tooShort && technicalAudit.titleLengthIssues.tooShort.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Short ({technicalAudit.titleLengthIssues.tooShort.length})</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                                    <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {technicalAudit.titleLengthIssues.tooShort.slice(0, 20).map((page, idx) => (
+                                    <tr key={idx} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={page.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                        >
+                                          {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                          {page.url.length > 60 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="text-gray-700 text-xs">
+                                          {page.title.substring(0, 50)}
+                                          {page.title.length > 50 ? '...' : ''}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                                          {page.length} chars
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        Expand to 30-60 characters
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.titleLengthIssues.tooShort.length > 20 && (
+                              <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                                Showing 20 of {technicalAudit.titleLengthIssues.tooShort.length} pages
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Title tags should be 30-60 characters for optimal SEO. Short titles miss opportunities to include keywords and compelling copy.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Title Too Long Table */}
+                      {rec.title.includes('Shorten Long Title Tags') && technicalAudit?.titleLengthIssues?.tooLong && technicalAudit.titleLengthIssues.tooLong.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Long ({technicalAudit.titleLengthIssues.tooLong.length})</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                                    <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {technicalAudit.titleLengthIssues.tooLong.slice(0, 20).map((page, idx) => (
+                                    <tr key={idx} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={page.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                        >
+                                          {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                          {page.url.length > 60 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="text-gray-700 font-medium text-xs">
+                                          {page.title}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                                          {page.length} chars
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        Shorten to 30-70 characters
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.titleLengthIssues.tooLong.length > 20 && (
+                              <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                                Showing 20 of {technicalAudit.titleLengthIssues.tooLong.length} pages
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Title tags longer than 70 characters get truncated in search results. Focus on your most important keywords and keep it concise.
                           </p>
                         </div>
                       )}
