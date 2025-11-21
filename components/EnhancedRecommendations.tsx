@@ -457,7 +457,7 @@ export default function EnhancedRecommendations({
       })
     }
 
-    // Title Tag Length Issues (Consolidated)
+    // Title Tag Length Issues (Consolidated) - MOVED HERE TO APPEAR AT TOP
     if ((technicalIssues?.shortTitles && technicalIssues.shortTitles > 0) ||
         (technicalIssues?.longTitles && technicalIssues.longTitles > 0)) {
       const shortCount = technicalIssues?.shortTitles || 0;

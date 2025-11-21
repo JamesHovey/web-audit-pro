@@ -716,7 +716,8 @@ export async function performTechnicalAudit(
             hasH1: page.hasH1,
             imageCount: page.imageCount,
             performance: cached.lighthouse,
-            html: pageHtml
+            html: pageHtml,
+            source: page.source // CRITICAL: Preserve source field for internal link analysis
           };
         }
 
@@ -808,7 +809,8 @@ export async function performTechnicalAudit(
           hasH1: page.hasH1,
           imageCount: page.imageCount,
           performance,
-          html: pageHtml // Store HTML for heading analysis (only available for first 20 pages)
+          html: pageHtml, // Store HTML for heading analysis (only available for first 20 pages)
+          source: page.source // CRITICAL: Preserve source field for internal link analysis
         };
       }
     );
