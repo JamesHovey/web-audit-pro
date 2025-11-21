@@ -159,6 +159,12 @@ interface EnhancedRecommendationsProps {
         warnings: string[]
       }>
     }
+    pages404?: Array<{
+      url: string
+      title: string
+      statusCode: number
+      discoveredVia: string
+    }>
   }
   textHtmlRatioPages?: Array<{
     url: string
@@ -1907,11 +1913,11 @@ export default function EnhancedRecommendations({
 
       techRecs.push({
         title: 'Fix 404 Errors',
-        description: `${technicalIssues.http404Errors} page(s) are returning 404 errors, harming user experience and SEO`,
+        description: `${technicalIssues.http404Errors} page(s) are returning 4XX status codes. A 4xx error means that a webpage cannot be accessed. These errors prevent users and search engine robots from accessing your webpages, negatively affecting both user experience and search engine crawlability, leading to a drop in traffic.`,
         impact: 'High',
         effort: 'Medium',
         icon: <AlertTriangle className="w-4 h-4" />,
-        details: '404 errors occur when a page cannot be found. They harm user experience, waste crawl budget, and can damage SEO if external sites link to these broken URLs. Setting up proper redirects preserves SEO value and provides a better user experience.',
+        details: '4XX errors (404, 403, 401, etc.) occur when a page cannot be accessed. This is usually the result of broken links. These errors prevent users and search engine robots from reaching your content, harm user experience, waste crawl budget, and can damage SEO if external sites link to these broken URLs. Setting up proper redirects preserves SEO value and provides a better user experience.',
         useCase: cms === 'WordPress' ? 'redirects' : undefined,
         howTo: cms === 'WordPress' ? wordpressSteps : generalSteps
       })
@@ -3404,6 +3410,79 @@ export default function EnhancedRecommendations({
                           </div>
                           <p className="text-xs text-gray-600 mt-2">
                             ⚠️ Warning: Permanent redirects decrease crawl budget. Update internal links to point directly to final destinations to improve SEO and page load speed.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 404 Errors / 4XX Status Codes Table */}
+                      {rec.title.includes('Fix 404 Errors') && technicalAudit?.pages404 && technicalAudit.pages404.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-red-600">❌ Pages Returning 4XX Status Codes ({technicalAudit.pages404.length})</h5>
+                          <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-red-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Page URL</th>
+                                    <th className="px-4 py-3 text-center font-medium text-red-800">Status Code</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Page Title</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Discovered Via</th>
+                                    <th className="px-4 py-3 text-left font-medium text-red-800">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-red-200">
+                                  {technicalAudit.pages404.slice(0, 20).map((page, idx) => (
+                                    <tr key={idx} className="hover:bg-red-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={page.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                        >
+                                          {page.url.replace(/^https?:\/\//, '').substring(0, 50)}
+                                          {page.url.length > 50 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                          page.statusCode === 404
+                                            ? 'bg-red-100 text-red-700'
+                                            : page.statusCode === 403
+                                            ? 'bg-orange-100 text-orange-700'
+                                            : 'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                          {page.statusCode}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-700">
+                                        {page.title && page.title !== 'No title' ? (
+                                          <span>{page.title.substring(0, 40)}{page.title.length > 40 ? '...' : ''}</span>
+                                        ) : (
+                                          <span className="text-gray-400 italic">No title</span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        {page.discoveredVia}
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        {page.statusCode === 404 ? 'Set up 301 redirect or fix broken link' :
+                                         page.statusCode === 403 ? 'Check permissions or fix access restrictions' :
+                                         'Investigate and resolve error'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.pages404.length > 20 && (
+                              <div className="px-4 py-2 bg-red-100 text-sm text-red-700">
+                                Showing 20 of {technicalAudit.pages404.length} pages with 4XX errors
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            🚨 Critical: 4XX errors prevent users and search engines from accessing your content. This negatively affects user experience, search engine crawlability, and leads to traffic drops. Fix broken links or set up proper redirects immediately.
                           </p>
                         </div>
                       )}

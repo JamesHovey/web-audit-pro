@@ -2833,6 +2833,7 @@ function renderSectionResults(
               permanentRedirects: results.permanentRedirects,
               hstsAnalysis: results.hstsAnalysis,
               structuredData: results.structuredData,
+              pages404: results.pages404,
               llmsTxt: results.llmsTxt,
               robotsTxtStatus: results.robotsTxtStatus
             }}
