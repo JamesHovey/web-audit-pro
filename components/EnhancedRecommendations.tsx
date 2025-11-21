@@ -3214,6 +3214,71 @@ export default function EnhancedRecommendations({
                         </>
                       )}
 
+                      {/* Internal Linking Table - Pages with One Incoming Link */}
+                      {rec.title.includes('Improve Internal Linking') && technicalAudit?.internalLinkAnalysis?.pagesWithOneIncomingLink && technicalAudit.internalLinkAnalysis.pagesWithOneIncomingLink.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-blue-600">🔗 Pages with Only One Incoming Internal Link ({technicalAudit.internalLinkAnalysis.pagesWithOneIncomingLink.length})</h5>
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-blue-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-blue-800">Page URL</th>
+                                    <th className="px-4 py-3 text-left font-medium text-blue-800">Linked From</th>
+                                    <th className="px-4 py-3 text-center font-medium text-blue-800">Incoming Links</th>
+                                    <th className="px-4 py-3 text-left font-medium text-blue-800">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-blue-200">
+                                  {technicalAudit.internalLinkAnalysis.pagesWithOneIncomingLink.slice(0, 20).map((page, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={page.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                        >
+                                          {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                          {page.url.length > 60 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={page.linkingPage}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-gray-600 hover:text-gray-800 underline text-xs"
+                                        >
+                                          {page.linkingPage.replace(/^https?:\/\//, '').substring(0, 50)}
+                                          {page.linkingPage.length > 50 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700 font-medium">
+                                          1 link
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        Add 2-4 more internal links
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.internalLinkAnalysis.pagesWithOneIncomingLink.length > 20 && (
+                              <div className="px-4 py-2 bg-blue-100 text-sm text-blue-700">
+                                Showing 20 of {technicalAudit.internalLinkAnalysis.pagesWithOneIncomingLink.length} pages
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            💡 Tip: Pages should have 3-5+ incoming internal links for good SEO and user navigation. Link from related content using descriptive anchor text.
+                          </p>
+                        </div>
+                      )}
+
                       {/* Text-to-HTML Ratio Table */}
                       {rec.title.includes('Low Text-to-HTML Ratio') && textHtmlRatioPages && textHtmlRatioPages.length > 0 && (
                         <div className="mb-4 pb-4 border-b border-gray-300">
