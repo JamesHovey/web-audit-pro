@@ -1070,19 +1070,20 @@ export default function EnhancedRecommendations({
     if (technicalIssues?.permanentRedirects && technicalIssues.permanentRedirects > 0) {
       techRecs.push({
         title: 'Fix Permanent Redirects',
-        description: `${technicalIssues.permanentRedirects} URL(s) have permanent redirects (301/308). Internal links pointing to redirected URLs waste link equity and slow down page loads with extra HTTP requests.`,
+        description: `${technicalIssues.permanentRedirects} URL(s) have permanent redirects (301/308). Although using permanent redirects is appropriate in many situations, keep them to a reasonable minimum. Every redirect decreases your crawl budget and may prevent search engines from reaching important pages.`,
         impact: 'Medium',
         effort: 'Easy',
         icon: <Code className="w-4 h-4" />,
-        details: 'Permanent redirects (301/308) are often necessary when URLs change, but internal links should point directly to the final destination. Each redirect adds latency and dilutes link equity. Update internal links to point directly to the target URL.',
+        details: 'Permanent redirects (301/308) are appropriate when moving URLs, handling deleted pages, or fixing duplicate content. However, too many permanent redirects decrease your crawl budget, which may run out before search engines can crawl the pages you want indexed. Additionally, multiple redirects can confuse users and slow down their experience.',
         useCase: 'internal-linking',
         howTo: [
           '🎯 WHY THIS MATTERS:',
+          '   • Decreases crawl budget (search engines crawl fewer pages)',
+          '   • May prevent search engines from reaching important pages',
           '   • Each redirect adds 200-500ms of latency',
           '   • Search engines pass less "link juice" through redirects',
-          '   • Users experience slower page loads',
+          '   • Too many redirects can confuse users',
           '   • Increases server load with extra HTTP requests',
-          '   • May impact SEO rankings due to redirect chains',
           '',
           '📋 URLS WITH PERMANENT REDIRECTS:',
           ...(technicalAudit?.permanentRedirects?.redirects?.slice(0, 5).map(item => {
@@ -3334,6 +3335,75 @@ export default function EnhancedRecommendations({
                           </div>
                           <p className="text-xs text-gray-600 mt-2">
                             🚨 Critical: These pages are in your sitemap but have ZERO incoming internal links. Users cannot navigate to them. Add links from 3-5 related pages immediately.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Permanent Redirects Table */}
+                      {rec.title.includes('Fix Permanent Redirects') && technicalAudit?.permanentRedirects?.redirects && technicalAudit.permanentRedirects.redirects.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-300">
+                          <h5 className="font-semibold mb-3 text-orange-600">🔄 URLs with Permanent Redirects ({technicalAudit.permanentRedirects.redirects.length})</h5>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-orange-100">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">From URL (Original)</th>
+                                    <th className="px-4 py-3 text-center font-medium text-orange-800">Status Code</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">To URL (Destination)</th>
+                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-orange-200">
+                                  {technicalAudit.permanentRedirects.redirects.slice(0, 20).map((redirect, idx) => (
+                                    <tr key={idx} className="hover:bg-orange-50">
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={redirect.fromUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-gray-600 hover:text-gray-800 underline break-all text-xs"
+                                        >
+                                          {redirect.fromUrl.replace(/^https?:\/\//, '').substring(0, 50)}
+                                          {redirect.fromUrl.length > 50 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                          redirect.statusCode === 301 || redirect.statusCode === 308
+                                            ? 'bg-orange-100 text-orange-700'
+                                            : 'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                          {redirect.statusCode}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <a
+                                          href={redirect.toUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs font-medium"
+                                        >
+                                          {redirect.toUrl.replace(/^https?:\/\//, '').substring(0, 50)}
+                                          {redirect.toUrl.length > 50 ? '...' : ''}
+                                        </a>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600">
+                                        Update internal links to point directly to destination
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {technicalAudit.permanentRedirects.redirects.length > 20 && (
+                              <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                                Showing 20 of {technicalAudit.permanentRedirects.redirects.length} redirects
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2">
+                            ⚠️ Warning: Permanent redirects decrease crawl budget. Update internal links to point directly to final destinations to improve SEO and page load speed.
                           </p>
                         </div>
                       )}
