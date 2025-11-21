@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import Tooltip from "@/components/Tooltip"
 import { ukDetectionService, UKDetectionResult } from "@/lib/ukDetectionService"
 import { cachePageDiscovery, getCachedPageDiscovery, cacheExcludedPaths, clearExpiredCaches } from "@/lib/pageDiscoveryCache"
-import AuditConfigurationSection, { AuditConfiguration } from "@/components/AuditConfigurationSection"
+import AuditConfigurationPanel from "@/components/AuditConfigurationPanel"
+import { AuditConfiguration, getDefaultAuditConfiguration } from "@/types/auditConfiguration"
 
 const AUDIT_SECTIONS = [
   {
@@ -185,13 +186,7 @@ export function AuditForm() {
     phpVersion?: string
   } | null>(null)
   const [isTechStackLoading, setIsTechStackLoading] = useState(false)
-  const [auditConfiguration, setAuditConfiguration] = useState<AuditConfiguration>({
-    enableLighthouse: true,
-    enableViewport: false,
-    enableImageOptimization: true,
-    enableSEO: true,
-    enableEmail: false
-  })
+  const [auditConfiguration, setAuditConfiguration] = useState<AuditConfiguration>(getDefaultAuditConfiguration())
   const [estimatedAuditMinutes, setEstimatedAuditMinutes] = useState(0)
 
   // Helper function to check if a URL should be excluded
@@ -849,8 +844,7 @@ export function AuditForm() {
             ? discoveredPages.filter(page => page.selected).map(page => page.url)
             : [urlToAudit], // For both 'single' and 'all' scopes, just send the main URL
           // Audit configuration
-          auditConfiguration: auditConfiguration,
-          enableEmailNotification: auditConfiguration.enableEmail
+          auditConfiguration: auditConfiguration
         }),
       })
 
@@ -1686,18 +1680,8 @@ export function AuditForm() {
 
         {/* Audit Configuration Section */}
         {isValidUrl && selectedSections.includes('performance') && (
-          <AuditConfigurationSection
-            pageCount={
-              auditScope === 'single'
-                ? 1
-                : auditScope === 'all'
-                  ? (pageLimit !== null && allPagesCount !== null ? Math.min(pageLimit, allPagesCount) : (allPagesCount || 50))
-                  : discoveredPages.filter(p => p.selected).length || 1
-            }
-            auditScope={auditScope}
-            configuration={auditConfiguration}
-            onChange={setAuditConfiguration}
-            onEstimatedTimeChange={setEstimatedAuditMinutes}
+          <AuditConfigurationPanel
+            onConfigurationChange={setAuditConfiguration}
           />
         )}
 

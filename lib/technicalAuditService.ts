@@ -5,6 +5,7 @@ import { getCachedPageData, setCachedPageData, clearExpiredCache } from './audit
 import { BrowserService } from './cloudflare-browser';
 import { RobotsService } from './robotsService';
 import { detectUnminifiedFiles } from './unminifiedFileDetection';
+import { AuditConfiguration, getDefaultAuditConfiguration } from '@/types/auditConfiguration';
 
 // Transparent User-Agent for legal compliance
 const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit Tool)';
@@ -338,8 +339,12 @@ export async function performTechnicalAudit(
   url: string,
   scope: 'single' | 'all' | 'custom' = 'single',
   specifiedPages: string[] = [url],
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  configuration?: AuditConfiguration
 ): Promise<TechnicalAuditResult> {
+  // Use provided config or default
+  const config = configuration || getDefaultAuditConfiguration()
+  console.log('🔧 Audit Configuration:', config)
   console.log(`🔧 Starting technical audit for ${url} (scope: ${scope})`);
 
   // Check robots.txt compliance
@@ -1193,42 +1198,47 @@ export async function performTechnicalAudit(
     }
 
     // 10. Analyze viewport responsiveness (with smart sampling for multi-page audits)
-    console.log('📱 Analyzing viewport responsiveness...');
-    try {
-      // Smart sampling: For multi-page audits, test ~20 representative pages instead of all pages
-      // CSS frameworks are consistent, so testing all pages would find the same issues
-      const VIEWPORT_SAMPLE_SIZE = 20;
+    if (config.viewportAnalysis) {
+      console.log('✅ Running Viewport Analysis...');
+      try {
+        // Smart sampling: For multi-page audits, test ~20 representative pages instead of all pages
+        // CSS frameworks are consistent, so testing all pages would find the same issues
+        const VIEWPORT_SAMPLE_SIZE = 20;
 
-      if (scope === 'single' || !pageDiscovery || pageDiscovery.pages.length <= 1) {
-        // Single page audit: Test just the main page
-        result.viewportAnalysis = await analyzeViewportResponsiveness(url);
-        console.log(`✅ Viewport analysis complete. Score: ${result.viewportAnalysis.overallScore}/100`);
-      } else {
-        // Multi-page audit: Smart sampling
-        const pagesToTest = selectRepresentativePages(pageDiscovery.pages, VIEWPORT_SAMPLE_SIZE);
-        console.log(`📊 Smart sampling: Testing ${pagesToTest.length} representative pages (CSS is consistent across templates)`);
+        if (scope === 'single' || !pageDiscovery || pageDiscovery.pages.length <= 1) {
+          // Single page audit: Test just the main page
+          result.viewportAnalysis = await analyzeViewportResponsiveness(url);
+          console.log(`✅ Viewport analysis complete. Score: ${result.viewportAnalysis.overallScore}/100`);
+        } else {
+          // Multi-page audit: Smart sampling
+          const pagesToTest = selectRepresentativePages(pageDiscovery.pages, VIEWPORT_SAMPLE_SIZE);
+          console.log(`📊 Smart sampling: Testing ${pagesToTest.length} representative pages (CSS is consistent across templates)`);
 
-        // Test the first representative page (usually homepage)
-        result.viewportAnalysis = await analyzeViewportResponsiveness(pagesToTest[0].url);
-        console.log(`✅ Viewport analysis complete for ${pagesToTest.length} sampled pages. Score: ${result.viewportAnalysis.overallScore}/100`);
+          // Test the first representative page (usually homepage)
+          result.viewportAnalysis = await analyzeViewportResponsiveness(pagesToTest[0].url);
+          console.log(`✅ Viewport analysis complete for ${pagesToTest.length} sampled pages. Score: ${result.viewportAnalysis.overallScore}/100`);
 
-        // Store sampling metadata for UI display
-        result.viewportAnalysis.samplingInfo = {
-          totalPages: pageDiscovery.pages.length,
-          testedPages: pagesToTest.length,
-          samplingMethod: 'smart-sampling',
-          testedUrls: pagesToTest.map(p => p.url)
-        };
+          // Store sampling metadata for UI display
+          result.viewportAnalysis.samplingInfo = {
+            totalPages: pageDiscovery.pages.length,
+            testedPages: pagesToTest.length,
+            samplingMethod: 'smart-sampling',
+            testedUrls: pagesToTest.map(p => p.url)
+          };
+        }
+      } catch (_error) {
+        console.error('Viewport analysis failed:', error);
+        result.viewportAnalysis = null;
       }
-    } catch (_error) {
-      console.error('Viewport analysis failed:', error);
+    } else {
+      console.log('⏭️  Skipping Viewport Analysis (disabled)');
       result.viewportAnalysis = null;
     }
 
     // 11. Analyze internal linking structure
     // Only perform if we have multiple pages (makes sense for 'all' or 'custom' audits with multiple pages)
-    if (pageDiscovery && pageDiscovery.pages.length > 1) {
-      console.log('🔗 Analyzing internal linking structure...');
+    if (config.internalLinking && pageDiscovery && pageDiscovery.pages.length > 1) {
+      console.log('✅ Running Internal Linking analysis...');
       const pagesWithHtmlForLinks = result.pages.filter(p => p.html).length;
       console.log(`📄 ${pagesWithHtmlForLinks} out of ${result.pages.length} pages have HTML for link analysis`);
 
@@ -1292,76 +1302,84 @@ export async function performTechnicalAudit(
         console.error('Internal link analysis failed:', error);
         // Don't fail the entire audit if this check fails
       }
+    } else if (!config.internalLinking) {
+      console.log('⏭️  Skipping Internal Linking analysis (disabled)');
     }
 
-    // 12. Check for permanent redirects (301/308)
-    // Only perform if we have multiple pages
-    if (pageDiscovery && pageDiscovery.pages.length > 1) {
-      console.log(`🔄 Checking ${pageDiscovery.pages.length} pages for permanent redirects...`);
-      try {
-        const redirectAnalysis = await analyzePermanentRedirects(pageDiscovery.pages, domain);
+    // 12. Check for permanent redirects (301/308) and HSTS
+    if (config.securityAndRedirects) {
+      console.log('✅ Running Security & Redirects checks...');
 
-        if (redirectAnalysis.totalRedirects > 0) {
-          result.permanentRedirects = redirectAnalysis;
-          result.issues.permanentRedirects = redirectAnalysis.totalRedirects;
+      // Only perform if we have multiple pages
+      if (pageDiscovery && pageDiscovery.pages.length > 1) {
+        console.log(`🔄 Checking ${pageDiscovery.pages.length} pages for permanent redirects...`);
+        try {
+          const redirectAnalysis = await analyzePermanentRedirects(pageDiscovery.pages, domain);
 
-          console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects (301/308)`);
-          redirectAnalysis.redirects.slice(0, 5).forEach(redirect => {
-            console.log(`   ${redirect.statusCode}: ${redirect.fromUrl} → ${redirect.toUrl}`);
-          });
-          if (redirectAnalysis.totalRedirects > 5) {
-            console.log(`   ... and ${redirectAnalysis.totalRedirects - 5} more`);
+          if (redirectAnalysis.totalRedirects > 0) {
+            result.permanentRedirects = redirectAnalysis;
+            result.issues.permanentRedirects = redirectAnalysis.totalRedirects;
+
+            console.log(`⚠️  Found ${redirectAnalysis.totalRedirects} URLs with permanent redirects (301/308)`);
+            redirectAnalysis.redirects.slice(0, 5).forEach(redirect => {
+              console.log(`   ${redirect.statusCode}: ${redirect.fromUrl} → ${redirect.toUrl}`);
+            });
+            if (redirectAnalysis.totalRedirects > 5) {
+              console.log(`   ... and ${redirectAnalysis.totalRedirects - 5} more`);
+            }
+          } else {
+            console.log(`✅ No permanent redirects found (checked ${pageDiscovery.pages.length} URLs)`);
           }
-        } else {
-          console.log(`✅ No permanent redirects found (checked ${pageDiscovery.pages.length} URLs)`);
-        }
 
-        if (onProgress) {
-          await onProgress('checking_redirects', 1, 1, 'Redirect analysis complete');
+          if (onProgress) {
+            await onProgress('checking_redirects', 1, 1, 'Redirect analysis complete');
+          }
+        } catch (_error) {
+          console.error('Redirect analysis failed:', error);
+          // Don't fail the entire audit if this check fails
         }
-      } catch (_error) {
-        console.error('Redirect analysis failed:', error);
-        // Don't fail the entire audit if this check fails
       }
-    }
 
-    // 13. Check HSTS (HTTP Strict Transport Security) support
-    // Check main domain and subdomains for HSTS headers
-    if (pageDiscovery && pageDiscovery.pages.length >= 1) {
-      console.log('🔒 Checking HSTS support for main domain and subdomains...');
-      try {
-        const hstsAnalysis = await analyzeHSTSSupport(url, pageDiscovery.pages, domain);
+      // 13. Check HSTS (HTTP Strict Transport Security) support
+      // Check main domain and subdomains for HSTS headers
+      if (pageDiscovery && pageDiscovery.pages.length >= 1) {
+        console.log('🔒 Checking HSTS support for main domain and subdomains...');
+        try {
+          const hstsAnalysis = await analyzeHSTSSupport(url, pageDiscovery.pages, domain);
 
-        result.hstsAnalysis = hstsAnalysis;
+          result.hstsAnalysis = hstsAnalysis;
 
-        console.log(`📊 HSTS check results:`);
-        console.log(`   - Main domain (${hstsAnalysis.mainDomain.domain}): ${hstsAnalysis.mainDomain.hasHSTS ? '✅ HSTS enabled' : '⚠️  HSTS NOT enabled'}`);
-        console.log(`   - Subdomains checked: ${hstsAnalysis.totalSubdomainsChecked}`);
-        console.log(`   - Subdomains without HSTS: ${hstsAnalysis.subdomainsWithoutHSTS.length}`);
+          console.log(`📊 HSTS check results:`);
+          console.log(`   - Main domain (${hstsAnalysis.mainDomain.domain}): ${hstsAnalysis.mainDomain.hasHSTS ? '✅ HSTS enabled' : '⚠️  HSTS NOT enabled'}`);
+          console.log(`   - Subdomains checked: ${hstsAnalysis.totalSubdomainsChecked}`);
+          console.log(`   - Subdomains without HSTS: ${hstsAnalysis.subdomainsWithoutHSTS.length}`);
 
-        // Count subdomains without HSTS as an issue
-        if (hstsAnalysis.subdomainsWithoutHSTS.length > 0) {
-          result.issues.subdomainsWithoutHSTS = hstsAnalysis.subdomainsWithoutHSTS.length;
-          console.log(`⚠️  Subdomains without HSTS:`);
-          hstsAnalysis.subdomainsWithoutHSTS.forEach(subdomain => {
-            console.log(`   - ${subdomain}`);
-          });
-        } else if (hstsAnalysis.totalSubdomainsChecked > 0) {
-          console.log(`✅ All ${hstsAnalysis.totalSubdomainsChecked} subdomain(s) have HSTS enabled`);
+          // Count subdomains without HSTS as an issue
+          if (hstsAnalysis.subdomainsWithoutHSTS.length > 0) {
+            result.issues.subdomainsWithoutHSTS = hstsAnalysis.subdomainsWithoutHSTS.length;
+            console.log(`⚠️  Subdomains without HSTS:`);
+            hstsAnalysis.subdomainsWithoutHSTS.forEach(subdomain => {
+              console.log(`   - ${subdomain}`);
+            });
+          } else if (hstsAnalysis.totalSubdomainsChecked > 0) {
+            console.log(`✅ All ${hstsAnalysis.totalSubdomainsChecked} subdomain(s) have HSTS enabled`);
+          }
+
+          // Also warn if main domain doesn't have HSTS
+          if (!hstsAnalysis.mainDomain.hasHSTS) {
+            console.log(`⚠️  Main domain does not have HSTS enabled`);
+          }
+
+          if (onProgress) {
+            await onProgress('checking_hsts', 1, 1, 'HSTS analysis complete');
+          }
+        } catch (_error) {
+          console.error('HSTS analysis failed:', error);
+          // Don't fail the entire audit if this check fails
         }
-
-        // Also warn if main domain doesn't have HSTS
-        if (!hstsAnalysis.mainDomain.hasHSTS) {
-          console.log(`⚠️  Main domain does not have HSTS enabled`);
-        }
-
-        if (onProgress) {
-          await onProgress('checking_hsts', 1, 1, 'HSTS analysis complete');
-        }
-      } catch (_error) {
-        console.error('HSTS analysis failed:', error);
-        // Don't fail the entire audit if this check fails
       }
+    } else {
+      console.log('⏭️  Skipping Security & Redirects checks (disabled)');
     }
 
     // 14. Check for llms.txt file

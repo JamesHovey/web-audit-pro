@@ -6,6 +6,7 @@ import { CreditCalculator } from "@/lib/creditCalculator"
 import { createUsageTracker } from "@/lib/usageTracker"
 import { sendAuditCompletionEmail } from "@/lib/emailService"
 import type { AuditRequestBody } from "@/types/api"
+import { getDefaultAuditConfiguration } from "@/types/auditConfiguration"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,13 +22,7 @@ export async function POST(request: NextRequest) {
       excludedPaths = [],
       maxPagesPerSection,
       useSmartSampling = true, // Enable smart sampling by default
-      auditConfiguration = {
-        enableLighthouse: true,
-        enableAccessibility: true,
-        enableImageOptimization: true,
-        enableSEO: true,
-        enableEmail: false
-      },
+      auditConfiguration = getDefaultAuditConfiguration(),
       enableEmailNotification = false
     } = body
 
@@ -303,7 +298,7 @@ export async function POST(request: NextRequest) {
 
             // Map scope: 'multi' -> 'custom' for technical audit
             const technicalScope: 'single' | 'all' | 'custom' = scope === 'multi' ? 'custom' : scope
-            results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress)
+            results.technical = await performTechnicalAudit(url, technicalScope, pages, updateProgress, auditConfiguration)
 
             // Update discovered pages count from technical audit results
             const technicalResults = results.technical as { totalPages?: number }

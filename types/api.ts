@@ -2,13 +2,7 @@
  * Type definitions for API request and response bodies
  */
 
-export interface AuditConfiguration {
-  enableLighthouse: boolean;
-  enableViewport: boolean;
-  enableImageOptimization: boolean;
-  enableSEO: boolean;
-  enableEmail: boolean;
-}
+import { AuditConfiguration } from './auditConfiguration'
 
 export interface AuditRequestBody {
   url: string;
