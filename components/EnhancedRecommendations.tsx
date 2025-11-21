@@ -476,7 +476,7 @@ export default function EnhancedRecommendations({
       techRecs.push({
         title: 'Title Tag Length Issues',
         description,
-        impact: 'Medium',
+        impact: 'High',
         effort: 'Easy',
         icon: <FileText className="w-4 h-4" />,
         details: 'Title tags should be 30-60 characters for optimal display in search results. Short titles miss opportunities to include keywords, while long titles get truncated with "..." which looks unprofessional.',
