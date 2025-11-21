@@ -451,19 +451,34 @@ export default function EnhancedRecommendations({
       })
     }
 
-    // Title Tag Length Issues (Too Short)
-    if (technicalIssues?.shortTitles && technicalIssues.shortTitles > 0) {
+    // Title Tag Length Issues (Consolidated)
+    if ((technicalIssues?.shortTitles && technicalIssues.shortTitles > 0) ||
+        (technicalIssues?.longTitles && technicalIssues.longTitles > 0)) {
+      const shortCount = technicalIssues?.shortTitles || 0;
+      const longCount = technicalIssues?.longTitles || 0;
+      const totalCount = shortCount + longCount;
+
+      let description = '';
+      if (shortCount > 0 && longCount > 0) {
+        description = `${totalCount} page(s) have title tag length issues: ${shortCount} too short (< 30 characters) and ${longCount} too long (> 70 characters).`;
+      } else if (shortCount > 0) {
+        description = `${shortCount} page(s) have title tags that are too short (< 30 characters). Short titles don't provide enough context for search engines and users.`;
+      } else {
+        description = `${longCount} page(s) have title tags that are too long (> 70 characters). Long titles get truncated in search results.`;
+      }
+
       techRecs.push({
-        title: 'Fix Short Title Tags',
-        description: `${technicalIssues.shortTitles} page(s) have title tags that are too short (< 30 characters). Short titles don't provide enough context for search engines and users.`,
+        title: 'Title Tag Length Issues',
+        description,
         impact: 'Medium',
         effort: 'Easy',
         icon: <FileText className="w-4 h-4" />,
-        details: 'Title tags should be 30-60 characters for optimal display in search results. Short titles miss opportunities to include relevant keywords and compelling copy that improves click-through rates.',
+        details: 'Title tags should be 30-60 characters for optimal display in search results. Short titles miss opportunities to include keywords, while long titles get truncated with "..." which looks unprofessional.',
         useCase: 'title-optimization',
         howTo: cms === 'WordPress' ? [
           '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
-          'Current titles are too short and need more descriptive text.',
+          ...(shortCount > 0 ? ['Some titles are too short and need more descriptive text.'] : []),
+          ...(longCount > 0 ? ['Some titles are too long and will be truncated in search results.'] : []),
           '',
           '✏️ HOW TO FIX (using SEO plugin):',
           '',
@@ -471,7 +486,7 @@ export default function EnhancedRecommendations({
           '   • Edit the page/post in WordPress',
           '   • Scroll to "Yoast SEO" section',
           '   • Look for "SEO title" field',
-          '   • Expand your title to 30-60 characters',
+          '   • Adjust your title to 30-60 characters',
           '   • Yoast will show a green bar when length is optimal',
           '',
           '2️⃣ If using Rank Math:',
@@ -486,37 +501,57 @@ export default function EnhancedRecommendations({
           '   • Update the "Post Title"',
           '   • Keep it between 30-60 characters',
           '',
-          '📋 TITLE WRITING TIPS:',
-          '   • Include your main keyword',
-          '   • Add your brand/company name',
-          '   • Make it descriptive and compelling',
-          '   • Use action words or benefits',
-          '   • Example: "Professional Web Design Services | YourBrand"',
-          '',
+          ...(shortCount > 0 ? [
+            '📋 FOR SHORT TITLES - EXPAND THEM:',
+            '   • Include your main keyword',
+            '   • Add your brand/company name',
+            '   • Make it descriptive and compelling',
+            '   • Use action words or benefits',
+            ''
+          ] : []),
+          ...(longCount > 0 ? [
+            '✂️ FOR LONG TITLES - SHORTEN THEM:',
+            '   • Remove unnecessary words ("Best", "Top", "Welcome to")',
+            '   • Use abbreviations: "UK" not "United Kingdom", "&" not "and"',
+            '   • Focus on essentials: main keyword + key differentiator + brand',
+            '   • Watch the character counter - keep under 60',
+            ''
+          ] : []),
           '✅ GOOD TITLE EXAMPLES:',
           '   • "Affordable Plumbing Services in London | 24/7 Emergency"',
           '   • "Buy Organic Coffee Beans Online | Free UK Delivery"',
           '   • "Web Development Agency | Custom WordPress Sites"',
           '',
-          '❌ TOO SHORT EXAMPLES:',
-          '   • "Home" (4 chars)',
-          '   • "About Us" (8 chars)',
-          '   • "Services" (8 chars)',
+          '❌ BAD EXAMPLES:',
+          '   • "Home" (too short - 4 chars)',
+          '   • "About Us" (too short - 8 chars)',
+          '   • "Professional Web Design and Development Services for Small Businesses in London, UK" (too long - 85 chars)',
           '',
           '💡 After updating, re-run the audit to verify improvements'
         ] : [
           '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
           '',
-          '📋 PAGES WITH SHORT TITLES:',
-          ...(technicalAudit?.titleLengthIssues?.tooShort?.slice(0, 5).map(item =>
-            `   • "${item.title}" (${item.length} chars) - ${item.url}`
-          ) || []),
-          ...(technicalIssues.shortTitles && technicalIssues.shortTitles > 5 ? [`   • ...and ${technicalIssues.shortTitles - 5} more`] : []),
-          '',
+          ...(shortCount > 0 ? [
+            '📋 PAGES WITH SHORT TITLES:',
+            ...(technicalAudit?.titleLengthIssues?.tooShort?.slice(0, 3).map(item =>
+              `   • "${item.title}" (${item.length} chars) - ${item.url}`
+            ) || []),
+            ...(shortCount > 3 ? [`   • ...and ${shortCount - 3} more`] : []),
+            ''
+          ] : []),
+          ...(longCount > 0 ? [
+            '📋 PAGES WITH LONG TITLES:',
+            ...(technicalAudit?.titleLengthIssues?.tooLong?.slice(0, 3).map(item =>
+              `   • "${item.title.substring(0, 60)}..." (${item.length} chars)`
+            ) || []),
+            ...(longCount > 3 ? [`   • ...and ${longCount - 3} more`] : []),
+            ''
+          ] : []),
           '✏️ HOW TO FIX:',
           '1. Edit the <title> tag in your HTML <head> section',
-          '2. Expand to 30-60 characters',
-          '3. Include main keyword + brand name',
+          '2. Adjust to 30-60 characters',
+          ...(shortCount > 0 ? ['3. For short titles: Include main keyword + brand name'] : []),
+          ...(longCount > 0 ? ['3. For long titles: Remove filler words and redundancy'] : []),
           '4. Make it descriptive and compelling',
           '',
           '📝 TITLE FORMULA:',
@@ -526,88 +561,11 @@ export default function EnhancedRecommendations({
           '   • "Professional Web Design Services | Fast & Affordable | WebCo"',
           '   • "Buy Organic Coffee Beans | Free Delivery | CoffeeCo"',
           '',
-          '❌ TOO SHORT:',
-          '   • "Home" (4 characters)',
-          '   • "About" (5 characters)',
+          '❌ BAD EXAMPLES:',
+          '   • "Home" (too short)',
+          '   • "Professional Web Design and Development Services for Small Businesses..." (too long)',
           '',
           '💡 Each page needs a unique, descriptive title'
-        ]
-      });
-    }
-
-    // Title Tag Length Issues (Too Long)
-    if (technicalIssues?.longTitles && technicalIssues.longTitles > 0) {
-      techRecs.push({
-        title: 'Shorten Long Title Tags',
-        description: `${technicalIssues.longTitles} page(s) have title tags that are too long (> 70 characters). Long titles get truncated in search results.`,
-        impact: 'Medium',
-        effort: 'Easy',
-        icon: <FileText className="w-4 h-4" />,
-        details: 'Google typically displays the first 50-60 characters of a title tag. Titles longer than 70 characters get cut off with "..." which looks unprofessional and may hide important keywords.',
-        useCase: 'title-optimization',
-        howTo: cms === 'WordPress' ? [
-          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters (max 70)',
-          'Current titles are too long and will be truncated in search results.',
-          '',
-          '✂️ HOW TO SHORTEN:',
-          '',
-          '1️⃣ Remove unnecessary words:',
-          '   • "Best", "Top", "Leading", "Professional" (if redundant)',
-          '   • "Welcome to", "Official Website of"',
-          '   • Repetitive location names',
-          '   • Year dates (unless critical)',
-          '',
-          '2️⃣ Use abbreviations where appropriate:',
-          '   • "UK" instead of "United Kingdom"',
-          '   • "&" instead of "and"',
-          '   • "SEO" instead of "Search Engine Optimization"',
-          '',
-          '3️⃣ Focus on essentials:',
-          '   • Main keyword',
-          '   • Key differentiator',
-          '   • Brand name',
-          '',
-          '✏️ EDIT IN YOUR SEO PLUGIN:',
-          '   • Yoast SEO: Edit "SEO title" field',
-          '   • Rank Math: Update "Title" field',
-          '   • All in One SEO: Modify "Post Title"',
-          '   • Watch the character counter - keep under 60',
-          '',
-          '✅ BEFORE & AFTER EXAMPLES:',
-          '',
-          '❌ TOO LONG (85 chars):',
-          '"Professional Web Design and Development Services for Small Businesses in London, UK"',
-          '',
-          '✅ OPTIMIZED (58 chars):',
-          '"Web Design Services for Small Businesses | London UK"',
-          '',
-          '💡 Every character counts - make them matter!',
-          '💡 After shortening, re-run the audit to verify'
-        ] : [
-          '🎯 OPTIMAL TITLE LENGTH: 30-60 characters',
-          'Titles over 70 characters get truncated in Google search results.',
-          '',
-          '📋 PAGES WITH LONG TITLES:',
-          ...(technicalAudit?.titleLengthIssues?.tooLong?.slice(0, 5).map(item =>
-            `   • "${item.title.substring(0, 60)}..." (${item.length} chars)`
-          ) || []),
-          ...(technicalIssues.longTitles && technicalIssues.longTitles > 5 ? [`   • ...and ${technicalIssues.longTitles - 5} more`] : []),
-          '',
-          '✂️ HOW TO FIX:',
-          '1. Edit your <title> tag in HTML',
-          '2. Shorten to 30-60 characters',
-          '3. Keep the most important keywords',
-          '4. Remove filler words and redundancy',
-          '',
-          '🔧 SHORTENING TIPS:',
-          '   • Remove "Welcome to", "Official site"',
-          '   • Use "&" instead of "and"',
-          '   • Remove redundant words',
-          '   • Focus on core message',
-          '',
-          '✅ EXAMPLE:',
-          '❌ "Welcome to the Best Professional Web Design and Development Agency in London"',
-          '✅ "Web Design & Development Agency London | WebCo"'
         ]
       });
     }
@@ -3132,123 +3090,128 @@ export default function EnhancedRecommendations({
                         </div>
                       )}
 
-                      {/* Title Too Short Table */}
-                      {rec.title.includes('Fix Short Title Tags') && technicalAudit?.titleLengthIssues?.tooShort && technicalAudit.titleLengthIssues.tooShort.length > 0 && (
-                        <div className="mb-4 pb-4 border-b border-gray-300">
-                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Short ({technicalAudit.titleLengthIssues.tooShort.length})</h5>
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead className="bg-orange-100">
-                                  <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
-                                    <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-orange-200">
-                                  {technicalAudit.titleLengthIssues.tooShort.slice(0, 20).map((page, idx) => (
-                                    <tr key={idx} className="hover:bg-orange-50">
-                                      <td className="px-4 py-3">
-                                        <a
-                                          href={page.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
-                                        >
-                                          {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
-                                          {page.url.length > 60 ? '...' : ''}
-                                        </a>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="text-gray-700 text-xs">
-                                          {page.title.substring(0, 50)}
-                                          {page.title.length > 50 ? '...' : ''}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-center">
-                                        <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
-                                          {page.length} chars
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-xs text-gray-600">
-                                        Expand to 30-60 characters
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                            {technicalAudit.titleLengthIssues.tooShort.length > 20 && (
-                              <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
-                                Showing 20 of {technicalAudit.titleLengthIssues.tooShort.length} pages
+                      {/* Title Length Issues Tables (Short and Long) */}
+                      {rec.title.includes('Title Tag Length Issues') && technicalAudit?.titleLengthIssues && (
+                        <>
+                          {/* Title Too Short Table */}
+                          {technicalAudit.titleLengthIssues.tooShort && technicalAudit.titleLengthIssues.tooShort.length > 0 && (
+                            <div className="mb-4 pb-4 border-b border-gray-300">
+                              <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Short ({technicalAudit.titleLengthIssues.tooShort.length})</h5>
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-orange-100">
+                                      <tr>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                                        <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-orange-200">
+                                      {technicalAudit.titleLengthIssues.tooShort.slice(0, 20).map((page, idx) => (
+                                        <tr key={idx} className="hover:bg-orange-50">
+                                          <td className="px-4 py-3">
+                                            <a
+                                              href={page.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                            >
+                                              {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                              {page.url.length > 60 ? '...' : ''}
+                                            </a>
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <span className="text-gray-700 text-xs">
+                                              {page.title.substring(0, 50)}
+                                              {page.title.length > 50 ? '...' : ''}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-center">
+                                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                                              {page.length} chars
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-xs text-gray-600">
+                                            Expand to 30-60 characters
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {technicalAudit.titleLengthIssues.tooShort.length > 20 && (
+                                  <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                                    Showing 20 of {technicalAudit.titleLengthIssues.tooShort.length} pages
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-600 mt-2">
-                            💡 Tip: Title tags should be 30-60 characters for optimal SEO. Short titles miss opportunities to include keywords and compelling copy.
-                          </p>
-                        </div>
-                      )}
+                              <p className="text-xs text-gray-600 mt-2">
+                                💡 Tip: Title tags should be 30-60 characters for optimal SEO. Short titles miss opportunities to include keywords and compelling copy.
+                              </p>
+                            </div>
+                          )}
 
-                      {/* Title Too Long Table */}
-                      {rec.title.includes('Shorten Long Title Tags') && technicalAudit?.titleLengthIssues?.tooLong && technicalAudit.titleLengthIssues.tooLong.length > 0 && (
-                        <div className="mb-4 pb-4 border-b border-gray-300">
-                          <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Long ({technicalAudit.titleLengthIssues.tooLong.length})</h5>
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead className="bg-orange-100">
-                                  <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
-                                    <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
-                                    <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-orange-200">
-                                  {technicalAudit.titleLengthIssues.tooLong.slice(0, 20).map((page, idx) => (
-                                    <tr key={idx} className="hover:bg-orange-50">
-                                      <td className="px-4 py-3">
-                                        <a
-                                          href={page.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
-                                        >
-                                          {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
-                                          {page.url.length > 60 ? '...' : ''}
-                                        </a>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="text-gray-700 font-medium text-xs">
-                                          {page.title}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-center">
-                                        <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
-                                          {page.length} chars
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-xs text-gray-600">
-                                        Shorten to 30-70 characters
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                            {technicalAudit.titleLengthIssues.tooLong.length > 20 && (
-                              <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
-                                Showing 20 of {technicalAudit.titleLengthIssues.tooLong.length} pages
+                          {/* Title Too Long Table */}
+                          {technicalAudit.titleLengthIssues.tooLong && technicalAudit.titleLengthIssues.tooLong.length > 0 && (
+                            <div className="mb-4 pb-4 border-b border-gray-300">
+                              <h5 className="font-semibold mb-3 text-orange-600">⚠️ Pages with Titles Too Long ({technicalAudit.titleLengthIssues.tooLong.length})</h5>
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-orange-100">
+                                      <tr>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Page URL</th>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Current Title</th>
+                                        <th className="px-4 py-3 text-center font-medium text-orange-800">Length</th>
+                                        <th className="px-4 py-3 text-left font-medium text-orange-800">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-orange-200">
+                                      {technicalAudit.titleLengthIssues.tooLong.slice(0, 20).map((page, idx) => (
+                                        <tr key={idx} className="hover:bg-orange-50">
+                                          <td className="px-4 py-3">
+                                            <a
+                                              href={page.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                            >
+                                              {page.url.replace(/^https?:\/\//, '').substring(0, 60)}
+                                              {page.url.length > 60 ? '...' : ''}
+                                            </a>
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <span className="text-gray-700 font-medium text-xs">
+                                              {page.title}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-center">
+                                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium">
+                                              {page.length} chars
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-xs text-gray-600">
+                                            Shorten to 30-70 characters
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {technicalAudit.titleLengthIssues.tooLong.length > 20 && (
+                                  <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                                    Showing 20 of {technicalAudit.titleLengthIssues.tooLong.length} pages
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-600 mt-2">
-                            💡 Tip: Title tags longer than 70 characters get truncated in search results. Focus on your most important keywords and keep it concise.
-                          </p>
-                        </div>
+                              <p className="text-xs text-gray-600 mt-2">
+                                💡 Tip: Title tags longer than 70 characters get truncated in search results. Focus on your most important keywords and keep it concise.
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Text-to-HTML Ratio Table */}
