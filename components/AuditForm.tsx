@@ -1682,6 +1682,14 @@ export function AuditForm() {
         {isValidUrl && selectedSections.includes('performance') && (
           <AuditConfigurationPanel
             onConfigurationChange={setAuditConfiguration}
+            pageCount={
+              auditScope === 'single'
+                ? 1
+                : auditScope === 'all'
+                  ? (pageLimit !== null && allPagesCount !== null ? Math.min(pageLimit, allPagesCount) : (allPagesCount || 50))
+                  : discoveredPages.filter(p => p.selected).length || 1
+            }
+            auditScope={auditScope}
           />
         )}
 
