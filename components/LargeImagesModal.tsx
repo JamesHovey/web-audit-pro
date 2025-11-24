@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import Tooltip from './Tooltip'
 
@@ -26,6 +26,7 @@ export default function LargeImagesModal({
   totalSavings
 }: LargeImagesModalProps) {
   const [currentPage, setCurrentPage] = useState(1)
+  const backdropMouseDownRef = useRef(false)
 
   if (!isOpen) return null
 
@@ -46,12 +47,18 @@ export default function LargeImagesModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)', padding: '40px' }}
-      onClick={onClose}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
     >
       <div
         className="bg-white rounded-lg shadow-xl flex flex-col"
         style={{ width: '100%', maxWidth: '1200px', maxHeight: '100%' }}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-black text-white p-4 flex items-center justify-between rounded-t-lg flex-shrink-0">

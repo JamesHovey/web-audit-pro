@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import CreditPackages from './CreditPackages'
 import MarkupCalculator from './MarkupCalculator'
 
@@ -12,6 +12,7 @@ interface BuyCreditsModalProps {
 
 export default function BuyCreditsModal({ isOpen, onClose, currentCredits }: BuyCreditsModalProps) {
   const [markup, setMarkup] = useState(100)
+  const backdropMouseDownRef = useRef(false)
 
   // Calculate what user can do with remaining credits
   const creditsPerFullAudit = 81 // Cost for 50-page audit with keywords
@@ -22,8 +23,18 @@ export default function BuyCreditsModal({ isOpen, onClose, currentCredits }: Buy
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto" onMouseDown={(e) => e.stopPropagation()}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

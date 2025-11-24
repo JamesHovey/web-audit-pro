@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { X, Search, Loader, CheckCircle, Users } from 'lucide-react'
 
 interface User {
@@ -26,6 +26,7 @@ export default function ShareAuditModal({ isOpen, onClose, auditId, auditUrl }: 
   const [sharing, setSharing] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const backdropMouseDownRef = useRef(false)
 
   // Debounce search
   useEffect(() => {
@@ -114,8 +115,18 @@ export default function ShareAuditModal({ isOpen, onClose, auditId, auditUrl }: 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col" onMouseDown={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-black text-white p-6 flex items-center justify-between rounded-t-lg">
           <div className="flex items-center gap-3">

@@ -1,7 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface PageSource {
   url: string;
@@ -17,6 +17,8 @@ interface PageSourceModalProps {
 }
 
 export default function PageSourceModal({ isOpen, onClose, keyword, pageSources }: PageSourceModalProps) {
+  const backdropMouseDownRef = useRef(false)
+
   useEffect(() => {
     if (isOpen) {
       // Prevent body scroll when modal is open
@@ -46,12 +48,18 @@ export default function PageSourceModal({ isOpen, onClose, keyword, pageSources 
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
       style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
     >
-      <div 
+      <div
         className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-hidden relative"
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">

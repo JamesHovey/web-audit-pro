@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 
 interface PageDiscoveryModalProps {
@@ -9,11 +10,23 @@ interface PageDiscoveryModalProps {
 }
 
 export function PageDiscoveryModal({ isOpen, onClose, websiteUrl }: PageDiscoveryModalProps) {
+  const backdropMouseDownRef = useRef(false)
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onMouseDown={(e) => e.stopPropagation()}>
         <div className="p-6 text-center">
           <div className="mb-4">
             <LoadingSpinner size="lg" />

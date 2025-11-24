@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Clock, ExternalLink, CheckCircle, Loader, AlertCircle, Trash2, Share2, Users } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import ShareAuditModal from './ShareAuditModal'
@@ -37,6 +37,7 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [selectedAuditForShare, setSelectedAuditForShare] = useState<{ id: string; url: string } | null>(null)
+  const backdropMouseDownRef = useRef(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -197,8 +198,18 @@ export default function SavedAuditsModal({ isOpen, onClose, onAuditsChange }: Sa
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col" onMouseDown={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-black text-white p-6 flex items-center justify-between rounded-t-lg">
           <div className="flex items-center gap-3">

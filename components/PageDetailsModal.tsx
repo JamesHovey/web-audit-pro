@@ -3,7 +3,7 @@
  * Shows detailed list of discovered pages when clicking on technical audit metrics
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -26,17 +26,18 @@ interface PageDetailsModalProps {
   filterCondition?: (page: PageDetail) => boolean;
 }
 
-export function PageDetailsModal({ 
-  isOpen, 
-  onClose, 
-  pages, 
-  title, 
-  filterCondition 
+export function PageDetailsModal({
+  isOpen,
+  onClose,
+  pages,
+  title,
+  filterCondition
 }: PageDetailsModalProps) {
   const [sortBy, setSortBy] = useState<'url' | 'title' | 'status'>('url');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const backdropMouseDownRef = useRef(false);
 
   // Reset to page 1 when modal opens or filter changes
   useEffect(() => {
@@ -135,8 +136,18 @@ export function PageDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }} onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(66, 73, 156, 0.93)' }}
+      onMouseDown={() => { backdropMouseDownRef.current = true }}
+      onMouseUp={(e) => {
+        if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+          onClose()
+        }
+        backdropMouseDownRef.current = false
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col" onMouseDown={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
