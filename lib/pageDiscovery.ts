@@ -14,19 +14,37 @@ interface PageDiscoveryResult {
     internalLinks: number;
     homepage: number;
   };
+  warnings?: string[]; // User-facing warnings (e.g., sitemap blocked, using fallback)
 }
 
 // Discover pages from multiple sources with deep crawling
-export async function discoverPages(baseUrl: string, maxPages: number = 100): Promise<PageDiscoveryResult> {
-  const cleanUrl = baseUrl.replace(/\/$/, '');
-  const domain = new URL(cleanUrl).hostname;
-  
-  console.log(`\n=== ENHANCED PAGE DISCOVERY FOR ${domain} ===`);
+// @param quick - If true, skip deep crawling for faster discovery (sitemap + patterns only)
+// @param onProgress - Optional callback to report progress (percentage 0-100, message)
+export async function discoverPages(
+  baseUrl: string,
+  maxPages: number = 100,
+  quick: boolean = false,
+  onProgress?: (progress: number, message: string) => void
+): Promise<PageDiscoveryResult> {
+  // Ensure URL has protocol
+  let normalizedBaseUrl = baseUrl;
+  if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
+    normalizedBaseUrl = `https://${normalizedBaseUrl}`;
+  }
+
+  // Remove trailing slash and validate
+  const cleanUrl = normalizedBaseUrl.replace(/\/$/, '');
+  const baseUrlObj = new URL(cleanUrl);
+  const domain = baseUrlObj.hostname;
+
+  console.log(`\n=== ${quick ? 'QUICK' : 'ENHANCED'} PAGE DISCOVERY FOR ${domain} ===`);
   console.log(`Target: ${maxPages} pages maximum`);
-  
+  console.log(`Mode: ${quick ? 'Quick (sitemap + patterns only)' : 'Full (sitemap + crawling + patterns)'}`);
+
   const discoveredPages = new Map<string, DiscoveredPage>();
   const sources = { sitemap: 0, internalLinks: 0, homepage: 0 };
-  
+  const warnings: string[] = [];
+
   // Helper function to normalize URLs for deduplication
   const normalizeUrl = (url: string): string => {
     try {
@@ -39,8 +57,11 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       return url.replace(/\/$/, '');
     }
   };
-  
+
   try {
+    // Report starting progress
+    onProgress?.(5, 'Starting page discovery...');
+
     // 1. Always include the homepage first
     const normalizedHomepage = normalizeUrl(cleanUrl);
     discoveredPages.set(normalizedHomepage, {
@@ -49,10 +70,12 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       source: 'homepage'
     });
     sources.homepage++;
-    
+
     // 2. Try comprehensive sitemap discovery
     console.log('Step 1: Comprehensive sitemap analysis...');
+    onProgress?.(10, 'Analyzing XML sitemaps...');
     const sitemapPages = await discoverFromSitemap(cleanUrl);
+    console.log(`📊 discoverFromSitemap returned ${sitemapPages.length} total pages`);
     sitemapPages.forEach(page => {
       const normalizedUrl = normalizeUrl(page.url);
       if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
@@ -60,22 +83,60 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
         sources.sitemap++;
       }
     });
-    console.log(`Found ${sitemapPages.length} pages from sitemaps`);
-    
+    console.log(`✅ Added ${sources.sitemap} sitemap pages to discovered set (${discoveredPages.size} total)`);
+    onProgress?.(40, `Found ${sources.sitemap} pages from sitemaps`);
+
     // 3. Multi-level crawling of internal links
-    console.log('Step 2: Multi-level internal link discovery...');
-    const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages);
-    crawledPages.forEach(page => {
-      const normalizedUrl = normalizeUrl(page.url);
-      if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
-        discoveredPages.set(normalizedUrl, page);
-        sources.internalLinks++;
+    // Quick mode: Only crawl if sitemap found < 10 pages (fallback for sites without good sitemaps)
+    // Full mode: Always do deep crawling
+    const needsCrawling = !quick || sources.sitemap < 10;
+
+    if (needsCrawling) {
+      if (quick) {
+        // Quick mode with fallback
+        if (sources.sitemap < 10) {
+          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using alternative discovery method - this may take 30-60 seconds.`);
+        }
+        console.log(`Step 2: Light crawling (sitemap only found ${sources.sitemap} pages, need fallback)...`);
+        onProgress?.(45, 'Crawling internal links (light mode)...');
+        // Light crawl for quick mode: depth 2, 20 URLs per level
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 2, 20, onProgress);
+        crawledPages.forEach(page => {
+          const normalizedUrl = normalizeUrl(page.url);
+          if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+            discoveredPages.set(normalizedUrl, page);
+            sources.internalLinks++;
+          }
+        });
+        console.log(`Found ${crawledPages.length} additional pages from light crawling`);
+        onProgress?.(75, `Found ${crawledPages.length} pages from crawling`);
+      } else {
+        // Full mode - always crawl
+        if (sources.sitemap < 10) {
+          warnings.push(`Sitemap was blocked or incomplete (only ${sources.sitemap} pages found). Using comprehensive crawling method - this may take 30 seconds to 5 minutes depending on site size.`);
+        }
+        console.log('Step 2: Deep crawling for comprehensive discovery...');
+        onProgress?.(45, 'Deep crawling for comprehensive discovery...');
+        // Full crawl: depth 5, 50 URLs per level
+        const crawledPages = await crawlInternalLinks(cleanUrl, maxPages - discoveredPages.size, discoveredPages, 5, 50, onProgress);
+        crawledPages.forEach(page => {
+          const normalizedUrl = normalizeUrl(page.url);
+          if (discoveredPages.size < maxPages && !discoveredPages.has(normalizedUrl)) {
+            discoveredPages.set(normalizedUrl, page);
+            sources.internalLinks++;
+          }
+        });
+        console.log(`Found ${crawledPages.length} additional pages from deep crawling`);
+        onProgress?.(85, `Found ${crawledPages.length} pages from deep crawling`);
       }
-    });
-    console.log(`Found ${crawledPages.length} additional pages from crawling`);
-    
+    } else {
+      console.log(`Step 2: Skipping crawling (sitemap found ${sources.sitemap} pages, sufficient for quick mode)`);
+      onProgress?.(75, 'Skipping crawl - sufficient pages found in sitemap');
+    }
+
     // 4. Check for common page patterns and structures
-    console.log('Step 3: Checking common page patterns...');
+    console.log(`Step ${quick ? '2' : '3'}: Checking common page patterns...`);
+    onProgress?.(90, 'Checking common page patterns...');
     const patternPages = await discoverCommonPatterns(cleanUrl, discoveredPages);
     patternPages.forEach(page => {
       const normalizedUrl = normalizeUrl(page.url);
@@ -85,7 +146,8 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       }
     });
     console.log(`Found ${patternPages.length} pages from common patterns`);
-    
+    onProgress?.(95, `Finalizing results...`);
+
   } catch (error) {
     console.error('Page discovery error:', error);
     // Ensure homepage is always included
@@ -100,6 +162,7 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
     }
   }
   
+  console.log(`📦 Total discovered before slicing: ${discoveredPages.size} pages (maxPages: ${maxPages})`);
   const pages = Array.from(discoveredPages.values())
     .slice(0, maxPages)
     .sort((a, b) => {
@@ -107,14 +170,20 @@ export async function discoverPages(baseUrl: string, maxPages: number = 100): Pr
       const priority = { homepage: 0, sitemap: 1, 'internal-link': 2 };
       return priority[a.source] - priority[b.source];
     });
-  
+
   console.log(`✓ Discovery complete: ${pages.length} pages found`);
   console.log('Sources:', sources);
-  
+  if (warnings.length > 0) {
+    console.log('⚠️ Warnings:', warnings);
+  }
+
+  onProgress?.(100, `Discovery complete: ${pages.length} pages found`);
+
   return {
     pages,
     totalFound: pages.length,
-    sources
+    sources,
+    warnings: warnings.length > 0 ? warnings : undefined
   };
 }
 
@@ -164,6 +233,50 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
                 const childPages = await parseSingleSitemap(childSitemapUrl, baseUrl);
                 pages.push(...childPages);
                 console.log(`  Child sitemap yielded ${childPages.length} pages`);
+
+                // Check for paginated sitemaps (WordPress core & SEO plugin formats)
+                // WordPress core: wp-sitemap-posts-post-1.xml -> wp-sitemap-posts-post-2.xml
+                // SEOPress/Yoast: post-sitemap1.xml -> post-sitemap2.xml
+                const wpCoreMatch = childSitemapUrl.match(/wp-sitemap-.*-(\d+)\.xml$/);
+                const seoPluginMatch = childSitemapUrl.match(/(.*-sitemap)(\d+)\.xml$/);
+
+                if (wpCoreMatch || seoPluginMatch) {
+                  let baseSitemapUrl: string;
+                  let firstPage: number;
+
+                  if (seoPluginMatch) {
+                    // SEO plugin format (SEOPress, Yoast, etc.): post-sitemap1.xml
+                    baseSitemapUrl = seoPluginMatch[1]; // "post-sitemap"
+                    firstPage = parseInt(seoPluginMatch[2]); // "1"
+                  } else {
+                    // WordPress core format: wp-sitemap-posts-post-1.xml
+                    baseSitemapUrl = childSitemapUrl.replace(/-(\d+)\.xml$/, '');
+                    firstPage = parseInt(wpCoreMatch![1]);
+                  }
+
+                  // Check for additional pages (up to 10 pages = 500 URLs)
+                  for (let pageNum = firstPage + 1; pageNum <= firstPage + 10; pageNum++) {
+                    // Build URL based on format
+                    const paginatedUrl = seoPluginMatch
+                      ? `${baseSitemapUrl}${pageNum}.xml` // SEOPress/Yoast: post-sitemap2.xml
+                      : `${baseSitemapUrl}-${pageNum}.xml`; // WordPress core: wp-sitemap-posts-post-2.xml
+
+                    if (foundSitemaps.has(paginatedUrl)) continue;
+
+                    try {
+                      console.log(`  Checking paginated sitemap: ${paginatedUrl}`);
+                      const paginatedPages = await parseSingleSitemap(paginatedUrl, baseUrl);
+                      if (paginatedPages.length === 0) break; // No more pages
+
+                      foundSitemaps.add(paginatedUrl);
+                      pages.push(...paginatedPages);
+                      console.log(`  Paginated sitemap yielded ${paginatedPages.length} pages`);
+                    } catch {
+                      console.log(`  No more paginated sitemaps at page ${pageNum}`);
+                      break; // Stop checking if we get an error (404)
+                    }
+                  }
+                }
               } catch (error) {
                 console.log(`Could not fetch child sitemap: ${childSitemapUrl}`);
               }
@@ -185,14 +298,16 @@ async function discoverFromSitemap(baseUrl: string): Promise<DiscoveredPage[]> {
   }
   
   // Remove duplicates and limit results
+  console.log(`📋 Total pages collected from all sitemaps before deduplication: ${pages.length}`);
   const uniquePages = new Map<string, DiscoveredPage>();
   pages.forEach(page => {
     if (!uniquePages.has(page.url)) {
       uniquePages.set(page.url, page);
     }
   });
-  
-  return Array.from(uniquePages.values()).slice(0, 80); // Increased limit
+
+  console.log(`🔍 Unique pages after deduplication: ${uniquePages.size}`);
+  return Array.from(uniquePages.values()); // No limit - return all discovered pages
 }
 
 async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?: string): Promise<DiscoveredPage[]> {
@@ -223,11 +338,34 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
       urlMatches.forEach(urlBlock => {
         const locMatch = urlBlock.match(/<loc>(.*?)<\/loc>/);
         if (locMatch) {
-          const url = locMatch[1].trim();
+          let url = locMatch[1].trim();
+
+          // Skip malformed URLs where another URL was concatenated into the path
+          if (url.includes('/http:') || url.includes('/https:')) {
+            console.log(`    Skipping malformed URL (concatenated): ${url}`);
+            return;
+          }
+
+          // Normalize URL using URL constructor to fix malformed URLs
+          try {
+            const urlObj = new URL(url);
+
+            // Additional check: pathname shouldn't contain protocol strings
+            if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+              console.log(`    Skipping URL with protocol in pathname: ${url}`);
+              return;
+            }
+
+            url = urlObj.href; // Use normalized URL
+          } catch (e) {
+            console.log(`    Invalid URL in sitemap: ${url}`);
+            return; // Skip invalid URLs
+          }
+
           if (isValidPageUrl(url, baseUrl)) {
             // Extract last modified date if available
             const lastModMatch = urlBlock.match(/<lastmod>(.*?)<\/lastmod>/);
-            
+
             pages.push({
               url,
               title: getPageTitleFromUrl(url),
@@ -244,7 +382,30 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
       if (locMatches && locMatches.length > 0) {
         console.log(`    Found ${locMatches.length} <loc> tags`);
         locMatches.forEach(match => {
-          const url = match.replace(/<\/?loc>/g, '').trim();
+          let url = match.replace(/<\/?loc>/g, '').trim();
+
+          // Skip malformed URLs where another URL was concatenated into the path
+          if (url.includes('/http:') || url.includes('/https:')) {
+            console.log(`    Skipping malformed URL (concatenated): ${url}`);
+            return;
+          }
+
+          // Normalize URL using URL constructor to fix malformed URLs
+          try {
+            const urlObj = new URL(url);
+
+            // Additional check: pathname shouldn't contain protocol strings
+            if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+              console.log(`    Skipping URL with protocol in pathname: ${url}`);
+              return;
+            }
+
+            url = urlObj.href; // Use normalized URL
+          } catch (e) {
+            console.log(`    Invalid URL in sitemap: ${url}`);
+            return; // Skip invalid URLs
+          }
+
           if (isValidPageUrl(url, baseUrl)) {
             pages.push({
               url,
@@ -261,8 +422,33 @@ async function parseSingleSitemap(sitemapUrl: string, baseUrl: string, content?:
         if (cdataMatches) {
           console.log(`    Found ${cdataMatches.length} CDATA sections`);
           cdataMatches.forEach(match => {
-            const url = match.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-            if (url.startsWith('http') && isValidPageUrl(url, baseUrl)) {
+            let url = match.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+
+            if (!url.startsWith('http')) return; // Skip non-HTTP URLs
+
+            // Skip malformed URLs where another URL was concatenated into the path
+            if (url.includes('/http:') || url.includes('/https:')) {
+              console.log(`    Skipping malformed URL (concatenated): ${url}`);
+              return;
+            }
+
+            // Normalize URL using URL constructor to fix malformed URLs
+            try {
+              const urlObj = new URL(url);
+
+              // Additional check: pathname shouldn't contain protocol strings
+              if (urlObj.pathname.includes('http:') || urlObj.pathname.includes('https:')) {
+                console.log(`    Skipping URL with protocol in pathname: ${url}`);
+                return;
+              }
+
+              url = urlObj.href; // Use normalized URL
+            } catch (e) {
+              console.log(`    Invalid URL in CDATA: ${url}`);
+              return; // Skip invalid URLs
+            }
+
+            if (isValidPageUrl(url, baseUrl)) {
               pages.push({
                 url,
                 title: getPageTitleFromUrl(url),
@@ -312,21 +498,32 @@ async function discoverFromHomepage(baseUrl: string): Promise<DiscoveredPage[]> 
     linkMatches.forEach(match => {
       const hrefMatch = match.match(/href=["']([^"']+)["']/i);
       const textMatch = match.match(/>([^<]+)</);
-      
+
       if (!hrefMatch) return;
-      
-      let url = hrefMatch[1].trim();
+
+      let href = hrefMatch[1].trim();
       const linkText = textMatch ? textMatch[1].trim() : '';
-      
-      // Convert relative URLs to absolute
-      if (url.startsWith('/')) {
-        url = baseUrl + url;
-      } else if (url.startsWith('./')) {
-        url = baseUrl + url.substring(1);
-      } else if (!url.startsWith('http')) {
-        return; // Skip non-HTTP links
+
+      // Skip anchor links, mailto, tel
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
       }
-      
+
+      // Convert relative URLs to absolute using URL constructor
+      let url: string;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          // Already absolute URL
+          url = new URL(href).href;
+        } else {
+          // Relative URL - use URL constructor to resolve against base
+          url = new URL(href, baseUrl).href;
+        }
+      } catch {
+        // Invalid URL, skip
+        return;
+      }
+
       if (isValidPageUrl(url, baseUrl) && !uniqueUrls.has(url)) {
         uniqueUrls.add(url);
         pages.push({
@@ -393,17 +590,18 @@ function isValidPageUrl(url: string, baseUrl: string): boolean {
     // Must be same domain (allowing www/non-www variations)
     if (urlHostname !== baseHostname) return false;
     
-    // Skip common non-page URLs
+    // Skip common non-page URLs (but be conservative to match SEMrush)
     const skipPatterns = [
-      /\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|xml|txt)$/i,
+      /\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|xml|txt|zip|exe|dmg)$/i,
       /\/wp-admin\//,
+      /\/wp-content\/uploads\//,
       /\/admin\//,
       /\/api\//,
-      /\/feed\//,
+      /\/feed\/?$/,
       /\?.*attachment_id=/,
-      /#/
+      /#.+$/ // Only skip URLs with fragments, not just #
     ];
-    
+
     return !skipPatterns.some(pattern => pattern.test(url));
     
   } catch {
@@ -433,63 +631,82 @@ function getPageTitleFromUrl(url: string): string {
 
 // Multi-level crawling of internal links
 async function crawlInternalLinks(
-  baseUrl: string, 
-  remainingSlots: number, 
-  alreadyFound: Map<string, DiscoveredPage>
+  baseUrl: string,
+  remainingSlots: number,
+  alreadyFound: Map<string, DiscoveredPage>,
+  maxDepth: number = 5, // Configurable depth: 2 for quick mode, 5 for full mode
+  urlsPerDepth: number = 50, // Configurable URLs per depth: 20 for quick, 50 for full
+  onProgress?: (progress: number, message: string) => void
 ): Promise<DiscoveredPage[]> {
   const newPages: DiscoveredPage[] = [];
-  
+
   if (remainingSlots <= 0) return newPages;
-  
+
   // Get key pages to crawl for more links
   const keyPagesToCrawl = [
     baseUrl,
     `${baseUrl}/services`,
     `${baseUrl}/services/`,
-    `${baseUrl}/products`, 
+    `${baseUrl}/products`,
     `${baseUrl}/products/`,
     `${baseUrl}/blog`,
     `${baseUrl}/blog/`,
     `${baseUrl}/about`,
+    `${baseUrl}/about/`,
+    `${baseUrl}/team`,
+    `${baseUrl}/team/`,
+    `${baseUrl}/about/team`,
+    `${baseUrl}/about/team/`,
+    `${baseUrl}/sectors`,
+    `${baseUrl}/sectors/`,
     `${baseUrl}/portfolio`,
     `${baseUrl}/work`
   ];
-  
-  const maxDepth = 2; // Limit crawling depth
+
   const processedUrls = new Set<string>();
-  
+
   for (let depth = 0; depth < maxDepth && newPages.length < remainingSlots; depth++) {
-    console.log(`  Crawling depth ${depth + 1}...`);
-    
-    const urlsToProcess = depth === 0 ? keyPagesToCrawl : 
+    console.log(`  Crawling depth ${depth + 1}/${maxDepth}...`);
+
+    // Calculate progress percentage (45-85% range, distributed across depths)
+    const depthProgress = 45 + Math.floor((40 / maxDepth) * depth);
+    onProgress?.(depthProgress, `Crawling depth ${depth + 1}/${maxDepth}...`);
+
+    const urlsToProcess = depth === 0 ? keyPagesToCrawl :
       Array.from(alreadyFound.keys())
         .concat(newPages.map(p => p.url))
         .filter(url => !processedUrls.has(url))
-        .slice(0, 10); // Limit URLs per depth
-    
+        .slice(0, urlsPerDepth);
+
+    console.log(`  Processing ${urlsToProcess.length} URLs at depth ${depth + 1}`);
+    const depthStartCount = newPages.length;
+
     for (const pageUrl of urlsToProcess) {
       if (processedUrls.has(pageUrl) || newPages.length >= remainingSlots) continue;
-      
+
       processedUrls.add(pageUrl);
-      
+
       try {
         const pageLinks = await extractLinksFromPage(pageUrl, baseUrl);
-        
+
         pageLinks.forEach(page => {
-          if (newPages.length < remainingSlots && 
-              !alreadyFound.has(page.url) && 
+          if (newPages.length < remainingSlots &&
+              !alreadyFound.has(page.url) &&
               !newPages.find(p => p.url === page.url)) {
             newPages.push(page);
           }
         });
-        
+
         // Small delay to be respectful
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
       } catch (error) {
         console.log(`Could not crawl ${pageUrl}:`, error);
       }
     }
+
+    const pagesFoundThisDepth = newPages.length - depthStartCount;
+    console.log(`  ✓ Depth ${depth + 1} complete: found ${pagesFoundThisDepth} new pages (${newPages.length} total)`);
   }
   
   return newPages;
@@ -521,29 +738,40 @@ async function extractLinksFromPage(pageUrl: string, baseUrl: string): Promise<D
     linkMatches.forEach(match => {
       const hrefMatch = match.match(/href=["']([^"']+)["']/i);
       if (!hrefMatch) return;
-      
-      let url = hrefMatch[1].trim();
-      
-      // Convert relative URLs to absolute
-      if (url.startsWith('/')) {
-        url = baseUrl + url;
-      } else if (url.startsWith('./')) {
-        url = baseUrl + url.substring(1);
-      } else if (!url.startsWith('http')) {
-        return; // Skip other types
+
+      let href = hrefMatch[1].trim();
+
+      // Skip anchor links, mailto, tel
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
       }
-      
+
+      // Convert relative URLs to absolute using URL constructor
+      let url: string;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          // Already absolute URL
+          url = new URL(href).href;
+        } else {
+          // Relative URL - use URL constructor to resolve against base
+          url = new URL(href, baseUrl).href;
+        }
+      } catch {
+        // Invalid URL, skip
+        return;
+      }
+
       if (isValidPageUrl(url, baseUrl) && !uniqueUrls.has(url)) {
         uniqueUrls.add(url);
-        
+
         // Try to get a better title from the link text
         const linkTextMatch = match.match(/>([^<]+)</);
         const linkText = linkTextMatch ? linkTextMatch[1].trim() : '';
-        
+
         pages.push({
           url,
-          title: linkText && linkText.length > 2 && linkText.length < 100 
-            ? linkText 
+          title: linkText && linkText.length > 2 && linkText.length < 100
+            ? linkText
             : getPageTitleFromUrl(url),
           source: 'internal-link'
         });

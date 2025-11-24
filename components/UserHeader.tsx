@@ -1,20 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import BuyCreditsModal from './BuyCreditsModal'
 
 interface UserHeaderProps {
   user: {
     username: string
-    credits: number
   }
 }
 
 export default function UserHeader({ user }: UserHeaderProps) {
   const router = useRouter()
-  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false)
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -22,73 +18,38 @@ export default function UserHeader({ user }: UserHeaderProps) {
   }
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm mb-8">
+    <div className="bg-[#42499c] shadow-sm mb-8">
       <div className="container-pmw">
-        <div className="py-4 flex items-center justify-between">
-          {/* Welcome Message */}
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Welcome back, <span className="text-[#42499c]">{user.username}</span>!
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Run comprehensive websites audits across multiple categories
-            </p>
+        <div className="py-3 flex items-center justify-between">
+          {/* Welcome Message - Left */}
+          <div className="text-sm text-white">
+            Welcome back, <span className="font-medium">{user.username}</span>
           </div>
 
-          {/* Credits & Actions */}
+          {/* Actions - Right */}
           <div className="flex items-center gap-4">
-            {/* Credit Balance - Clickable */}
-            <button
-              onClick={() => setShowBuyCreditsModal(true)}
-              className="bg-gradient-to-r from-[#42499c] to-[#353f85] text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <div className="flex items-center gap-2">
-                <div>
-                  <div className="text-xs opacity-90">Credits</div>
-                  <div className="text-lg font-bold">{user.credits.toLocaleString()}</div>
-                </div>
-                <svg className="w-4 h-4 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-            </button>
-
             {/* Logout Button */}
             <button
               onClick={handleSignOut}
-              className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center gap-2"
+              className="text-white hover:text-gray-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
               Logout
+            </button>
+
+            {/* Settings Icon */}
+            <button
+              onClick={() => router.push('/settings')}
+              className="text-white hover:text-gray-200 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              aria-label="Settings"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </button>
           </div>
         </div>
       </div>
-
-      {/* Low Credits Warning */}
-      {user.credits < 20 && user.username !== 'james.hovey' && (
-        <div className="bg-white border-t-2 border-[#42499c] py-8">
-          <div className="container-pmw">
-            <div className="flex items-center gap-3 text-sm">
-              <svg className="w-5 h-5 text-[#42499c]" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span className="text-black">
-                <strong>Low credit balance:</strong> You have {user.credits} credits remaining. Consider purchasing more credits to continue running audits.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Buy Credits Modal */}
-      <BuyCreditsModal
-        isOpen={showBuyCreditsModal}
-        onClose={() => setShowBuyCreditsModal(false)}
-        currentCredits={user.credits}
-      />
     </div>
   )
 }

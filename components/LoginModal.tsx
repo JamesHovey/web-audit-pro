@@ -31,14 +31,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
       if (result?.error) {
         setError('Invalid username or password')
+        setIsLoading(false)
       } else if (result?.ok) {
-        onClose()
-        router.push('/dashboard')
-        router.refresh()
+        // Use full page reload to ensure session is properly established
+        window.location.href = '/dashboard'
       }
     } catch (_error) {
       setError('An error occurred. Please try again.')
-    } finally {
       setIsLoading(false)
     }
   }

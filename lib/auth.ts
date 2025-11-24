@@ -54,30 +54,16 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           username: user.username,
           email: user.email,
-          credits: user.credits,
         } as any
       }
     })
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // Only set user data on initial sign in
       if (user) {
         token.id = user.id
         token.username = (user as any).username
-        token.credits = (user as any).credits
-      }
-
-      // Refresh user credits on each request
-      if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { credits: true, username: true }
-        })
-
-        if (dbUser) {
-          token.credits = dbUser.credits
-          token.username = dbUser.username
-        }
       }
 
       return token
@@ -86,7 +72,6 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         (session.user as any).id = token.id as string
         (session.user as any).username = token.username as string
-        (session.user as any).credits = token.credits as number
       }
       return session
     }

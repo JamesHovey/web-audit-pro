@@ -1,8 +1,9 @@
 "use client"
 
 import React, { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, ExternalLink, Star, CheckCircle, Info, Filter, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, ExternalLink, Star, CheckCircle, Info, Filter, X, Clock } from 'lucide-react'
 import { PluginMetadata, getInstalledPlugins, getNonInstalledPlugins } from '@/lib/pluginRecommendations'
+import { getPluginConfigSteps } from '@/lib/wordpressPluginSteps'
 
 interface PluginRecommendationTableProps {
   plugins: PluginMetadata[]
@@ -18,12 +19,15 @@ type CostFilter = 'all' | 'Free' | 'Freemium' | 'Paid'
 export default function PluginRecommendationTable({
   plugins,
   installedPlugins,
+  issueType,
   mode = 'recommended'
 }: PluginRecommendationTableProps) {
   const [sortField, setSortField] = useState<SortField>('rating')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [costFilter, setCostFilter] = useState<CostFilter>('all')
   const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   // Check if a plugin is installed - not currently used in UI but kept for potential future use
   const _isInstalled = (plugin: PluginMetadata): boolean => {
@@ -80,6 +84,19 @@ export default function PluginRecommendationTable({
     return sorted
   }, [filteredByMode, costFilter, sortField, sortDirection])
 
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedAndFilteredPlugins.length / itemsPerPage)
+  const paginatedPlugins = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return sortedAndFilteredPlugins.slice(startIndex, endIndex)
+  }, [sortedAndFilteredPlugins, currentPage, itemsPerPage])
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [costFilter, sortField, sortDirection])
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -107,12 +124,12 @@ export default function PluginRecommendationTable({
     }
   }
 
-  if (sortedAndFilteredPlugins.length === 0 && mode === 'installed') {
+  if (filteredByMode.length === 0 && mode === 'installed') {
     // No installed plugins - don't show this section
     return null
   }
 
-  if (sortedAndFilteredPlugins.length === 0 && mode === 'recommended') {
+  if (filteredByMode.length === 0 && mode === 'recommended') {
     // No better alternatives available
     return null
   }
@@ -207,7 +224,26 @@ export default function PluginRecommendationTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {sortedAndFilteredPlugins.map((plugin) => (
+            {sortedAndFilteredPlugins.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center">
+                  <div className="text-gray-500">
+                    <p className="font-medium mb-1">No plugins found</p>
+                    <p className="text-sm">
+                      No {costFilter !== 'all' ? costFilter.toLowerCase() : ''} plugins match this filter.
+                      {costFilter !== 'all' && (
+                        <button
+                          onClick={() => setCostFilter('all')}
+                          className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedPlugins.map((plugin) => (
               <React.Fragment key={plugin.slug}>
                 <tr className={`hover:bg-gray-50 ${mode === 'installed' ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3">
@@ -282,15 +318,70 @@ export default function PluginRecommendationTable({
                               Follow these steps to optimize <strong>{plugin.name}</strong> and resolve this issue:
                             </p>
                             <div className="space-y-3">
-                              {/* We'll add specific configuration steps based on the issue type */}
-                              <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-500">
-                                <p className="text-sm text-gray-800">
-                                  <strong>Configuration steps will be displayed here based on the issue type.</strong>
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">
-                                  {plugin.bestFor}
-                                </p>
-                              </div>
+                              {(() => {
+                                const configSteps = getPluginConfigSteps(plugin.slug, issueType);
+
+                                if (configSteps) {
+                                  return (
+                                    <>
+                                      {/* Estimated Time */}
+                                      <div className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 px-3 py-2 rounded">
+                                        <Clock className="w-4 h-4 text-blue-600" />
+                                        <span className="font-medium">Estimated time:</span>
+                                        <span>{configSteps.estimatedTime}</span>
+                                      </div>
+
+                                      {/* Configuration Steps */}
+                                      <div className="bg-white p-4 rounded-lg border border-blue-200">
+                                        <ol className="space-y-2 list-decimal list-inside">
+                                          {configSteps.steps.map((step, index) => (
+                                            <li key={index} className="text-sm text-gray-800 leading-relaxed">
+                                              <span className="ml-1">{step}</span>
+                                            </li>
+                                          ))}
+                                        </ol>
+                                      </div>
+
+                                      {/* Video/Screenshot links if available */}
+                                      {(configSteps.videoUrl || configSteps.screenshots) && (
+                                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                                          <p className="text-xs font-medium text-green-800 mb-2">📚 Additional Resources:</p>
+                                          {configSteps.videoUrl && (
+                                            <a
+                                              href={configSteps.videoUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-green-700 hover:text-green-900 underline block"
+                                            >
+                                              🎥 Watch video tutorial
+                                            </a>
+                                          )}
+                                          {configSteps.screenshots && configSteps.screenshots.length > 0 && (
+                                            <div className="text-xs text-green-700 mt-1">
+                                              📸 {configSteps.screenshots.length} screenshot{configSteps.screenshots.length > 1 ? 's' : ''} available
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                } else {
+                                  // Fallback when no specific steps found
+                                  return (
+                                    <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-500">
+                                      <p className="text-sm text-gray-800">
+                                        <strong>No specific configuration steps available for this issue type.</strong>
+                                      </p>
+                                      <p className="text-xs text-gray-600 mt-2">
+                                        {plugin.bestFor}
+                                      </p>
+                                      <p className="text-xs text-gray-600 mt-2">
+                                        Please refer to the plugin&apos;s documentation for configuration guidance.
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                              })()}
                             </div>
                           </div>
 
@@ -421,17 +512,62 @@ export default function PluginRecommendationTable({
         </table>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-3 border-t">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded text-sm ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Previous
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded text-sm ${
+                  currentPage === pageNum
+                    ? 'bg-blue-600 text-white font-medium'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded text-sm ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="text-xs text-gray-500 border-t pt-3">
         {mode === 'installed' ? (
           <>
-            Showing {sortedAndFilteredPlugins.length} installed plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
+            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, sortedAndFilteredPlugins.length)} of {sortedAndFilteredPlugins.length} installed plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
             {costFilter !== 'all' && ` (filtered by ${costFilter})`}
             . Sorted by {sortField} ({sortDirection === 'desc' ? 'high to low' : 'low to high'}).
           </>
         ) : (
           <>
-            Showing {sortedAndFilteredPlugins.length} recommended plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
+            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, sortedAndFilteredPlugins.length)} of {sortedAndFilteredPlugins.length} recommended plugin{sortedAndFilteredPlugins.length !== 1 ? 's' : ''}
             {costFilter !== 'all' && ` (filtered by ${costFilter})`}
             . Sorted by {sortField} ({sortDirection === 'desc' ? 'high to low' : 'low to high'}).
             {getInstalledPlugins(plugins, installedPlugins).length > 0 && (
