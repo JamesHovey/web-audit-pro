@@ -155,7 +155,7 @@ export function AuditForm() {
   const [error, setError] = useState("")
   const [showErrorTooltip, setShowErrorTooltip] = useState(false)
   const [isValidUrl, setIsValidUrl] = useState(false)
-  const [pageLimit, setPageLimit] = useState<number | null>(50) // 50 by default, null for unlimited
+  const [pageLimit, setPageLimit] = useState<number | null>(null) // null = unlimited (analyze all pages by default)
   const [showPageLimitControls, setShowPageLimitControls] = useState(false)
   const [allPagesCount, setAllPagesCount] = useState<number | null>(null) // Count of discovered pages
   const [allDiscoveredPagesList, setAllDiscoveredPagesList] = useState<{url: string}[]>([]) // Full list of discovered pages
