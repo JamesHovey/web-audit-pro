@@ -211,6 +211,14 @@ interface DnsError {
   discoveredVia: 'sitemap' | 'crawl' | 'link_check'; // How this URL was discovered
 }
 
+interface BrokenImage {
+  imageUrl: string; // The image URL that failed
+  sourcePage: string; // The page where this image was found
+  errorType: '4xx' | '5xx' | 'dns' | 'timeout' | 'invalid'; // Type of error
+  statusCode?: number; // HTTP status code (if applicable)
+  errorMessage?: string; // Detailed error message
+}
+
 interface PageDiscoveryResult {
   totalPages: number;
   pages: DiscoveredPage[];
@@ -220,6 +228,7 @@ interface PageDiscoveryResult {
   crawlDepth: number;
   invalidUrls: InvalidUrl[]; // Track malformed URLs that couldn't be parsed
   dnsErrors: DnsError[]; // Track URLs that failed DNS resolution
+  brokenImages: BrokenImage[]; // Track broken images (404s, DNS errors, etc.)
 }
 
 export class RealPageDiscovery {
@@ -229,6 +238,7 @@ export class RealPageDiscovery {
   private foundPages: DiscoveredPage[] = [];
   private invalidUrls: InvalidUrl[] = []; // Track malformed URLs
   private dnsErrors: DnsError[] = []; // Track DNS resolution failures
+  private brokenImages: BrokenImage[] = []; // Track broken images
 
   async discoverPages(baseUrl: string): Promise<PageDiscoveryResult> {
     console.log(`🔍 Discovering real pages for: ${baseUrl}`);
@@ -237,6 +247,7 @@ export class RealPageDiscovery {
     this.foundPages = [];
     this.invalidUrls = []; // Clear invalid URLs tracking
     this.dnsErrors = []; // Clear DNS errors tracking
+    this.brokenImages = []; // Clear broken images tracking
 
     const url = new URL(baseUrl);
     const domain = url.hostname;
@@ -266,6 +277,7 @@ export class RealPageDiscovery {
 
       console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
       console.log(`   Found ${this.dnsErrors.length} DNS resolution errors`);
+      console.log(`   Found ${this.brokenImages.length} broken images`);
 
       return {
         totalPages: allPages.length,
@@ -275,7 +287,8 @@ export class RealPageDiscovery {
         discoveryMethod: 'sitemap',
         crawlDepth: 0,
         invalidUrls: this.invalidUrls,
-        dnsErrors: this.dnsErrors
+        dnsErrors: this.dnsErrors,
+        brokenImages: this.brokenImages
       };
     }
 
@@ -285,6 +298,7 @@ export class RealPageDiscovery {
 
     console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
     console.log(`   Found ${this.dnsErrors.length} DNS resolution errors`);
+    console.log(`   Found ${this.brokenImages.length} broken images`);
 
     return {
       totalPages: crawlResult.pages.length,
@@ -293,7 +307,8 @@ export class RealPageDiscovery {
       discoveryMethod: 'intelligent_crawl',
       crawlDepth: crawlResult.depth,
       invalidUrls: this.invalidUrls,
-      dnsErrors: this.dnsErrors
+      dnsErrors: this.dnsErrors,
+      brokenImages: this.brokenImages
     };
   }
 
@@ -762,6 +777,80 @@ export class RealPageDiscovery {
   }
 
   /**
+   * Check image URL status for broken image detection
+   * Used to validate images found on pages
+   */
+  private async checkImageStatus(imageUrl: string, sourcePage: string): Promise<void> {
+    try {
+      const response = await fetch(imageUrl, {
+        method: 'HEAD', // Use HEAD for faster checks
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+        },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(5000) // 5 second timeout for images
+      });
+
+      // Check for 4XX errors (404, 403, etc.)
+      if (response.status >= 400 && response.status < 500) {
+        console.log(`🖼️ Broken image (${response.status}): ${imageUrl}`);
+        this.brokenImages.push({
+          imageUrl,
+          sourcePage,
+          errorType: '4xx',
+          statusCode: response.status,
+          errorMessage: `HTTP ${response.status} Error`
+        });
+        return;
+      }
+
+      // Check for 5XX errors (500, 503, etc.)
+      if (response.status >= 500) {
+        console.log(`🖼️ Broken image (${response.status}): ${imageUrl}`);
+        this.brokenImages.push({
+          imageUrl,
+          sourcePage,
+          errorType: '5xx',
+          statusCode: response.status,
+          errorMessage: `HTTP ${response.status} Server Error`
+        });
+        return;
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Check if it's a DNS error
+      if (isDnsError(error)) {
+        console.log(`🖼️ Broken image (DNS): ${imageUrl}`);
+        this.brokenImages.push({
+          imageUrl,
+          sourcePage,
+          errorType: 'dns',
+          errorMessage: errorMessage
+        });
+        return;
+      }
+
+      // Check if it's a timeout
+      if (errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('aborted')) {
+        console.log(`🖼️ Broken image (timeout): ${imageUrl}`);
+        this.brokenImages.push({
+          imageUrl,
+          sourcePage,
+          errorType: 'timeout',
+          errorMessage: 'Request timeout'
+        });
+        return;
+      }
+
+      // Other network errors - log but don't track (might be temporary)
+      console.log(`⚠️ Could not check image ${imageUrl}: ${errorMessage}`);
+    }
+  }
+
+  /**
    * Lightweight status check for a URL without fetching full content
    * Used to check many links quickly for 4XX/5XX errors
    */
@@ -1012,6 +1101,58 @@ export class RealPageDiscovery {
       // Count images
       const imageMatches = html.match(/<img[^>]+>/gi) || [];
       const imageCount = imageMatches.length;
+
+      // Extract and validate image URLs for broken image detection
+      const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+      const imageUrls = new Set<string>(); // Track unique image URLs
+      let imageMatch;
+
+      while ((imageMatch = imageRegex.exec(html)) !== null) {
+        const imgSrc = imageMatch[1];
+        if (!imgSrc || imgSrc.startsWith('data:') || imgSrc.startsWith('#')) {
+          continue; // Skip data URIs and anchors
+        }
+
+        try {
+          // Normalize image URL
+          let imageUrl: string;
+          if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
+            imageUrl = new URL(imgSrc).href;
+          } else {
+            imageUrl = new URL(imgSrc, baseUrl).href;
+          }
+
+          // Only check internal images (same domain)
+          const imageDomain = new URL(imageUrl).hostname;
+          if (imageDomain === baseUrl.hostname && !imageUrls.has(imageUrl)) {
+            imageUrls.add(imageUrl);
+          }
+        } catch (error) {
+          // Invalid image URL - track it
+          console.log(`🖼️ Invalid image URL: ${imgSrc}`);
+          this.brokenImages.push({
+            imageUrl: imgSrc,
+            sourcePage: url,
+            errorType: 'invalid',
+            errorMessage: 'Invalid URL syntax'
+          });
+        }
+      }
+
+      // Check status of internal images (in batches to avoid overwhelming the server)
+      if (imageUrls.size > 0) {
+        console.log(`   Checking ${imageUrls.size} internal images on ${url}`);
+        const imageUrlArray = Array.from(imageUrls);
+        const batchSize = 5; // Check 5 images at a time
+        const maxToCheck = 20; // Limit to 20 images per page to avoid excessive requests
+
+        for (let i = 0; i < Math.min(imageUrlArray.length, maxToCheck); i += batchSize) {
+          const batch = imageUrlArray.slice(i, i + batchSize);
+          await Promise.allSettled(
+            batch.map(imageUrl => this.checkImageStatus(imageUrl, url))
+          );
+        }
+      }
 
       // Find internal links
       const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;

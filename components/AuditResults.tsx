@@ -3896,6 +3896,92 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Broken Images Table */}
+          {results.brokenImages && results.brokenImages.length > 0 && (
+            <div id="broken-images-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-rose-600">🖼️ Broken Internal Images ({results.brokenImages.length})</h4>
+              <div className="bg-rose-50 border border-rose-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-rose-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-rose-800">Image URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-rose-800">Source Page</th>
+                        <th className="px-4 py-3 text-center font-medium text-rose-800">Error Type</th>
+                        <th className="px-4 py-3 text-left font-medium text-rose-800">Fix Required</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-rose-200">
+                      {results.brokenImages.slice(0, 30).map((brokenImage: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-rose-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={brokenImage.imageUrl as string}>
+                              <code className="text-xs bg-rose-100 px-2 py-1 rounded text-rose-900 break-all">
+                                {(brokenImage.imageUrl as string).substring(0, 50)}
+                                {(brokenImage.imageUrl as string).length > 50 ? '...' : ''}
+                              </code>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Tooltip content={brokenImage.sourcePage as string}>
+                              <a
+                                href={brokenImage.sourcePage as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {(brokenImage.sourcePage as string).substring(0, 40)}
+                                {(brokenImage.sourcePage as string).length > 40 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              brokenImage.errorType === '4xx' ? 'bg-red-100 text-red-700' :
+                              brokenImage.errorType === '5xx' ? 'bg-orange-100 text-orange-700' :
+                              brokenImage.errorType === 'dns' ? 'bg-purple-100 text-purple-700' :
+                              brokenImage.errorType === 'timeout' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {brokenImage.statusCode
+                                ? `HTTP ${brokenImage.statusCode}`
+                                : brokenImage.errorType === 'dns'
+                                  ? 'DNS Error'
+                                  : brokenImage.errorType === 'timeout'
+                                    ? 'Timeout'
+                                    : 'Invalid URL'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">
+                            {brokenImage.errorType === '4xx' && brokenImage.statusCode === 404
+                              ? 'Upload missing image or update image URL'
+                              : brokenImage.errorType === '4xx' && brokenImage.statusCode === 403
+                                ? 'Fix image permissions or authentication'
+                                : brokenImage.errorType === '5xx'
+                                  ? 'Contact hosting provider - server error'
+                                  : brokenImage.errorType === 'dns'
+                                    ? 'Check DNS configuration for image domain'
+                                    : brokenImage.errorType === 'timeout'
+                                      ? 'Image server too slow or unreachable'
+                                      : 'Fix malformed image URL syntax'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.brokenImages.length > 30 && (
+                  <div className="px-4 py-2 bg-rose-100 text-sm text-rose-700">
+                    Showing 30 of {results.brokenImages.length} broken images
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                🖼️ <strong>Image Accessibility Issue:</strong> These internal images failed to load due to various errors. Broken images hurt user experience, page performance, and SEO. Search engines may penalize pages with many broken images. Common causes include: deleted files, incorrect file paths, permission issues, or server problems. Replace or remove broken images to improve site quality.
+              </p>
+            </div>
+          )}
+
           {/* Permanent Redirects Table */}
           {results.permanentRedirects && results.permanentRedirects.length > 0 && (
             <div id="permanent-redirects-table" className="mb-6">

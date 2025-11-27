@@ -286,6 +286,13 @@ interface TechnicalAuditResult {
     errorMessage: string;
     discoveredVia: 'sitemap' | 'crawl' | 'link_check';
   }>;
+  brokenImages: Array<{
+    imageUrl: string;
+    sourcePage: string;
+    errorType: '4xx' | '5xx' | 'dns' | 'timeout' | 'invalid';
+    statusCode?: number;
+    errorMessage?: string;
+  }>;
   permanentRedirects: Array<{
     url: string;
     statusCode: number;
@@ -440,6 +447,7 @@ export async function performTechnicalAudit(
     pages404: [],
     invalidUrls: [],
     dnsErrors: [],
+    brokenImages: [],
     permanentRedirects: [],
     duplicateTitles: [],
     duplicateDescriptions: [],
@@ -953,6 +961,10 @@ export async function performTechnicalAudit(
     // Track DNS resolution errors
     result.dnsErrors = pageDiscovery.dnsErrors || [];
     console.log(`🔴 Found ${result.dnsErrors.length} DNS resolution errors`);
+
+    // Track broken images
+    result.brokenImages = pageDiscovery.brokenImages || [];
+    console.log(`🖼️  Found ${result.brokenImages.length} broken images`);
 
     // Detect duplicate titles
     console.log('🔍 Checking for duplicate titles...');
