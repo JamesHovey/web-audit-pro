@@ -104,12 +104,30 @@ export class RealPageDiscovery {
 
     // Step 1: Try to find and parse sitemap
     const sitemapResult = await this.parseSitemap(url);
-    
+
     if (sitemapResult.pages.length > 0) {
       console.log(`✅ Found ${sitemapResult.pages.length} pages from sitemap`);
+
+      // CRITICAL: Also check internal links from sitemap pages to find broken links
+      // Sitemaps don't include 404s, but pages in the sitemap may link to broken pages
+      console.log(`🔍 Checking internal links from sitemap pages for 4XX/5XX errors...`);
+      const allInternalLinks = await this.collectInternalLinksFromSitemapPages(sitemapResult.pages, domain);
+
+      // Find links not in sitemap
+      const sitemapUrls = new Set(sitemapResult.pages.map(p => p.url));
+      const uncheckedLinks = Array.from(allInternalLinks).filter(link => !sitemapUrls.has(link));
+
+      console.log(`   Found ${uncheckedLinks.length} internal links not in sitemap to check`);
+
+      // Check status of links not in sitemap (they might be broken)
+      const additionalPages = await this.checkLinksForErrors(uncheckedLinks);
+      console.log(`   Found ${additionalPages.length} pages with 4XX/5XX errors`);
+
+      const allPages = [...sitemapResult.pages, ...additionalPages];
+
       return {
-        totalPages: sitemapResult.pages.length,
-        pages: sitemapResult.pages,
+        totalPages: allPages.length,
+        pages: allPages,
         sitemapUrl: sitemapResult.sitemapUrl,
         sitemapStatus: 'found',
         discoveryMethod: 'sitemap',
@@ -417,6 +435,112 @@ export class RealPageDiscovery {
 
     console.log(`✅ Total pages found (including status checks): ${foundPages.length}`);
     return { pages: foundPages, depth: currentDepth };
+  }
+
+  /**
+   * Collect all internal links from a sample of sitemap pages
+   * Used to find broken links that aren't in the sitemap
+   */
+  private async collectInternalLinksFromSitemapPages(
+    sitemapPages: DiscoveredPage[],
+    domain: string
+  ): Promise<Set<string>> {
+    const allLinks = new Set<string>();
+
+    // Sample first 20 pages to extract links (balance between coverage and performance)
+    const pagesToSample = sitemapPages.slice(0, 20);
+
+    console.log(`   Extracting links from ${pagesToSample.length} sitemap pages...`);
+
+    for (const page of pagesToSample) {
+      try {
+        // Fetch page HTML
+        const response = await fetch(page.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          signal: AbortSignal.timeout(this.timeout)
+        });
+
+        if (!response.ok) continue;
+
+        const html = await response.text();
+
+        // Extract internal links
+        const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+        let linkMatch;
+
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
+          const href = linkMatch[1];
+          if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+            continue;
+          }
+
+          try {
+            const baseUrl = new URL(page.url);
+            let linkUrl: string;
+
+            if (href.startsWith('http://') || href.startsWith('https://')) {
+              linkUrl = new URL(href).href;
+            } else {
+              linkUrl = new URL(href, baseUrl).href;
+            }
+
+            const linkDomain = new URL(linkUrl).hostname;
+            if (linkDomain === domain) {
+              allLinks.add(linkUrl);
+            }
+          } catch {
+            // Invalid URL, skip
+          }
+        }
+      } catch (error) {
+        // Failed to fetch page, continue with others
+        console.log(`   Could not extract links from ${page.url}`);
+      }
+    }
+
+    return allLinks;
+  }
+
+  /**
+   * Check a list of URLs for 4XX/5XX errors
+   * Returns pages with error status codes
+   */
+  private async checkLinksForErrors(urls: string[]): Promise<DiscoveredPage[]> {
+    const errorPages: DiscoveredPage[] = [];
+
+    // Check in batches to avoid overwhelming the server
+    const batchSize = 10;
+    const maxToCheck = 200; // Limit total checks
+
+    for (let i = 0; i < urls.length && i < maxToCheck; i += batchSize) {
+      const batch = urls.slice(i, i + batchSize);
+      const statusChecks = await Promise.allSettled(
+        batch.map(url => this.checkLinkStatus(url))
+      );
+
+      statusChecks.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const statusInfo = result.value;
+          // Only add pages with errors (4XX/5XX)
+          if (statusInfo.statusCode >= 400) {
+            console.log(`   ⚠️  Found ${statusInfo.statusCode} error: ${statusInfo.url}`);
+            errorPages.push({
+              url: statusInfo.url,
+              title: `HTTP ${statusInfo.statusCode} Error`,
+              statusCode: statusInfo.statusCode,
+              source: 'sitemap',
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0
+            });
+          }
+        }
+      });
+    }
+
+    return errorPages;
   }
 
   /**

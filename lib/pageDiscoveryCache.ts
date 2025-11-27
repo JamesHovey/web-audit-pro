@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v6' // v6: Force fresh discovery with improved 4XX/5XX detection (v1.5.59)
+const CACHE_VERSION = 'v7' // v7: Check ALL discovered links, not just crawled pages (v1.5.61)
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
