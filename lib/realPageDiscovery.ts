@@ -49,14 +49,56 @@ function hasH1Tag(html: string): boolean {
 function hasMetaDescription(html: string): boolean {
   // Check for standard meta description
   const hasStandardMeta = /<meta\s+name=["']description["'][^>]*>/i.test(html);
-  
+
   // Check for Open Graph description
   const hasOgDescription = /<meta\s+property=["']og:description["'][^>]*>/i.test(html);
-  
+
   // Check for Twitter description
   const hasTwitterDescription = /<meta\s+name=["']twitter:description["'][^>]*>/i.test(html);
-  
+
   return hasStandardMeta || hasOgDescription || hasTwitterDescription;
+}
+
+// Extract meta description text for duplicate detection
+function extractMetaDescription(html: string): string | undefined {
+  // Try standard meta description first
+  const standardMatch = html.match(/<meta\s+name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+  if (standardMatch && standardMatch[1]) {
+    return standardMatch[1].trim();
+  }
+
+  // Try content before name attribute
+  const altMatch = html.match(/<meta\s+content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/i);
+  if (altMatch && altMatch[1]) {
+    return altMatch[1].trim();
+  }
+
+  // Try Open Graph description
+  const ogMatch = html.match(/<meta\s+property=["']og:description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+  if (ogMatch && ogMatch[1]) {
+    return ogMatch[1].trim();
+  }
+
+  // Try Twitter description
+  const twitterMatch = html.match(/<meta\s+name=["']twitter:description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+  if (twitterMatch && twitterMatch[1]) {
+    return twitterMatch[1].trim();
+  }
+
+  return undefined;
+}
+
+// Extract H1 text for duplicate detection
+function extractH1(html: string): string | undefined {
+  const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+  if (h1Match && h1Match[1]) {
+    // Remove HTML tags and normalize whitespace
+    return h1Match[1]
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  }
+  return undefined;
 }
 
 interface DiscoveredPage {
@@ -76,6 +118,8 @@ interface DiscoveredPage {
   originalUrl?: string; // Original URL before redirect (if redirected)
   finalUrl?: string; // Final URL after redirect (if redirected)
   redirectStatusCode?: number; // 301, 302, 307, or 308
+  description?: string; // Actual meta description text for duplicate detection
+  h1?: string; // Actual H1 text for duplicate detection
 }
 
 interface PageDiscoveryResult {
@@ -301,7 +345,9 @@ export class RealPageDiscovery {
           hasH1: pageAnalysis.hasH1,
           imageCount: pageAnalysis.imageCount,
           linkCount: pageAnalysis.linkCount,
-          finalUrl: pageAnalysis.finalUrl // Include redirect destination
+          finalUrl: pageAnalysis.finalUrl, // Include redirect destination
+          description: pageAnalysis.description, // Include meta description for duplicate detection
+          h1: pageAnalysis.h1 // Include H1 for duplicate detection
         });
       } catch (pageError) {
         // Log the error but continue parsing remaining URLs
@@ -349,7 +395,9 @@ export class RealPageDiscovery {
           hasH1: pageAnalysis.hasH1,
           imageCount: pageAnalysis.imageCount,
           linkCount: pageAnalysis.linkCount,
-          finalUrl: pageAnalysis.finalUrl // Include redirect destination
+          finalUrl: pageAnalysis.finalUrl, // Include redirect destination
+          description: pageAnalysis.description, // Include meta description for duplicate detection
+          h1: pageAnalysis.h1 // Include H1 for duplicate detection
         });
 
         // Log non-200 status codes
@@ -427,7 +475,9 @@ export class RealPageDiscovery {
                 hasDescription: false,
                 hasH1: false,
                 imageCount: 0,
-                linkCount: 0
+                linkCount: 0,
+                description: undefined,
+                h1: undefined
               });
             }
           }
@@ -556,7 +606,9 @@ export class RealPageDiscovery {
               hasDescription: false,
               hasH1: false,
               imageCount: 0,
-              linkCount: 0
+              linkCount: 0,
+              description: undefined,
+              h1: undefined
             });
           }
         }
@@ -613,6 +665,8 @@ export class RealPageDiscovery {
     linkCount: number;
     internalLinks: string[];
     finalUrl?: string; // For tracking redirect destinations
+    description?: string; // Actual meta description text for duplicate detection
+    h1?: string; // Actual H1 text for duplicate detection
   }> {
     try {
       let html: string;
@@ -662,7 +716,9 @@ export class RealPageDiscovery {
               hasH1: false,
               imageCount: 0,
               linkCount: 0,
-              internalLinks: []
+              internalLinks: [],
+              description: undefined,
+              h1: undefined
             };
           }
 
@@ -694,7 +750,9 @@ export class RealPageDiscovery {
                 hasH1: false,
                 imageCount: 0,
                 linkCount: 0,
-                internalLinks: []
+                internalLinks: [],
+                description: undefined,
+                h1: undefined
               };
             }
           } else {
@@ -725,7 +783,9 @@ export class RealPageDiscovery {
             hasH1: false,
             imageCount: 0,
             linkCount: 0,
-            internalLinks: []
+            internalLinks: [],
+            description: undefined,
+            h1: undefined
           };
         }
 
@@ -761,7 +821,9 @@ export class RealPageDiscovery {
               hasH1: false,
               imageCount: 0,
               linkCount: 0,
-              internalLinks: []
+              internalLinks: [],
+              description: undefined,
+              h1: undefined
             };
           }
         } else {
@@ -774,6 +836,10 @@ export class RealPageDiscovery {
       // Extract title
       const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
       const title = titleMatch ? titleMatch[1].trim() : 'No title';
+
+      // Extract meta description and H1 for duplicate detection
+      const description = extractMetaDescription(html);
+      const h1 = extractH1(html);
 
       // Check for meta elements
       const hasTitle = /<title[^>]*>.*<\/title>/is.test(html);
@@ -839,7 +905,9 @@ export class RealPageDiscovery {
         imageCount,
         linkCount: internalLinks.length,
         internalLinks: [...new Set(internalLinks)], // Remove duplicates
-        finalUrl // Include redirect destination for 301/308 redirects
+        finalUrl, // Include redirect destination for 301/308 redirects
+        description, // Include meta description for duplicate detection
+        h1 // Include H1 for duplicate detection
       };
 
     } catch (error) {
@@ -852,7 +920,9 @@ export class RealPageDiscovery {
         hasH1: false,
         imageCount: 0,
         linkCount: 0,
-        internalLinks: []
+        internalLinks: [],
+        description: undefined,
+        h1: undefined
       };
     }
   }

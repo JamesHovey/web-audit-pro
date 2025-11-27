@@ -936,11 +936,71 @@ export async function performTechnicalAudit(
 
     console.log(`   Found ${result.duplicateTitles.length} duplicate titles affecting ${result.duplicateTitles.reduce((sum, d) => sum + d.count, 0)} pages`);
 
-    // Detect duplicate meta descriptions (we need to store descriptions first)
+    // Detect duplicate meta descriptions
     console.log('🔍 Checking for duplicate meta descriptions...');
-    // For now, we'll track this but need to add description extraction to page discovery
-    // This is a placeholder for future implementation
-    result.duplicateDescriptions = [];
+    const descriptionMap = new Map<string, Array<{ url: string }>>();
+
+    pageDiscovery.pages.forEach(page => {
+      // Skip pages without descriptions
+      if (!page.description || page.description.trim().length === 0) {
+        return;
+      }
+
+      const normalizedDescription = page.description.trim();
+      if (!descriptionMap.has(normalizedDescription)) {
+        descriptionMap.set(normalizedDescription, []);
+      }
+      descriptionMap.get(normalizedDescription)!.push({ url: page.url });
+    });
+
+    // Find descriptions that appear on multiple pages
+    result.duplicateDescriptions = Array.from(descriptionMap.entries())
+      .filter(([_, pages]) => pages.length > 1)
+      .map(([description, pages]) => ({
+        description,
+        count: pages.length,
+        pages: pages.slice(0, 20)
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    console.log(`   Found ${result.duplicateDescriptions.length} duplicate descriptions affecting ${result.duplicateDescriptions.reduce((sum, d) => sum + d.count, 0)} pages`);
+
+    // Detect duplicate H1 tags
+    console.log('🔍 Checking for duplicate H1 tags...');
+    const h1Map = new Map<string, Array<{ url: string }>>();
+
+    pageDiscovery.pages.forEach(page => {
+      // Skip pages without H1s
+      if (!page.h1 || page.h1.trim().length === 0) {
+        return;
+      }
+
+      const normalizedH1 = page.h1.trim();
+      if (!h1Map.has(normalizedH1)) {
+        h1Map.set(normalizedH1, []);
+      }
+      h1Map.get(normalizedH1)!.push({ url: page.url });
+    });
+
+    // Find H1s that appear on multiple pages
+    const duplicateH1s = Array.from(h1Map.entries())
+      .filter(([_, pages]) => pages.length > 1)
+      .map(([h1, pages]) => ({
+        h1,
+        count: pages.length,
+        pages: pages.slice(0, 20)
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    console.log(`   Found ${duplicateH1s.length} duplicate H1s affecting ${duplicateH1s.reduce((sum, d) => sum + d.count, 0)} pages`);
+
+    // Add duplicate H1s to duplicate descriptions for now (using same field structure)
+    // In the UI, we'll display them separately
+    result.duplicateDescriptions.push(...duplicateH1s.map(d => ({
+      description: `[H1] ${d.h1}`,
+      count: d.count,
+      pages: d.pages
+    })));
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
