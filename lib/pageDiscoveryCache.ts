@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v10' // v10: Add permanent redirect (301/308) detection and reporting (v1.5.64)
+const CACHE_VERSION = 'v11' // v11: Force fresh discovery to test 4XX and redirect detection (v1.5.64)
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
