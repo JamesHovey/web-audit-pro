@@ -88,7 +88,7 @@ interface PageDiscoveryResult {
 }
 
 export class RealPageDiscovery {
-  private maxPages = 50; // Limit for crawling only (not sitemap parsing)
+  private maxPages = 999999; // Effectively unlimited for crawling (sitemap parsing already has no limit)
   private timeout = 10000; // 10 second timeout per request
   private visitedUrls = new Set<string>();
   private foundPages: DiscoveredPage[] = [];
