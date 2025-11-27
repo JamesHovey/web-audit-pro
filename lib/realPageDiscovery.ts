@@ -101,6 +101,63 @@ function extractH1(html: string): string | undefined {
   return undefined;
 }
 
+// Extract main body content for duplicate detection
+function extractBodyContent(html: string): string {
+  let content = html;
+
+  // Remove common boilerplate elements
+  content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ''); // Remove scripts
+  content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ''); // Remove styles
+  content = content.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, ''); // Remove navigation
+  content = content.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, ''); // Remove header
+  content = content.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, ''); // Remove footer
+  content = content.replace(/<!--[\s\S]*?-->/g, ''); // Remove HTML comments
+
+  // Extract text content from remaining HTML
+  content = content
+    .replace(/<[^>]*>/g, ' ') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+    .replace(/&[a-z]+;/gi, ' ') // Replace HTML entities
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+
+  return content;
+}
+
+// Create a simple hash from text content for exact duplicate detection
+async function createContentHash(content: string): Promise<string> {
+  // Normalize content for consistent hashing
+  const normalized = content.toLowerCase().replace(/\s+/g, ' ').trim();
+
+  // Use browser's crypto API for hashing (SHA-256)
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(normalized);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      // Fallback to simple hash
+      return simpleHash(normalized);
+    }
+  }
+
+  // Fallback for non-browser environments
+  return simpleHash(normalized);
+}
+
+// Simple hash function fallback
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16);
+}
+
 interface DiscoveredPage {
   url: string;
   title: string;
@@ -120,6 +177,8 @@ interface DiscoveredPage {
   redirectStatusCode?: number; // 301, 302, 307, or 308
   description?: string; // Actual meta description text for duplicate detection
   h1?: string; // Actual H1 text for duplicate detection
+  bodyContent?: string; // Extracted main content for similarity detection
+  contentHash?: string; // Hash of body content for exact duplicate detection
 }
 
 interface PageDiscoveryResult {
@@ -347,7 +406,9 @@ export class RealPageDiscovery {
           linkCount: pageAnalysis.linkCount,
           finalUrl: pageAnalysis.finalUrl, // Include redirect destination
           description: pageAnalysis.description, // Include meta description for duplicate detection
-          h1: pageAnalysis.h1 // Include H1 for duplicate detection
+          h1: pageAnalysis.h1, // Include H1 for duplicate detection
+          bodyContent: pageAnalysis.bodyContent, // Include body content for similarity detection
+          contentHash: pageAnalysis.contentHash // Include content hash for exact duplicate detection
         });
       } catch (pageError) {
         // Log the error but continue parsing remaining URLs
@@ -397,7 +458,9 @@ export class RealPageDiscovery {
           linkCount: pageAnalysis.linkCount,
           finalUrl: pageAnalysis.finalUrl, // Include redirect destination
           description: pageAnalysis.description, // Include meta description for duplicate detection
-          h1: pageAnalysis.h1 // Include H1 for duplicate detection
+          h1: pageAnalysis.h1, // Include H1 for duplicate detection
+          bodyContent: pageAnalysis.bodyContent, // Include body content for similarity detection
+          contentHash: pageAnalysis.contentHash // Include content hash for exact duplicate detection
         });
 
         // Log non-200 status codes
@@ -608,7 +671,9 @@ export class RealPageDiscovery {
               imageCount: 0,
               linkCount: 0,
               description: undefined,
-              h1: undefined
+              h1: undefined,
+              bodyContent: undefined,
+              contentHash: undefined
             });
           }
         }
@@ -667,6 +732,8 @@ export class RealPageDiscovery {
     finalUrl?: string; // For tracking redirect destinations
     description?: string; // Actual meta description text for duplicate detection
     h1?: string; // Actual H1 text for duplicate detection
+    bodyContent?: string; // Extracted main content for similarity detection
+    contentHash?: string; // Hash of body content for exact duplicate detection
   }> {
     try {
       let html: string;
@@ -718,7 +785,9 @@ export class RealPageDiscovery {
               linkCount: 0,
               internalLinks: [],
               description: undefined,
-              h1: undefined
+              h1: undefined,
+              bodyContent: undefined,
+              contentHash: undefined
             };
           }
 
@@ -823,7 +892,9 @@ export class RealPageDiscovery {
               linkCount: 0,
               internalLinks: [],
               description: undefined,
-              h1: undefined
+              h1: undefined,
+              bodyContent: undefined,
+              contentHash: undefined
             };
           }
         } else {
@@ -840,6 +911,10 @@ export class RealPageDiscovery {
       // Extract meta description and H1 for duplicate detection
       const description = extractMetaDescription(html);
       const h1 = extractH1(html);
+
+      // Extract body content and create hash for duplicate content detection
+      const bodyContent = extractBodyContent(html);
+      const contentHash = await createContentHash(bodyContent);
 
       // Check for meta elements
       const hasTitle = /<title[^>]*>.*<\/title>/is.test(html);
@@ -907,7 +982,9 @@ export class RealPageDiscovery {
         internalLinks: [...new Set(internalLinks)], // Remove duplicates
         finalUrl, // Include redirect destination for 301/308 redirects
         description, // Include meta description for duplicate detection
-        h1 // Include H1 for duplicate detection
+        h1, // Include H1 for duplicate detection
+        bodyContent, // Include body content for similarity detection
+        contentHash // Include content hash for exact duplicate detection
       };
 
     } catch (error) {
@@ -922,7 +999,9 @@ export class RealPageDiscovery {
         linkCount: 0,
         internalLinks: [],
         description: undefined,
-        h1: undefined
+        h1: undefined,
+        bodyContent: undefined,
+        contentHash: undefined
       };
     }
   }

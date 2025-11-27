@@ -3995,6 +3995,87 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Duplicate Body Content Table */}
+          {results.duplicateContent && results.duplicateContent.length > 0 && (
+            <div id="duplicate-content-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-red-600">🚨 Pages with Duplicate or Similar Body Content ({results.duplicateContent.reduce((sum: number, d: { pages: Array<unknown> }) => sum + d.pages.length, 0)} pages affected)</h4>
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Severity</th>
+                        <th className="px-4 py-3 text-center font-medium text-red-800">Similarity</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Content Preview</th>
+                        <th className="px-4 py-3 text-left font-medium text-red-800">Affected Pages</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-200">
+                      {results.duplicateContent.slice(0, 15).map((duplicate: { type: string; similarity: number; pages: Array<{ url: string; title?: string }>; contentPreview?: string }, index: number) => {
+                        const isExact = duplicate.type === 'exact';
+                        const severityLabel = isExact ? 'Exact Duplicate' : 'Similar Content';
+                        const severityColor = isExact ? 'bg-red-600 text-white' : 'bg-orange-500 text-white';
+
+                        return (
+                          <tr key={index} className="hover:bg-red-50">
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${severityColor}`}>
+                                {severityLabel}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="font-bold text-red-700">{duplicate.similarity}%</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Tooltip content={duplicate.contentPreview || 'No preview available'}>
+                                <span className="text-gray-700 text-xs break-words">
+                                  {(duplicate.contentPreview || '').substring(0, 80)}
+                                  {(duplicate.contentPreview || '').length > 80 ? '...' : ''}
+                                </span>
+                              </Tooltip>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="space-y-1">
+                                {duplicate.pages.slice(0, 3).map((page: { url: string; title?: string }, pageIndex: number) => (
+                                  <div key={pageIndex}>
+                                    <Tooltip content={page.url}>
+                                      <a
+                                        href={page.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                      >
+                                        {page.title || page.url.replace(/^https?:\/\//, '').substring(0, 40)}
+                                        {(page.title && page.title.length > 40) || (!page.title && page.url.length > 40) ? '...' : ''}
+                                      </a>
+                                    </Tooltip>
+                                  </div>
+                                ))}
+                                {duplicate.pages.length > 3 && (
+                                  <div className="text-xs text-gray-500 italic">
+                                    + {duplicate.pages.length - 3} more pages
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {results.duplicateContent.length > 15 && (
+                  <div className="px-4 py-3 bg-red-50 border-t border-red-200 text-xs text-red-700">
+                    Showing 15 of {results.duplicateContent.length} duplicate content issues
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                🚨 <strong>Critical SEO Issue:</strong> Duplicate and similar content can severely harm your search rankings. Google may penalize your site or choose not to index duplicate pages. Each page should have unique, valuable content. Consider consolidating duplicate pages, using canonical tags, or rewriting similar content to make it unique.
+              </p>
+            </div>
+          )}
+
           {/* Broken Links (404 Errors) Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
             <div>

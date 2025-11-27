@@ -12,6 +12,26 @@ const USER_AGENT = 'WebAuditPro/1.0 (+https://web-audit-pro.com/about; SEO Audit
 const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 WebAuditPro/1.0';
 
 /**
+ * Calculate Jaccard similarity between two text strings
+ * Returns a percentage (0-100) representing how similar the texts are
+ */
+function calculateJaccardSimilarity(text1: string, text2: string): number {
+  // Normalize and split into words
+  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+
+  // Calculate intersection (words in both sets)
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+
+  // Calculate union (all unique words)
+  const union = new Set([...words1, ...words2]);
+
+  // Jaccard similarity = intersection / union
+  if (union.size === 0) return 0;
+  return (intersection.size / union.size) * 100;
+}
+
+/**
  * Process items in parallel chunks to avoid overwhelming the server
  * @param items - Array of items to process
  * @param chunkSize - Number of items to process in parallel
@@ -272,6 +292,12 @@ interface TechnicalAuditResult {
     count: number;
     pages: Array<{ url: string }>;
   }>;
+  duplicateContent: Array<{
+    type: 'exact' | 'similar';
+    similarity: number; // 100 for exact, 80-99 for similar
+    pages: Array<{ url: string; title?: string }>;
+    contentPreview?: string; // First 200 chars of duplicate content
+  }>;
   sitemapStatus: 'found' | 'missing';
   robotsTxtStatus: 'found' | 'missing';
   httpsStatus: 'secure' | 'insecure';
@@ -405,6 +431,7 @@ export async function performTechnicalAudit(
     permanentRedirects: [],
     duplicateTitles: [],
     duplicateDescriptions: [],
+    duplicateContent: [],
     sitemapStatus: 'missing',
     robotsTxtStatus: 'missing',
     httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure',
@@ -1001,6 +1028,86 @@ export async function performTechnicalAudit(
       count: d.count,
       pages: d.pages
     })));
+
+    // Detect duplicate and similar body content
+    console.log('🔍 Checking for duplicate and similar body content...');
+    const contentMap = new Map<string, Array<{ url: string; title?: string; content: string }>>();
+
+    // Group pages by content hash for exact duplicates
+    pageDiscovery.pages.forEach(page => {
+      if (!page.contentHash || !page.bodyContent || page.statusCode !== 200) {
+        return; // Skip pages without content or with errors
+      }
+
+      if (!contentMap.has(page.contentHash)) {
+        contentMap.set(page.contentHash, []);
+      }
+      contentMap.get(page.contentHash)!.push({
+        url: page.url,
+        title: page.title,
+        content: page.bodyContent
+      });
+    });
+
+    // Find exact duplicates (same hash)
+    const exactDuplicates = Array.from(contentMap.entries())
+      .filter(([_, pages]) => pages.length > 1)
+      .map(([hash, pages]) => ({
+        type: 'exact' as const,
+        similarity: 100,
+        pages: pages.map(p => ({ url: p.url, title: p.title })),
+        contentPreview: pages[0].content.substring(0, 200)
+      }))
+      .sort((a, b) => b.pages.length - a.pages.length);
+
+    result.duplicateContent.push(...exactDuplicates);
+    console.log(`   Found ${exactDuplicates.length} exact duplicate content groups affecting ${exactDuplicates.reduce((sum, d) => sum + d.pages.length, 0)} pages`);
+
+    // Find similar content (80-99% similarity) using Jaccard similarity
+    console.log('🔍 Checking for similar content (this may take a moment)...');
+    const pagesWithContent = pageDiscovery.pages.filter(p => p.bodyContent && p.statusCode === 200);
+    const similarGroups = new Map<string, Array<{ url: string; title?: string; similarity: number }>>();
+
+    // Only check for similarity if we have a reasonable number of pages (to avoid performance issues)
+    if (pagesWithContent.length < 200) {
+      for (let i = 0; i < pagesWithContent.length; i++) {
+        for (let j = i + 1; j < pagesWithContent.length; j++) {
+          const page1 = pagesWithContent[i];
+          const page2 = pagesWithContent[j];
+
+          // Skip if they're exact duplicates (already detected)
+          if (page1.contentHash === page2.contentHash) continue;
+
+          const similarity = calculateJaccardSimilarity(page1.bodyContent!, page2.bodyContent!);
+
+          // If similarity is 80% or higher, group them
+          if (similarity >= 80) {
+            const groupKey = `${page1.url}-${page2.url}`;
+            if (!similarGroups.has(groupKey)) {
+              similarGroups.set(groupKey, [
+                { url: page1.url, title: page1.title, similarity: 100 },
+                { url: page2.url, title: page2.title, similarity: similarity }
+              ]);
+            }
+          }
+        }
+      }
+
+      // Convert similar groups to result format
+      const similarDuplicates = Array.from(similarGroups.values())
+        .map(pages => ({
+          type: 'similar' as const,
+          similarity: Math.round(pages[1].similarity), // Use the similarity of the second page
+          pages: pages.map(p => ({ url: p.url, title: p.title })),
+          contentPreview: pagesWithContent.find(pc => pc.url === pages[0].url)?.bodyContent?.substring(0, 200) || ''
+        }))
+        .sort((a, b) => b.similarity - a.similarity);
+
+      result.duplicateContent.push(...similarDuplicates);
+      console.log(`   Found ${similarDuplicates.length} similar content pairs (80%+ similarity)`);
+    } else {
+      console.log(`   Skipping similarity check for ${pagesWithContent.length} pages (too many to compare efficiently)`);
+    }
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;
