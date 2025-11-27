@@ -395,22 +395,44 @@ export class RealPageDiscovery {
         } catch (browserError) {
           console.warn('Browser rendering failed, falling back to fetch:', browserError);
 
-          // First check status with HEAD request
-          let initialStatusCode: number | null = null;
-          try {
-            const headResponse = await fetch(url, {
-              method: 'HEAD',
-              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-              redirect: 'manual',
-              signal: AbortSignal.timeout(5000)
-            });
-            initialStatusCode = headResponse.status;
+          // IMPROVED STATUS CODE DETECTION for browser fallback
+          const initialResponse = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            redirect: 'manual', // Don't follow redirects - capture original status
+            signal: AbortSignal.timeout(this.timeout)
+          });
 
-            if (initialStatusCode >= 400) {
-              console.log(`⚠️  Initial status ${initialStatusCode} detected for: ${url}`);
+          statusCode = initialResponse.status;
+
+          // If it's a 4XX or 5XX error, report it immediately
+          if (statusCode >= 400) {
+            console.log(`⚠️  HTTP ${statusCode} error detected for: ${url}`);
+            return {
+              title: `HTTP ${statusCode} Error`,
+              statusCode: statusCode,
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0,
+              internalLinks: []
+            };
+          }
+
+          // If it's a redirect (3XX), follow it to get the final content
+          if (statusCode >= 300 && statusCode < 400) {
+            const location = initialResponse.headers.get('location');
+            if (location) {
+              const redirectResponse = await fetch(location, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout(this.timeout)
+              });
+              html = await redirectResponse.text();
+            } else {
               return {
-                title: `HTTP ${initialStatusCode} Error`,
-                statusCode: initialStatusCode,
+                title: 'Redirect without location',
+                statusCode: statusCode,
                 hasTitle: false,
                 hasDescription: false,
                 hasH1: false,
@@ -419,80 +441,29 @@ export class RealPageDiscovery {
                 internalLinks: []
               };
             }
-          } catch (headError) {
-            console.log(`HEAD request failed for ${url}, trying GET:`, headError.message);
+          } else {
+            // Status is 2XX, get the content normally
+            html = await initialResponse.text();
           }
-
-          // Fallback to simple fetch
-          const response = await fetch(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-            redirect: 'follow',
-            signal: AbortSignal.timeout(this.timeout)
-          });
-
-          statusCode = initialStatusCode || response.status;
-
-          if (!response.ok) {
-            return {
-              title: 'Error loading page',
-              statusCode: response.status,
-              hasTitle: false,
-              hasDescription: false,
-              hasH1: false,
-              imageCount: 0,
-              linkCount: 0,
-              internalLinks: []
-            };
-          }
-
-          html = await response.text();
         }
       } else {
-        // First, check the URL with a HEAD request to get the actual status code
-        // This captures 4XX/5XX errors even if they later redirect
-        let initialStatusCode: number | null = null;
-        try {
-          const headResponse = await fetch(url, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-            redirect: 'manual', // Don't follow redirects to get original status
-            signal: AbortSignal.timeout(5000)
-          });
-          initialStatusCode = headResponse.status;
-
-          // If the initial request returns a 4XX or 5XX error, report it immediately
-          if (initialStatusCode >= 400) {
-            console.log(`⚠️  Initial status ${initialStatusCode} detected for: ${url}`);
-            return {
-              title: `HTTP ${initialStatusCode} Error`,
-              statusCode: initialStatusCode,
-              hasTitle: false,
-              hasDescription: false,
-              hasH1: false,
-              imageCount: 0,
-              linkCount: 0,
-              internalLinks: []
-            };
-          }
-        } catch (headError) {
-          // HEAD request failed, continue with GET
-          console.log(`HEAD request failed for ${url}, trying GET:`, headError.message);
-        }
-
-        // Now fetch the full page (following redirects for content analysis)
-        const response = await fetch(url, {
+        // IMPROVED STATUS CODE DETECTION
+        // First fetch with redirect: 'manual' to capture the original status code
+        // This ensures we detect 4XX/5XX errors even if they later redirect
+        const initialResponse = await fetch(url, {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          redirect: 'follow', // Follow redirects to analyze final content
+          redirect: 'manual', // Don't follow redirects - capture original status
           signal: AbortSignal.timeout(this.timeout)
         });
 
-        // Use initial status if we got one, otherwise use final status
-        statusCode = initialStatusCode || response.status;
+        statusCode = initialResponse.status;
 
-        if (!response.ok) {
+        // If it's a 4XX or 5XX error, report it immediately
+        if (statusCode >= 400) {
+          console.log(`⚠️  HTTP ${statusCode} error detected for: ${url}`);
           return {
-            title: 'Error loading page',
-            statusCode: response.status,
+            title: `HTTP ${statusCode} Error`,
+            statusCode: statusCode,
             hasTitle: false,
             hasDescription: false,
             hasH1: false,
@@ -502,7 +473,36 @@ export class RealPageDiscovery {
           };
         }
 
-        html = await response.text();
+        // If it's a redirect (3XX), follow it to get the final content
+        if (statusCode >= 300 && statusCode < 400) {
+          const location = initialResponse.headers.get('location');
+          if (location) {
+            // Fetch the redirected location
+            const redirectResponse = await fetch(location, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              redirect: 'follow',
+              signal: AbortSignal.timeout(this.timeout)
+            });
+
+            // Keep the original status code (3XX), but get content from redirect
+            html = await redirectResponse.text();
+          } else {
+            // No location header, treat as error
+            return {
+              title: 'Redirect without location',
+              statusCode: statusCode,
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0,
+              internalLinks: []
+            };
+          }
+        } else {
+          // Status is 2XX, get the content normally
+          html = await initialResponse.text();
+        }
 
         // Check if a redirect occurred by comparing response.url with requested url
         // Normalize both URLs for comparison (remove trailing slashes, protocol differences)
