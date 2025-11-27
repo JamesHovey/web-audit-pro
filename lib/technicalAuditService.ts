@@ -865,10 +865,11 @@ export async function performTechnicalAudit(
     const pagesWithMissingTitles = pageDiscovery.pages.filter(p => !p.hasTitle);
     const pagesWithMissingDescriptions = pageDiscovery.pages.filter(p => !p.hasDescription);
     const pagesWithMissingH1 = pageDiscovery.pages.filter(p => !p.hasH1);
-    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
+    // Updated to catch both 4XX client errors AND 5XX server errors
+    const pagesWithHttpErrors = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 600);
 
-    // Track pages that return 4XX status codes (404, 403, 401, etc.)
-    const pages404 = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 500);
+    // Track pages that return 4XX or 5XX status codes (404, 403, 500, 503, etc.)
+    const pages404 = pageDiscovery.pages.filter(p => p.statusCode >= 400 && p.statusCode < 600);
     result.pages404 = pages404.map(p => ({
       url: p.url,
       title: p.title || 'No title',

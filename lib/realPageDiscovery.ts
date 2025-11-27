@@ -394,12 +394,43 @@ export class RealPageDiscovery {
           html = browserResult;
         } catch (browserError) {
           console.warn('Browser rendering failed, falling back to fetch:', browserError);
+
+          // First check status with HEAD request
+          let initialStatusCode: number | null = null;
+          try {
+            const headResponse = await fetch(url, {
+              method: 'HEAD',
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              redirect: 'manual',
+              signal: AbortSignal.timeout(5000)
+            });
+            initialStatusCode = headResponse.status;
+
+            if (initialStatusCode >= 400) {
+              console.log(`⚠️  Initial status ${initialStatusCode} detected for: ${url}`);
+              return {
+                title: `HTTP ${initialStatusCode} Error`,
+                statusCode: initialStatusCode,
+                hasTitle: false,
+                hasDescription: false,
+                hasH1: false,
+                imageCount: 0,
+                linkCount: 0,
+                internalLinks: []
+              };
+            }
+          } catch (headError) {
+            console.log(`HEAD request failed for ${url}, trying GET:`, headError.message);
+          }
+
           // Fallback to simple fetch
           const response = await fetch(url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
             redirect: 'follow',
             signal: AbortSignal.timeout(this.timeout)
           });
+
+          statusCode = initialStatusCode || response.status;
 
           if (!response.ok) {
             return {
@@ -415,15 +446,48 @@ export class RealPageDiscovery {
           }
 
           html = await response.text();
-          statusCode = response.status;
         }
       } else {
-        // Use simple fetch for speed (default for discovered pages)
+        // First, check the URL with a HEAD request to get the actual status code
+        // This captures 4XX/5XX errors even if they later redirect
+        let initialStatusCode: number | null = null;
+        try {
+          const headResponse = await fetch(url, {
+            method: 'HEAD',
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+            redirect: 'manual', // Don't follow redirects to get original status
+            signal: AbortSignal.timeout(5000)
+          });
+          initialStatusCode = headResponse.status;
+
+          // If the initial request returns a 4XX or 5XX error, report it immediately
+          if (initialStatusCode >= 400) {
+            console.log(`⚠️  Initial status ${initialStatusCode} detected for: ${url}`);
+            return {
+              title: `HTTP ${initialStatusCode} Error`,
+              statusCode: initialStatusCode,
+              hasTitle: false,
+              hasDescription: false,
+              hasH1: false,
+              imageCount: 0,
+              linkCount: 0,
+              internalLinks: []
+            };
+          }
+        } catch (headError) {
+          // HEAD request failed, continue with GET
+          console.log(`HEAD request failed for ${url}, trying GET:`, headError.message);
+        }
+
+        // Now fetch the full page (following redirects for content analysis)
         const response = await fetch(url, {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          redirect: 'follow',
+          redirect: 'follow', // Follow redirects to analyze final content
           signal: AbortSignal.timeout(this.timeout)
         });
+
+        // Use initial status if we got one, otherwise use final status
+        statusCode = initialStatusCode || response.status;
 
         if (!response.ok) {
           return {
@@ -439,7 +503,6 @@ export class RealPageDiscovery {
         }
 
         html = await response.text();
-        statusCode = response.status;
 
         // Check if a redirect occurred by comparing response.url with requested url
         // Normalize both URLs for comparison (remove trailing slashes, protocol differences)
