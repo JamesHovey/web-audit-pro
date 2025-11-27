@@ -300,7 +300,8 @@ export class RealPageDiscovery {
           hasDescription: pageAnalysis.hasDescription,
           hasH1: pageAnalysis.hasH1,
           imageCount: pageAnalysis.imageCount,
-          linkCount: pageAnalysis.linkCount
+          linkCount: pageAnalysis.linkCount,
+          finalUrl: pageAnalysis.finalUrl // Include redirect destination
         });
       } catch (pageError) {
         // Log the error but continue parsing remaining URLs
@@ -347,7 +348,8 @@ export class RealPageDiscovery {
           hasDescription: pageAnalysis.hasDescription,
           hasH1: pageAnalysis.hasH1,
           imageCount: pageAnalysis.imageCount,
-          linkCount: pageAnalysis.linkCount
+          linkCount: pageAnalysis.linkCount,
+          finalUrl: pageAnalysis.finalUrl // Include redirect destination
         });
 
         // Log non-200 status codes
@@ -610,10 +612,12 @@ export class RealPageDiscovery {
     imageCount: number;
     linkCount: number;
     internalLinks: string[];
+    finalUrl?: string; // For tracking redirect destinations
   }> {
     try {
       let html: string;
       let statusCode: number = 200;
+      let finalUrl: string | undefined = undefined; // Track redirect destination
 
       if (useBrowser) {
         // Use Puppeteer to get fully rendered HTML (handles client-side rendered content)
@@ -666,12 +670,21 @@ export class RealPageDiscovery {
           if (statusCode >= 300 && statusCode < 400) {
             const location = initialResponse.headers.get('location');
             if (location) {
-              const redirectResponse = await fetch(location, {
+              // Resolve relative redirect URLs
+              const redirectUrl = location.startsWith('http') ? location : new URL(location, url).href;
+
+              const redirectResponse = await fetch(redirectUrl, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
                 redirect: 'follow',
                 signal: AbortSignal.timeout(this.timeout)
               });
               html = await redirectResponse.text();
+
+              // For 301/308 permanent redirects, we want to track the destination
+              if (statusCode === 301 || statusCode === 308) {
+                console.log(`🔄 Permanent redirect (${statusCode}): ${url} → ${redirectUrl}`);
+                finalUrl = redirectUrl; // Store redirect destination
+              }
             } else {
               return {
                 title: 'Redirect without location',
@@ -720,8 +733,11 @@ export class RealPageDiscovery {
         if (statusCode >= 300 && statusCode < 400) {
           const location = initialResponse.headers.get('location');
           if (location) {
+            // Resolve relative redirect URLs
+            const redirectUrl = location.startsWith('http') ? location : new URL(location, url).href;
+
             // Fetch the redirected location
-            const redirectResponse = await fetch(location, {
+            const redirectResponse = await fetch(redirectUrl, {
               headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
               redirect: 'follow',
               signal: AbortSignal.timeout(this.timeout)
@@ -729,6 +745,12 @@ export class RealPageDiscovery {
 
             // Keep the original status code (3XX), but get content from redirect
             html = await redirectResponse.text();
+
+            // For 301/308 permanent redirects, we want to track the destination
+            if (statusCode === 301 || statusCode === 308) {
+              console.log(`🔄 Permanent redirect (${statusCode}): ${url} → ${redirectUrl}`);
+              finalUrl = redirectUrl; // Store redirect destination
+            }
           } else {
             // No location header, treat as error
             return {
@@ -816,7 +838,8 @@ export class RealPageDiscovery {
         hasH1,
         imageCount,
         linkCount: internalLinks.length,
-        internalLinks: [...new Set(internalLinks)] // Remove duplicates
+        internalLinks: [...new Set(internalLinks)], // Remove duplicates
+        finalUrl // Include redirect destination for 301/308 redirects
       };
 
     } catch (error) {

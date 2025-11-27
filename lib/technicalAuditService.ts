@@ -256,6 +256,12 @@ interface TechnicalAuditResult {
     statusCode: number;
     discoveredVia: string;
   }>;
+  permanentRedirects: Array<{
+    url: string;
+    statusCode: number;
+    redirectsTo?: string;
+    discoveredVia: string;
+  }>;
   sitemapStatus: 'found' | 'missing';
   robotsTxtStatus: 'found' | 'missing';
   httpsStatus: 'secure' | 'insecure';
@@ -386,6 +392,7 @@ export async function performTechnicalAudit(
     },
     notFoundErrors: [],
     pages404: [],
+    permanentRedirects: [],
     sitemapStatus: 'missing',
     robotsTxtStatus: 'missing',
     httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure',
@@ -876,6 +883,17 @@ export async function performTechnicalAudit(
       statusCode: p.statusCode,
       discoveredVia: p.source || 'crawl'
     }));
+
+    // Track permanent redirects (301 and 308 status codes)
+    const permanentRedirects = pageDiscovery.pages.filter(p => p.statusCode === 301 || p.statusCode === 308);
+    result.permanentRedirects = permanentRedirects.map(p => ({
+      url: p.url,
+      statusCode: p.statusCode,
+      redirectsTo: p.finalUrl,
+      discoveredVia: p.source || 'crawl'
+    }));
+
+    console.log(`🔄 Found ${permanentRedirects.length} permanent redirects (301/308)`);
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;

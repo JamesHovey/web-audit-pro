@@ -3769,6 +3769,79 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Permanent Redirects Table */}
+          {results.permanentRedirects && results.permanentRedirects.length > 0 && (
+            <div id="permanent-redirects-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-amber-600">🔄 Pages with Permanent Redirects ({results.permanentRedirects.length})</h4>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-amber-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-amber-800">Original URL</th>
+                        <th className="px-4 py-3 text-center font-medium text-amber-800">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-amber-800">Redirects To</th>
+                        <th className="px-4 py-3 text-left font-medium text-amber-800">Discovered Via</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-200">
+                      {results.permanentRedirects.slice(0, 20).map((redirect: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-amber-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={redirect.url as string}>
+                              <a
+                                href={redirect.url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {(redirect.url as string).replace(/^https?:\/\//, '').substring(0, 50)}
+                                {(redirect.url as string).length > 50 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800">
+                              {redirect.statusCode}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {redirect.redirectsTo ? (
+                              <Tooltip content={redirect.redirectsTo as string}>
+                                <a
+                                  href={redirect.redirectsTo as string}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline break-all"
+                                >
+                                  {(redirect.redirectsTo as string).replace(/^https?:\/\//, '').substring(0, 50)}
+                                  {(redirect.redirectsTo as string).length > 50 ? '...' : ''}
+                                </a>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-gray-400 italic">Unknown</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-gray-600 capitalize">{redirect.discoveredVia as string}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.permanentRedirects.length > 20 && (
+                  <div className="px-4 py-3 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
+                    Showing 20 of {results.permanentRedirects.length} permanent redirects
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                ⚠️ Although permanent redirects (301/308) are useful for handling moved content, keeping them to a minimum is recommended. Every redirect decreases your crawl budget and may delay search engine indexing. Too many redirects can also confuse users and impact site performance.
+              </p>
+            </div>
+          )}
+
           {/* Broken Links (404 Errors) Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
             <div>
