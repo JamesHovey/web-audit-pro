@@ -276,6 +276,11 @@ interface TechnicalAuditResult {
     statusCode: number;
     discoveredVia: string;
   }>;
+  invalidUrls: Array<{
+    malformedUrl: string;
+    sourcePage: string;
+    errorType: 'syntax' | 'protocol' | 'malformed';
+  }>;
   permanentRedirects: Array<{
     url: string;
     statusCode: number;
@@ -428,6 +433,7 @@ export async function performTechnicalAudit(
     },
     notFoundErrors: [],
     pages404: [],
+    invalidUrls: [],
     permanentRedirects: [],
     duplicateTitles: [],
     duplicateDescriptions: [],
@@ -933,6 +939,10 @@ export async function performTechnicalAudit(
     }));
 
     console.log(`🔄 Found ${permanentRedirects.length} permanent redirects (301/308)`);
+
+    // Track invalid/malformed URLs
+    result.invalidUrls = pageDiscovery.invalidUrls || [];
+    console.log(`⚠️  Found ${result.invalidUrls.length} invalid/malformed URLs`);
 
     // Detect duplicate titles
     console.log('🔍 Checking for duplicate titles...');

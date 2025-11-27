@@ -3769,6 +3769,74 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Invalid/Malformed URLs Table */}
+          {results.invalidUrls && results.invalidUrls.length > 0 && (
+            <div id="invalid-urls-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-orange-600">⚠️ Invalid or Malformed URLs ({results.invalidUrls.length})</h4>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-orange-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Malformed URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Found On Page</th>
+                        <th className="px-4 py-3 text-center font-medium text-orange-800">Error Type</th>
+                        <th className="px-4 py-3 text-left font-medium text-orange-800">Fix Required</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200">
+                      {results.invalidUrls.slice(0, 20).map((invalidUrl: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-orange-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={invalidUrl.malformedUrl as string}>
+                              <code className="text-xs bg-orange-100 px-2 py-1 rounded text-orange-900 break-all">
+                                {(invalidUrl.malformedUrl as string).substring(0, 80)}
+                                {(invalidUrl.malformedUrl as string).length > 80 ? '...' : ''}
+                              </code>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Tooltip content={invalidUrl.sourcePage as string}>
+                              <a
+                                href={invalidUrl.sourcePage as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                              >
+                                {(invalidUrl.sourcePage as string).replace(/^https?:\/\//, '').substring(0, 50)}
+                                {(invalidUrl.sourcePage as string).length > 50 ? '...' : ''}
+                              </a>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700 font-medium capitalize">
+                              {invalidUrl.errorType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">
+                            {invalidUrl.errorType === 'protocol'
+                              ? 'Add missing protocol (https://)'
+                              : invalidUrl.errorType === 'syntax'
+                              ? 'Fix URL syntax errors'
+                              : 'Correct malformed URL structure'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.invalidUrls.length > 20 && (
+                  <div className="px-4 py-2 bg-orange-100 text-sm text-orange-700">
+                    Showing 20 of {results.invalidUrls.length} invalid URLs
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                ⚠️ <strong>URL Syntax Issues:</strong> These URLs have invalid syntax and cannot be crawled by search engines. Common issues include missing protocols (http:// or https://), backslashes instead of forward slashes, spaces, or other invalid characters. Fix these URLs to ensure proper crawling and indexing.
+              </p>
+            </div>
+          )}
+
           {/* Permanent Redirects Table */}
           {results.permanentRedirects && results.permanentRedirects.length > 0 && (
             <div id="permanent-redirects-table" className="mb-6">

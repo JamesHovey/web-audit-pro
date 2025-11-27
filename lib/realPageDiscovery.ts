@@ -181,6 +181,12 @@ interface DiscoveredPage {
   contentHash?: string; // Hash of body content for exact duplicate detection
 }
 
+interface InvalidUrl {
+  malformedUrl: string; // The raw invalid URL string
+  sourcePage: string; // The page where this URL was found
+  errorType: 'syntax' | 'protocol' | 'malformed'; // Type of error
+}
+
 interface PageDiscoveryResult {
   totalPages: number;
   pages: DiscoveredPage[];
@@ -188,6 +194,7 @@ interface PageDiscoveryResult {
   sitemapStatus: 'found' | 'missing';
   discoveryMethod: string;
   crawlDepth: number;
+  invalidUrls: InvalidUrl[]; // Track malformed URLs that couldn't be parsed
 }
 
 export class RealPageDiscovery {
@@ -195,12 +202,14 @@ export class RealPageDiscovery {
   private timeout = 10000; // 10 second timeout per request
   private visitedUrls = new Set<string>();
   private foundPages: DiscoveredPage[] = [];
+  private invalidUrls: InvalidUrl[] = []; // Track malformed URLs
 
   async discoverPages(baseUrl: string): Promise<PageDiscoveryResult> {
     console.log(`🔍 Discovering real pages for: ${baseUrl}`);
-    
+
     this.visitedUrls.clear();
     this.foundPages = [];
+    this.invalidUrls = []; // Clear invalid URLs tracking
 
     const url = new URL(baseUrl);
     const domain = url.hostname;
@@ -228,13 +237,16 @@ export class RealPageDiscovery {
 
       const allPages = [...sitemapResult.pages, ...additionalPages];
 
+      console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
+
       return {
         totalPages: allPages.length,
         pages: allPages,
         sitemapUrl: sitemapResult.sitemapUrl,
         sitemapStatus: 'found',
         discoveryMethod: 'sitemap',
-        crawlDepth: 0
+        crawlDepth: 0,
+        invalidUrls: this.invalidUrls
       };
     }
 
@@ -242,12 +254,15 @@ export class RealPageDiscovery {
     console.log('📝 No sitemap found, using intelligent crawling');
     const crawlResult = await this.intelligentCrawl(baseUrl);
 
+    console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
+
     return {
       totalPages: crawlResult.pages.length,
       pages: crawlResult.pages,
       sitemapStatus: 'missing',
       discoveryMethod: 'intelligent_crawl',
-      crawlDepth: crawlResult.depth
+      crawlDepth: crawlResult.depth,
+      invalidUrls: this.invalidUrls
     };
   }
 
@@ -361,13 +376,23 @@ export class RealPageDiscovery {
           // Additional validation: ensure URL has a valid hostname
           if (!urlObj.hostname || urlObj.hostname.length === 0) {
             console.log(`Invalid URL in sitemap (no hostname): ${pageUrl}`);
+            this.invalidUrls.push({
+              malformedUrl: pageUrl,
+              sourcePage: sitemapUrl,
+              errorType: 'syntax'
+            });
             skippedCount++;
             continue; // Skip URLs without hostnames
           }
 
           pageUrl = urlObj.href; // Use normalized version
-        } catch {
+        } catch (error) {
           console.log(`Invalid URL in sitemap: ${pageUrl}`);
+          this.invalidUrls.push({
+            malformedUrl: pageUrl,
+            sourcePage: sitemapUrl,
+            errorType: 'malformed'
+          });
           skippedCount++;
           continue; // Skip invalid URLs
         }
@@ -489,8 +514,13 @@ export class RealPageDiscovery {
               if (linkUrl.hostname === domain) {
                 allDiscoveredLinks.add(link);
               }
-            } catch {
-              // Invalid URL, skip
+            } catch (error) {
+              // Track invalid URL instead of silently skipping
+              this.invalidUrls.push({
+                malformedUrl: link,
+                sourcePage: currentUrl,
+                errorType: 'syntax'
+              });
             }
           });
 
@@ -609,8 +639,13 @@ export class RealPageDiscovery {
                 if (linkDomain === domain) {
                   links.push(linkUrl);
                 }
-              } catch {
-                // Invalid URL, skip
+              } catch (error) {
+                // Track invalid URL instead of silently skipping
+                this.invalidUrls.push({
+                  malformedUrl: href,
+                  sourcePage: page.url,
+                  errorType: 'syntax'
+                });
               }
             }
 
@@ -953,8 +988,13 @@ export class RealPageDiscovery {
           if (linkDomain === baseUrl.hostname) {
             internalLinks.push(linkUrl);
           }
-        } catch {
-          // Invalid URL, skip
+        } catch (error) {
+          // Track invalid URL instead of silently skipping
+          this.invalidUrls.push({
+            malformedUrl: href,
+            sourcePage: url,
+            errorType: 'syntax'
+          });
         }
       }
 
