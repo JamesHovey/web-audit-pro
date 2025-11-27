@@ -262,6 +262,16 @@ interface TechnicalAuditResult {
     redirectsTo?: string;
     discoveredVia: string;
   }>;
+  duplicateTitles: Array<{
+    title: string;
+    count: number;
+    pages: Array<{ url: string }>;
+  }>;
+  duplicateDescriptions: Array<{
+    description: string;
+    count: number;
+    pages: Array<{ url: string }>;
+  }>;
   sitemapStatus: 'found' | 'missing';
   robotsTxtStatus: 'found' | 'missing';
   httpsStatus: 'secure' | 'insecure';
@@ -393,6 +403,8 @@ export async function performTechnicalAudit(
     notFoundErrors: [],
     pages404: [],
     permanentRedirects: [],
+    duplicateTitles: [],
+    duplicateDescriptions: [],
     sitemapStatus: 'missing',
     robotsTxtStatus: 'missing',
     httpsStatus: baseUrl.protocol === 'https:' ? 'secure' : 'insecure',
@@ -894,6 +906,41 @@ export async function performTechnicalAudit(
     }));
 
     console.log(`🔄 Found ${permanentRedirects.length} permanent redirects (301/308)`);
+
+    // Detect duplicate titles
+    console.log('🔍 Checking for duplicate titles...');
+    const titleMap = new Map<string, Array<{ url: string }>>();
+
+    pageDiscovery.pages.forEach(page => {
+      // Skip pages without titles or with generic error titles
+      if (!page.title || page.title === 'No title' || page.title.startsWith('HTTP ')) {
+        return;
+      }
+
+      const normalizedTitle = page.title.trim();
+      if (!titleMap.has(normalizedTitle)) {
+        titleMap.set(normalizedTitle, []);
+      }
+      titleMap.get(normalizedTitle)!.push({ url: page.url });
+    });
+
+    // Find titles that appear on multiple pages
+    result.duplicateTitles = Array.from(titleMap.entries())
+      .filter(([_, pages]) => pages.length > 1)
+      .map(([title, pages]) => ({
+        title,
+        count: pages.length,
+        pages: pages.slice(0, 20) // Limit to 20 pages per duplicate title
+      }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
+
+    console.log(`   Found ${result.duplicateTitles.length} duplicate titles affecting ${result.duplicateTitles.reduce((sum, d) => sum + d.count, 0)} pages`);
+
+    // Detect duplicate meta descriptions (we need to store descriptions first)
+    console.log('🔍 Checking for duplicate meta descriptions...');
+    // For now, we'll track this but need to add description extraction to page discovery
+    // This is a placeholder for future implementation
+    result.duplicateDescriptions = [];
 
     result.issues.missingMetaTitles = pagesWithMissingTitles.length;
     result.issues.missingMetaDescriptions = pagesWithMissingDescriptions.length;

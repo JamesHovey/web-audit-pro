@@ -3842,6 +3842,77 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* Duplicate Titles Table */}
+          {results.duplicateTitles && results.duplicateTitles.length > 0 && (
+            <div id="duplicate-titles-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-amber-600">🔄 Pages with Duplicate Title Tags ({results.duplicateTitles.reduce((sum: number, d: { count: number }) => sum + d.count, 0)} pages affected)</h4>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-amber-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-amber-800">Duplicate Title</th>
+                        <th className="px-4 py-3 text-center font-medium text-amber-800">Pages Using</th>
+                        <th className="px-4 py-3 text-left font-medium text-amber-800">Affected URLs</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-200">
+                      {results.duplicateTitles.slice(0, 20).map((duplicate: { title: string; count: number; pages: Array<{ url: string }> }, index: number) => (
+                        <tr key={index} className="hover:bg-amber-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={duplicate.title}>
+                              <span className="font-medium text-gray-900 break-words">
+                                {duplicate.title.substring(0, 80)}
+                                {duplicate.title.length > 80 ? '...' : ''}
+                              </span>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800">
+                              {duplicate.count} pages
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="space-y-1">
+                              {duplicate.pages.slice(0, 3).map((page: { url: string }, pageIndex: number) => (
+                                <div key={pageIndex}>
+                                  <Tooltip content={page.url}>
+                                    <a
+                                      href={page.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                                    >
+                                      {page.url.replace(/^https?:\/\//, '').substring(0, 50)}
+                                      {page.url.length > 50 ? '...' : ''}
+                                    </a>
+                                  </Tooltip>
+                                </div>
+                              ))}
+                              {duplicate.pages.length > 3 && (
+                                <div className="text-xs text-gray-500 italic">
+                                  + {duplicate.pages.length - 3} more pages
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.duplicateTitles.length > 20 && (
+                  <div className="px-4 py-3 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
+                    Showing 20 of {results.duplicateTitles.length} duplicate title groups
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                ⚠️ Duplicate title tags confuse search engines and users. Each page should have a unique, descriptive title that accurately reflects its content. This helps with SEO rankings and click-through rates in search results.
+              </p>
+            </div>
+          )}
+
           {/* Broken Links (404 Errors) Table */}
           {results.notFoundErrors && results.notFoundErrors.length > 0 && (
             <div>
