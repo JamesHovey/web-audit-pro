@@ -438,7 +438,7 @@ export class RealPageDiscovery {
   }
 
   /**
-   * Collect all internal links from a sample of sitemap pages
+   * Collect all internal links from ALL sitemap pages
    * Used to find broken links that aren't in the sitemap
    */
   private async collectInternalLinksFromSitemapPages(
@@ -447,8 +447,8 @@ export class RealPageDiscovery {
   ): Promise<Set<string>> {
     const allLinks = new Set<string>();
 
-    // Sample first 20 pages to extract links (balance between coverage and performance)
-    const pagesToSample = sitemapPages.slice(0, 20);
+    // Check ALL sitemap pages to ensure we find all broken links
+    const pagesToSample = sitemapPages;
 
     console.log(`   Extracting links from ${pagesToSample.length} sitemap pages...`);
 
@@ -510,7 +510,7 @@ export class RealPageDiscovery {
 
     // Check in batches to avoid overwhelming the server
     const batchSize = 10;
-    const maxToCheck = 200; // Limit total checks
+    const maxToCheck = 1000; // Check up to 1000 additional links (increased from 200)
 
     for (let i = 0; i < urls.length && i < maxToCheck; i += batchSize) {
       const batch = urls.slice(i, i + batchSize);
