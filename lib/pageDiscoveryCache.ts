@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v5' // Increment to invalidate old caches (v1.5.22: Force fresh discovery with full crawling mode)
+const CACHE_VERSION = 'v6' // v6: Force fresh discovery with improved 4XX/5XX detection (v1.5.59)
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**
