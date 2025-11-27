@@ -158,6 +158,24 @@ function simpleHash(str: string): string {
   return Math.abs(hash).toString(16);
 }
 
+// Check if an error is a DNS resolution error
+function isDnsError(error: unknown): boolean {
+  if (!error) return false;
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorString = errorMessage.toLowerCase();
+
+  // Common DNS error patterns
+  return (
+    errorString.includes('enotfound') ||
+    errorString.includes('getaddrinfo') ||
+    errorString.includes('dns') ||
+    errorString.includes('name resolution') ||
+    errorString.includes('could not resolve host') ||
+    errorString.includes('hostname') && errorString.includes('not found')
+  );
+}
+
 interface DiscoveredPage {
   url: string;
   title: string;
@@ -187,6 +205,12 @@ interface InvalidUrl {
   errorType: 'syntax' | 'protocol' | 'malformed'; // Type of error
 }
 
+interface DnsError {
+  url: string; // The URL that failed DNS resolution
+  errorMessage: string; // The DNS error message
+  discoveredVia: 'sitemap' | 'crawl' | 'link_check'; // How this URL was discovered
+}
+
 interface PageDiscoveryResult {
   totalPages: number;
   pages: DiscoveredPage[];
@@ -195,6 +219,7 @@ interface PageDiscoveryResult {
   discoveryMethod: string;
   crawlDepth: number;
   invalidUrls: InvalidUrl[]; // Track malformed URLs that couldn't be parsed
+  dnsErrors: DnsError[]; // Track URLs that failed DNS resolution
 }
 
 export class RealPageDiscovery {
@@ -203,6 +228,7 @@ export class RealPageDiscovery {
   private visitedUrls = new Set<string>();
   private foundPages: DiscoveredPage[] = [];
   private invalidUrls: InvalidUrl[] = []; // Track malformed URLs
+  private dnsErrors: DnsError[] = []; // Track DNS resolution failures
 
   async discoverPages(baseUrl: string): Promise<PageDiscoveryResult> {
     console.log(`🔍 Discovering real pages for: ${baseUrl}`);
@@ -210,6 +236,7 @@ export class RealPageDiscovery {
     this.visitedUrls.clear();
     this.foundPages = [];
     this.invalidUrls = []; // Clear invalid URLs tracking
+    this.dnsErrors = []; // Clear DNS errors tracking
 
     const url = new URL(baseUrl);
     const domain = url.hostname;
@@ -238,6 +265,7 @@ export class RealPageDiscovery {
       const allPages = [...sitemapResult.pages, ...additionalPages];
 
       console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
+      console.log(`   Found ${this.dnsErrors.length} DNS resolution errors`);
 
       return {
         totalPages: allPages.length,
@@ -246,7 +274,8 @@ export class RealPageDiscovery {
         sitemapStatus: 'found',
         discoveryMethod: 'sitemap',
         crawlDepth: 0,
-        invalidUrls: this.invalidUrls
+        invalidUrls: this.invalidUrls,
+        dnsErrors: this.dnsErrors
       };
     }
 
@@ -255,6 +284,7 @@ export class RealPageDiscovery {
     const crawlResult = await this.intelligentCrawl(baseUrl);
 
     console.log(`   Found ${this.invalidUrls.length} invalid/malformed URLs`);
+    console.log(`   Found ${this.dnsErrors.length} DNS resolution errors`);
 
     return {
       totalPages: crawlResult.pages.length,
@@ -262,7 +292,8 @@ export class RealPageDiscovery {
       sitemapStatus: 'missing',
       discoveryMethod: 'intelligent_crawl',
       crawlDepth: crawlResult.depth,
-      invalidUrls: this.invalidUrls
+      invalidUrls: this.invalidUrls,
+      dnsErrors: this.dnsErrors
     };
   }
 
@@ -437,7 +468,19 @@ export class RealPageDiscovery {
         });
       } catch (pageError) {
         // Log the error but continue parsing remaining URLs
-        console.log(`⚠️  Failed to analyze page from sitemap (continuing with others):`, pageError.message);
+        const errorMessage = pageError instanceof Error ? pageError.message : String(pageError);
+        console.log(`⚠️  Failed to analyze page from sitemap (continuing with others):`, errorMessage);
+
+        // Check if this is a DNS resolution error
+        if (isDnsError(pageError)) {
+          console.log(`🔴 DNS resolution failed for sitemap URL: ${pageUrl}`);
+          this.dnsErrors.push({
+            url: pageUrl,
+            errorMessage,
+            discoveredVia: 'sitemap'
+          });
+        }
+
         skippedCount++;
         continue;
       }
@@ -748,8 +791,18 @@ export class RealPageDiscovery {
           url,
           statusCode: response.status
         };
-      } catch {
-        // Network error or timeout - don't report as it might be temporary
+      } catch (secondError) {
+        // Check if this is a DNS resolution error
+        if (isDnsError(secondError)) {
+          const errorMessage = secondError instanceof Error ? secondError.message : String(secondError);
+          console.log(`🔴 DNS resolution failed for: ${url}`);
+          this.dnsErrors.push({
+            url,
+            errorMessage,
+            discoveredVia: 'link_check'
+          });
+        }
+        // Network error or timeout - don't report other errors as they might be temporary
         return null;
       }
     }
@@ -1028,7 +1081,19 @@ export class RealPageDiscovery {
       };
 
     } catch (error) {
-      console.log(`Error analyzing page ${url}:`, (error as Error).message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(`Error analyzing page ${url}:`, errorMessage);
+
+      // Check if this is a DNS resolution error
+      if (isDnsError(error)) {
+        console.log(`🔴 DNS resolution failed for: ${url}`);
+        this.dnsErrors.push({
+          url,
+          errorMessage,
+          discoveredVia: 'crawl'
+        });
+      }
+
       return {
         title: 'Error loading page',
         statusCode: 0,

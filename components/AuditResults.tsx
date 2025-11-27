@@ -3837,6 +3837,65 @@ function renderSectionResults(
             </div>
           )}
 
+          {/* DNS Resolution Errors Table */}
+          {results.dnsErrors && results.dnsErrors.length > 0 && (
+            <div id="dns-errors-table" className="mb-6">
+              <h4 className="font-semibold mb-3 text-purple-600">🔴 DNS Resolution Failures ({results.dnsErrors.length})</h4>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-purple-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-purple-800">URL</th>
+                        <th className="px-4 py-3 text-left font-medium text-purple-800">Error Message</th>
+                        <th className="px-4 py-3 text-center font-medium text-purple-800">Discovered Via</th>
+                        <th className="px-4 py-3 text-left font-medium text-purple-800">Fix Required</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-200">
+                      {results.dnsErrors.slice(0, 20).map((dnsError: Record<string, unknown>, index: number) => (
+                        <tr key={index} className="hover:bg-purple-50">
+                          <td className="px-4 py-3">
+                            <Tooltip content={dnsError.url as string}>
+                              <code className="text-xs bg-purple-100 px-2 py-1 rounded text-purple-900 break-all">
+                                {(dnsError.url as string).substring(0, 60)}
+                                {(dnsError.url as string).length > 60 ? '...' : ''}
+                              </code>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Tooltip content={dnsError.errorMessage as string}>
+                              <span className="text-xs text-gray-700">
+                                {(dnsError.errorMessage as string).substring(0, 50)}
+                                {(dnsError.errorMessage as string).length > 50 ? '...' : ''}
+                              </span>
+                            </Tooltip>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-700 font-medium capitalize">
+                              {dnsError.discoveredVia === 'link_check' ? 'Link Check' : (dnsError.discoveredVia as string)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">
+                            Check DNS configuration & verify domain exists
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {results.dnsErrors.length > 20 && (
+                  <div className="px-4 py-2 bg-purple-100 text-sm text-purple-700">
+                    Showing 20 of {results.dnsErrors.length} DNS errors
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                🔴 <strong>Critical Infrastructure Issue:</strong> These URLs failed DNS resolution, meaning the domain name could not be resolved to an IP address. This prevents search engine crawlers from accessing the content. Common causes include: expired domains, incorrect DNS configuration, non-existent subdomains, or DNS propagation delays. Contact your hosting provider or domain registrar to resolve these issues.
+              </p>
+            </div>
+          )}
+
           {/* Permanent Redirects Table */}
           {results.permanentRedirects && results.permanentRedirects.length > 0 && (
             <div id="permanent-redirects-table" className="mb-6">
