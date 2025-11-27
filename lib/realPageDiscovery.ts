@@ -301,12 +301,13 @@ export class RealPageDiscovery {
     const domain = url.hostname;
     const pagesToCrawl = [startUrl];
     const foundPages: DiscoveredPage[] = [];
+    const allDiscoveredLinks = new Set<string>(); // Track ALL links we find
     let currentDepth = 0;
     const maxDepth = 3;
 
     while (pagesToCrawl.length > 0 && foundPages.length < this.maxPages && currentDepth < maxDepth) {
       const currentUrl = pagesToCrawl.shift()!;
-      
+
       if (this.visitedUrls.has(currentUrl)) continue;
       this.visitedUrls.add(currentUrl);
 
@@ -350,6 +351,18 @@ export class RealPageDiscovery {
             })
             .slice(0, 10); // Limit new links per page
 
+          // Add all discovered links to our set (even if we won't crawl them all)
+          pageAnalysis.internalLinks.forEach(link => {
+            try {
+              const linkUrl = new URL(link);
+              if (linkUrl.hostname === domain) {
+                allDiscoveredLinks.add(link);
+              }
+            } catch {
+              // Invalid URL, skip
+            }
+          });
+
           pagesToCrawl.push(...newLinks);
         }
       } catch (error) {
@@ -363,7 +376,84 @@ export class RealPageDiscovery {
     }
 
     console.log(`🎯 Intelligent crawl found ${foundPages.length} pages at depth ${currentDepth}`);
+
+    // CRITICAL: Check status of ALL discovered links that we didn't fully crawl
+    // This catches 404s and other errors beyond the 50-page crawl limit
+    const uncheckedLinks = Array.from(allDiscoveredLinks).filter(link => !this.visitedUrls.has(link));
+
+    if (uncheckedLinks.length > 0) {
+      console.log(`🔍 Checking status of ${uncheckedLinks.length} additional discovered links for 4XX/5XX errors...`);
+
+      // Check links in batches to avoid overwhelming the server
+      const batchSize = 10;
+      for (let i = 0; i < uncheckedLinks.length && i < 200; i += batchSize) {
+        const batch = uncheckedLinks.slice(i, i + batchSize);
+        const statusChecks = await Promise.allSettled(
+          batch.map(link => this.checkLinkStatus(link))
+        );
+
+        statusChecks.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value) {
+            const statusInfo = result.value;
+            // Only add pages with errors (4XX/5XX) or important redirects
+            if (statusInfo.statusCode >= 400) {
+              console.log(`   ⚠️  Found ${statusInfo.statusCode} error: ${statusInfo.url}`);
+              foundPages.push({
+                url: statusInfo.url,
+                title: `HTTP ${statusInfo.statusCode} Error`,
+                statusCode: statusInfo.statusCode,
+                source: 'crawl',
+                hasTitle: false,
+                hasDescription: false,
+                hasH1: false,
+                imageCount: 0,
+                linkCount: 0
+              });
+            }
+          }
+        });
+      }
+    }
+
+    console.log(`✅ Total pages found (including status checks): ${foundPages.length}`);
     return { pages: foundPages, depth: currentDepth };
+  }
+
+  /**
+   * Lightweight status check for a URL without fetching full content
+   * Used to check many links quickly for 4XX/5XX errors
+   */
+  private async checkLinkStatus(url: string): Promise<{url: string; statusCode: number} | null> {
+    try {
+      const response = await fetch(url, {
+        method: 'HEAD', // Use HEAD for faster checks
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(5000) // Shorter timeout for quick checks
+      });
+
+      return {
+        url,
+        statusCode: response.status
+      };
+    } catch (error) {
+      // If HEAD fails, try GET with redirect: manual
+      try {
+        const response = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(5000)
+        });
+
+        return {
+          url,
+          statusCode: response.status
+        };
+      } catch {
+        // Network error or timeout - don't report as it might be temporary
+        return null;
+      }
+    }
   }
 
   private async analyzePage(url: string, useBrowser: boolean = false): Promise<{
