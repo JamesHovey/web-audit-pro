@@ -12,7 +12,7 @@ interface CachedPageDiscovery {
 }
 
 const CACHE_KEY_PREFIX = 'page_discovery_'
-const CACHE_VERSION = 'v8' // v8: Check ALL sitemap pages for links, not just first 20 (v1.5.62)
+const CACHE_VERSION = 'v9' // v9: Parallel processing for 10x faster link extraction (v1.5.63)
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 /**

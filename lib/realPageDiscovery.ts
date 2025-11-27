@@ -438,7 +438,7 @@ export class RealPageDiscovery {
   }
 
   /**
-   * Collect all internal links from ALL sitemap pages
+   * Collect all internal links from ALL sitemap pages (in parallel for speed)
    * Used to find broken links that aren't in the sitemap
    */
   private async collectInternalLinksFromSitemapPages(
@@ -447,57 +447,78 @@ export class RealPageDiscovery {
   ): Promise<Set<string>> {
     const allLinks = new Set<string>();
 
-    // Check ALL sitemap pages to ensure we find all broken links
-    const pagesToSample = sitemapPages;
+    console.log(`   Extracting links from ${sitemapPages.length} sitemap pages in parallel...`);
 
-    console.log(`   Extracting links from ${pagesToSample.length} sitemap pages...`);
+    // Process pages in parallel batches for much faster performance
+    const batchSize = 10; // Process 10 pages at a time
+    let processedCount = 0;
 
-    for (const page of pagesToSample) {
-      try {
-        // Fetch page HTML
-        const response = await fetch(page.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-          signal: AbortSignal.timeout(this.timeout)
-        });
+    for (let i = 0; i < sitemapPages.length; i += batchSize) {
+      const batch = sitemapPages.slice(i, i + batchSize);
 
-        if (!response.ok) continue;
-
-        const html = await response.text();
-
-        // Extract internal links
-        const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
-        let linkMatch;
-
-        while ((linkMatch = linkRegex.exec(html)) !== null) {
-          const href = linkMatch[1];
-          if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-            continue;
-          }
-
+      // Fetch all pages in batch in parallel
+      const results = await Promise.allSettled(
+        batch.map(async (page) => {
           try {
-            const baseUrl = new URL(page.url);
-            let linkUrl: string;
+            const response = await fetch(page.url, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
+              signal: AbortSignal.timeout(this.timeout)
+            });
 
-            if (href.startsWith('http://') || href.startsWith('https://')) {
-              linkUrl = new URL(href).href;
-            } else {
-              linkUrl = new URL(href, baseUrl).href;
+            if (!response.ok) return [];
+
+            const html = await response.text();
+            const links: string[] = [];
+
+            // Extract internal links
+            const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+            let linkMatch;
+
+            while ((linkMatch = linkRegex.exec(html)) !== null) {
+              const href = linkMatch[1];
+              if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+                continue;
+              }
+
+              try {
+                const baseUrl = new URL(page.url);
+                let linkUrl: string;
+
+                if (href.startsWith('http://') || href.startsWith('https://')) {
+                  linkUrl = new URL(href).href;
+                } else {
+                  linkUrl = new URL(href, baseUrl).href;
+                }
+
+                const linkDomain = new URL(linkUrl).hostname;
+                if (linkDomain === domain) {
+                  links.push(linkUrl);
+                }
+              } catch {
+                // Invalid URL, skip
+              }
             }
 
-            const linkDomain = new URL(linkUrl).hostname;
-            if (linkDomain === domain) {
-              allLinks.add(linkUrl);
-            }
-          } catch {
-            // Invalid URL, skip
+            return links;
+          } catch (error) {
+            // Failed to fetch page
+            return [];
           }
+        })
+      );
+
+      // Collect all links from successful fetches
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          result.value.forEach(link => allLinks.add(link));
         }
-      } catch (error) {
-        // Failed to fetch page, continue with others
-        console.log(`   Could not extract links from ${page.url}`);
-      }
+      });
+
+      processedCount += batch.length;
+      console.log(`   Processed ${processedCount}/${sitemapPages.length} pages, found ${allLinks.size} unique links so far`);
     }
 
+    console.log(`   ✅ Extracted ${allLinks.size} unique internal links from ${sitemapPages.length} pages`);
     return allLinks;
   }
 
