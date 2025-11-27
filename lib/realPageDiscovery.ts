@@ -163,8 +163,8 @@ export class RealPageDiscovery {
             return { pages, sitemapUrl };
           }
         }
-      } catch (_error) {
-        console.log(`Could not parse sitemap ${sitemapUrl}:`, error.message);
+      } catch (error) {
+        console.log(`Could not parse sitemap ${sitemapUrl}:`, (error as Error).message);
       }
     }
 
@@ -198,8 +198,8 @@ export class RealPageDiscovery {
           allPages.push(...pages);
           console.log(`   ✓ Parsed ${pages.length} pages from ${sitemapUrl.split('/').pop()}, total: ${allPages.length}`);
         }
-      } catch (_error) {
-        console.log(`Could not fetch sitemap ${sitemapUrl}`);
+      } catch (error) {
+        console.log(`Could not fetch sitemap ${sitemapUrl}:`, (error as Error).message);
       }
     }
 
@@ -317,19 +317,27 @@ export class RealPageDiscovery {
         const useBrowser = currentDepth === 0;
         const pageAnalysis = await this.analyzePage(currentUrl, useBrowser);
 
-        if (pageAnalysis.statusCode === 200) {
-          foundPages.push({
-            url: currentUrl,
-            title: pageAnalysis.title,
-            statusCode: pageAnalysis.statusCode,
-            source: currentDepth === 0 ? 'navigation' : 'crawl',
-            hasTitle: pageAnalysis.hasTitle,
-            hasDescription: pageAnalysis.hasDescription,
-            hasH1: pageAnalysis.hasH1,
-            imageCount: pageAnalysis.imageCount,
-            linkCount: pageAnalysis.linkCount
-          });
+        // CRITICAL FIX: Add ALL pages to results, not just 200s
+        // This ensures we capture 4XX/5XX errors during crawling
+        foundPages.push({
+          url: currentUrl,
+          title: pageAnalysis.title,
+          statusCode: pageAnalysis.statusCode,
+          source: currentDepth === 0 ? 'navigation' : 'crawl',
+          hasTitle: pageAnalysis.hasTitle,
+          hasDescription: pageAnalysis.hasDescription,
+          hasH1: pageAnalysis.hasH1,
+          imageCount: pageAnalysis.imageCount,
+          linkCount: pageAnalysis.linkCount
+        });
 
+        // Log non-200 status codes
+        if (pageAnalysis.statusCode !== 200) {
+          console.log(`⚠️  HTTP ${pageAnalysis.statusCode} detected during crawl: ${currentUrl}`);
+        }
+
+        // Only continue crawling from successful pages
+        if (pageAnalysis.statusCode === 200) {
           // Find more internal links to crawl
           const newLinks = pageAnalysis.internalLinks
             .filter(link => {
@@ -344,8 +352,8 @@ export class RealPageDiscovery {
 
           pagesToCrawl.push(...newLinks);
         }
-      } catch (_error) {
-        console.log(`Could not crawl ${currentUrl}:`, error.message);
+      } catch (error) {
+        console.log(`Could not crawl ${currentUrl}:`, (error as Error).message);
       }
 
       // Move to next depth level
@@ -503,63 +511,6 @@ export class RealPageDiscovery {
           // Status is 2XX, get the content normally
           html = await initialResponse.text();
         }
-
-        // Check if a redirect occurred by comparing response.url with requested url
-        // Normalize both URLs for comparison (remove trailing slashes, protocol differences)
-        const normalizeUrl = (u: string) => {
-          try {
-            const parsed = new URL(u);
-            return `${parsed.protocol}//${parsed.hostname}${parsed.pathname.replace(/\/$/, '')}${parsed.search}`;
-          } catch {
-            return u;
-          }
-        };
-
-        const requestedUrl = normalizeUrl(url);
-        const finalUrl = normalizeUrl(response.url);
-
-        // If URLs differ after normalization, a redirect occurred
-        if (requestedUrl !== finalUrl && response.redirected) {
-          // Detect redirect (fetch followed it automatically)
-          // We need to make a manual request to get the actual status code
-          try {
-            const manualResponse = await fetch(url, {
-              method: 'HEAD',
-              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WebAuditPro/1.0)' },
-              redirect: 'manual',
-              signal: AbortSignal.timeout(5000)
-            });
-
-            // If it's a permanent redirect (301 or 308), mark it
-            if (manualResponse.status === 301 || manualResponse.status === 308) {
-              // Extract basic metadata from the already-fetched HTML
-              const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-              const pageTitle = titleMatch ? titleMatch[1].trim() : 'No title';
-              const pageHasTitle = /<title[^>]*>.*<\/title>/is.test(html);
-              const pageHasDescription = hasMetaDescription(html);
-              const pageHasH1 = hasH1Tag(html);
-              const imageMatches = html.match(/<img[^>]+>/gi) || [];
-              const pageImageCount = imageMatches.length;
-
-              return {
-                title: pageTitle,
-                statusCode,
-                hasTitle: pageHasTitle,
-                hasDescription: pageHasDescription,
-                hasH1: pageHasH1,
-                imageCount: pageImageCount,
-                linkCount: 0,
-                internalLinks: [],
-                isRedirect: true,
-                originalUrl: url,
-                finalUrl: response.url,
-                redirectStatusCode: manualResponse.status
-              };
-            }
-          } catch {
-            // If manual check fails, just continue without redirect info
-          }
-        }
       }
       const baseUrl = new URL(url);
 
@@ -633,7 +584,8 @@ export class RealPageDiscovery {
         internalLinks: [...new Set(internalLinks)] // Remove duplicates
       };
 
-    } catch (_error) {
+    } catch (error) {
+      console.log(`Error analyzing page ${url}:`, (error as Error).message);
       return {
         title: 'Error loading page',
         statusCode: 0,

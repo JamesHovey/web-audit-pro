@@ -1,6 +1,6 @@
 {
   "name": "web-audit-pro",
-  "version": "1.5.55",
+  "version": "1.5.56",
   "private": true,
   "scripts": {
     "dev": "next dev",
